@@ -23,3 +23,7 @@ It also builds:
 - `dist/codex/`
 - `dist/claude/`
 - `dist/claude-zips/`
+
+## License
+
+MIT.
