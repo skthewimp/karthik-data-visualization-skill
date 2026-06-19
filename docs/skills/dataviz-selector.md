@@ -87,4 +87,4 @@ If the user asks for one of these, the skill should say it is not recommended an
 
 ## Public red-team suite
 
-See `dataviz-selector/references/eval-prompts.md` for adversarial prompts, including requests for pies, 3D donuts, dual-axis charts, and interactive dashboards.
+Keep adversarial eval prompts local-only; do not commit `references/` or `scripts/` to the public repo.

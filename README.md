@@ -82,16 +82,7 @@ The Claude ZIPs are intended for sharing/import:
 
 The selector skill includes:
 
-- `dataviz-selector/references/eval-prompts.md` - public red-team prompts
-- `dataviz-selector/scripts/judge_recommendation.py` - lightweight recommendation checker
-
-Example:
-
-```bash
-dataviz-selector/scripts/judge_recommendation.py < some-recommendation.md
-```
-
-The judge is intentionally small. It checks structure and obvious guardrails. It is not a substitute for human taste.
+- Local-only `references/` and `scripts/` helpers may exist for development, but are ignored and not committed to the public repo.
 
 ## Development notes
 

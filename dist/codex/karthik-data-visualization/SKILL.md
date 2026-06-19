@@ -7,7 +7,7 @@ description: >-
   visual analysis in any project. Applies Karthik's chart style and
   Tufte-inspired principles: data-ink ratio, chartjunk removal, graphical
   integrity, comparison, small multiples, sparklines, layering, and high-density
-  displays. Load the full guide before finalizing chart design or chart-related
+  displays. Use the embedded workflow before finalizing chart design or chart-related
   code.
 metadata:
   short-description: Karthik chart style
@@ -18,9 +18,7 @@ metadata:
 
 Use this skill for any chart, graph, dashboard, or data visualization work, including chart-generating code, visual analysis pages, annotations, captions, labels, palettes, and chart review.
 
-Before finalizing design decisions or chart code, read `references/data-visualization-style-guide.md` and apply it directly. It is the single source of truth for this skill.
-
-For quick chart edits, apply the workflow below without loading every reference.
+Apply the workflow below before finalizing design decisions or chart code. Private local references may add nuance, but this public skill is self-contained.
 
 Workflow:
 
@@ -56,6 +54,3 @@ When writing or changing chart code:
 - Consider range frames, rug marks, or labeled data points when axes or ticks can carry more information.
 - Include enough source, scale, timeframe, and transformation notes for a stranger to evaluate the evidence.
 
-Reference:
-
-- `references/data-visualization-style-guide.md`

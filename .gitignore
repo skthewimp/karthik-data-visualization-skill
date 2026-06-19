@@ -1,0 +1,13 @@
+# Local/private skill internals
+**/references/
+**/scripts/
+
+# Build artifacts / packaged copies
+/dist/**/*.zip
+/dist/**/references/
+/dist/**/scripts/
+
+# OS/cache
+.DS_Store
+__pycache__/
+*.pyc

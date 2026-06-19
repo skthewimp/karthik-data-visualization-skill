@@ -9,7 +9,7 @@ Use this before making a chart when the user has a dataset and a question/hypoth
 
 Core job: pick the visual form that makes the intended claim easiest to see and hardest to misread.
 
-For detailed rules, read `references/selection-prior.md` when doing non-trivial chart selection, reviewing chart fit, or generating chart code.
+For non-trivial chart selection, use the workflow and guardrails below; private local references may add nuance, but this public skill is self-contained.
 
 ## Workflow
 
