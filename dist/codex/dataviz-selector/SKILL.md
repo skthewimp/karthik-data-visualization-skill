@@ -1,0 +1,72 @@
+---
+name: dataviz-selector
+description: Choose the right visualization for a given dataset plus analytical question, hypothesis, data story, or management problem. Use when an assistant needs to recommend, design, critique, or implement chart choices before creating a plot; especially for Karthik-style explanatory analytics, Mint-style data stories, Babbage/management decks, election/sports/payment/geography/risk visualizations, or deciding between lines, bars, scatter, maps, distributions, small multiples, scorecards, waterfalls, and tables.
+metadata:
+  short-description: Choose chart forms for data stories
+  claude-description: Choose the right chart for a dataset plus question, hypothesis, story, or management problem; avoids misleading/decorative forms.
+---
+
+# Dataviz Selector
+
+Use this before making a chart when the user has a dataset and a question/hypothesis/story to answer.
+
+Core job: pick the visual form that makes the intended claim easiest to see and hardest to misread.
+
+For detailed rules, read `references/selection-prior.md` when doing non-trivial chart selection, reviewing chart fit, or generating chart code.
+
+## Workflow
+
+1. State the one-sentence claim the chart must support. If there are multiple claims, split into multiple charts.
+2. Identify the comparison: time, peers, baseline, target, counterfactual, distribution, spatial context, model expectation, or decomposition.
+3. Identify the data grain: time series, category, entity, location, event/ball, survey response, model output, simulation, transaction, or scorecard metric.
+4. Choose the simplest chart that exposes that comparison.
+5. Add only necessary context: direct labels, event line/band, threshold, uncertainty ribbon, counterfactual, facet, or annotation.
+6. Say what to avoid: misleading axis, overplotting, unnecessary regression, crowded legend, map-for-ranking, stacked bars for precise comparisons, etc.
+7. If generating code, then also apply `karthik-data-visualization` styling before final output.
+
+## Fast chooser
+
+- Trend/intervention: line + points; vertical marker; optional pre-period trend/counterfactual.
+- Slowing growth: raw line + marked slowdown + dotted earlier-growth projection; avoid YoY as main chart unless technical audience.
+- Forecast/anomaly: actual line, forecast/dashed line, uncertainty ribbon, highlighted anomaly/intervention window.
+- Many comparable series: small multiples or cluster prototypes; avoid spaghetti.
+- Ranking: sorted horizontal bars; bar axis starts at 0; highlight story item.
+- Composition/share substitution: 100% stacked bars/area only when mix is the story.
+- Distribution/skew/tails: histogram, density, ECDF, box, or violin; log scale for income/wealth/power-law data.
+- Relationship: scatter with direct labels; regression only when relationship is the claim and uncertainty is shown.
+- Elections: vote-seat scatter, swing-to-seats curves, margin/vote distributions, or selected maps depending on mechanism.
+- Sports mechanism: win-probability/advantage trajectory, phase curves, impact-in-context; avoid scorecard-only visuals.
+- Geography: map only when spatial pattern/shape matters; otherwise sorted bars/table.
+- Survey ordinal shape: faceted rating histograms for polarisation; diverging stacked bars for broad Likert composition.
+- Scenario/simulation: input-output scatter with threshold quadrants, density by alpha, fan/ribbon, or clustered representative paths.
+- Decomposition/root cause: waterfall/bridge, ranked contribution bars, or compact root-cause table.
+- Management scan: scorecard table first, diagnostic chart second, action implication explicit.
+- Model explanation: observable category-rate/scenario-effect charts before coefficient tables.
+- Risk/portfolio: distributions/scenarios/downside tails/utility curves; avoid mean-volatility alone.
+
+## Output format for recommendations
+
+Use this concise structure:
+
+```markdown
+Recommended visual: <chart form>
+Why: <claim-comparison fit>
+Encoding: X = ..., Y = ..., colour/facet/label = ...
+Context layers: <thresholds/events/counterfactuals/annotations>
+Avoid: <bad alternatives or pitfalls>
+If implementing: <short code/design note>
+```
+
+## Hard guardrails
+
+- One chart, one main job.
+- Never select pie charts, donut charts, 3D charts, animated/moving charts, interactive charts, gauges, radar/spider charts, or decorative infographic forms as the recommendation. If the user asks for one of these, say it is not recommended and offer the closest static alternative. Only mention the requested bad form as something to avoid.
+- Never recommend dashboards as a substitute for an interpreted story.
+- Bars start at zero; scatters need not.
+- Do not extend regression/counterfactual lines beyond defensible range without marking them as projections.
+- Label derived meaning directly when the evidence is a gap, quadrant, cluster, or area between curves.
+- Prefer direct labels to legends.
+- If part-to-whole is requested, prefer sorted bars, 100% stacked bars, tables, or small multiples over pies/donuts.
+- Use maps only for spatial stories.
+- If a clever chart needs too much explanation, use a simple chart plus annotation.
+- Managers do not want dashboards; they want interpreted stories and actions.

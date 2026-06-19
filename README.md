@@ -1,9 +1,8 @@
-# Karthik Data Visualization Skill
+# Karthik Data Visualization Skills
 
-Public data visualization skill for Codex and Claude.
+Public data visualization skills for Codex and Claude.
 
-This repo contains only the chart/data-visualization skill. Personal writing-style
-skills live in a private repo.
+This repo contains Karthik's public chart/data-visualization skills. Personal writing-style skills live in a private repo.
 
 ## Usage
 
@@ -13,10 +12,12 @@ Install locally:
 ./sync.sh
 ```
 
-This installs the skill to both:
+This installs the skills to both:
 
 - `~/.codex/skills/karthik-data-visualization`
+- `~/.codex/skills/dataviz-selector`
 - `~/.claude/skills/karthik-data-visualization`
+- `~/.claude/skills/dataviz-selector`
 
 It also builds:
 

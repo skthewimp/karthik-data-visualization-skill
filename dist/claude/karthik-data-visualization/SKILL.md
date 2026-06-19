@@ -1,7 +1,6 @@
 ---
 name: karthik-data-visualization
-description: Create or review charts, dashboards, and data visualizations in Karthik's
-  style. Use for plots, labels, palettes, annotations, and visual analysis.
+description: Create or review charts, dashboards, and data visualizations in Karthik's style. Use for plots, labels, palettes, annotations, and visual analysis.
 ---
 
 # Karthik Data Visualization
