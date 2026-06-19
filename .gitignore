@@ -2,10 +2,8 @@
 **/references/
 **/scripts/
 
-# Build artifacts / packaged copies
-/dist/**/*.zip
-/dist/**/references/
-/dist/**/scripts/
+# Old/generated build artifacts
+dist/
 
 # OS/cache
 .DS_Store

@@ -15,8 +15,8 @@ while [[ $# -gt 0 ]]; do
       cat <<'EOF'
 Usage: ./sync.sh [--no-pull]
 
-Pull latest changes, build Codex and Claude copies, and install the public
-karthik-data-visualization skill to ~/.codex/skills and ~/.claude/skills.
+Pull latest changes and install the public data visualization skills to
+~/.codex/skills and ~/.claude/skills.
 EOF
       exit 0
       ;;

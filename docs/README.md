@@ -14,9 +14,9 @@ Human-facing documentation for the public data visualization skills.
 
 ## Development workflow
 
-1. Edit source skills at repo root.
+1. Edit skills in `<skill>/codex/SKILL.md` and `<skill>/claude/SKILL.md`.
 2. Keep human documentation in `docs/`.
-3. Run `./sync.sh --no-pull` to rebuild `dist/` and install local copies.
-4. Commit source, docs, and rebuilt distributions when skill files change.
+3. Run `./sync.sh --no-pull` to install local copies.
+4. Commit source and docs only; do not commit generated distributions.
 
 Do not put general README files inside skill directories unless they are meant to ship as skill resources.

@@ -13,16 +13,18 @@ The split is deliberate. One skill answers **"what chart should I use?"**. The o
 
 ```text
 .
-├── karthik-data-visualization/      # Chart styling skill
-├── dataviz-selector/                # Chart selection skill
-├── docs/                            # Human docs and writeups
-├── dist/
-│   ├── codex/                       # Built Codex-ready skill copies
-│   ├── claude/                      # Built Claude-ready skill copies
-│   └── claude-zips/                 # Claude import ZIPs
-├── sync-skills.py                   # Build + install script
-└── sync.sh                          # Pull + build + install wrapper
+├── karthik-data-visualization/
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataviz-selector/
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── docs/
+├── sync-skills.py                   # Install both surfaces locally
+└── sync.sh                          # Pull + install wrapper
 ```
+
+Each skill owns its Codex and Claude versions directly. No generated `dist/` tree is committed.
 
 ## Skills
 
@@ -52,31 +54,18 @@ See: [`docs/skills/karthik-data-visualization.md`](docs/skills/karthik-data-visu
 ./sync.sh
 ```
 
-This pulls latest changes, builds the Codex and Claude copies, and installs both skills to:
+This pulls latest changes and installs both skills to:
 
 - `~/.codex/skills/karthik-data-visualization`
 - `~/.codex/skills/dataviz-selector`
 - `~/.claude/skills/karthik-data-visualization`
 - `~/.claude/skills/dataviz-selector`
 
-To build and install without pulling:
+To install without pulling:
 
 ```bash
 ./sync.sh --no-pull
 ```
-
-## Build outputs
-
-Running `./sync.sh --no-pull` rebuilds:
-
-- `dist/codex/`
-- `dist/claude/`
-- `dist/claude-zips/`
-
-The Claude ZIPs are intended for sharing/import:
-
-- `dist/claude-zips/karthik-data-visualization.zip`
-- `dist/claude-zips/dataviz-selector.zip`
 
 ## Validation and red-team prompts
 
@@ -86,10 +75,9 @@ The selector skill includes:
 
 ## Development notes
 
-- Source skills live at repo root.
-- `sync-skills.py` discovers every root-level directory containing `SKILL.md`.
-- The script writes Codex copies as-is.
-- For Claude copies, it rewrites frontmatter to use the short Claude-safe description from `metadata.claude-description` when present.
+- Source skills live in `<skill>/{codex,claude}/SKILL.md`.
+- `sync-skills.py` discovers every root-level directory containing both surface files.
+- No generated `dist/` output is committed.
 - Avoid putting extra README files inside skill directories unless they are meant to ship as skill resources. Human documentation belongs in `docs/`.
 
 ## Session notes and writeups
