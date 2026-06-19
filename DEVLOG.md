@@ -22,3 +22,9 @@
 - Red-teamed the selector with out-of-sample prompts and rendered local examples from fuel-price, small-airport, and management PBT-miss data.
 - Added the skill to this public repo, updated `sync-skills.py` to build/install multiple skills, generated Codex and Claude distributions, and pushed commit `df5c507`.
 - Added repo documentation, skill docs, this devlog, and a short blog-style writeup about the process.
+## 2026-06-19 - Navigation docs preference
+
+- Repo should be easy for a new person to navigate from GitHub alone.
+- Keep README files in every public folder, including skill folders and `codex/` / `claude/` subfolders.
+- Do not expose private `references/` or `scripts/`; those stay local-only and ignored.
+

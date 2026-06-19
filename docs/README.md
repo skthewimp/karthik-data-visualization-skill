@@ -19,4 +19,4 @@ Human-facing documentation for the public data visualization skills.
 3. Run `./sync.sh --no-pull` to install local copies.
 4. Commit source and docs only; do not commit generated distributions.
 
-Do not put general README files inside skill directories unless they are meant to ship as skill resources.
+Keep README files in public folders. They are part of the repo navigation contract for newcomers.

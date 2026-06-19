@@ -13,18 +13,18 @@ The split is deliberate. One skill answers **"what chart should I use?"**. The o
 
 ```text
 .
-├── karthik-data-visualization/
+├── karthik-data-visualization/      # Chart-style skill; folder README explains layout
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
-├── dataviz-selector/
+├── dataviz-selector/                # Chart-selection skill; folder README explains layout
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
-├── docs/
+├── docs/                            # Human docs; subfolder READMEs explain contents
 ├── sync-skills.py                   # Install both surfaces locally
 └── sync.sh                          # Pull + install wrapper
 ```
 
-Each skill owns its Codex and Claude versions directly. No generated `dist/` tree is committed.
+Each skill owns its Codex and Claude versions directly. Every public folder has a README so newcomers can navigate without prior context. No generated `dist/` tree is committed.
 
 ## Skills
 
@@ -78,7 +78,7 @@ The selector skill includes:
 - Source skills live in `<skill>/{codex,claude}/SKILL.md`.
 - `sync-skills.py` discovers every root-level directory containing both surface files.
 - No generated `dist/` output is committed.
-- Avoid putting extra README files inside skill directories unless they are meant to ship as skill resources. Human documentation belongs in `docs/`.
+- Keep README files in public folders. They are navigation aids for newcomers and should be updated when layout changes.
 
 ## Session notes and writeups
 
