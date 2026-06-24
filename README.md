@@ -2,13 +2,14 @@
 
 Public data visualization skills for Codex and Claude.
 
-This repo contains three related skills:
+This repo contains four related skills:
 
 1. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 2. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
 3. **`karthik-powerpoint-style`** - slide and deck rules for making PowerPoint-style presentations in Karthik's analytical, claim-first style.
+4. **`dataviz-critique`** - chart critique rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards.
 
-The split is deliberate. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The PowerPoint skill answers **"how should this analysis become slides?"**.
+The split is deliberate. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart and how should it improve?"**. The PowerPoint skill answers **"how should this analysis become slides?"**.
 
 ## Repository layout
 
@@ -21,6 +22,9 @@ The split is deliberate. One skill answers **"what chart should I use?"**. Anoth
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── karthik-powerpoint-style/        # Presentation-slide skill; folder README explains layout
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataviz-critique/                # Visualization critique skill; folder README explains layout
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── docs/                            # Human docs; subfolder READMEs explain contents
@@ -52,6 +56,12 @@ Use this after chart selection, when generating or reviewing the visual itself. 
 
 See: [`docs/skills/karthik-data-visualization.md`](docs/skills/karthik-data-visualization.md)
 
+### `dataviz-critique`
+
+Use this when you have an existing visual and context such as the intended story, data, audience, or decision, and you want to know what works, what fails, and how to improve it.
+
+See: [`docs/skills/dataviz-critique.md`](docs/skills/dataviz-critique.md)
+
 ### `karthik-powerpoint-style`
 
 Use this when turning analysis into PowerPoint-style slides or deck outlines. It covers claim-first titles, slide layout, chart placement, annotation, source notes, typography, colour, and what to avoid in management presentations.
@@ -69,9 +79,11 @@ This pulls latest changes and installs all skills to:
 - `~/.codex/skills/karthik-data-visualization`
 - `~/.codex/skills/dataviz-selector`
 - `~/.codex/skills/karthik-powerpoint-style`
+- `~/.codex/skills/dataviz-critique`
 - `~/.claude/skills/karthik-data-visualization`
 - `~/.claude/skills/dataviz-selector`
 - `~/.claude/skills/karthik-powerpoint-style`
+- `~/.claude/skills/dataviz-critique`
 
 To install without pulling:
 

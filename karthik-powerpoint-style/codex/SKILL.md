@@ -1,9 +1,9 @@
 ---
 name: karthik-powerpoint-style
-description: Create, revise, or critique PowerPoint and presentation slides in Karthik's style: analytical claim-first titles, sparse chart-first layouts, direct labels, clean typography, minimal decoration, source notes, and management-ready slide patterns for charts, scorecards, recommendations, and deck outlines.
+description: "Create, revise, or critique PowerPoint and presentation slides in Karthik's style: analytical claim-first titles, sparse chart-first layouts, direct labels, clean typography, minimal decoration, source notes, and management-ready slide patterns for charts, scorecards, recommendations, and deck outlines."
 metadata:
   short-description: Karthik PowerPoint style
-  claude-description: Create or critique analytical PowerPoint slides in Karthik's style: claim-first titles, sparse layouts, clean charts, and minimal decoration.
+  claude-description: "Create or critique analytical PowerPoint slides in Karthik's style: claim-first titles, sparse layouts, clean charts, and minimal decoration."
 ---
 
 # Karthik PowerPoint Style
