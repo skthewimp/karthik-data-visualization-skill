@@ -6,6 +6,7 @@ Human-facing documentation for the public data visualization skills.
 
 - [`skills/dataviz-selector.md`](skills/dataviz-selector.md) - how to use the chart-selection skill
 - [`skills/karthik-data-visualization.md`](skills/karthik-data-visualization.md) - how to use the chart-styling skill
+- [`skills/karthik-powerpoint-style.md`](skills/karthik-powerpoint-style.md) - how to use the presentation-slide style skill
 
 ## Project notes
 

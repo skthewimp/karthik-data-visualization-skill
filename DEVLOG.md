@@ -28,3 +28,10 @@
 - Keep README files in every public folder, including skill folders and `codex/` / `claude/` subfolders.
 - Do not expose private `references/` or `scripts/`; those stay local-only and ignored.
 
+## 2026-06-24 - PowerPoint style skill
+
+- Added `karthik-powerpoint-style` as a third public skill, with both `codex/SKILL.md` and `claude/SKILL.md` to match the repository's per-skill surface layout.
+- The skill captures reusable instructions for making analytical PowerPoint-style slides in Karthik's style: claim-first titles, sparse layouts, direct labels, chart-first evidence, minimal decoration, source notes, and management-ready slide patterns.
+- Added folder-level READMEs for the new skill and a human guide at `docs/skills/karthik-powerpoint-style.md` so a new GitHub reader can navigate the skill without prior context.
+- Updated the root README and docs index to describe how the PowerPoint skill relates to `dataviz-selector` and `karthik-data-visualization`.
+
