@@ -106,7 +106,8 @@ The selector skill includes:
 
 ## Session notes and writeups
 
-- [`DEVLOG.md`](DEVLOG.md)
+- [`CHANGELOG.md`](CHANGELOG.md) - release-style summary of public repo changes.
+- [`DEVLOG.md`](DEVLOG.md) - session notes with prompts and work done.
 - [`docs/blog/building-the-dataviz-selector-skill.md`](docs/blog/building-the-dataviz-selector-skill.md)
 
 ## License

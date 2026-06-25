@@ -22,6 +22,7 @@
 - Red-teamed the selector with out-of-sample prompts and rendered local examples from fuel-price, small-airport, and management PBT-miss data.
 - Added the skill to this public repo, updated `sync-skills.py` to build/install multiple skills, generated Codex and Claude distributions, and pushed commit `df5c507`.
 - Added repo documentation, skill docs, this devlog, and a short blog-style writeup about the process.
+
 ## 2026-06-19 - Navigation docs preference
 
 - Repo should be easy for a new person to navigate from GitHub alone.
@@ -34,4 +35,22 @@
 - The skill captures reusable instructions for making analytical PowerPoint-style slides in Karthik's style: claim-first titles, sparse layouts, direct labels, chart-first evidence, minimal decoration, source notes, and management-ready slide patterns.
 - Added folder-level READMEs for the new skill and a human guide at `docs/skills/karthik-powerpoint-style.md` so a new GitHub reader can navigate the skill without prior context.
 - Updated the root README and docs index to describe how the PowerPoint skill relates to `dataviz-selector` and `karthik-data-visualization`.
+
+## 2026-06-25 - Dataviz critique skill and documentation
+
+### User prompts
+
+> "Now I want to build a new skill on how to critique a visualization..."
+
+> "Can it come up with two or three different new alternatives for visualization?"
+
+> "you need to put a changelog /devlog / ... right now the documentation isveryvery weak"
+
+### Work done
+
+- Added `dataviz-critique` as a public Codex/Claude skill for reviewing existing charts, dashboards, slide visuals, and AI-generated plots.
+- Based the critique workflow on Kaiser Fung's Question–Data–Visual trifecta and Karthik's clarity-first, intentional-design visualization philosophy.
+- Extended the skill from critique-only to critique-plus-redesign: it now proposes minimal repair, better analytical redesign, and different story-lens alternatives where useful.
+- Expanded `docs/skills/dataviz-critique.md` into a full human-facing guide with fit, inputs, output contract, redesign patterns, and example skeleton.
+- Added `CHANGELOG.md` so public repository changes are easier to scan separately from session notes.
 
