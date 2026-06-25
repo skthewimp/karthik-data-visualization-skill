@@ -1,16 +1,16 @@
 ---
 name: dataviz-critique
-description: Critique an existing data visualization against its context, data, intended message, and audience. Use when reviewing charts, dashboards, infographic-style visuals, plots, slides with charts, AI-generated visualizations, or drafts that need diagnosis, prioritized fixes, or redesign guidance. Combines Kaiser Fung's question-data-visual trifecta checkup with Karthik Shashidhar's clarity-first, intentional-design, fundamentals-first visualization philosophy.
+description: Critique an existing data visualization against its context, data, intended message, and audience, then propose two or three improved visualization alternatives. Use when reviewing charts, dashboards, infographic-style visuals, plots, slides with charts, AI-generated visualizations, or drafts that need diagnosis, prioritized fixes, redesign options, or alternative story angles. Combines Kaiser Fung's question-data-visual trifecta checkup with Karthik Shashidhar's clarity-first, intentional-design, fundamentals-first visualization philosophy.
 metadata:
-  short-description: Critique and improve data visualizations
-  claude-description: Critique charts with Fung's question-data-visual trifecta plus Karthik's clarity-first design standards.
+  short-description: Critique visuals and propose alternatives
+  claude-description: Critique charts with Fung's trifecta, then suggest 2-3 stronger visualization alternatives.
 ---
 
 # Dataviz Critique
 
 Use this when the user gives a visualization, screenshot, chart spec, code output, dashboard, or slide and asks whether it works or how to improve it.
 
-Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing.
+Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing; then offer a small set of better visualization alternatives, not just criticism.
 
 ## Inputs to seek or infer
 
@@ -104,9 +104,30 @@ Do not over-focus on minor style while fatal data/question problems remain.
 2. Name the top 3 problems by severity, not by order seen.
 3. For each problem, explain impact: what would a viewer misunderstand or miss?
 4. Give concrete fixes: data change, chart-type change, encoding change, annotation/copy change, or layout change.
-5. Propose a better chart spec if needed: chart type, x/y, colour/facet/label, scale, ordering, annotations, source/caveat.
-6. If useful, give a before/after title: current descriptive title → claim-first title.
-7. If context is insufficient, list exact checks needed rather than pretending certainty.
+5. Propose 2-3 visualization alternatives when the user wants redesign, the current chart is weak, or multiple defensible story angles exist.
+6. For each alternative, explain the analytical purpose, chart form, encoding, what it fixes/reveals, and its tradeoff.
+7. If useful, give a before/after title: current descriptive title → claim-first title.
+8. If context is insufficient, list exact checks needed rather than pretending certainty.
+
+## Redesign alternatives
+
+When proposing alternatives, do not list random chart types. Each option must represent a distinct intervention level or analytical purpose. Prefer two options when the fix is obvious; use three when there are genuinely different story angles.
+
+Use this option set by default:
+
+1. **Minimal repair** — keep the original chart form where possible; fix labels, title, axis, scale, colour, ordering, annotation, and caveats. Best when the chart type is basically right but execution is poor.
+2. **Better analytical redesign** — change the chart form to better answer the stated question. Best when the current encoding is wrong for the comparison.
+3. **Different story lens** — reframe the view around a more revealing analytical question: totals → rates, average → distribution, snapshot → trend, level → change, ranking → decomposition, geography → comparison, dashboard → interpreted action. Best when the original question is underspecified or less useful than another defensible question.
+
+For each option, include:
+
+- Best when: when this option is appropriate.
+- Chart: the form to use.
+- Encoding: x/y/colour/facet/label/scale/order.
+- What it fixes or reveals: the viewer benefit.
+- Tradeoff: what this option loses, simplifies, or assumes.
+
+If only one redesign is defensible, say so and give one strong option rather than padding.
 
 ## Output format
 
@@ -129,16 +150,35 @@ Use this structure by default:
 2. ...
 3. ...
 
-## Recommended redesign
-- Claim: ...
+## Recommended alternatives
+
+### Option A — Minimal repair
+- Best when: ...
 - Chart: ...
 - Encoding: ...
-- Context layers: ...
+- What it fixes: ...
+- Tradeoff: ...
+
+### Option B — Better analytical redesign
+- Best when: ...
+- Chart: ...
+- Encoding: ...
+- What it fixes/reveals: ...
+- Tradeoff: ...
+
+### Option C — Different story lens
+- Best when: ...
+- Chart: ...
+- Encoding: ...
+- What it reveals: ...
+- Tradeoff: ...
+
+## Implementation notes
 - Title/annotation: ...
 - Caveats/checks: ...
 ```
 
-For quick requests, compress to: verdict, top 3 fixes, recommended redesign.
+For quick requests, compress to: verdict, top 3 fixes, and 2 redesign alternatives.
 
 ## Tone
 

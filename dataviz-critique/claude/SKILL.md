@@ -1,13 +1,13 @@
 ---
 name: dataviz-critique
-description: Critique charts with Fung's question-data-visual trifecta plus Karthik's clarity-first design standards.
+description: Critique charts with Fung's trifecta, then suggest 2-3 stronger visualization alternatives.
 ---
 
 # Dataviz Critique
 
 Use this when reviewing an existing chart, dashboard, infographic, AI-generated visualization, or slide visual.
 
-Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing.
+Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing; then propose 2-3 better visualization alternatives.
 
 ## First pass
 
@@ -58,6 +58,18 @@ Apply these standards:
 
 Fix fatal data/question issues before style issues.
 
+## Redesign alternatives
+
+After critique, propose 2-3 alternatives when useful. Do not list random chart types; each option must have a distinct purpose.
+
+Default set:
+
+1. **Minimal repair** — keep chart form; fix labels, title, axis, scale, colour, ordering, annotation, caveats.
+2. **Better analytical redesign** — change chart form to better answer the stated question.
+3. **Different story lens** — reframe around a more revealing question: totals → rates, average → distribution, snapshot → trend, level → change, ranking → decomposition, geography → comparison, dashboard → interpreted action.
+
+For each option: best when, chart, encoding, what it fixes/reveals, tradeoff. If only one redesign is defensible, give one strong option rather than padding.
+
 ## Output
 
 Default structure:
@@ -79,13 +91,32 @@ Default structure:
 2. ...
 3. ...
 
-## Recommended redesign
-- Claim: ...
+## Recommended alternatives
+
+### Option A — Minimal repair
+- Best when: ...
 - Chart: ...
 - Encoding: ...
-- Context layers: ...
+- What it fixes: ...
+- Tradeoff: ...
+
+### Option B — Better analytical redesign
+- Best when: ...
+- Chart: ...
+- Encoding: ...
+- What it fixes/reveals: ...
+- Tradeoff: ...
+
+### Option C — Different story lens
+- Best when: ...
+- Chart: ...
+- Encoding: ...
+- What it reveals: ...
+- Tradeoff: ...
+
+## Implementation notes
 - Title/annotation: ...
 - Caveats/checks: ...
 ```
 
-For quick asks: verdict, top 3 fixes, recommended redesign.
+For quick asks: verdict, top 3 fixes, and 2 redesign alternatives.

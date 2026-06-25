@@ -7,9 +7,9 @@ This repo contains four related skills:
 1. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 2. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
 3. **`karthik-powerpoint-style`** - slide and deck rules for making PowerPoint-style presentations in Karthik's analytical, claim-first style.
-4. **`dataviz-critique`** - chart critique rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards.
+4. **`dataviz-critique`** - chart critique and redesign rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards, then proposing better alternatives.
 
-The split is deliberate. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart and how should it improve?"**. The PowerPoint skill answers **"how should this analysis become slides?"**.
+The split is deliberate. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**.
 
 ## Repository layout
 
@@ -58,7 +58,7 @@ See: [`docs/skills/karthik-data-visualization.md`](docs/skills/karthik-data-visu
 
 ### `dataviz-critique`
 
-Use this when you have an existing visual and context such as the intended story, data, audience, or decision, and you want to know what works, what fails, and how to improve it.
+Use this when you have an existing visual and context such as the intended story, data, audience, or decision, and you want to know what works, what fails, how to improve it, and what 2-3 alternative visualizations would work better.
 
 See: [`docs/skills/dataviz-critique.md`](docs/skills/dataviz-critique.md)
 
