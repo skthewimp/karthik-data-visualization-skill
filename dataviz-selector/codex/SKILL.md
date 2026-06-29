@@ -34,6 +34,7 @@ For non-trivial chart selection, use the workflow and guardrails below; private 
 - Composition/share substitution: 100% stacked bars/area only when mix is the story.
 - Distribution/skew/tails: histogram, density, ECDF, box, or violin; log scale for income/wealth/power-law data.
 - Relationship: scatter with direct labels; regression only when relationship is the claim and uncertainty is shown.
+- Normalized insight from canonical totals: when the source data's canonical measure is a total and the analysis adds a denominator (population, users, accounts, GDP, area), prefer a scatter of denominator vs total with diagonal iso-lines for the normalized metric. This preserves the original magnitude while showing per-capita/per-unit outliers. Use a ranked bar only when the normalized metric is itself the canonical measure or when ranking alone is the story.
 - Elections: vote-seat scatter, swing-to-seats curves, margin/vote distributions, or selected maps depending on mechanism.
 - Sports mechanism: win-probability/advantage trajectory, phase curves, impact-in-context; avoid scorecard-only visuals.
 - Geography: map only when spatial pattern/shape matters; otherwise sorted bars/table.
