@@ -2,6 +2,13 @@
 
 All notable public changes to this repository are recorded here.
 
+## 2026-06-30
+
+### Added
+
+- Added `karthik-analysis-planner` as a public Codex/Claude skill for turning natural-language data questions into analysis contracts before coding, charting, or prose.
+- Added human-facing docs for the analysis planner and updated repository indexes/install notes.
+
 ## 2026-06-25
 
 ### Added

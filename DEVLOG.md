@@ -54,3 +54,18 @@
 - Expanded `docs/skills/dataviz-critique.md` into a full human-facing guide with fit, inputs, output contract, redesign patterns, and example skeleton.
 - Added `CHANGELOG.md` so public repository changes are easier to scan separately from session notes.
 
+
+
+## 2026-06-30 - Analysis planner skill
+
+### User prompts
+
+> "Build the next unchecked skill from the TODO list as a Codex skill... let's start with analysis planner... go through a sample of [~/Documents/work]... pay special attention to ~/Documents/work/Mint..."
+
+> "all skills that we're building in this session need to be built for both Claude and Codex and pushed to my data visualisation skills repo. see the format of that repo and build accordingly"
+
+### Work done
+
+- Added `karthik-analysis-planner` to the public data visualization skills repo with both `codex/SKILL.md` and `claude/SKILL.md`.
+- Based the skill on Karthik's recurring notebook pattern: question, pulse check, row grain, denominator, comparison, sanity checks, falsifier, caveat, then prose.
+- Included the Bangalore 4pm rain question as the mini-example and updated README/docs/changelog navigation.
