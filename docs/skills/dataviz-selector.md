@@ -6,6 +6,7 @@ It is designed for situations where the failure mode is not bad styling, but bad
 
 - choosing a map when a sorted bar chart is clearer
 - using YoY growth when a raw time series plus counterfactual is easier to understand
+- leaving S-curve knee-bends, inflection years, or temporary local peaks unmarked
 - using a regression line when labelled points tell the story better
 - using a dashboard when management needs a decision and an action
 - using a pie chart because the data is technically "part-to-whole"
@@ -50,6 +51,7 @@ If implementing: <short code/design note>
 - Identify the comparison: time, peers, baseline, threshold, counterfactual, distribution, spatial context, model expectation, or decomposition.
 - Use the simplest chart that exposes that comparison.
 - Add context only when it helps: event markers, thresholds, ribbons, counterfactuals, direct labels, facets, or short annotations.
+- For S-curves and other shaped time series, mark visible knee-bends/inflections, local maxima/minima, and temporary peaks/troughs when they change the story.
 - If the dataset does not support the user's question, say so and chart the evidence that exists.
 
 ## Hard bans
@@ -72,7 +74,8 @@ If the user asks for one of these, the skill should say it is not recommended an
 | Problem | Recommended visual |
 |---|---|
 | Trend or intervention | Line + event marker, optionally counterfactual |
-| Slowing growth | Raw line + marked slowdown + dotted earlier-growth projection |
+| S-curve/adoption/diffusion | Line with muted raw values, emphasized smoothed trend, and sparse labels for takeoff knee, acceleration/deceleration knees, plateau/peak, and temporary local extrema |
+| Slowing growth | Raw line + marked slowdown/knee + dotted earlier-growth projection |
 | Forecast miss | Actual vs forecast + ribbon/gap annotation |
 | Ranking | Sorted horizontal bars, axis from zero |
 | Distribution/skew | Histogram, density, ECDF, boxplot, or violin |

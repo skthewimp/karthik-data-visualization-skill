@@ -21,3 +21,6 @@ Human-facing documentation for the public data visualization skills.
 4. Commit source and docs only; do not commit generated distributions.
 
 Keep README files in public folders. They are part of the repo navigation contract for newcomers.
+## Plans
+
+- [`plans/agentic-dataviz-skill-build-plan.md`](plans/agentic-dataviz-skill-build-plan.md) - multi-session build plan for the next wave of agentic dataviz skills.

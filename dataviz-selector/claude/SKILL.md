@@ -1,6 +1,6 @@
 ---
 name: dataviz-selector
-description: Choose the right chart for a dataset plus question, hypothesis, story, or management problem; avoids misleading/decorative forms.
+description: Choose charts for data stories, including S-curves, knee-bends, inflections, local peaks, and misleading/decorative forms.
 ---
 
 # Dataviz Selector
@@ -16,15 +16,17 @@ For non-trivial chart selection, use the workflow and guardrails below; private 
 1. State the one-sentence claim the chart must support. If there are multiple claims, split into multiple charts.
 2. Identify the comparison: time, peers, baseline, target, counterfactual, distribution, spatial context, model expectation, or decomposition.
 3. Identify the data grain: time series, category, entity, location, event/ball, survey response, model output, simulation, transaction, or scorecard metric.
-4. Choose the simplest chart that exposes that comparison.
-5. Add only necessary context: direct labels, event line/band, threshold, uncertainty ribbon, counterfactual, facet, or annotation.
-6. Say what to avoid: misleading axis, overplotting, unnecessary regression, crowded legend, map-for-ranking, stacked bars for precise comparisons, etc.
-7. If generating code, then also apply `karthik-data-visualization` styling before final output.
+4. For time-series charts, inspect shape before choosing annotations: mark visible knee-bends/inflection years, local maxima/minima, and temporary peaks/troughs when they change the story.
+5. Choose the simplest chart that exposes that comparison.
+6. Add only necessary context: direct labels, event line/band, threshold, uncertainty ribbon, counterfactual, facet, or annotation. For lines, include sparse labels for knee-bends and temporary extrema when visually salient and analytically meaningful.
+7. Say what to avoid: misleading axis, overplotting, unnecessary regression, crowded legend, map-for-ranking, stacked bars for precise comparisons, etc.
+8. If generating code, then also apply `karthik-data-visualization` styling before final output.
 
 ## Fast chooser
 
-- Trend/intervention: line + points; vertical marker; optional pre-period trend/counterfactual.
-- Slowing growth: raw line + marked slowdown + dotted earlier-growth projection; avoid YoY as main chart unless technical audience.
+- Trend/intervention: line + points; vertical marker; optional pre-period trend/counterfactual. Mark knee-bend years where slope visibly changes.
+- S-curve/adoption/diffusion pattern: line with muted raw points/annual values, emphasized smoothed line, labels for takeoff knee, acceleration/deceleration knees, plateau/peak, and any temporary local maximum/minimum. Avoid smooth-only lines that hide turns.
+- Slowing growth: raw line + marked slowdown/knee + dotted earlier-growth projection; avoid YoY as main chart unless technical audience.
 - Forecast/anomaly: actual line, forecast/dashed line, uncertainty ribbon, highlighted anomaly/intervention window.
 - Many comparable series: small multiples or cluster prototypes; avoid spaghetti.
 - Ranking: sorted horizontal bars; bar axis starts at 0; highlight story item.
@@ -50,7 +52,7 @@ Use this concise structure:
 Recommended visual: <chart form>
 Why: <claim-comparison fit>
 Encoding: X = ..., Y = ..., colour/facet/label = ...
-Context layers: <thresholds/events/counterfactuals/annotations>
+Context layers: <thresholds/events/counterfactuals/knee-bends/local extrema/annotations>
 Avoid: <bad alternatives or pitfalls>
 If implementing: <short code/design note>
 ```
@@ -62,9 +64,10 @@ If implementing: <short code/design note>
 - Never recommend dashboards as a substitute for an interpreted story.
 - Bars start at zero; scatters need not.
 - Do not extend regression/counterfactual lines beyond defensible range without marking them as projections.
-- Label derived meaning directly when the evidence is a gap, quadrant, cluster, or area between curves.
+- Label derived meaning directly when the evidence is a gap, quadrant, cluster, area between curves, knee-bend/inflection, or local maximum/minimum.
 - Prefer direct labels to legends.
 - If part-to-whole is requested, prefer sorted bars, 100% stacked bars, tables, or small multiples over pies/donuts.
 - Use maps only for spatial stories.
 - If a clever chart needs too much explanation, use a simple chart plus annotation.
+- For line charts with obvious slope changes or temporary extrema, do not leave the viewer to infer them. Mark the specific year/period on the chart, but keep markers sparse and defensible.
 - Managers do not want dashboards; they want interpreted stories and actions.
