@@ -2,15 +2,16 @@
 
 Public data visualization skills for Codex and Claude.
 
-This repo contains five related skills:
+This repo contains six related skills:
 
 1. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 2. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
 3. **`karthik-powerpoint-style`** - slide and deck rules for making PowerPoint-style presentations in Karthik's analytical, claim-first style.
 4. **`dataviz-critique`** - chart critique and redesign rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards, then proposing better alternatives.
 5. **`karthik-analysis-planner`** - analysis-contract rules for turning fuzzy natural-language questions into operational definitions, denominators, comparisons, metrics, caveats, and falsifiers before evidence-building.
+6. **`dataviz-orchestrator`** - end-to-end workflow for turning a dataset, loose question, and audience into an analysed, styled, critiqued visual story.
 
-The split is deliberate. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**.
+The split is deliberate. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**.
 
 ## Repository layout
 
@@ -31,6 +32,9 @@ The split is deliberate. One skill answers **"what chart should I use?"**. Anoth
 ├── karthik-analysis-planner/        # Analysis-contract skill; folder README explains layout
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
+├── dataviz-orchestrator/            # End-to-end visual-story workflow skill
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
 ├── docs/                            # Human docs; subfolder READMEs explain contents
 ├── sync-skills.py                   # Install both surfaces locally
 └── sync.sh                          # Pull + install wrapper
@@ -39,6 +43,13 @@ The split is deliberate. One skill answers **"what chart should I use?"**. Anoth
 Each skill owns its Codex and Claude versions directly. Every public folder has a README so newcomers can navigate without prior context. No generated `dist/` tree is committed.
 
 ## Skills
+
+
+### `dataviz-orchestrator`
+
+Use this when you have a dataset, a loose question, and an audience, and want the full loop: analysis plan, data profiling, analysis, story selection, visual choice, Karthik-style charting, critique, and iteration.
+
+See: [`docs/skills/dataviz-orchestrator.md`](docs/skills/dataviz-orchestrator.md)
 
 ### `dataviz-selector`
 
@@ -92,11 +103,13 @@ This pulls latest changes and installs all skills to:
 - `~/.codex/skills/karthik-powerpoint-style`
 - `~/.codex/skills/dataviz-critique`
 - `~/.codex/skills/karthik-analysis-planner`
+- `~/.codex/skills/dataviz-orchestrator`
 - `~/.claude/skills/karthik-data-visualization`
 - `~/.claude/skills/dataviz-selector`
 - `~/.claude/skills/karthik-powerpoint-style`
 - `~/.claude/skills/dataviz-critique`
 - `~/.claude/skills/karthik-analysis-planner`
+- `~/.claude/skills/dataviz-orchestrator`
 
 To install without pulling:
 
