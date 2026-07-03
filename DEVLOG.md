@@ -86,3 +86,34 @@
 - Based the skill on Karthik's local analysis patterns: Bangalore weather normals, wind/rain mechanism questions, payments volume/value/ticket-size splits, election swings and corners, operations bottlenecks, survey subgroup comparisons, and urban morphology questions.
 - Made the skill explicitly reject stale prompts and generic "trend of X" questions unless there is a clear comparison, denominator, or visual signal.
 - Updated README, docs index, skill docs, changelog, and local memory workflow.
+
+## 2026-07-03 - Contextual data cleaning skill and repo alignment
+
+### User prompts
+
+> "should we update teh orchestrator skill now that we have a contextual data cleaning skill as well?"
+
+> "actually look through the repo and see what else needs updating based on everythign else that's there now"
+
+### Work done
+
+- Added `karthik-data-cleaning` to the public skill set and wired it into the rest of the repo navigation.
+- Updated `dataviz-orchestrator` so the workflow is no longer “profile then analyse” in the abstract; it now explicitly includes contextual inspection, cleaning, reshaping, joins, and validation before charting.
+- Updated `dataset-question-generator` and `karthik-analysis-planner` so messy data gets cleaned only when that is needed to make signals or metrics legible.
+- Filled in missing README files for newer Codex/Claude skill subfolders and brought the docs indexes/changelog up to date.
+
+<!-- codex-session:019f26a5-c9d8-7292-8734-869cb2992a60:start -->
+## 2026-07-03 11:53 IST | Codex session `019f26a5-c9d`
+
+### User prompts
+> should we update teh orchestrator skill now that we have a contextual data cleaning skill as well?
+> actually look through the repo and see what else needs updating based on everythign else that's there now
+> is the repo clean now?
+
+### Work done
+- Need changelog mention README pass.
+- Done. - Proper READMEs added/expanded across public skill folders, Codex/Claude folders, docs folders. - Kept private reference/script contents ignored, but allowed their README files. - Data-cleaning is public again,...
+- Touched files: `.gitignore`, `CHANGELOG.md`, `README.md`, `dataset-question-generator/README.md`, `dataset-question-generator/claude/README.md`, `dataset-question-generator/claude/SKILL.md`, `dataset-question-generator/codex/README.md`, `dataset-question-generator/codex/SKILL.md`
+- .gitignore | 8 +++-
+
+<!-- codex-session:019f26a5-c9d8-7292-8734-869cb2992a60:end -->
