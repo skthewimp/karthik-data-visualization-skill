@@ -2,7 +2,7 @@
 
 Public data visualization skills for Codex and Claude.
 
-This repo contains six related skills:
+This repo contains seven related skills:
 
 1. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 2. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
@@ -10,8 +10,9 @@ This repo contains six related skills:
 4. **`dataviz-critique`** - chart critique and redesign rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards, then proposing better alternatives.
 5. **`karthik-analysis-planner`** - analysis-contract rules for turning fuzzy natural-language questions into operational definitions, denominators, comparisons, metrics, caveats, and falsifiers before evidence-building.
 6. **`dataviz-orchestrator`** - end-to-end workflow for turning a dataset, loose question, and audience into an analysed, styled, critiqued visual story.
+7. **`dataset-question-generator`** - upstream skill for profiling raw datasets and generating fresh, visualisable questions before planning or charting.
 
-The split is deliberate. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**.
+The split is deliberate. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**.
 
 ## Repository layout
 
@@ -33,6 +34,9 @@ The split is deliberate. The orchestrator answers **"take this from dataset to v
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── dataviz-orchestrator/            # End-to-end visual-story workflow skill
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataset-question-generator/      # Raw dataset to fresh question prompts
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── docs/                            # Human docs; subfolder READMEs explain contents
@@ -90,6 +94,13 @@ Use this when turning analysis into PowerPoint-style slides or deck outlines. It
 
 See: [`docs/skills/karthik-powerpoint-style.md`](docs/skills/karthik-powerpoint-style.md)
 
+
+### `dataset-question-generator`
+
+Use this when you have a raw dataset and need good seed questions before analysis or charting. It profiles the data, looks for visual signals and denominator traps, rejects stale prompts, and returns a ranked set of fresh visualisable questions.
+
+See: [`docs/skills/dataset-question-generator.md`](docs/skills/dataset-question-generator.md)
+
 ## Install locally
 
 ```bash
@@ -104,12 +115,14 @@ This pulls latest changes and installs all skills to:
 - `~/.codex/skills/dataviz-critique`
 - `~/.codex/skills/karthik-analysis-planner`
 - `~/.codex/skills/dataviz-orchestrator`
+- `~/.codex/skills/dataset-question-generator`
 - `~/.claude/skills/karthik-data-visualization`
 - `~/.claude/skills/dataviz-selector`
 - `~/.claude/skills/karthik-powerpoint-style`
 - `~/.claude/skills/dataviz-critique`
 - `~/.claude/skills/karthik-analysis-planner`
 - `~/.claude/skills/dataviz-orchestrator`
+- `~/.claude/skills/dataset-question-generator`
 
 To install without pulling:
 

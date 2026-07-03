@@ -69,3 +69,20 @@
 - Added `karthik-analysis-planner` to the public data visualization skills repo with both `codex/SKILL.md` and `claude/SKILL.md`.
 - Based the skill on Karthik's recurring notebook pattern: question, pulse check, row grain, denominator, comparison, sanity checks, falsifier, caveat, then prose.
 - Included the Bangalore 4pm rain question as the mini-example and updated README/docs/changelog navigation.
+
+## 2026-07-03 - Dataset question generator skill
+
+### User prompts
+
+> "do we already have a skill that, just given a raw dataset, figures out what questions to generate?"
+
+> "ok do that. use all the analysis in my computer. including outside this folder. to get training data for htis."
+
+> "ok and now produce both codex and claude versions of it, push it to karthik-data-visualisaiotn repo in the right format, etc. also update your memory..."
+
+### Work done
+
+- Added `dataset-question-generator` as a public skill with both Codex and Claude versions.
+- Based the skill on Karthik's local analysis patterns: Bangalore weather normals, wind/rain mechanism questions, payments volume/value/ticket-size splits, election swings and corners, operations bottlenecks, survey subgroup comparisons, and urban morphology questions.
+- Made the skill explicitly reject stale prompts and generic "trend of X" questions unless there is a clear comparison, denominator, or visual signal.
+- Updated README, docs index, skill docs, changelog, and local memory workflow.

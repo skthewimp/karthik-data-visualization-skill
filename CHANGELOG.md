@@ -2,6 +2,13 @@
 
 All notable public changes to this repository are recorded here.
 
+## 2026-07-03
+
+### Added
+
+- Added `dataset-question-generator` as a public Codex/Claude skill for profiling raw datasets and producing fresh, visualisable analysis questions before planning or charting.
+- Added human-facing docs and repository navigation entries for the new skill.
+
 ## 2026-06-30
 
 ### Added
