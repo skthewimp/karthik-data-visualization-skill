@@ -2,12 +2,31 @@
 
 All notable public changes to this repository are recorded here.
 
+## 2026-07-19
+
+### Changed
+
+- Reworked `karthik-powerpoint-style` title guidance: slide titles are plain claims, concept labels, or direct questions - not crafted aphorisms or "X, not Y" one-liners. Added a "Slide titles" section with good and banned examples, and softened the old "make the title an analytical claim, not a topic label" step that pushed toward crafted headlines.
+- Added a "Slide bodies" section: bullets or one short line, 3-5 points, no academic numbered procedures.
+- Added "Start from Karthik's own material": reuse his decks/blogs verbatim and lift real images from `.pptx` `ppt/media/` rather than paraphrasing or re-creating them.
+- Added a "Workshop / facilitator cue-card slide" pattern: during hands-on exercises the slide face carries only a plain title and a `time · artifact` anchor, with detail in facilitator notes.
+- Updated `docs/skills/karthik-powerpoint-style.md` to match.
+
 ## 2026-07-03
 
 ### Added
 
 - Added `dataset-question-generator` as a public Codex/Claude skill for profiling raw datasets and producing fresh, visualisable analysis questions before planning or charting.
 - Added human-facing docs and repository navigation entries for the new skill.
+- Added `karthik-data-cleaning` as a public Codex/Claude skill for context-sensitive tabular data preparation before analysis, modelling, and charting.
+- Added missing Codex/Claude subfolder README files for newer skills.
+- Expanded README coverage across skill folders, surface folders, docs folders, and public reference/script directories so the MIT repo is navigable from GitHub.
+
+### Changed
+
+- Updated `dataviz-orchestrator` so the full dataset-to-visual-story loop now explicitly includes contextual data inspection, cleaning, reshaping, joins, and validation.
+- Updated `dataset-question-generator` and `karthik-analysis-planner` to hand off to `karthik-data-cleaning` when the raw source needs cleaning before the question or metric is trustworthy.
+- Updated sync docs for metadata-only validation and single-surface installs.
 
 ## 2026-06-30
 

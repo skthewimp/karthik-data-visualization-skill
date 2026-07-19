@@ -25,13 +25,19 @@ In practice, use `dataviz-selector` first when the chart form is unclear, then `
 ## Default slide style
 
 - White background.
-- Claim-first title, not topic title.
+- Plain title: a plain claim, a concept label, or a direct question - never a clever aphorism or an "X, not Y" line.
 - One main idea per slide.
+- Bodies are bullets or one short line, not prose paragraphs; trim to 3-5 points.
 - Large central evidence area.
 - Sparse colour: grey context plus one accent.
 - Direct labels instead of legends.
 - Small source/notes footer.
 - No decorative stock graphics, gradients, shadows, gauges, pies, 3D charts, or dashboard clutter.
+
+## Working from Karthik's own material
+
+- When his own decks or blogs already cover a topic, reuse the actual slides, text, and images **verbatim** rather than paraphrasing.
+- In a workshop deck, the hands-on slides are facilitator cue-cards: a plain title plus a `time · artifact` anchor on the face, with detail in the notes.
 
 ## Example prompt
 

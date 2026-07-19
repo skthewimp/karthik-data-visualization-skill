@@ -1,5 +1,16 @@
 # Devlog
 
+## 2026-07-19 - Slide-style fixes from the Zerodha workshop deck
+
+Building a workshop deck surfaced repeated misses that fed back into `karthik-powerpoint-style` and `karthik-writing-style`:
+
+- Kept producing clever aphoristic slide titles ("Analysis is never a straight line", "The machine does the work. You make the calls.") and "X, not Y" reveals. Karthik's real decks use plain labels and questions ("Normalisation", "What is average?", "Compared to what?"). The skill's old "make the title an analytical claim, not a topic label" line was actively pushing the wrong way; softened it and added explicit Slide-title do/don't guidance.
+- Paraphrased Karthik's own "Smelling Bullshit" slides into fresh prose instead of lifting them verbatim. Added a "reuse own material verbatim" principle to both skills.
+- Flattened real deck images into text stand-ins. Added guidance to pull real images from `.pptx` `ppt/media/`.
+- Wrote out full instructions on hands-on slides that never get projected. Added the facilitator cue-card pattern.
+
+`karthik-writing-style` lives only as installed Claude/Codex copies, not in this repo, so those were edited in place.
+
 ## 2026-06-19 - Dataviz selector skill session
 
 ### User prompts

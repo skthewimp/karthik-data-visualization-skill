@@ -9,15 +9,48 @@ Use this skill when creating, revising, or critiquing presentation slides, espec
 
 Core job: make slides feel like interpreted analysis, not decorated reporting.
 
+## Start from Karthik's own material
+
+Before writing new slides on a topic, check whether Karthik's own decks, blogs, or notes already cover it.
+
+- If they do, pull the actual slides or text **verbatim**. Do not paraphrase his material into fresh prose - the paraphrase reads as generic AI copy and throws away his examples, phrasing, and jokes.
+- Reuse the **real images** from his decks, not text stand-ins for them. Extract embedded media from a `.pptx` (unzip it, look in `ppt/media/`) or the original file rather than describing or re-creating the picture.
+- Keep his concrete cases intact - specific names, odd numbers, wry asides.
+
 ## Workflow
 
 1. Write the one-sentence claim for each slide before designing it.
 2. Choose the simplest evidence structure for that claim: chart, scorecard, table, timeline, comparison, or short argument.
-3. Make the title an analytical claim, not a topic label.
+3. Title the slide plainly (see Slide titles): state the finding in plain words, or use a plain concept label or a direct question - never a crafted aphorism.
 4. Put the main evidence large and central; remove anything that does not support the claim.
 5. Add only necessary context: timeframe, comparator, source, caveat, annotation, or next action.
 6. Use direct labels and annotations so the slide can be understood without presenter narration.
 7. Split crowded slides. Prefer two clear slides over one dense slide.
+
+## Slide titles
+
+Titles are plain. Use whichever fits:
+
+- a plain concept label - "Normalisation", "Confirmation bias", "Agenda", "Keep open"
+- a plain statement of the point - "Correlation does not imply causation"
+- a direct question - "What is average?", "Compared to what?", "What should the chart do?"
+
+A claim-first title states the finding in **plain words**. It is never a crafted one-liner. Do not write:
+
+- clever aphorisms or maxims - "Analysis is never a straight line"
+- "X, not Y" reveals - "What you take home isn't the chart"
+- parallel or antithetical one-liners - "The machine does the work. You make the calls."
+- rule-of-three headlines
+
+Test: if the title could be a LinkedIn caption or a conference-talk tagline, it is wrong. When unsure, use the plainest label or question that names what the slide is about.
+
+## Slide bodies
+
+- Bodies are bullets or a single short line - never prose paragraphs, and never a "bold lead + explanation sentence" block.
+- Trim to 3-5 points. Cut the sixth.
+- No numbered academic procedures ("1. Name the source rows. 2. Write the formula...") - they read like a manual, not like Karthik talking.
+- Use contractions, straight quotes, and hyphens (never em dashes).
+- Some slides are deliberately blank and filled live from the room - leave them blank.
 
 ## Visual style
 
@@ -84,6 +117,14 @@ Use `dataviz-selector` before choosing the chart form. Use `karthik-data-visuali
 - Use a short sentence that tees up the next section.
 - Avoid decorative interstitials.
 - If the section needs a visual, use a simple timeline, flow, or one-line argument.
+
+### Workshop / facilitator cue-card slide
+
+A teaching or workshop deck is a spine, not a script. During a hands-on exercise nothing is projected - the slide is the facilitator's cue card.
+
+- The face carries only a plain title and a `time · artifact` anchor ("8 minutes · one paper sketch").
+- Put all how-to detail, participant instructions, and things-to-watch-for in facilitator notes, not on the slide face.
+- Do not write out step-by-step instructions the room never sees.
 
 ## Chart guardrails inside slides
 
