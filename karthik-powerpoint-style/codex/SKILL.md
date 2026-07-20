@@ -3,7 +3,7 @@ name: karthik-powerpoint-style
 description: "Create, revise, or critique PowerPoint, teaching, and workshop slides in Karthik's style: plain titles (claims, labels, or questions, not crafted aphorisms), sparse chart-first layouts, direct labels, clean typography, minimal decoration, source notes, verbatim reuse of Karthik's own decks and blogs, facilitator cue-card patterns, and management-ready slide patterns for charts, scorecards, recommendations, and deck outlines."
 metadata:
   short-description: Karthik PowerPoint style
-  claude-description: "Create or critique analytical and teaching slides in Karthik's style: plain titles (claims, labels, or questions, not aphorisms), sparse chart-first layouts, direct labels, minimal decoration, verbatim reuse of Karthik's own material, and facilitator cue-card workshop decks."
+  claude-description: "Create or critique analytical and teaching slides in Karthik's style: plain titles, sparse layouts, direct labels, minimal decoration, and facilitator cue-card workshop decks."
 ---
 
 # Karthik PowerPoint Style
