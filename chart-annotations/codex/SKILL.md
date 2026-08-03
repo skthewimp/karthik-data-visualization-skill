@@ -35,7 +35,7 @@ Exception: a chart designed to travel alone with no title bar or surrounding tex
 4. Rank candidates by significance.
 5. Apply the cap: one primary, at most two supporting.
 6. Write each label under the wording constraints.
-7. Place by proximity; add a connector only if proximity fails.
+7. Place by proximity, with coordinates derived from the data; add a connector only if proximity fails.
 8. Render, inspect the image, fix collisions.
 
 ## Step 2: candidate inventory
@@ -51,8 +51,9 @@ Look at the rendered shape, not the summary statistics. Candidates:
 - outlier far from the pattern
 - the gap between two series at a specific point
 - first or last observation when the endpoint is the point
+- **a well-supported absence** - no trend, no gap, no change, when the reader expects one
 
-If the chart has none of these, the chart probably has no story and the fix is a different chart, not a label.
+Separate observed candidates from derived ones as you list them. A record year, a crossover, and an actual gap are **observed** - they are in the data. A knee from a breakpoint scan, a trend slope, a smoothed peak, a cluster boundary are **derived** - they are outputs of a model you chose. Derived features are annotatable, but they carry a higher bar (see "Annotating derived features").
 
 ## Step 3: the concentration check
 
@@ -70,6 +71,8 @@ Rule: if fewer than ~20% of the observations carry more than ~50% of the effect,
 
 The mirror error also applies: if the effect really is spread evenly, say so directly. "Rained every day" beats "wet period".
 
+**The check gates the title, not only the annotation.** Compute the share before writing either. If one state contributes 39% of a total increase, neither the annotation nor the title may say "drives almost all" - the honest frame is "the sharpest jump", which is a rank claim, not a share claim. Rank claims and share claims fail in different ways; know which one you are making.
+
 ## Step 4: significance ladder
 
 When several candidates compete, rank in this order. It is a default, not a law - override it when the data says otherwise, and say why.
@@ -85,9 +88,37 @@ Two filters applied after ranking:
 - **One dominant frame.** A second signal earns its place only if it strengthens the first. Two unrelated signals means two charts.
 - **Skip the obvious value.** Annotate what the reader cannot compute by looking. The tallest bar being tallest is not an annotation.
 
+## When nothing clears the bar
+
+Sometimes the honest answer is that the chart has no event to mark. A noisy series with no trend, no breakpoint, and no outlier beyond ordinary variation is a real result, not a failure to look hard enough.
+
+Do not manufacture a lead by promoting the largest wiggle. The wettest year in a 140-year record with no trend is not a story; it is the top of the distribution, which some year had to be.
+
+Test before promoting any candidate: **would this feature still be there in a different sample?** A trend with p = 0.74, a run of six that a coin flip produces routinely, a single extreme inside one standard deviation - none survive that question.
+
+When the absence is the finding, annotate the absence directly. The pattern is: show the expected variation as a band or reference, then mark that everything stays inside it.
+
+```text
+Title:       India's annual rainfall has not shifted in 140 years
+Device:      grey band at +/- 1 SD, decade averages drawn on top
+Annotation:  Every decade average falls inside the band
+```
+
+This is a real annotation with a real claim. It is not the same as leaving the chart bare.
+
+## Annotating derived features
+
+A knee, a slope, a smoothed peak, or a cluster boundary comes from a model. Three extra rules apply:
+
+- **Validate before marking.** A breakpoint picked as the minimum of a scan is the best of many candidates, not a tested finding. Check it survives a sensitivity test, or word it as approximate.
+- **Word it with the uncertainty the method carries.** "around the mid-1950s" is honest for a scanned breakpoint; "in 1956" claims a precision the method does not have. Do not put a bare year on a derived knee unless the year is itself the result.
+- **Never let the fit outshout the data.** If a fitted line is the loudest element and the observations are faint grey behind it, the chart is arguing for the model rather than showing the evidence. Give the fit the accent only when the observations remain clearly readable.
+
 ## Step 5: how many
 
 **One primary, at most two supporting.** More than three candidates survive the ranking? Split the chart.
+
+Orienting labels are a separate class and do not count against the cap: series names, period labels, axis units, a legend replacement. They must still be collision-checked against the claim annotations - a period label sitting on top of the primary annotation is the same defect as two annotations overlapping.
 
 ## Step 6: writing the label
 
@@ -118,6 +149,25 @@ Four label shapes that cover most cases:
 
 ## Step 7: placement
 
+**Derive every annotation coordinate from the row it labels. Never hand-type coordinates.**
+
+This is the rule that prevents the worst annotation defect: a label attached to the wrong observation. Hand-placed coordinates drift as data, sort order, or scale limits change, and a label one row off is not a cosmetic problem - it states something false about a different entity, and it looks entirely correct.
+
+Build a small annotation frame filtered from the plotting data, compute the offset from the value being labelled, and let the plotting layer position it:
+
+```r
+ann <- d %>%
+  filter(state %in% c("Haryana", "Andhra Pradesh", "Tamil Nadu")) %>%
+  mutate(tier  = if_else(state == "Haryana", "primary", "supporting"),
+         x     = pc_2026 + 40,                      # offset from the point itself
+         label = paste0("+Rs ", round(delta_pc)))
+
+geom_text(data = filter(ann, tier == "supporting"),
+          aes(x = x, y = state_f, label = label), hjust = 0, ...)
+```
+
+The label text is computed from the same columns as the mark, so the number and its position cannot disagree. `annotate()` with literal coordinates is fine for chart furniture - a period label, a band caption - but not for anything pointing at a specific observation.
+
 Default is bare text sitting in whitespace beside the thing it labels. No box, no fill, no callout bubble.
 
 - Connector only when the nearest free space is far enough that the pairing is ambiguous. Then a hairline grey segment, no arrowhead.
@@ -125,6 +175,7 @@ Default is bare text sitting in whitespace beside the thing it labels. No box, n
 - A connector must never cross other data.
 - Text must never sit on top of data, gridlines, or another label.
 - If no honest placement exists, change the chart - widen margins, expand the axis range, move the panel - before dropping the annotation.
+- **Reserve room for the text when setting scale limits.** A right-hand label needs axis headroom past the last data point, not just a wider figure. Extend the limits and set clipping off; do not discover the clip after rendering.
 
 ## Visual weight
 
@@ -141,7 +192,8 @@ Placement cannot be verified from code. Export the image and look at it.
 
 Check:
 
-- Is any text clipped at a panel edge?
+- Is any text clipped at a panel edge, or running past the figure boundary?
+- **Does each label sit on the row or point it describes?** Check one label against the underlying number by hand. A label one row off looks perfectly fine.
 - Does any label overlap data, another label, or an axis?
 - Is the primary annotation visibly the loudest thing after the data itself?
 - At final output size, is the smallest annotation still legible?
@@ -160,6 +212,12 @@ Fix and re-render. Do not declare done from code inspection.
 | Causal claim from a coincidence | Use "followed", or drop the annotation |
 | Boxed callout with a fill | Bare text in whitespace |
 | Annotation louder than the data | Move accent to the data mark |
+| Label attached to the neighbouring row | Derive coordinates from the data, not by hand |
+| Largest wiggle in a noisy series promoted to a finding | Ask whether it survives a different sample |
+| Bare year on a knee found by scanning | Word it as approximate, or validate first |
+| Fitted line louder than the observations | Chart argues for the model; requiet the fit |
+| Share language on a rank finding | Compute the share before writing the claim |
+| Text clipped at the right edge | Reserve axis headroom before rendering |
 | Declared done without rendering | Export and inspect |
 
 ## Relationship to other skills

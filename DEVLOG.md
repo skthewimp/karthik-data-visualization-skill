@@ -40,6 +40,32 @@ The weather material is domain-specific and had to be lifted without dragging ra
 
 `dataviz-orchestrator` now lists `chart-annotations` as a companion skill and calls it at step 7, between choosing the visual and running the critique pass. Both the Codex and Claude variants were patched.
 
+### Testing the skill on real charts
+
+> "can you do that yourself? pick a few charts, run this and evaluate, and rewrite teh skill accordingly."
+
+Three charts were built from real data in `data_work`, chosen to attack different weak points. Every revision below traces to a defect in a rendered image, not to a principle.
+
+**Chart A - All-India annual rainfall, 1871-2011.** Chosen because the series has no trend at all: `lm` slope -0.07 mm/yr at p = 0.74, decade means bouncing in a 1031-1146 band. The skill had a candidate inventory full of knee-bends and extrema and no way to say "nothing here qualifies". Following it literally pushed toward marking the wettest year (1917) or the longest above-mean run (1942-49), both of which are noise. The chart that worked instead drew a +/- 1 SD band with decade averages over it and annotated the absence: "Every decade average falls inside the band". Added the "When nothing clears the bar" section, the would-this-survive-a-different-sample test, and absence as a candidate type.
+
+**Chart B - Bangalore mean maximum temperature, 1901-2000.** Flat overall (-0.015C/decade) but V-shaped: a breakpoint scan put the knee at 1956, with -0.18C/decade before and +0.22C/decade after. The rendered chart was clean and the annotations were correctly capped, but two things were wrong in substance. The knee came from taking the minimum SSE over a scan of 61 candidate years, with no test that it was real, and it got a bare "1956" label implying single-year precision. And the two-segment fit was drawn in accent red over faint grey observations, so the loudest thing on the chart was a model rather than data. Added the observed/derived split to the candidate inventory and the "Annotating derived features" section.
+
+**Chart C - state liquor revenue per capita, 2025-26 vs 2026-27.** The existing chart in `data_work` labels six of ten states; the skill's cap says one primary plus two supporting. The capped version was better, but produced two genuine defects. First, the annotation coordinates were hand-typed as `y = 8.6` and `y = 1.55`, and both landed on the wrong rows - "+Rs 147" appeared between Andhra Pradesh and Karnataka, and "+Rs 7" sat above Rajasthan rather than on Tamil Nadu. Rebuilding with an annotation frame filtered from the plotting data, positioned as `x = pc_2026 + 40` against `y = state_f`, fixed both. This is the single highest-value rule found by testing: a mislabelled row looks completely correct and states something false. Second, the first title read "Haryana drives almost all of the per-capita increase" - but Haryana is 418 of a 1,071 total, or 39%. The concentration check would have caught it, except the skill only applied it to annotations. Corrected to a rank claim, and the check now gates the title too.
+
+Also found in both A and C: annotation text clipped at the right edge because scale limits were set for the data, not for the data plus its labels. And in C the period labels collided with the primary annotation, which raised the question of whether orienting labels count against the cap - they do not, but they must be collision-checked.
+
+### Revisions made
+
+- Derive annotation coordinates from the data, never hand-type them; worked R example included.
+- New "When nothing clears the bar" section: absence as a legitimate annotation, with the band-and-inside device.
+- New "Annotating derived features" section: validate before marking, word to the method's real precision, never let the fit outshout the data.
+- Concentration check now gates the title as well as the annotation, with the rank-claim vs share-claim distinction spelled out.
+- Orienting labels named as a class outside the cap, but still collision-checked.
+- Reserve axis headroom for label text before rendering.
+- Six new rows in the common-mistakes table, each from an observed defect.
+
+Skill grew from 164 to 225 lines. Test charts were scratch work and are not committed.
+
 ## 2026-07-19 - Slide-style fixes from the Zerodha workshop deck
 
 Building a workshop deck surfaced repeated misses that fed back into `karthik-powerpoint-style` and `karthik-writing-style`:

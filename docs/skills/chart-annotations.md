@@ -45,9 +45,17 @@ I have four things worth marking on this chart. Which do I keep?
 
 **Render and inspect.** Placement cannot be verified from code. Export the image, look for clipping and collisions, fix, re-render.
 
+**Derive annotation coordinates from the data.** Hand-typed coordinates attach labels to the wrong observation, and a label one row off looks entirely correct while stating something false. Build an annotation frame filtered from the plotting data and compute positions as offsets from the value being labelled.
+
+**Absence is annotatable.** A series with no trend is a real finding. Show the expected variation as a band and mark that everything stays inside it, rather than promoting the largest wiggle to a story it cannot support.
+
+**Derived features carry a higher bar.** A knee from a breakpoint scan is the best of many candidates, not a tested one. Word it with the precision the method actually has, and never let a fitted line outshout the observations behind it.
+
 ## Where the rules come from
 
 The significance ladder, the concentration check, and the wording constraints are generalised from a real annotation system: a daily weather report where an LLM writes the chart's headline commentary, and where a bank of reviewed historical examples was built specifically to teach the model which signal to lead with. The failure it kept making - reading an aggregate as a trend when a burst explained it - is the reason the concentration check is a separate step rather than a footnote.
+
+The placement, absence, and derived-feature rules came from testing the first version of the skill on three real charts: a 140-year All-India rainfall series with no trend, a Bangalore maximum-temperature series with a scanned breakpoint, and a state liquor-revenue dumbbell. Each chart broke the skill in a different place, and each rule traces to a specific defect in a rendered image rather than to a principle.
 
 ## Relationship to other skills
 
