@@ -2,7 +2,7 @@
 
 Public data visualization skills for Codex and Claude.
 
-This repo contains nine related skills:
+This repo contains ten related skills:
 
 1. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 2. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
@@ -13,8 +13,9 @@ This repo contains nine related skills:
 7. **`dataset-question-generator`** - upstream skill for profiling raw datasets and generating fresh, visualisable questions before planning or charting.
 8. **`karthik-data-cleaning`** - data-cleaning rules for Karthik-style exploratory analysis: inspect, clean in context, inspect again, and avoid generic unsupervised fixes.
 9. **`chart-annotations`** - annotation rules for deciding what a chart should mark, which competing candidate wins, how the label is worded, and where it sits.
+10. **`chart-explainer`** - accompanying-note rules for writing the two lines that travel with a finished chart or table into an email, notebook, or message.
 
-The split is deliberate. The data-cleaning skill answers **"how do we make this source analysable without hiding judgement calls?"**. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**. The annotation skill answers **"what should this chart mark, and what should the mark say?"**.
+The split is deliberate. The data-cleaning skill answers **"how do we make this source analysable without hiding judgement calls?"**. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**. The annotation skill answers **"what should this chart mark, and what should the mark say?"**. The explainer skill answers **"what do I write next to this chart so the reader knows what it says?"**.
 
 ## Repository layout
 
@@ -45,6 +46,9 @@ The split is deliberate. The data-cleaning skill answers **"how do we make this 
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── chart-annotations/               # What a chart marks and what the label says
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── chart-explainer/                 # The two-line note that travels with a chart
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── docs/                            # Human docs; subfolder READMEs explain contents
@@ -123,6 +127,13 @@ Use this when a chart is built but the reader cannot see the point without narra
 
 See: [`docs/skills/chart-annotations.md`](docs/skills/chart-annotations.md)
 
+
+### `chart-explainer`
+
+Use this when a chart or table is finished and someone else has to be told what it says - two lines above a graph in an email, a note per figure in an exploratory notebook, or a line carrying a screenshot into a chat. It enforces a claim with an anchored number plus one payoff, computes numbers from the data rather than reading them off the image, and treats "nothing here" as a legitimate answer instead of manufacturing a finding.
+
+See: [`docs/skills/chart-explainer.md`](docs/skills/chart-explainer.md)
+
 ## Install locally
 
 ```bash
@@ -140,6 +151,7 @@ This pulls latest changes and installs all skills to:
 - `~/.codex/skills/dataset-question-generator`
 - `~/.codex/skills/karthik-data-cleaning`
 - `~/.codex/skills/chart-annotations`
+- `~/.codex/skills/chart-explainer`
 - `~/.claude/skills/karthik-data-visualization`
 - `~/.claude/skills/dataviz-selector`
 - `~/.claude/skills/karthik-powerpoint-style`
@@ -149,6 +161,7 @@ This pulls latest changes and installs all skills to:
 - `~/.claude/skills/dataset-question-generator`
 - `~/.claude/skills/karthik-data-cleaning`
 - `~/.claude/skills/chart-annotations`
+- `~/.claude/skills/chart-explainer`
 
 To install without pulling:
 

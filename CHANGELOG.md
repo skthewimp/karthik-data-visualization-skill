@@ -6,6 +6,7 @@ All notable public changes to this repository are recorded here.
 
 ### Added
 
+- Added `chart-explainer` as a public Codex/Claude skill for writing the two-line note that travels with a finished chart or table into an email, notebook, or message. Enforces a claim with an anchored number plus one payoff, requires numbers to be computed from the data rather than read off the image, treats "nothing here" as a legitimate output, and refuses to smooth a batch of exploratory plots into a narrative. Ships a calibration example bank mined from Karthik's Mint columns and analysis notebooks.
 - Added `chart-annotations` as a public Codex/Claude skill for deciding what a chart should mark, ranking competing annotation candidates, wording the label, and placing it.
 - Added human-facing docs and repository navigation entries for the new skill.
 

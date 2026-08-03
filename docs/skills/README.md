@@ -11,5 +11,6 @@ Human-facing guides for the public skills.
 - [`dataset-question-generator.md`](dataset-question-generator.md) - explains the raw-dataset-to-question-generation skill.
 - [`karthik-data-cleaning.md`](karthik-data-cleaning.md) - explains the context-sensitive exploratory data-cleaning skill.
 - [`chart-annotations.md`](chart-annotations.md) - explains the chart-annotation skill: what to mark, how to rank, how to word it, where to place it.
+- [`chart-explainer.md`](chart-explainer.md) - explains the chart-explainer skill: the two-line note that travels with a chart or table.
 
 These files are for people reading the repo. The actual installable skill files live in each skill folder under `codex/` and `claude/`.

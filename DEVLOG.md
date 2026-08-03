@@ -1,5 +1,98 @@
 # Devlog
 
+## 2026-08-03 - Chart explainer skill
+
+### User prompts
+
+> "next i want to build a skill to explain a data exploration. like sometimes i tell claude / codex \"build a notebook to help explore this data\". and the thing is because i'm not running the explorations myself, i don't know what hte insight in the data is. rather - when someone else sees a dataviz i've made, i'ts difficult for htem to know what teh message in it is. this has nothing to do wtih the text on the dataviz itserlf - this is about accompanying / explaining. think about sending a graph along with an email (2 lines per graph only; not too long). it could also apply to a table etc. i need you to build a skill for this. there are 2 data sources for this. one is - my own Rmd files wehere i'e explored data and written notes. the seoncd are my Mint articles (in ../Mint) where i've written articles along with graphs etc . first gather material etc. and ask clarifiing questions, and then buikld the skill. don't build straight away."
+
+> "5 verdict types is too narrow. i only need guidelines that the LLM caan then improvise upon"
+
+> "ok do it"
+
+### Where the material came from
+
+Two corpora, and they turned out to teach different halves of the same skill.
+
+**210 `.Rmd` files across `~/Documents/work`.** Ranked by prose volume outside code chunks, then the prose immediately following plot-producing chunks was extracted. Most of it is forward-looking - "Let's look at orders by date by commodity" - and useless. The valuable residue is the small set of terse verdicts he writes after seeing a plot:
+
+```
+No signal here.
+No real correlation between rejects and routes.
+Clusters seem very very similar. So not much information from them.
+One is larger than the other, that's all.
+Interesting that some commodities are not ordered much on Sundays.
+In general, it seems like our prices are less volatile than BigBasket.
+Or is this just a data collection issue?
+```
+
+These are the source of the null-verdict rule. In an exploratory notebook the honest answer is usually "nothing here", and the notebooks prove he writes it that way.
+
+**614 files in `~/Documents/work/Mint`.** 145 sentences containing a figure or chart reference were extracted from the `.docx` files by unzipping `word/document.xml` and stripping tags. This is where the two-line contract came from. The consistent shape is a claim sentence with the figure reference welded on, followed by one payoff sentence:
+
+```
+Debit cards were swiped at points of sale 234 million times in November, nearly
+twice the monthly average from the first nine months of the calendar year (Figure 2).
+
+Figure 4, however, suggests otherwise - the number of wickets lost per innings has
+come down over the years.
+
+Until then, the average rate of scoring during the slog overs of the chase was just
+over eight runs per over. In 2014, however, that average jumped up to over 9 runs
+per over, and has stayed there.
+```
+
+Every number in the Mint corpus carries an anchor. "234 million" never appears without "nearly twice the monthly average". That observation became the hardest rule in the skill.
+
+The corpus also showed a pattern worth encoding rather than banning: sentences like "Figure 1 shows a scatter plot of marginal and effective tax rates for different countries" are weak alone, but he always pairs them with a payload sentence immediately after. That is the orientation exception - line 1 may orient, but line 2 must then carry the claim.
+
+### Decisions taken
+
+- **Two lines, hard.** Line 1 is the claim with an anchored number; line 2 is exactly one of contrast, consequence, or caveat. Rejected: a flexible length that scales with the chart's complexity. The constraint is the point - it forces a decision about what the exhibit is for, and the request was explicitly "2 lines per graph only".
+- **Guidelines, not a taxonomy.** The first draft classified every note into five verdict types (signal, reversal, regime change, no signal, plumbing). Karthik rejected this as too narrow. The five survive only as a non-exhaustive prompt list, explicitly flagged as "to loosen your thinking, not to classify into". The instruction that replaced them: say out loud what the chart is actually saying, then compress. Reason: a menu of five produces notes that fit the menu, and most real charts say something that is not on it.
+- **Nulls are mandatory output.** "Nothing here" is a required capability, not a permitted one, with two sub-rules: say what you looked for and did not find, and never upgrade weak to moderate. This is the failure the skill exists to prevent - an agent-run notebook of dead ends being written up as a deck of findings.
+- **Compute, never eyeball.** When data is available every number is computed from it. Rejected: allowing numbers read off a rendered chart when they are "clearly legible". See the test section below for why.
+- **Register asked once, defaults to note-to-self.** Three registers - self, colleague, client. Register changes wording only; it never softens a null into a maybe. Rejected: inferring register silently from the folder or the presence of an email draft, which fails quietly and in the expensive direction.
+- **Chart quality is out of scope.** A bad chart still gets a note, with no critique attached. `dataviz-critique` and `chart-improver` own that. Rejected: a one-line "this reads better as a slope chart" flag, on Karthik's call - keeping skills separate beats a helpful aside.
+- **Batch mode refuses to build a narrative.** Twelve plots get twelve notes in figure order, no summary paragraph, no reordering, no dropping the nulls. This is the same failure as the null rule, one level up.
+- **`examples.md` ships inside each surface directory**, not at the skill root. `sync-skills.py` only copies `<skill>/codex/` and `<skill>/claude/`, so a root-level `references/` folder is repo-only and invisible to the installed skill. The example bank has to be readable at runtime, so it is duplicated across both surfaces and the edit rule in the folder README says to update both.
+
+### Testing the skill on real charts
+
+Ran it against `india-ias-officers/ias-profile.csv`, a dataset not used to build the skill. Three quick charts: female share of allotments by year, median age at joining by year, domicile distribution.
+
+The compute-don't-eyeball rule earned its place immediately. The first pass at chart 2 sampled the head and tail of the series:
+
+```python
+a = d.groupby('Allotment_Year').age.median()
+print(a.head(3).to_dict(), a.tail(3).to_dict())
+# {1970: 24.4, 1971: 24.0, 1972: 24.3} {2018: 28.1, 2019: 26.5}
+```
+
+which reads as a clean, publishable finding: median joining age crept up from 24 to 28. Forcing the full series out instead showed medians above 47 across the whole of the 1990s and 2000s, peaking at 52.5 in 2005-06. `Date_of_Joining` is not the entry date for most cohorts. The eyeballed version would have shipped as a finding; the computed version produced a plumbing note telling the reader not to use the field.
+
+The three notes the skill produced:
+
+```
+1. Female share of IAS allotments rose from ~10% in the 1970s to 26% in the 2010s.
+   The rise stopped around 2013 - it has bounced between 16% and 34% since, with no
+   further trend.
+
+2. Median age at joining reads 24 in 1970 but 47-52 through the 1990s and 2000s.
+   Date_of_Joining is not the entry date for most cohorts - don't use this field
+   until that's resolved.
+
+3. Domicile is blank for 21% of the 12,134 officers - more rows than any state
+   except Uttar Pradesh (1,471).
+   Any domicile ranking off this is provisional.
+```
+
+Two of three are caveats rather than findings, which is the correct ratio for a cold dataset and the thing a narrative-building version of this skill would have hidden.
+
+### Wiring
+
+`dataviz-orchestrator` was left alone. The orchestrator ends at a critiqued chart; narration for an absent reader is a separate job and Karthik did not ask for the loop to be extended. Worth revisiting if the orchestrator starts producing multi-chart outputs meant to travel.
+
 ## 2026-08-03 - Chart annotations skill
 
 ### User prompts

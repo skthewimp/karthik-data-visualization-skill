@@ -13,6 +13,7 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`skills/dataset-question-generator.md`](skills/dataset-question-generator.md) - how to generate fresh visualisable questions from raw datasets
 - [`skills/karthik-data-cleaning.md`](skills/karthik-data-cleaning.md) - how to clean tabular data in context before analysis or charting
 - [`skills/chart-annotations.md`](skills/chart-annotations.md) - how to decide what a chart marks and what the label says
+- [`skills/chart-explainer.md`](skills/chart-explainer.md) - how to write the two-line note that accompanies a chart or table
 
 ## Project notes
 
