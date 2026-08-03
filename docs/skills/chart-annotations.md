@@ -47,7 +47,7 @@ I have four things worth marking on this chart. Which do I keep?
 
 **Derive annotation coordinates from the data.** Hand-typed coordinates attach labels to the wrong observation, and a label one row off looks entirely correct while stating something false. Build an annotation frame filtered from the plotting data and compute positions as offsets from the value being labelled.
 
-**Absence is annotatable.** A series with no trend is a real finding. Show the expected variation as a band and mark that everything stays inside it, rather than promoting the largest wiggle to a story it cannot support.
+**No story, no annotation.** A series with no trend is a real finding, but it gets no marks. The absence goes in the title, where claims live; there is nothing on the chart to locate. Context that lets the reader verify it - a variation band, a decade average - still earns its place, but a band is a context layer, not an annotation, and a callout announcing that nothing is happening is the title said twice.
 
 **Derived features carry a higher bar.** A knee from a breakpoint scan is the best of many candidates, not a tested one. Word it with the precision the method actually has, and never let a fitted line outshout the observations behind it.
 

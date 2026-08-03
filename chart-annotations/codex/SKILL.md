@@ -51,7 +51,8 @@ Look at the rendered shape, not the summary statistics. Candidates:
 - outlier far from the pattern
 - the gap between two series at a specific point
 - first or last observation when the endpoint is the point
-- **a well-supported absence** - no trend, no gap, no change, when the reader expects one
+
+An absence - no trend, no gap, no change - is a finding, but it is not a candidate here. It goes in the title and gets no mark (see "When nothing clears the bar").
 
 Separate observed candidates from derived ones as you list them. A record year, a crossover, and an actual gap are **observed** - they are in the data. A knee from a breakpoint scan, a trend slope, a smoothed peak, a cluster boundary are **derived** - they are outputs of a model you chose. Derived features are annotatable, but they carry a higher bar (see "Annotating derived features").
 
@@ -90,21 +91,23 @@ Two filters applied after ranking:
 
 ## When nothing clears the bar
 
-Sometimes the honest answer is that the chart has no event to mark. A noisy series with no trend, no breakpoint, and no outlier beyond ordinary variation is a real result, not a failure to look hard enough.
+**No story, no annotation.** A noisy series with no trend, no breakpoint, and no outlier beyond ordinary variation gets no marks on it. This is a finding, not a failure to look hard enough, and the chart should be left clean.
 
-Do not manufacture a lead by promoting the largest wiggle. The wettest year in a 140-year record with no trend is not a story; it is the top of the distribution, which some year had to be.
+Do not manufacture a lead by promoting the largest wiggle. The wettest year in a 140-year record with no trend is not a story; it is the top of the distribution, which some year had to be. Marking it tells the reader it means something.
 
-Test before promoting any candidate: **would this feature still be there in a different sample?** A trend with p = 0.74, a run of six that a coin flip produces routinely, a single extreme inside one standard deviation - none survive that question.
+Test before promoting any candidate: **would this feature still be there in a different sample?** A trend with p = 0.74, a run of six that a coin flip produces routinely, a single extreme inside one standard deviation - none survive that question, and none get annotated.
 
-When the absence is the finding, annotate the absence directly. The pattern is: show the expected variation as a band or reference, then mark that everything stays inside it.
+The absence itself belongs in the title, where claims live. There is nothing on the chart to locate, so there is nothing to annotate.
+
+What still earns its place is **context that lets the reader verify the absence** - a variation band, a reference line, a decade average over noisy annual values. These are context layers, not annotations: they encode data or a stated baseline rather than pointing at a feature, and they are not subject to the annotation cap.
 
 ```text
-Title:       India's annual rainfall has not shifted in 140 years
-Device:      grey band at +/- 1 SD, decade averages drawn on top
-Annotation:  Every decade average falls inside the band
+Title:          India's annual rainfall has not shifted in 140 years
+Context layers: +/- 1 SD band, mean line, decade averages
+Annotations:    none
 ```
 
-This is a real annotation with a real claim. It is not the same as leaving the chart bare.
+The difference matters. A band showing expected variation is evidence. A callout reading "every decade average falls inside the band" is the title said twice, taking up chart space to restate what the reader can already see.
 
 ## Annotating derived features
 
@@ -213,7 +216,8 @@ Fix and re-render. Do not declare done from code inspection.
 | Boxed callout with a fill | Bare text in whitespace |
 | Annotation louder than the data | Move accent to the data mark |
 | Label attached to the neighbouring row | Derive coordinates from the data, not by hand |
-| Largest wiggle in a noisy series promoted to a finding | Ask whether it survives a different sample |
+| Largest wiggle in a noisy series promoted to a finding | Ask whether it survives a different sample; if it fails, mark nothing |
+| Callout announcing that nothing is happening | Put the absence in the title; leave the chart unmarked |
 | Bare year on a knee found by scanning | Word it as approximate, or validate first |
 | Fitted line louder than the observations | Chart argues for the model; requiet the fit |
 | Share language on a rank finding | Compute the share before writing the claim |

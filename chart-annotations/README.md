@@ -11,7 +11,7 @@ This is not a chart-selection skill and not a chart-style skill. It assumes the 
 - Runs a concentration check so an aggregate is not annotated when a short burst explains it.
 - Ranks competing candidates against a significance ladder, and caps the chart at one primary plus two supporting annotations.
 - Constrains label wording: under 18 words, one claim, every number tied to its baseline, no causal verb without causal evidence, no report-speak.
-- Handles the case where nothing clears the bar: annotates a well-supported absence instead of promoting the largest wiggle.
+- Handles the case where nothing clears the bar: no story means no annotation, with the absence stated in the title instead.
 - Holds derived features - scanned knees, fitted slopes, smoothed peaks - to a higher bar than observed ones.
 - Requires annotation coordinates to be derived from the data rather than hand-typed, so labels cannot attach to the wrong row.
 - Sets placement and visual-weight rules, and requires rendering and inspecting the image before declaring the chart done.
