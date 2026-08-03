@@ -2,7 +2,7 @@
 
 Use this skill when the question is: what do I write *next to* this chart so the reader knows what it says? It produces the two lines that go in an email above a graph, the note under a figure in a notebook, or the sentence carrying a screenshot into a chat.
 
-This is not on-chart text and not chart critique. It assumes the exhibit is finished and the reader will see it without the analyst in the room.
+This is not on-chart text and not chart critique. It fires in two situations: an exhibit exists and needs narrating, or a notebook is being built and the notes are part of the deliverable.
 
 ## What it does
 
@@ -15,6 +15,7 @@ This is not on-chart text and not chart critique. It assumes the exhibit is fini
 - Degrades across three input modes: chart plus data, code plus data, and image only.
 - Applies the same contract to tables, naming the cell that carries the point.
 - In batch mode over an exploratory notebook, writes one note per exhibit and refuses to smooth the dead ends into a narrative.
+- When the task is to *build* an exploratory notebook, puts the two-line note in markdown under every plot chunk, written from the chunk's computed output rather than from the code about to run.
 - Ships a worked-example bank drawn from Karthik's Mint columns and analysis notebooks, since generic caption prose is the failure mode and examples are the correction.
 
 ## Files

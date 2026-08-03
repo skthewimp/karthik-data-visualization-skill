@@ -6,6 +6,12 @@ It exists because of an asymmetry: the person who ran the analysis knows what th
 
 The output is two lines per exhibit. Line 1 is the claim, carrying a number and the comparison that makes the number mean something. Line 2 is exactly one payoff: the expectation the data kills, the decision it points at, or the caveat that stops the reader over-reading it.
 
+## When it fires
+
+Two situations. The first is obvious: a chart exists and needs narrating. The second matters more - a request to **build an exploratory notebook**. Those requests never mention charts, and the plots do not exist yet, but the person asking will read the notebook without running it. In that case the notes are part of the deliverable: two lines in markdown under every plot chunk, written from the chunk's computed output rather than from the code about to run.
+
+`karthik-r-analysis-style` cross-references this skill for exactly that reason, so it fires on "build me a scratchpad for this data" even when nothing in the request sounds like charting.
+
 ## Trigger examples
 
 Use it for prompts like:
@@ -24,6 +30,10 @@ What do I write above this graph in the email?
 
 ```text
 Does this chart say anything at all, or am I looking at noise?
+```
+
+```text
+Build a notebook to explore this dataset.
 ```
 
 ## What it is strict about

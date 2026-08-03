@@ -1,11 +1,13 @@
 ---
 name: chart-explainer
-description: Explain what a chart or table says in two lines for an email, notebook, or message - including when it says nothing.
+description: Explain what a chart or table says in two lines - for an email, a message, or under every plot in an exploratory notebook. Includes saying when it shows nothing.
 ---
 
 # Chart Explainer
 
-Use this when a chart or table exists and someone who was not in the analysis has to understand what it says. The output is the text that sits **next to** the exhibit: the two lines in an email body, the note under a figure in a notebook, the message that carries a screenshot.
+Use this when a chart or table has to be understood by someone who was not in the analysis. The output is the text that sits **next to** the exhibit: the two lines in an email body, the note under a figure in a notebook, the message that carries a screenshot.
+
+Two situations trigger it. Either an exhibit already exists and needs narrating, or you are being asked to build an exploratory notebook - in which case the notes are part of what you are building, and the rules in "Exploratory notebooks you are building" below apply from the first plot.
 
 This is not text on the chart. This is not a critique of the chart. It is the narration that makes a finished exhibit legible to someone reading it cold.
 
@@ -111,6 +113,20 @@ Register changes the wording. It never changes the finding, and it never softens
 | Image only | Describe conservatively. No invented precision. Flag in the note that numbers are read off the chart. |
 
 The verification step is not optional when data is available. A note that states a number the data does not support is worse than no note.
+
+## Exploratory notebooks you are building
+
+When the request is "build a notebook to explore this data" rather than "explain this chart", this skill is part of the deliverable, not a later pass. The person asking will read the notebook without having run it, and an unnarrated plot hands them the analyst's job.
+
+Rules for that case:
+
+1. **Every plot chunk is followed by its note.** Two lines, in the markdown immediately below the chunk. Not a comment inside the chunk, not a batch of notes at the end.
+2. **Write the note after running the chunk, from the computed output.** A note written from the code you are about to run is a guess.
+3. **Notes are written in the note-to-self register by default** - this is exploration, so open questions and column names belong in them.
+4. **The nulls stay in.** An exploratory notebook is mostly dead ends. A notebook where every plot has a finding under it is a notebook where the notes were invented. If a plot shows nothing, its note says so and the plot stays.
+5. **Do not add a findings summary at the top or bottom unless asked.** Ranking and narrative are a separate request, made once the reader has seen which probes came back empty.
+
+The reason this matters most here: when an agent both runs the exploration and writes it up, nobody checks whether the write-up matches what the charts show. The two-line contract and the compute-don't-eyeball rule are the only things standing between an exploratory notebook and a confident deck of artefacts.
 
 ## Tables
 
