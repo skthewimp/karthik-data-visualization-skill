@@ -5,10 +5,10 @@ Purpose: build Karthik's repeatable agentic dataviz workflow inside this repo, w
 Core thesis:
 
 ```text
-question → denominator → comparison → evidence → claim → visual brief → chart → critique → revision
+question/source → contextual cleaning → denominator → comparison → evidence → claim → visual brief → chart → critique → revision
 ```
 
-This repo already covers chart selection, chart taste, slide style, critique, and analysis contracts. The missing layer is the middle of the workflow: story finding, evidence building, claim validation, and orchestration.
+This repo now covers chart selection, chart taste, slide style, critique, analysis contracts, raw-dataset question generation, contextual cleaning, and an end-to-end orchestrator. The remaining gap is narrower: evidence building, claim validation, and a reusable visual brief.
 
 ## Current baseline
 
@@ -21,6 +21,9 @@ Already in this repo:
 | `karthik-data-visualization` | Karthik chart taste/style | built |
 | `dataviz-critique` | critique/redesign existing charts | built |
 | `karthik-powerpoint-style` | analytical slides/decks | built |
+| `dataset-question-generator` | raw dataset → fresh visualisable questions | built |
+| `karthik-data-cleaning` | contextual inspection/cleaning before analysis | built |
+| `dataviz-orchestrator` | full dataset-to-visual-story workflow | built |
 
 ## Skills to build
 
@@ -34,7 +37,7 @@ Build these as root-level skill folders, matching existing repo shape:
   references/*.md
 ```
 
-### 1. `dataset-story-profiler`
+### 1. `dataset-story-profiler` / now mostly `dataset-question-generator`
 
 **Job:** inspect a dataset plus optional question/context; propose visual stories before charting.
 
@@ -57,7 +60,9 @@ Build these as root-level skill folders, matching existing repo shape:
 - recommended first story
 - “do not visualise yet” list
 
-**Depends on:** `karthik-analysis-planner` when user gives a fuzzy question.
+**Current state:** the built `dataset-question-generator` covers most of this. Do not build a second overlapping profiler unless it has a clearly different output contract.
+
+**Depends on:** `karthik-data-cleaning` when the raw source is messy, and `karthik-analysis-planner` when user gives a fuzzy question.
 
 **Test cases:**
 
@@ -84,12 +89,12 @@ Build these as root-level skill folders, matching existing repo shape:
 **Rules:**
 
 - never answer from model memory
-- inspect schema first
+- inspect schema first; use `karthik-data-cleaning` when parsing/reshaping/joins affect the answer
 - compute denominators explicitly
 - keep facts before prose
 - flag when data cannot answer the question
 
-**Depends on:** `dataset-story-profiler`, `karthik-analysis-planner`.
+**Depends on:** `dataset-question-generator` or `dataviz-orchestrator`, `karthik-analysis-planner`, `karthik-data-cleaning`.
 
 ### 3. `karthik-claim-validator`
 
@@ -165,6 +170,8 @@ Build these as root-level skill folders, matching existing repo shape:
 
 **Job:** umbrella orchestrator for the full workflow.
 
+**Current state:** largely covered by the built `dataviz-orchestrator`. Extend that skill unless a separate workflow skill becomes clearly necessary.
+
 **Use when:** user wants to visualise a dataset end-to-end.
 
 **Sequence:**
@@ -172,7 +179,8 @@ Build these as root-level skill folders, matching existing repo shape:
 ```text
 context/data intake
 → analysis contract if question is fuzzy
-→ dataset-story-profiler
+→ contextual data cleaning if needed
+→ dataset-question-generator if no question exists
 → choose/rank story
 → karthik-evidence-builder
 → karthik-claim-validator
@@ -290,12 +298,12 @@ Update this plan status and relevant docs.
 
 | Skill | Owner/session | Status | Notes |
 |---|---|---|---|
-| `dataset-story-profiler` | unassigned | todo | start here |
+| `dataset-story-profiler` | 2026-07-03 | mostly superseded | covered by `dataset-question-generator`; do not duplicate without new scope |
 | `karthik-evidence-builder` | unassigned | todo | depends on profiler output shape |
 | `karthik-claim-validator` | unassigned | todo | depends on evidence output shape |
 | `visual-brief-generator` | unassigned | todo | can build in parallel |
 | `matplotlib-deslopper` | unassigned | todo | can build in parallel |
-| `agentic-dataviz-workflow` | unassigned | todo | build last |
+| `agentic-dataviz-workflow` | 2026-07-03 | mostly superseded | covered by `dataviz-orchestrator`; extend, don't duplicate |
 
 ## Integration checks
 

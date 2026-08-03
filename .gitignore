@@ -1,6 +1,10 @@
 # Local/private skill internals
-**/references/
-**/scripts/
+**/references/**
+!**/references/
+!**/references/README.md
+**/scripts/**
+!**/scripts/
+!**/scripts/README.md
 
 # Old/generated build artifacts
 dist/

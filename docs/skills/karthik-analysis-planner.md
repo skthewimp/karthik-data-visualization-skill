@@ -15,6 +15,7 @@ The skill asks the assistant to define:
 - metric;
 - comparison and baseline;
 - data profile checks;
+- cleaning or reshape rules that affect the claim;
 - sanity checks;
 - falsification conditions;
 - caveats that must survive into the final post or deck.
@@ -38,13 +39,14 @@ Turn this cricket question into an analysis contract before touching the ball-by
 Recommended workflow:
 
 1. Use `karthik-analysis-planner` to define the measurable question.
-2. Use an evidence-building workflow to profile data and compute facts.
-3. Use `dataviz-selector` to choose the visual form.
-4. Use `karthik-data-visualization` to style the chart.
-5. Use writing/post skills only after computed facts exist.
+2. Use `karthik-data-cleaning` if parsing, reshaping, joins, recodes, or validation affect the metric.
+3. Use an evidence-building workflow to profile data and compute facts.
+4. Use `dataviz-selector` to choose the visual form.
+5. Use `karthik-data-visualization` to style the chart.
+6. Use writing/post skills only after computed facts exist.
 
 ## Output contract
 
-The skill outputs an analysis contract with sections for measurable claim, definitions, unit/denominator/numerator, metrics, comparisons, data requirements, sanity checks, falsifiers, caveats, and execution plan.
+The skill outputs an analysis contract with sections for measurable claim, definitions, unit/denominator/numerator, metrics, comparisons, data requirements, cleaning rules, sanity checks, falsifiers, caveats, and execution plan.
 
 The output should not answer the question from memory. It should define what evidence would answer the question.

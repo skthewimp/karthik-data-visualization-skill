@@ -10,7 +10,8 @@ Own the full loop from loose question to usable visual story:
 ```text
 dataset + loose question + audience
 → analysis contract
-→ data profiling and analysis
+→ contextual data inspection/cleaning
+→ analysis
 → facts table
 → story candidates
 → visual choice
@@ -27,9 +28,11 @@ This skill sits above the existing analysis and dataviz skills. Load/use them at
 Use these skills during the workflow when available:
 
 - `karthik-analysis-planner`: turn the loose question into measurable definitions, denominator, grain, comparison, caveats, falsifiers.
+- `karthik-data-cleaning`: inspect, clean, reshape, join, and validate tabular data in context before charting.
 - `r-analysis-rules`: for R/tidyverse analysis code, notebooks, and pipelines.
 - `dataviz-selector`: choose chart form, encodings, context layers, and what to avoid.
 - `karthik-data-visualization`: apply Karthik's visual style and render-inspect-adjust loop.
+- `chart-annotations`: choose what the chart marks, rank competing candidates, word the label, and place it.
 - `dataviz-critique`: critique the rendered chart, not just the code, and propose fixes.
 - `babbage-visual-style`: only when making Babbage-branded visuals.
 - `karthik-powerpoint-style`: only when the final artifact is a slide/deck.
@@ -72,9 +75,9 @@ Must decide before coding:
 - sanity checks;
 - what would weaken or falsify the likely story.
 
-### 3. Profile the data
+### 3. Inspect and clean the data
 
-Run quick data checks before analysis:
+Use `karthik-data-cleaning`. Run quick data checks before analysis:
 
 - schema, row count, key columns, types;
 - date/time coverage and timezone where relevant;
@@ -84,7 +87,16 @@ Run quick data checks before analysis:
 - outliers/extreme values;
 - whether the dataset contains the fields needed for the intended question.
 
-Save or print only the useful profile summary. Avoid noisy dumps.
+Clean only what the analysis needs. Make every non-trivial rule visible: type conversions, filters, recodes, joins, reshape steps, impossible-value handling, and missingness decisions. Preserve raw/canonical files; do not create working files unless repeated parsing is genuinely costly.
+
+Validate after cleaning:
+
+- raw rows vs analysis rows;
+- key uniqueness at the chosen grain;
+- denominator sanity;
+- join mismatches or dropped records that affect the answer.
+
+Save or print only the useful profile/cleaning summary. Avoid noisy dumps.
 
 ### 4. Analyse before charting
 
@@ -124,7 +136,7 @@ Default to simple static visuals: line, sorted bars, scatter, small multiples, d
 
 ### 7. Implement in Karthik's style
 
-Use `karthik-data-visualization` and repo conventions.
+Use `karthik-data-visualization` and repo conventions. Use `chart-annotations` to decide what the chart marks and how the label reads: the title states the claim, the annotation locates it on the evidence. Cap the chart at one primary annotation plus at most two supporting ones.
 
 Defaults:
 

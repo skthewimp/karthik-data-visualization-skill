@@ -2,6 +2,17 @@
 
 All notable public changes to this repository are recorded here.
 
+## 2026-08-03
+
+### Added
+
+- Added `chart-annotations` as a public Codex/Claude skill for deciding what a chart should mark, ranking competing annotation candidates, wording the label, and placing it.
+- Added human-facing docs and repository navigation entries for the new skill.
+
+### Changed
+
+- Updated `dataviz-orchestrator` to call `chart-annotations` at the charting step, alongside `karthik-data-visualization`.
+
 ## 2026-07-19
 
 ### Changed

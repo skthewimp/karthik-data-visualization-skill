@@ -13,12 +13,13 @@ Core sequence:
 raw dataset → profile → signals → candidate questions → freshness filter → ranked prompts
 ```
 
-This skill is deliberately upstream of `karthik-analysis-planner`, `dataviz-selector`, and `karthik-data-visualization`. Do not start with chart forms. Start with what the data makes worth asking.
+This skill is deliberately upstream of `karthik-analysis-planner`, `dataviz-selector`, and `karthik-data-visualization`. If the source needs parsing, reshaping, joins, or domain cleaning before its signals are legible, use `karthik-data-cleaning` first. Do not start with chart forms. Start with what the data makes worth asking.
 
 ## Workflow
 
 1. Inspect the data first. Do not brainstorm from the filename alone.
 2. Profile the dataset: row count, row grain, date range, entities, measures, categories, missingness, and format breaks.
+   - If profiling exposes messy types, repeated wide columns, broken joins, sentinels, or ambiguous duplicates, pause and do only the minimal contextual cleaning needed to inspect real signals.
 3. Identify visible signals: slope change, crossing, plateau, rebound, spike, seasonality, outlier, cluster, concentration, substitution, divergence, or denominator trap.
 4. Generate 8-15 rough candidate questions.
 5. Reject questions that are stale, obvious, non-measurable, or only restate column names.

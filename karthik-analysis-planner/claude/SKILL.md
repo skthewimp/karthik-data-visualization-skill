@@ -15,6 +15,8 @@ question → definition → unit → denominator → comparison → metric → e
 
 This skill encodes Karthik's common analysis pattern from notebooks and Mint-style work: start with the live question, inspect what the data can actually measure, choose the row grain, make denominators visible, compare against a baseline, keep sanity checks near the analysis, and preserve the caveat before writing a claim.
 
+If the data itself needs contextual parsing, reshaping, joins, recodes, or validation before evidence-building, pair this with `karthik-data-cleaning`. Treat those cleaning rules as part of the contract, not housekeeping.
+
 ## Workflow
 
 1. Restate the question as a measurable claim, not a topic.
@@ -71,6 +73,7 @@ This skill encodes Karthik's common analysis pattern from notebooks and Mint-sty
 - Grain check:
 - Coverage check:
 - Missingness check:
+- Cleaning/reshape rules:
 - Source caveats:
 
 ## 7. Sanity checks
@@ -89,10 +92,11 @@ This skill encodes Karthik's common analysis pattern from notebooks and Mint-sty
 
 ## 10. Execution plan
 1. Profile data.
-2. Build analysis table at the chosen grain.
-3. Compute denominator/numerator/metric.
-4. Compare against baseline and sensitivity definitions.
-5. Produce facts table before any prose.
+2. Clean/reshape only what the question needs, with visible rules.
+3. Build analysis table at the chosen grain.
+4. Compute denominator/numerator/metric.
+5. Compare against baseline and sensitivity definitions.
+6. Produce facts table before any prose.
 ```
 
 ## Karthik defaults

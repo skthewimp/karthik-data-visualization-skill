@@ -2,7 +2,7 @@
 
 Public data visualization skills for Codex and Claude.
 
-This repo contains seven related skills:
+This repo contains nine related skills:
 
 1. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 2. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
@@ -11,8 +11,10 @@ This repo contains seven related skills:
 5. **`karthik-analysis-planner`** - analysis-contract rules for turning fuzzy natural-language questions into operational definitions, denominators, comparisons, metrics, caveats, and falsifiers before evidence-building.
 6. **`dataviz-orchestrator`** - end-to-end workflow for turning a dataset, loose question, and audience into an analysed, styled, critiqued visual story.
 7. **`dataset-question-generator`** - upstream skill for profiling raw datasets and generating fresh, visualisable questions before planning or charting.
+8. **`karthik-data-cleaning`** - data-cleaning rules for Karthik-style exploratory analysis: inspect, clean in context, inspect again, and avoid generic unsupervised fixes.
+9. **`chart-annotations`** - annotation rules for deciding what a chart should mark, which competing candidate wins, how the label is worded, and where it sits.
 
-The split is deliberate. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**.
+The split is deliberate. The data-cleaning skill answers **"how do we make this source analysable without hiding judgement calls?"**. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**. The annotation skill answers **"what should this chart mark, and what should the mark say?"**.
 
 ## Repository layout
 
@@ -39,6 +41,12 @@ The split is deliberate. The question generator answers **"what is worth asking 
 ├── dataset-question-generator/      # Raw dataset to fresh question prompts
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
+├── karthik-data-cleaning/           # Context-sensitive exploratory data cleaning
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── chart-annotations/               # What a chart marks and what the label says
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
 ├── docs/                            # Human docs; subfolder READMEs explain contents
 ├── sync-skills.py                   # Install both surfaces locally
 └── sync.sh                          # Pull + install wrapper
@@ -51,7 +59,7 @@ Each skill owns its Codex and Claude versions directly. Every public folder has 
 
 ### `dataviz-orchestrator`
 
-Use this when you have a dataset, a loose question, and an audience, and want the full loop: analysis plan, data profiling, analysis, story selection, visual choice, Karthik-style charting, critique, and iteration.
+Use this when you have a dataset, a loose question, and an audience, and want the full loop: analysis plan, contextual data inspection/cleaning, analysis, story selection, visual choice, Karthik-style charting, critique, and iteration.
 
 See: [`docs/skills/dataviz-orchestrator.md`](docs/skills/dataviz-orchestrator.md)
 
@@ -101,6 +109,20 @@ Use this when you have a raw dataset and need good seed questions before analysi
 
 See: [`docs/skills/dataset-question-generator.md`](docs/skills/dataset-question-generator.md)
 
+
+### `karthik-data-cleaning`
+
+Use this when preparing messy data for analysis, charting, modelling, or data stories. It follows Karthik's inspect → clean → inspect loop, keeps cleaning context-sensitive, and avoids generic unsupervised fixes.
+
+See: [`docs/skills/karthik-data-cleaning.md`](docs/skills/karthik-data-cleaning.md)
+
+
+### `chart-annotations`
+
+Use this when a chart is built but the reader cannot see the point without narration. It picks what to mark, ranks competing candidates, constrains the label wording, and sets placement and visual weight.
+
+See: [`docs/skills/chart-annotations.md`](docs/skills/chart-annotations.md)
+
 ## Install locally
 
 ```bash
@@ -116,6 +138,8 @@ This pulls latest changes and installs all skills to:
 - `~/.codex/skills/karthik-analysis-planner`
 - `~/.codex/skills/dataviz-orchestrator`
 - `~/.codex/skills/dataset-question-generator`
+- `~/.codex/skills/karthik-data-cleaning`
+- `~/.codex/skills/chart-annotations`
 - `~/.claude/skills/karthik-data-visualization`
 - `~/.claude/skills/dataviz-selector`
 - `~/.claude/skills/karthik-powerpoint-style`
@@ -123,11 +147,26 @@ This pulls latest changes and installs all skills to:
 - `~/.claude/skills/karthik-analysis-planner`
 - `~/.claude/skills/dataviz-orchestrator`
 - `~/.claude/skills/dataset-question-generator`
+- `~/.claude/skills/karthik-data-cleaning`
+- `~/.claude/skills/chart-annotations`
 
 To install without pulling:
 
 ```bash
 ./sync.sh --no-pull
+```
+
+To validate metadata without installing:
+
+```bash
+./sync.sh --no-pull --validate-only
+```
+
+To install one surface only:
+
+```bash
+./sync.sh --no-pull --surface codex
+./sync.sh --no-pull --surface claude
 ```
 
 ## Validation and red-team prompts
@@ -140,6 +179,7 @@ The selector skill includes:
 
 - Source skills live in `<skill>/{codex,claude}/SKILL.md`.
 - `sync-skills.py` discovers every root-level directory containing both surface files.
+- `sync-skills.py --validate-only` checks frontmatter without copying files.
 - No generated `dist/` output is committed.
 - Keep README files in public folders. They are navigation aids for newcomers and should be updated when layout changes.
 

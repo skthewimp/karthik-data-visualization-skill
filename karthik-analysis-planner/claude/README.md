@@ -1,3 +1,7 @@
-# Claude version
+# karthik-analysis-planner / claude
 
-Installable Claude skill file for `karthik-analysis-planner`.
+Claude-ready version of the `karthik-analysis-planner` skill.
+
+Install target: `~/.claude/skills/karthik-analysis-planner/`
+
+This usually mirrors the Codex version, but keeps Claude-compatible frontmatter and shorter trigger text. Edit this with `../codex/SKILL.md` when the analysis-contract workflow changes.

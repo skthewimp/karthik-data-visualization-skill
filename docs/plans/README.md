@@ -1,5 +1,11 @@
 # Plans
 
-Planning docs for future skill builds and multi-session work.
+Planning docs for future skill builds and multi-session work. These files are not authoritative skill instructions; they are project-management notes that explain what might be built next and why.
 
-- [`agentic-dataviz-skill-build-plan.md`](agentic-dataviz-skill-build-plan.md) - build plan for the next wave of agentic dataviz skills: story profiling, evidence building, claim validation, visual briefs, matplotlib cleanup, and workflow orchestration.
+## Files
+
+- [`agentic-dataviz-skill-build-plan.md`](agentic-dataviz-skill-build-plan.md) - build plan for the next wave of agentic dataviz skills, now updated to account for the dataset-question generator, contextual data-cleaning skill, and orchestrator.
+
+## Edit rule
+
+When a planned skill gets built or superseded, update the status board and the dependency notes. Do not let this folder keep advertising stale “next skill” plans after the repo has moved on.

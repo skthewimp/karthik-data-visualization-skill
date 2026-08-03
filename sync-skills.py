@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 import shutil
+import argparse
 from pathlib import Path
+from typing import Any
 
 try:
     import yaml
+    from yaml import YAMLError
 except ImportError:
     yaml = None
+    YAMLError = Exception
 
 
 ROOT = Path(__file__).resolve().parent
@@ -33,7 +37,13 @@ def parse_frontmatter(path: Path) -> dict:
         raise ValueError(f"{path}: missing YAML frontmatter")
     _prefix, raw, _body = text.split("---", 2)
     if yaml:
-        return yaml.safe_load(raw) or {}
+        try:
+            data = yaml.safe_load(raw) or {}
+        except YAMLError as exc:
+            raise ValueError(f"{path}: invalid YAML frontmatter: {exc}") from exc
+        if not isinstance(data, dict):
+            raise ValueError(f"{path}: YAML frontmatter must be a mapping")
+        return data
     data = {}
     for line in raw.splitlines():
         if not line.strip() or line.startswith(" ") or ":" not in line:
@@ -44,38 +54,62 @@ def parse_frontmatter(path: Path) -> dict:
     return data
 
 
+def require_string(data: dict[str, Any], field: str, path: Path) -> str:
+    value = data.get(field)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{path}: missing {field}")
+    return value.strip()
+
+
 def validate(skills: list[Path]) -> None:
     for skill in skills:
         for surface in SURFACES:
             path = skill / surface / "SKILL.md"
             data = parse_frontmatter(path)
-            for field in ("name", "description"):
-                if not data.get(field):
-                    raise ValueError(f"{path}: missing {field}")
-            if data["name"] != skill.name:
-                raise ValueError(f"{path}: name {data['name']!r} must match directory {skill.name!r}")
-            if surface == "claude" and len(str(data["description"])) > 200:
+            name = require_string(data, "name", path)
+            description = require_string(data, "description", path)
+            if name != skill.name:
+                raise ValueError(f"{path}: name {name!r} must match directory {skill.name!r}")
+            if surface == "claude" and len(description) > 200:
                 raise ValueError(f"{path}: Claude description must be <= 200 characters")
 
 
 def copy_tree(src: Path, dest: Path) -> None:
     if dest.exists():
         shutil.rmtree(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(src, dest, ignore=shutil.ignore_patterns(".DS_Store", "__pycache__", "*.pyc"))
 
 
-def install(skills: list[Path]) -> None:
+def install(skills: list[Path], surfaces: tuple[str, ...] = SURFACES) -> None:
     home = Path.home()
     for skill in skills:
-        copy_tree(skill / "codex", home / ".codex" / "skills" / skill.name)
-        copy_tree(skill / "claude", home / ".claude" / "skills" / skill.name)
+        if "codex" in surfaces:
+            copy_tree(skill / "codex", home / ".codex" / "skills" / skill.name)
+        if "claude" in surfaces:
+            copy_tree(skill / "claude", home / ".claude" / "skills" / skill.name)
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Validate and install Karthik data-visualization skills.")
+    parser.add_argument("--validate-only", action="store_true", help="validate skill metadata without installing")
+    parser.add_argument(
+        "--surface",
+        choices=("all", "codex", "claude"),
+        default="all",
+        help="which surface to install after validation",
+    )
+    args = parser.parse_args()
+
     skills = discover_skills()
     validate(skills)
-    install(skills)
-    print("installed " + ", ".join(skill.name for skill in skills))
+    if args.validate_only:
+        print("validated " + ", ".join(skill.name for skill in skills))
+        return 0
+
+    surfaces = SURFACES if args.surface == "all" else (args.surface,)
+    install(skills, surfaces)
+    print(f"installed {args.surface}: " + ", ".join(skill.name for skill in skills))
     return 0
 
 

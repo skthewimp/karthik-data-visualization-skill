@@ -36,11 +36,12 @@ The point is to avoid "trend of X over time" unless the comparison is clear.
 
 Recommended workflow:
 
-1. Use `dataset-question-generator` to find promising questions.
-2. Use `karthik-analysis-planner` to make one question operational.
-3. Use `dataviz-selector` to choose the chart form.
-4. Use `karthik-data-visualization` to style and critique the chart.
-5. Use writing or slide skills only after computed facts exist.
+1. Use `karthik-data-cleaning` first if the raw source must be parsed, reshaped, joined, or cleaned before its signals are legible.
+2. Use `dataset-question-generator` to find promising questions.
+3. Use `karthik-analysis-planner` to make one question operational.
+4. Use `dataviz-selector` to choose the chart form.
+5. Use `karthik-data-visualization` to style and critique the chart.
+6. Use writing or slide skills only after computed facts exist.
 
 ## Output modes
 
