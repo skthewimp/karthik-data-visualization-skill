@@ -22,6 +22,8 @@ Annotation:  +38%          <- placed at the Haryana point
 
 If the annotation is a full sentence restating the title, cut it to the locating fragment. If the title is a neutral chart description while the annotation carries the whole argument, move the claim up into the title.
 
+**They must be the same claim.** The opposite failure to repetition is divergence: a title about the whole cloud ("cities with low literacy are also the least equal") with an annotation about a subgroup ("Rajasthan holds 12 of the 20 widest gaps"). Both may be true, and the chart still fails, because the reader is handed two findings and told which to care about by neither. Decide which claim the chart is making, put it in the title, and mark the evidence for that one. The other claim is a second chart.
+
 Exception: a chart designed to travel alone with no title bar or surrounding text may carry the claim in the annotation. State that this is the case before doing it.
 
 ## Workflow
@@ -111,6 +113,7 @@ The difference matters. A band showing expected variation is evidence. A callout
 A knee, a slope, a smoothed peak, or a cluster boundary comes from a model. Three extra rules apply:
 
 - **Validate before marking.** A breakpoint picked as the minimum of a scan is the best of many candidates, not a tested finding. Check it survives a sensitivity test, or word it as approximate.
+- **A split point you chose by eye is derived too, and is the easier one to get wrong.** Looking at a chart, picking the year the line seems to turn, then computing slopes on either side feels like observation but is a choice made after seeing the outcome. It gets the same treatment as a scanned breakpoint: test it, or word it loosely. Both segments then need describing honestly - a real acceleration from 1.5 to 12.1 points per decade is a better finding than a fabricated flat-then-takeoff.
 - **Word it with the uncertainty the method carries.** "around the mid-1950s" is honest for a scanned breakpoint; "in 1956" claims a precision the method does not have. Do not put a bare year on a derived knee unless the year is itself the result.
 - **Never let the fit outshout the data.** If a fitted line is the loudest element and the observations are faint grey behind it, the chart is arguing for the model rather than showing the evidence. Give the fit the accent only when the observations remain clearly readable.
 
@@ -118,9 +121,22 @@ A knee, a slope, a smoothed peak, or a cluster boundary comes from a model. Thre
 
 **One primary, at most two supporting.** More than three candidates survive the ranking? Split the chart.
 
+**Contrast pairs are one annotation, not two.** When a claim is inherently about two ends - the highest and the lowest, the state that breaks the pattern against the one that follows it - the two labels are halves of a single point and share equal weight. Do not tier them into primary and supporting; that would say one end matters more, when the comparison is the finding. A contrast pair spends the primary slot, leaving one supporting annotation.
+
 Orienting labels are a separate class and do not count against the cap: series names, period labels, axis units, a legend replacement. They must still be collision-checked against the claim annotations - a period label sitting on top of the primary annotation is the same defect as two annotations overlapping.
 
 ## Step 6: writing the label
+
+**Every number and every comparative word in a label must be computed, never typed.**
+
+Position is not the only thing that drifts. A hand-typed count that was right when you wrote it is wrong after a filter changes, and nothing in the chart will tell you. Build the label string from the same computation that produced the mark:
+
+```r
+mutate(lbl = paste0("Rajasthan: ", sum(top$state == "Rajasthan"),
+                    " of the 20 widest gaps"))
+```
+
+Comparative words are quantitative claims wearing plain clothes. **flat, unchanged, steady, stagnant, doubled, tripled, halved, no different, as many as** - each one asserts a number and each one needs the number checked before it goes in the label. "Flat for the 45 years before" is a testable statement; if the pre-period slope is 1.5 points per decade at p = 0.0002, the label is false and the chart is worse than unannotated, because it invents a plateau the reader will believe.
 
 Constraints, all of them hard:
 
@@ -168,6 +184,8 @@ geom_text(data = filter(ann, tier == "supporting"),
 
 The label text is computed from the same columns as the mark, so the number and its position cannot disagree. `annotate()` with literal coordinates is fine for chart furniture - a period label, a band caption - but not for anything pointing at a specific observation.
 
+**Derive the anchor, then offset into whitespace.** A derived coordinate is the right anchor and usually the wrong resting place. Labelling a group of points at its centroid puts the text in the densest part of the cloud, where it is least readable - the centroid is the worst position available. Anchor on the group, then push the label to the outside edge of the cloud, into space no point occupies.
+
 Default is bare text sitting in whitespace beside the thing it labels. No box, no fill, no callout bubble.
 
 - Connector only when the nearest free space is far enough that the pairing is ambiguous. Then a hairline grey segment, no arrowhead.
@@ -175,7 +193,7 @@ Default is bare text sitting in whitespace beside the thing it labels. No box, n
 - A connector must never cross other data.
 - Text must never sit on top of data, gridlines, or another label.
 - If no honest placement exists, change the chart - widen margins, expand the axis range, move the panel - before dropping the annotation.
-- **Reserve room for the text when setting scale limits.** A right-hand label needs axis headroom past the last data point, not just a wider figure. Extend the limits and set clipping off; do not discover the clip after rendering.
+- **Reserve room for the text when setting scale limits, on every edge the text can reach.** Labels clip left, right, top and bottom, and a centred label on a point near an axis extreme clips on whichever side it overhangs. Extend the limits in the direction the text runs and set clipping off; do not discover the clip after rendering.
 
 ## Visual weight
 
@@ -218,7 +236,12 @@ Fix and re-render. Do not declare done from code inspection.
 | Bare year on a knee found by scanning | Word it as approximate, or validate first |
 | Fitted line louder than the observations | Chart argues for the model; requiet the fit |
 | Share language on a rank finding | Compute the share before writing the claim |
-| Text clipped at the right edge | Reserve axis headroom before rendering |
+| Text clipped at any panel edge | Reserve axis headroom in the direction the text runs |
+| Hand-typed count in the label text | Build the label string from the same computation as the mark |
+| "Flat", "doubled", "unchanged" asserted but never tested | Comparative words are numbers; check them |
+| Split point chosen by eye, then described as found | Test it, or word it loosely; describe both segments honestly |
+| Group label parked at the cluster centroid | Anchor on the group, offset to the outside edge |
+| Title claims one thing, annotation marks another | Pick one claim; the other is a second chart |
 | Declared done without rendering | Export and inspect |
 
 ## Relationship to other skills

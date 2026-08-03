@@ -49,13 +49,17 @@ I have four things worth marking on this chart. Which do I keep?
 
 **No story, no annotation.** A series with no trend is a real finding, but it gets no marks. The absence goes in the title, where claims live; there is nothing on the chart to locate. Context that lets the reader verify it - a variation band, a decade average - still earns its place, but a band is a context layer, not an annotation, and a callout announcing that nothing is happening is the title said twice.
 
+**Compute every number and every comparative word.** A hand-typed count is right until a filter changes and then silently wrong. And "flat", "doubled", "unchanged" are quantitative claims in plain clothes - a label reading "flat for the 45 years before" is false if that period rises 1.5 points per decade at p = 0.0002, and a false plateau is worse than no annotation.
+
+**Title and annotation must make the same claim.** The failure opposite to repetition is divergence - a title about the whole cloud and an annotation about one subgroup. Both can be true and the chart still fails, because the reader gets two findings and no steer. The other claim is a second chart.
+
 **Derived features carry a higher bar.** A knee from a breakpoint scan is the best of many candidates, not a tested one. Word it with the precision the method actually has, and never let a fitted line outshout the observations behind it.
 
 ## Where the rules come from
 
 The significance ladder, the concentration check, and the wording constraints are generalised from a real annotation system: a daily weather report where an LLM writes the chart's headline commentary, and where a bank of reviewed historical examples was built specifically to teach the model which signal to lead with. The failure it kept making - reading an aggregate as a trend when a burst explained it - is the reason the concentration check is a separate step rather than a footnote.
 
-The placement, absence, and derived-feature rules came from testing the first version of the skill on three real charts: a 140-year All-India rainfall series with no trend, a Bangalore maximum-temperature series with a scanned breakpoint, and a state liquor-revenue dumbbell. Each chart broke the skill in a different place, and each rule traces to a specific defect in a rendered image rather than to a principle.
+The placement, absence, and derived-feature rules came from testing the first version of the skill on three real charts: a 140-year All-India rainfall series with no trend, a Bangalore maximum-temperature series with a scanned breakpoint, and a state liquor-revenue dumbbell. A second round tested the revised version on three fresh shapes - a 495-city literacy scatter, a 13,571-row IAS officer time series, and state marriage-age gaps - and broke it again in five new places. Each rule traces to a specific defect in a rendered image rather than to a principle.
 
 ## Relationship to other skills
 
