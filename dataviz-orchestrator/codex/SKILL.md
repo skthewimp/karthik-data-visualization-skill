@@ -1,6 +1,8 @@
 ---
 name: dataviz-orchestrator
 description: End-to-end analytical data visualization workflow for Karthik. Use when the user points Codex to a dataset and gives a loose exploratory question, possible hypothesis, story idea, or desired audience, and wants Codex to plan the analysis, run the analysis, find the defensible story, choose the best visual representation, make chart outputs in Karthik's design aesthetic, critique the result, and iterate until the visual story is good enough to use.
+metadata:
+  claude-description: "Orchestrate dataset-to-visual-story work: plan analysis, run it, choose visuals, style, critique, and iterate."
 ---
 
 # Dataviz Orchestrator

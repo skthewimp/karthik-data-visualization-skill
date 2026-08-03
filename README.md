@@ -2,7 +2,7 @@
 
 Public data visualization skills for Codex and Claude.
 
-This repo contains ten related skills:
+This repo contains eleven related skills:
 
 1. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 2. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
@@ -14,8 +14,9 @@ This repo contains ten related skills:
 8. **`karthik-data-cleaning`** - data-cleaning rules for Karthik-style exploratory analysis: inspect, clean in context, inspect again, and avoid generic unsupervised fixes.
 9. **`chart-annotations`** - annotation rules for deciding what a chart should mark, which competing candidate wins, how the label is worded, and where it sits.
 10. **`chart-explainer`** - accompanying-note rules for writing the two lines that travel with a finished chart or table into an email, notebook, or message.
+11. **`karthik-r-analysis-style`** - notebook rules for how an exploratory R scratchpad is written: local precedent, analyst-first probes, tidyverse/tidytable idiom, and the working-note register.
 
-The split is deliberate. The data-cleaning skill answers **"how do we make this source analysable without hiding judgement calls?"**. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**. The annotation skill answers **"what should this chart mark, and what should the mark say?"**. The explainer skill answers **"what do I write next to this chart so the reader knows what it says?"**.
+The split is deliberate. The data-cleaning skill answers **"how do we make this source analysable without hiding judgement calls?"**. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**. The annotation skill answers **"what should this chart mark, and what should the mark say?"**. The explainer skill answers **"what do I write next to this chart so the reader knows what it says?"**. The R analysis skill answers **"how should the notebook doing all of this be written?"**.
 
 ## Repository layout
 
@@ -49,6 +50,9 @@ The split is deliberate. The data-cleaning skill answers **"how do we make this 
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── chart-explainer/                 # The two-line note that travels with a chart
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── karthik-r-analysis-style/        # How an exploratory R notebook is written
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── docs/                            # Human docs; subfolder READMEs explain contents
@@ -134,6 +138,13 @@ Use this when a chart or table is finished and someone else has to be told what 
 
 See: [`docs/skills/chart-explainer.md`](docs/skills/chart-explainer.md)
 
+
+### `karthik-r-analysis-style`
+
+Use this when writing the R analysis itself - an exploratory scratchpad, an RMarkdown or Quarto notebook, a first pass at a dataset that just landed. It covers notebook shape, probe sequencing, the rough working-note register, tidyverse/tidytable defaults, and routing to dbplyr, Arrow, or DuckDB when the data will not sit in memory. It requires an after-plot note on every plot and delegates the wording to `chart-explainer`.
+
+See: [`docs/skills/karthik-r-analysis-style.md`](docs/skills/karthik-r-analysis-style.md)
+
 ## Install locally
 
 ```bash
@@ -152,6 +163,7 @@ This pulls latest changes and installs all skills to:
 - `~/.codex/skills/karthik-data-cleaning`
 - `~/.codex/skills/chart-annotations`
 - `~/.codex/skills/chart-explainer`
+- `~/.codex/skills/karthik-r-analysis-style`
 - `~/.claude/skills/karthik-data-visualization`
 - `~/.claude/skills/dataviz-selector`
 - `~/.claude/skills/karthik-powerpoint-style`
@@ -162,6 +174,7 @@ This pulls latest changes and installs all skills to:
 - `~/.claude/skills/karthik-data-cleaning`
 - `~/.claude/skills/chart-annotations`
 - `~/.claude/skills/chart-explainer`
+- `~/.claude/skills/karthik-r-analysis-style`
 
 To install without pulling:
 

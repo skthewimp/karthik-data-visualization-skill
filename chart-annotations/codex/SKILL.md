@@ -3,7 +3,7 @@ name: chart-annotations
 description: Decide what to mark on a chart, how to rank competing candidates, how to word the label, and where to place it. Use when a chart needs on-chart annotation, callouts, direct labels for a key point, event markers, threshold lines, knee-bend or inflection labels, outlier calls, highlighted bars or points, or when a chart is finished but the reader cannot see the point without narration. Also use when annotation text is too long, too many things are marked, the label repeats the title, or a marked number is not tied to a stated baseline.
 metadata:
   short-description: Choose, rank, word, and place chart annotations
-  claude-description: Choose what to annotate on a chart, rank competing candidates, word the label tightly, and place it without clutter.
+  claude-description: "Choose what to mark on a chart, rank competing candidates, word the label tightly, and place it without clutter."
 ---
 
 # Chart Annotations

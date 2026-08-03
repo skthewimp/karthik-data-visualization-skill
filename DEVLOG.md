@@ -103,6 +103,36 @@ Three changes:
 
 `karthik-r-analysis-style` has no copy in this repo - it exists only as installed files under `~/.claude/skills` and `~/.codex/skills`, which differ slightly from each other. Both were patched by anchor rather than by overwrite. If it ever gets a source repo, that edit needs to move there.
 
+### Follow-up: analysis-style skill into the repo, and a consistency pass
+
+> "add that analytics style to the repo. and make sure all of this is consistent in boht claude and codex"
+
+`karthik-r-analysis-style` is now `karthik-r-analysis-style/{codex,claude}/` in this repo, imported from the installed copies. Both `SKILL.md` bodies were already byte-identical - only the frontmatter differed, in exactly the way this repo's convention expects (Codex gets the long trigger-rich description plus `metadata.claude-description`; Claude gets the short one). The `references/` folder ships inside each surface directory rather than at the skill root, because `SKILL.md` reads `references/style-observations.md` and the two audit files at runtime, and `sync-skills.py` only copies `<skill>/codex/` and `<skill>/claude/`. Same reason `chart-explainer/examples.md` sits where it does.
+
+One repair on the way in: the Claude description contains a colon (`Karthik-style R analysis: local-precedent...`), which is invalid as a bare YAML scalar. It had survived as a folded block scalar in the installed file. Now JSON-quoted on both surfaces.
+
+Then an audit across all eleven skills, on two axes:
+
+```
+skill                            claude_desc_len  mirror_ok  body_identical
+chart-annotations                       112         fixed         True
+chart-explainer                         161         True          True
+dataset-question-generator              100         True          True
+dataviz-critique                         91         True          False   <- flagged
+dataviz-orchestrator                    110         fixed         True
+dataviz-selector                        122         fixed         True
+karthik-analysis-planner                136         True          True
+karthik-data-cleaning                   145         fixed         True
+karthik-data-visualization              147         True          True
+karthik-powerpoint-style                175         True          True
+karthik-r-analysis-style                128         True          True
+```
+
+- **`mirror_ok`** - whether the Codex file's `metadata.claude-description` matches the description the Claude file actually ships. Four had drifted: two were missing the field entirely, and two carried superseded wording (`chart-annotations` still said "annotate" where the live description says "mark"; `dataviz-selector` carried an entirely different sentence). Mirrored the live Claude description in each case, since that is the one a running agent reads. Documentation-only.
+- **`body_identical`** - whether the two surfaces teach the same thing. Ten of eleven match. `dataviz-critique` does not: the Claude body is a genuinely condensed rewrite, 122 lines against 186, with sections merged and the "Inputs to seek or infer" list dropped. That is a behavioural divergence, not drift, and reconciling it means choosing which version is correct. Left alone and raised with Karthik rather than resolved silently.
+
+Also deleted the memory note saying this skill has no source repo. It does now.
+
 ### Wiring
 
 `dataviz-orchestrator` was left alone. The orchestrator ends at a critiqued chart; narration for an absent reader is a separate job and Karthik did not ask for the loop to be extended. Worth revisiting if the orchestrator starts producing multi-chart outputs meant to travel.

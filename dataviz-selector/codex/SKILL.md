@@ -3,7 +3,7 @@ name: dataviz-selector
 description: Choose the right visualization for a dataset plus analytical question, hypothesis, data story, or management problem. Use when recommending, designing, critiquing, or implementing chart choices before plotting; especially for Karthik-style explanatory analytics, Mint-style data stories, time-series shape annotation (knee-bends, inflection points, local maxima/minima, temporary peaks), S-curves/adoption/diffusion patterns, Babbage/management decks, election/sports/payment/geography/risk visuals, or choosing between lines, bars, scatter, maps, distributions, small multiples, scorecards, waterfalls, and tables.
 metadata:
   short-description: Choose chart forms for data stories
-  claude-description: Choose the right chart for a dataset plus question, hypothesis, story, or management problem; avoids misleading/decorative forms.
+  claude-description: "Choose charts for data stories, including S-curves, knee-bends, inflections, local peaks, and misleading/decorative forms."
 ---
 
 # Dataviz Selector

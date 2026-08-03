@@ -8,10 +8,13 @@ All notable public changes to this repository are recorded here.
 
 - Added `chart-explainer` as a public Codex/Claude skill for writing the two-line note that travels with a finished chart or table into an email, notebook, or message. Enforces a claim with an anchored number plus one payoff, requires numbers to be computed from the data rather than read off the image, treats "nothing here" as a legitimate output, and refuses to smooth a batch of exploratory plots into a narrative. Ships a calibration example bank mined from Karthik's Mint columns and analysis notebooks. Also fires on requests to build an exploratory notebook, where the two-line notes go in markdown under every plot chunk as part of the deliverable.
 - Added `chart-annotations` as a public Codex/Claude skill for deciding what a chart should mark, ranking competing annotation candidates, wording the label, and placing it.
-- Added human-facing docs and repository navigation entries for the new skill.
+- Added `karthik-r-analysis-style` to the repo as a public Codex/Claude skill. It previously existed only as installed files under `~/.claude/skills` and `~/.codex/skills`, with no source copy, so it could not be reviewed or versioned with the rest. Its `references/` folder ships inside each surface directory because the skill reads those files at runtime.
+- Added human-facing docs and repository navigation entries for the new skills.
 
 ### Changed
 
+- Cross-referenced `chart-explainer` from `karthik-r-analysis-style`, so a request to build an exploratory notebook produces an after-plot note under every plot. The existing note examples in that skill were all lead-ins; nothing covered what a plot turned out to show.
+- Mirrored the live Claude description into `metadata.claude-description` on the Codex side for `chart-annotations`, `dataviz-orchestrator`, `dataviz-selector`, and `karthik-data-cleaning`, where the two had drifted apart. Documentation-only; no behaviour change.
 - Updated `dataviz-orchestrator` to call `chart-annotations` at the charting step, alongside `karthik-data-visualization`.
 - Revised `chart-annotations` after testing it on three real charts. Added: derive annotation coordinates from the data instead of hand-typing them; a "when nothing clears the bar" section establishing that no story means no annotation, with the absence stated in the title and context layers distinguished from annotations; a higher bar for derived features such as scanned breakpoints and fitted slopes; the concentration check now gates the title as well as the annotation; orienting labels treated as a separate class outside the annotation cap; and axis headroom reserved for label text before rendering.
 - Revised `chart-annotations` again after a second round of testing on three fresh charts. Added: numbers and comparative words in labels must be computed rather than typed; split points chosen by eye are derived features and need the same validation as scanned ones; derived coordinates must be offset into whitespace, since a cluster centroid is the worst available position; title and annotation must make the same claim; contrast pairs count as one annotation and share weight; and label headroom applies to every panel edge, not only the right.
@@ -31,7 +34,8 @@ All notable public changes to this repository are recorded here.
 ### Added
 
 - Added `dataset-question-generator` as a public Codex/Claude skill for profiling raw datasets and producing fresh, visualisable analysis questions before planning or charting.
-- Added human-facing docs and repository navigation entries for the new skill.
+- Added `karthik-r-analysis-style` to the repo as a public Codex/Claude skill. It previously existed only as installed files under `~/.claude/skills` and `~/.codex/skills`, with no source copy, so it could not be reviewed or versioned with the rest. Its `references/` folder ships inside each surface directory because the skill reads those files at runtime.
+- Added human-facing docs and repository navigation entries for the new skills.
 - Added `karthik-data-cleaning` as a public Codex/Claude skill for context-sensitive tabular data preparation before analysis, modelling, and charting.
 - Added missing Codex/Claude subfolder README files for newer skills.
 - Expanded README coverage across skill folders, surface folders, docs folders, and public reference/script directories so the MIT repo is navigable from GitHub.

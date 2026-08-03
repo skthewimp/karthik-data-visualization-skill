@@ -7,6 +7,8 @@ description: >-
   exploratory analysis when the task needs context-sensitive, human-supervised cleaning:
   inspect data, define the unit of analysis, apply domain rules visibly, avoid unsupervised
   generic fixes, and keep raw/canonical files untouched.
+metadata:
+  claude-description: "Context-sensitive, human-supervised data cleaning for Karthik-style R/Rmd analysis: inspect, clean, inspect again; no generic unsupervised fixes."
 ---
 
 # Karthik Data Cleaning

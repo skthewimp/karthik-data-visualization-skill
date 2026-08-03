@@ -14,6 +14,7 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`skills/karthik-data-cleaning.md`](skills/karthik-data-cleaning.md) - how to clean tabular data in context before analysis or charting
 - [`skills/chart-annotations.md`](skills/chart-annotations.md) - how to decide what a chart marks and what the label says
 - [`skills/chart-explainer.md`](skills/chart-explainer.md) - how to write the two-line note that accompanies a chart or table
+- [`skills/karthik-r-analysis-style.md`](skills/karthik-r-analysis-style.md) - how to write an exploratory R scratchpad or notebook
 
 ## Project notes
 
