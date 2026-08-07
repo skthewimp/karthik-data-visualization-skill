@@ -80,7 +80,7 @@ Use sans fonts:
 
 Rules:
 - Title: bold, charcoal.
-- Subtitle: regular, smaller, muted or accent color. Make it carry the analytical message, benchmark, or surprise; do not waste it explaining chart mechanics that labels/annotations can handle.
+- Subtitle: regular, smaller, muted or accent color. Make it carry the analytical message, benchmark, or surprise; do not waste it explaining chart mechanics that labels/annotations can handle. Keep it insight-first, not process-first.
 - Axis text: bold, charcoal.
 - Facet labels: bold.
 - Caption/source: small, regular, charcoal or grey.
@@ -127,6 +127,7 @@ For subjective or illustrative values:
 No legends. Ever.
 
 Use direct labels:
+- Prefer direct labels over legends whenever the labels can fit cleanly on the chart.
 - End-of-line labels for line charts.
 - `geom_text()` / `annotate()` for small static labels.
 - `ggrepel::geom_text_repel()` for collision-prone labels.
@@ -188,7 +189,7 @@ Rules:
 
 Preferred, roughly in order:
 
-1. Line + point for time series.
+1. Line + point for time series and trend comparison.
 2. Segment/range plots for bands, especially current vs historical range.
 3. Small multiples for cross-category comparison.
 4. Horizontal bar charts for ranked categories.
@@ -202,7 +203,7 @@ Avoid:
 - Donut charts.
 - 3D charts.
 - Radar/spider charts.
-- Stacked bars when comparison matters.
+- Stacked bars when comparison matters, especially when the viewer needs to compare trends over time.
 - Interactive charts by default.
 
 ## Composition
@@ -210,6 +211,7 @@ Avoid:
 Default single-panel export:
 - Width: 12
 - Height: 6
+- For chat delivery, scale up rather than squeeze; larger canvases and larger labels survive compression better.
 
 Use:
 

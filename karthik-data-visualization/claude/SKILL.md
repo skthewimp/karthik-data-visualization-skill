@@ -27,9 +27,11 @@ Core operating rules:
 - Use domain-specific palettes where meaningful; avoid copying one chart family's colors blindly.
 - Tune labels and spacing after rendering, not just from code inspection.
 - Favor visual forms that make comparison and change easy to read.
+- Prefer line charts over stacked bars when the question is trend comparison rather than composition.
 - Make visual hierarchy match information hierarchy: data, labels, annotations, grids, borders.
 - Show comparison and context explicitly; a chart should answer "compared to what?"
 - Use color sparingly: gray for context, color for emphasis or true encoding.
+- Keep subtitles focused on the insight or comparison, not the mechanics of how the chart was made.
 - Let complexity come from the data, not decoration.
 
 When writing or changing chart code:
