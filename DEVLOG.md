@@ -8,6 +8,9 @@
 
 ### What changed
 
+- Added the `dataviz-fix` repair loop and its persistent case manager for originals, iterations, feedback, acceptance, and skill diagnosis.
+- Fixed the pushed repair-loop bundle: `case_manager.py` had been hidden by the repo-wide private-script ignore rule even though `dataviz-fix` invokes it at runtime.
+- Added validation for missing or ignored runtime scripts and repaired the thirteen-skill navigation indexes.
 - Added a new `dataviz-eval` skill to separate chart critique/repair from the final readiness decision.
 - Documented the new skill in the public docs index and added a standalone docs page for it.
 - Reflected the latest repair-loop lessons in the changelog: inspect→revise→render, geometry before shrinking text, and export-vs-viewport mismatches.

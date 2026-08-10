@@ -6,6 +6,10 @@
 !**/scripts/
 !**/scripts/README.md
 
+# Public runtime used by the dataviz repair loop
+!dataviz-fix/codex/scripts/case_manager.py
+!dataviz-fix/claude/scripts/case_manager.py
+
 # Old/generated build artifacts
 dist/
 

@@ -2,6 +2,8 @@
 
 Human-facing guides for the public skills.
 
+- [`dataviz-fix.md`](dataviz-fix.md) - explains the iterative chart-repair, feedback-capture, and skill-learning workflow.
+- [`dataviz-eval.md`](dataviz-eval.md) - explains the rendered-chart delivery-readiness gate.
 - [`dataviz-selector.md`](dataviz-selector.md) - explains when to use the chart-selection skill and what output to expect.
 - [`karthik-data-visualization.md`](karthik-data-visualization.md) - explains Karthik's chart style and review principles.
 - [`karthik-powerpoint-style.md`](karthik-powerpoint-style.md) - explains Karthik's slide and deck style for analytical presentations.

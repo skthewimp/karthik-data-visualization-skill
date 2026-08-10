@@ -1,27 +1,35 @@
 # Karthik Data Visualization Skills
 
-Public data visualization skills for Codex and Claude.
+Public data visualization skills for Codex, Claude, and Hermes.
 
-This repo contains eleven related skills:
+This repo contains thirteen related skills:
 
-1. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
-2. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
-3. **`karthik-powerpoint-style`** - slide and deck rules for making PowerPoint-style presentations in Karthik's analytical, claim-first style.
-4. **`dataviz-critique`** - chart critique and redesign rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards, then proposing better alternatives.
-5. **`karthik-analysis-planner`** - analysis-contract rules for turning fuzzy natural-language questions into operational definitions, denominators, comparisons, metrics, caveats, and falsifiers before evidence-building.
-6. **`dataviz-orchestrator`** - end-to-end workflow for turning a dataset, loose question, and audience into an analysed, styled, critiqued visual story.
-7. **`dataset-question-generator`** - upstream skill for profiling raw datasets and generating fresh, visualisable questions before planning or charting.
-8. **`karthik-data-cleaning`** - data-cleaning rules for Karthik-style exploratory analysis: inspect, clean in context, inspect again, and avoid generic unsupervised fixes.
-9. **`chart-annotations`** - annotation rules for deciding what a chart should mark, which competing candidate wins, how the label is worded, and where it sits.
-10. **`chart-explainer`** - accompanying-note rules for writing the two lines that travel with a finished chart or table into an email, notebook, or message.
-11. **`karthik-r-analysis-style`** - notebook rules for how an exploratory R scratchpad is written: local precedent, analyst-first probes, tidyverse/tidytable idiom, and the working-note register.
+1. **`dataviz-fix`** - iterative repair and learning-loop rules: rebuild a pasted chart, preserve revisions and feedback, then route reusable lessons to the owning skill.
+2. **`dataviz-eval`** - delivery-readiness rules for deciding whether a rendered chart should be sent, revised, or redesigned.
+3. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
+4. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
+5. **`karthik-powerpoint-style`** - slide and deck rules for making PowerPoint-style presentations in Karthik's analytical, claim-first style.
+6. **`dataviz-critique`** - chart critique and redesign rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards, then proposing better alternatives.
+7. **`karthik-analysis-planner`** - analysis-contract rules for turning fuzzy natural-language questions into operational definitions, denominators, comparisons, metrics, caveats, and falsifiers before evidence-building.
+8. **`dataviz-orchestrator`** - end-to-end workflow for turning a dataset, loose question, and audience into an analysed, styled, critiqued visual story.
+9. **`dataset-question-generator`** - upstream skill for profiling raw datasets and generating fresh, visualisable questions before planning or charting.
+10. **`karthik-data-cleaning`** - data-cleaning rules for Karthik-style exploratory analysis: inspect, clean in context, inspect again, and avoid generic unsupervised fixes.
+11. **`chart-annotations`** - annotation rules for deciding what a chart should mark, which competing candidate wins, how the label is worded, and where it sits.
+12. **`chart-explainer`** - accompanying-note rules for writing the two lines that travel with a finished chart or table into an email, notebook, or message.
+13. **`karthik-r-analysis-style`** - notebook rules for how an exploratory R scratchpad is written: local precedent, analyst-first probes, tidyverse/tidytable idiom, and the working-note register.
 
-The split is deliberate. The data-cleaning skill answers **"how do we make this source analysable without hiding judgement calls?"**. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**. The annotation skill answers **"what should this chart mark, and what should the mark say?"**. The explainer skill answers **"what do I write next to this chart so the reader knows what it says?"**. The R analysis skill answers **"how should the notebook doing all of this be written?"**.
+The split is deliberate. The repair-loop skill answers **"rebuild this chart, keep revising it with me, then learn from what I corrected"**. The evaluation skill answers **"is this rendered chart ready to send?"**. The data-cleaning skill answers **"how do we make this source analysable without hiding judgement calls?"**. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**. The annotation skill answers **"what should this chart mark, and what should the mark say?"**. The explainer skill answers **"what do I write next to this chart so the reader knows what it says?"**. The R analysis skill answers **"how should the notebook doing all of this be written?"**.
 
 ## Repository layout
 
 ```text
 .
+├── dataviz-fix/                     # Iterative chart repair, feedback capture, and skill learning
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataviz-eval/                    # Rendered-chart delivery-readiness gate
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
 ├── dataviz-selector/                # Chart-selection skill; folder README explains layout
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
@@ -56,13 +64,25 @@ The split is deliberate. The data-cleaning skill answers **"how do we make this 
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── docs/                            # Human docs; subfolder READMEs explain contents
-├── sync-skills.py                   # Install both surfaces locally
+├── sync-skills.py                   # Install Codex/Claude or the explicit Hermes surface
 └── sync.sh                          # Pull + install wrapper
 ```
 
 Each skill owns its Codex and Claude versions directly. Every public folder has a README so newcomers can navigate without prior context. No generated `dist/` tree is committed.
 
 ## Skills
+
+### `dataviz-fix`
+
+Use this when you want to paste or upload a chart, receive a real regenerated visual, iterate with short feedback until it is right, and turn the accepted result into a narrow reusable improvement to the skill stack.
+
+See: [`docs/skills/dataviz-fix.md`](docs/skills/dataviz-fix.md)
+
+### `dataviz-eval`
+
+Use this after rendering when you need a clear Send, Revise, or Redesign verdict based on readability, integrity, hierarchy, and the actual delivery medium.
+
+See: [`docs/skills/dataviz-eval.md`](docs/skills/dataviz-eval.md)
 
 
 ### `dataviz-orchestrator`
@@ -164,6 +184,8 @@ This pulls latest changes and installs all skills to:
 - `~/.codex/skills/chart-annotations`
 - `~/.codex/skills/chart-explainer`
 - `~/.codex/skills/karthik-r-analysis-style`
+- `~/.codex/skills/dataviz-fix`
+- `~/.codex/skills/dataviz-eval`
 - `~/.claude/skills/karthik-data-visualization`
 - `~/.claude/skills/dataviz-selector`
 - `~/.claude/skills/karthik-powerpoint-style`
@@ -175,6 +197,8 @@ This pulls latest changes and installs all skills to:
 - `~/.claude/skills/chart-annotations`
 - `~/.claude/skills/chart-explainer`
 - `~/.claude/skills/karthik-r-analysis-style`
+- `~/.claude/skills/dataviz-fix`
+- `~/.claude/skills/dataviz-eval`
 
 To install without pulling:
 
@@ -193,13 +217,16 @@ To install one surface only:
 ```bash
 ./sync.sh --no-pull --surface codex
 ./sync.sh --no-pull --surface claude
+./sync.sh --no-pull --surface hermes
 ```
+
+The Hermes surface installs the Claude-compatible copies under `~/.hermes/skills/data-science/`. It is explicit rather than part of `all`.
 
 ## Validation and red-team prompts
 
 The selector skill includes:
 
-- Local-only `references/` and `scripts/` helpers may exist for development, but are ignored and not committed to the public repo.
+- Local/private `references/` and `scripts/` remain ignored by default. Runtime files explicitly required by public skills, such as `dataviz-fix/scripts/case_manager.py`, are tracked.
 
 ## Development notes
 

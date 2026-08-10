@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import shutil
 import argparse
+import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +20,7 @@ ROOT = Path(__file__).resolve().parent
 EXCLUDE_DIRS = {".git", "dist", "__pycache__", "docs"}
 SOURCE_SURFACES = ("codex", "claude")
 DEFAULT_INSTALL_SURFACES = SOURCE_SURFACES
+SCRIPT_REFERENCE_RE = re.compile(r"scripts/([A-Za-z0-9_.-]+\.(?:py|sh|js|R))")
 
 
 def discover_skills() -> list[Path]:
@@ -66,6 +69,7 @@ def validate(skills: list[Path]) -> None:
     for skill in skills:
         for surface in SOURCE_SURFACES:
             path = skill / surface / "SKILL.md"
+            text = path.read_text(encoding="utf-8")
             data = parse_frontmatter(path)
             name = require_string(data, "name", path)
             description = require_string(data, "description", path)
@@ -73,6 +77,18 @@ def validate(skills: list[Path]) -> None:
                 raise ValueError(f"{path}: name {name!r} must match directory {skill.name!r}")
             if surface == "claude" and len(description) > 200:
                 raise ValueError(f"{path}: Claude description must be <= 200 characters")
+            for filename in sorted(set(SCRIPT_REFERENCE_RE.findall(text))):
+                runtime_path = skill / surface / "scripts" / filename
+                if not runtime_path.is_file():
+                    raise ValueError(f"{path}: referenced runtime file is missing: {runtime_path}")
+                if (ROOT / ".git").exists():
+                    ignored = subprocess.run(
+                        ["git", "check-ignore", "--quiet", str(runtime_path)],
+                        cwd=ROOT,
+                        check=False,
+                    )
+                    if ignored.returncode == 0:
+                        raise ValueError(f"{runtime_path}: referenced runtime file is ignored by git")
 
 
 def copy_tree(src: Path, dest: Path) -> None:

@@ -14,9 +14,9 @@ The skill keeps the original chart, each rendered revision, the user's correctio
 
 ## Files
 
-- [`codex/SKILL.md`](codex/SKILL.md) — Codex version.
-- [`claude/SKILL.md`](claude/SKILL.md) — Claude/Hermes-compatible version.
-- [`codex/scripts/case_manager.py`](codex/scripts/case_manager.py) and [`claude/scripts/case_manager.py`](claude/scripts/case_manager.py) — deterministic case logger.
+- [`codex/SKILL.md`](codex/SKILL.md) - Codex version.
+- [`claude/SKILL.md`](claude/SKILL.md) - Claude/Hermes-compatible version.
+- [`codex/scripts/case_manager.py`](codex/scripts/case_manager.py) and [`claude/scripts/case_manager.py`](claude/scripts/case_manager.py) - deterministic case logger.
 
 ## Relationship to other skills
 
