@@ -26,6 +26,7 @@ Use the smallest relevant subset:
 
 - `dataviz-critique`: diagnose question/data/visual failures and rank them by severity.
 - `dataviz-selector`: keep or change the chart form.
+- `dataviz-eval`: decide whether the rendered chart is ready, needs revision, or needs redesign.
 - `karthik-data-visualization`: implement and inspect the visual.
 - `chart-annotations`: decide what to mark and how to label it.
 - `dataviz-orchestrator`: use when source data or analysis must be rebuilt.
@@ -103,6 +104,8 @@ Do not give the full diagnosis unless asked. Use it to make the chart.
 - Save code and outputs inside the active case directory when feasible.
 
 ### 4. Inspect before sending
+
+This is an inspect → revise → render loop: inspect the rendered artifact, fix the issue, re-render, and inspect again before sending. Stop only when the output is acceptable or you have hit the cycle limit.
 
 Inspect the rendered artifact. Check:
 

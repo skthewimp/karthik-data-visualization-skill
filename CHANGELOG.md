@@ -2,6 +2,19 @@
 
 All notable public changes to this repository are recorded here.
 
+## 2026-08-10
+
+### Added
+
+- Added `dataviz-eval` as a public Codex/Claude/Hermes skill for deciding whether a rendered chart is ready to send or needs another inspect→revise cycle. It captures the repeated failure modes we kept seeing in chart repair: clipping, overlap, whitespace imbalance, export-vs-viewport mismatches, and thumbnail/chat legibility.
+- Added human-facing docs for `dataviz-eval` and surfaced it in the documentation index.
+
+### Changed
+
+- Updated `dataviz-fix` so the inspection step is explicit about the inspect→revise→render loop, and so the companion-skill list now includes `dataviz-eval` as the dedicated evaluation gate.
+- Updated `karthik-data-visualization` and `dataviz-selector` to carry the latest non-overlap, geometry-first, and thumbnail-first guidance that came out of the repair loop.
+- Updated `sync-skills.py` to recognise Hermes installs from the Claude surface as well as Codex/Claude source files.
+
 ## 2026-08-03
 
 ### Added

@@ -20,7 +20,7 @@ The skill keeps the original chart, each rendered revision, the user's correctio
 
 ## Relationship to other skills
 
-`dataviz-fix` is the repair-loop umbrella. It calls `dataviz-critique`, `dataviz-selector`, `karthik-data-visualization`, `chart-annotations`, and the analytical skills only when their failure mode is relevant.
+`dataviz-fix` is the repair-loop umbrella. It calls `dataviz-critique`, `dataviz-selector`, `dataviz-eval`, `karthik-data-visualization`, `chart-annotations`, and the analytical skills only when their failure mode is relevant.
 
 ## Edit rule
 

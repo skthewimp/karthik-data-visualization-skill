@@ -1,5 +1,18 @@
 # Devlog
 
+## 2026-08-10 - Dataviz eval gate and documentation pass
+
+### User prompts
+
+> "document these new skills and today's changes explicitly as well and push them to the GitHub"
+
+### What changed
+
+- Added a new `dataviz-eval` skill to separate chart critique/repair from the final readiness decision.
+- Documented the new skill in the public docs index and added a standalone docs page for it.
+- Reflected the latest repair-loop lessons in the changelog: inspect→revise→render, geometry before shrinking text, and export-vs-viewport mismatches.
+- Updated the dataviz skill stack so the evaluation gate sits between critique and repair, instead of being implicit inside chart implementation.
+
 ## 2026-08-03 - Chart explainer skill
 
 ### User prompts

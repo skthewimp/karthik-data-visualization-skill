@@ -16,7 +16,7 @@ Workflow:
 3. Build from data outward: data first, direct labels second, annotations third, grids/axes last.
 4. Check graphical integrity: scales, baselines, proportional encoding, missing context, and any visual effect that exaggerates or understates the data effect.
 5. Apply the eraser test: remove any ink that does not carry data, labels, or necessary context.
-6. Render and inspect the exported image; adjust labels, spacing, hierarchy, and source notes from the actual output.
+6. Render and inspect the exported image; if anything is clipped, overlapping, or misaligned, adjust labels, spacing, hierarchy, and source notes from the actual output, then render again.
 
 Core operating rules:
 

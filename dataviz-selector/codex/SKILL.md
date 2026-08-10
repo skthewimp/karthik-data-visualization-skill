@@ -32,6 +32,9 @@ For non-trivial chart selection, use the workflow and guardrails below; private 
 - Slowing growth: raw line + marked slowdown/knee + dotted earlier-growth projection; avoid YoY as main chart unless technical audience.
 - Forecast/anomaly: actual line, forecast/dashed line, uncertainty ribbon, highlighted anomaly/intervention window.
 - Many comparable series: small multiples or cluster prototypes; avoid spaghetti.
+- If the chart will be consumed in chat or at thumbnail size, prefer forms that support direct labels and strong contrast; avoid designs that depend on faint colour differences or tiny legends.
+- For slopegraphs, make the canvas tall rather than wide, label both sides directly, keep labels outside the endpoints, and choose the aspect ratio to fit the number of rows so the chart does not waste whitespace or force label collisions.
+- For exactly two time points, prefer a slopegraph over a dumbbell if the comparison can be labeled on both ends and the connector line can carry the change; choose a dumbbell only when the paired endpoint values need to be read as discrete markers.
 - Ranking: sorted horizontal bars; bar axis starts at 0; highlight story item.
 - Composition/share substitution: 100% stacked bars/area only when mix is the story.
 - Distribution/skew/tails: histogram, density, ECDF, box, or violin; log scale for income/wealth/power-law data.
