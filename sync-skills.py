@@ -16,7 +16,8 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parent
 EXCLUDE_DIRS = {".git", "dist", "__pycache__", "docs"}
-SURFACES = ("codex", "claude")
+SOURCE_SURFACES = ("codex", "claude")
+DEFAULT_INSTALL_SURFACES = SOURCE_SURFACES
 
 
 def discover_skills() -> list[Path]:
@@ -24,7 +25,7 @@ def discover_skills() -> list[Path]:
     for path in sorted(ROOT.iterdir()):
         if not path.is_dir() or path.name in EXCLUDE_DIRS or path.name.startswith("."):
             continue
-        if all((path / surface / "SKILL.md").is_file() for surface in SURFACES):
+        if all((path / surface / "SKILL.md").is_file() for surface in SOURCE_SURFACES):
             skills.append(path)
     if not skills:
         raise ValueError("No skill directories found; expected <skill>/{codex,claude}/SKILL.md")
@@ -63,7 +64,7 @@ def require_string(data: dict[str, Any], field: str, path: Path) -> str:
 
 def validate(skills: list[Path]) -> None:
     for skill in skills:
-        for surface in SURFACES:
+        for surface in SOURCE_SURFACES:
             path = skill / surface / "SKILL.md"
             data = parse_frontmatter(path)
             name = require_string(data, "name", path)
@@ -81,13 +82,18 @@ def copy_tree(src: Path, dest: Path) -> None:
     shutil.copytree(src, dest, ignore=shutil.ignore_patterns(".DS_Store", "__pycache__", "*.pyc"))
 
 
-def install(skills: list[Path], surfaces: tuple[str, ...] = SURFACES) -> None:
+def install(skills: list[Path], surfaces: tuple[str, ...] = DEFAULT_INSTALL_SURFACES) -> None:
     home = Path.home()
     for skill in skills:
         if "codex" in surfaces:
             copy_tree(skill / "codex", home / ".codex" / "skills" / skill.name)
         if "claude" in surfaces:
             copy_tree(skill / "claude", home / ".claude" / "skills" / skill.name)
+        if "hermes" in surfaces:
+            copy_tree(
+                skill / "claude",
+                home / ".hermes" / "skills" / "data-science" / skill.name,
+            )
 
 
 def main() -> int:
@@ -95,7 +101,7 @@ def main() -> int:
     parser.add_argument("--validate-only", action="store_true", help="validate skill metadata without installing")
     parser.add_argument(
         "--surface",
-        choices=("all", "codex", "claude"),
+        choices=("all", "codex", "claude", "hermes"),
         default="all",
         help="which surface to install after validation",
     )
@@ -107,7 +113,9 @@ def main() -> int:
         print("validated " + ", ".join(skill.name for skill in skills))
         return 0
 
-    surfaces = SURFACES if args.surface == "all" else (args.surface,)
+    # Keep `all` backward compatible: it installs the two local coding-agent
+    # surfaces. Hermes is server-oriented and must be requested explicitly.
+    surfaces = DEFAULT_INSTALL_SURFACES if args.surface == "all" else (args.surface,)
     install(skills, surfaces)
     print(f"installed {args.surface}: " + ", ".join(skill.name for skill in skills))
     return 0
