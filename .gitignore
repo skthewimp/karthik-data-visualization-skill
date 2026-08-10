@@ -2,6 +2,8 @@
 **/references/**
 !**/references/
 !**/references/README.md
+!dataviz-eval/codex/references/evaluation-framework.md
+!dataviz-eval/claude/references/evaluation-framework.md
 **/scripts/**
 !**/scripts/
 !**/scripts/README.md

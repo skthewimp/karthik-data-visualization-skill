@@ -1,10 +1,7 @@
 # dataviz-eval / claude
 
-Claude- and Hermes-compatible version of the rendered-chart evaluation gate.
+Claude and Hermes surface for artifact readiness decisions and chart-creator benchmarks.
 
-Install targets:
+Install targets: `~/.claude/skills/dataviz-eval/` and the Hermes data-science skills directory.
 
-- `~/.claude/skills/dataviz-eval/`
-- `~/.hermes/skills/data-science/dataviz-eval/` through `./sync.sh --no-pull --surface hermes`
-
-Keep behavioural changes aligned with `../codex/SKILL.md`. Keep the evaluation rubric, the README, and the surface files consistent.
+`SKILL.md` contains the operating protocol. `references/evaluation-framework.md` contains the gate anchors, failure taxonomy, benchmark design, and Hermes calibration cases. Keep both aligned with the Codex surface.

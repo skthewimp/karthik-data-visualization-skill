@@ -51,6 +51,7 @@ If implementing: <short code/design note>
 - Identify the comparison: time, peers, baseline, threshold, counterfactual, distribution, spatial context, model expectation, or decomposition.
 - Use the simplest chart that exposes that comparison.
 - Add context only when it helps: event markers, thresholds, ribbons, counterfactuals, direct labels, facets, or short annotations.
+- Choose colour by analytical role: focal-plus-grey for emphasis, qualitative hues for identity, sequential scales for magnitude, and diverging scales only around a meaningful midpoint.
 - For S-curves and other shaped time series, mark visible knee-bends/inflections, local maxima/minima, and temporary peaks/troughs when they change the story.
 - If the dataset does not support the user's question, say so and chart the evidence that exists.
 
@@ -82,7 +83,7 @@ If the user asks for one of these, the skill should say it is not recommended an
 | Vote efficiency | Vote-share vs seat-share scatter |
 | Swing scenarios | Seat curves by swing, faceted by state |
 | Survey polarisation | Faceted response histograms |
-| Share substitution | 100% stacked bars/area only if mix is the story |
+| Share substitution | 100% stacked bars/area only if broad mix is the story; use small multiples, grouped bars, lines, dots, or a table when intermediate or top components need precise comparison |
 | Risk | Downside distributions, scenarios, utility curves |
 | Root cause | Waterfall if reconciled; otherwise ranked driver bars or action table |
 | Management scan | Scorecard first, diagnostic chart second |

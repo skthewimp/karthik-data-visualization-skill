@@ -30,10 +30,11 @@ For non-trivial chart selection, use the workflow and guardrails below; private 
 - Forecast/anomaly: actual line, forecast/dashed line, uncertainty ribbon, highlighted anomaly/intervention window.
 - Many comparable series: small multiples or cluster prototypes; avoid spaghetti.
 - If the chart will be consumed in chat or at thumbnail size, prefer forms that support direct labels and strong contrast; avoid designs that depend on faint colour differences or tiny legends.
-- For slopegraphs, make the canvas tall rather than wide, label both sides directly, keep labels outside the endpoints, and choose the aspect ratio to fit the number of rows so the chart does not waste whitespace or force label collisions.
+- Choose colour by data role: focal-plus-grey for emphasis, qualitative hues for nominal identity, a perceptually ordered sequential scale for magnitude, and a diverging scale only around a meaningful midpoint. If colour is doing work that position or direct labels could do better, remove it.
+- For slopegraphs, place endpoint labels where they remain paired and legible, then choose the aspect ratio from row density, label geometry, and delivery medium rather than a fixed orientation.
 - For exactly two time points, prefer a slopegraph over a dumbbell if the comparison can be labeled on both ends and the connector line can carry the change; choose a dumbbell only when the paired endpoint values need to be read as discrete markers.
-- Ranking: sorted horizontal bars; bar axis starts at 0; highlight story item.
-- Composition/share substitution: 100% stacked bars/area only when mix is the story.
+- Ranking: sorted horizontal bars; bar axis starts at 0; highlight an item only when the question, evidence, or stated story makes it focal. Otherwise keep equal-status items neutral.
+- Composition/share substitution: use 100% stacked bars or areas only when broad mix is the story. Only segments that begin or end on an aligned baseline support precise visual comparison; a fixed-total stack aligns both outer edges, while internal segments still float. If the claim depends on component patterns across periods or groups, use small multiples, grouped bars, dot plots, lines, or a compact table instead.
 - Distribution/skew/tails: histogram, density, ECDF, box, or violin; log scale for income/wealth/power-law data.
 - Relationship: scatter with direct labels; regression only when relationship is the claim and uncertainty is shown.
 - Normalized insight from canonical totals: when the source data's canonical measure is a total and the analysis adds a denominator (population, users, accounts, GDP, area), prefer a scatter of denominator vs total with diagonal iso-lines for the normalized metric. This preserves the original magnitude while showing per-capita/per-unit outliers. Use a ranked bar only when the normalized metric is itself the canonical measure or when ranking alone is the story.
@@ -69,7 +70,9 @@ If implementing: <short code/design note>
 - Do not extend regression/counterfactual lines beyond defensible range without marking them as projections.
 - Label derived meaning directly when the evidence is a gap, quadrant, cluster, area between curves, knee-bend/inflection, or local maximum/minimum.
 - Prefer direct labels to legends.
-- If part-to-whole is requested, prefer sorted bars, 100% stacked bars, tables, or small multiples over pies/donuts.
+- Choose a form in which labels and marks pair without guesswork at delivery size. If the natural baseline pushes labels far from the marks they identify, use a compact row structure, restrained guides, a table-chart hybrid, faceting, or another form that restores immediate traceability.
+- Size the canvas from the information and delivery medium. Whitespace should group, separate, or emphasize; do not retain blank regions merely because the plotting library or source aspect ratio created them.
+- If part-to-whole is requested, prefer sorted bars, 100% stacked bars, tables, or small multiples over pies/donuts. Use stacking only when the reader needs broad composition, not precise component pattern comparison. Direct labels can support lookup of exact values; if comparison remains difficult or labels become crowded, change the form.
 - Use maps only for spatial stories.
 - If a clever chart needs too much explanation, use a simple chart plus annotation.
 - For line charts with obvious slope changes or temporary extrema, do not leave the viewer to infer them. Mark the specific year/period on the chart, but keep markers sparse and defensible.

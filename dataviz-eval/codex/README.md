@@ -1,7 +1,7 @@
 # dataviz-eval / codex
 
-Codex-ready version of the rendered-chart evaluation gate.
+Codex surface for artifact readiness decisions and chart-creator benchmarks.
 
 Install target: `~/.codex/skills/dataviz-eval/`
 
-Keep behavioural changes aligned with `../claude/SKILL.md`. Keep the evaluation rubric, the README, and the surface files consistent.
+`SKILL.md` contains the operating protocol. `references/evaluation-framework.md` contains the gate anchors, failure taxonomy, benchmark design, and Hermes calibration cases. Keep both aligned with the Claude surface.

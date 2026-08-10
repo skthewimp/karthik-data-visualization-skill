@@ -4,8 +4,8 @@ Public data visualization skills for Codex, Claude, and Hermes.
 
 This repo contains thirteen related skills:
 
-1. **`dataviz-fix`** - iterative repair and learning-loop rules: rebuild a pasted chart, preserve revisions and feedback, then route reusable lessons to the owning skill.
-2. **`dataviz-eval`** - delivery-readiness rules for deciding whether a rendered chart should be sent, revised, or redesigned.
+1. **`dataviz-fix`** - iterative repair and learning-loop rules: rebuild a pasted chart, require an independent artifact-hashed review, preserve revisions and feedback, then route reusable lessons to the owning skill.
+2. **`dataviz-eval`** - artifact and creator-system evaluation rules for separate blind review, scoped send/revise/redesign decisions, failure analysis, and regression benchmarks.
 3. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 4. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
 5. **`karthik-powerpoint-style`** - slide and deck rules for making PowerPoint-style presentations in Karthik's analytical, claim-first style.
@@ -18,7 +18,7 @@ This repo contains thirteen related skills:
 12. **`chart-explainer`** - accompanying-note rules for writing the two lines that travel with a finished chart or table into an email, notebook, or message.
 13. **`karthik-r-analysis-style`** - notebook rules for how an exploratory R scratchpad is written: local precedent, analyst-first probes, tidyverse/tidytable idiom, and the working-note register.
 
-The split is deliberate. The repair-loop skill answers **"rebuild this chart, keep revising it with me, then learn from what I corrected"**. The evaluation skill answers **"is this rendered chart ready to send?"**. The data-cleaning skill answers **"how do we make this source analysable without hiding judgement calls?"**. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**. The annotation skill answers **"what should this chart mark, and what should the mark say?"**. The explainer skill answers **"what do I write next to this chart so the reader knows what it says?"**. The R analysis skill answers **"how should the notebook doing all of this be written?"**.
+The split is deliberate. The repair-loop skill answers **"rebuild this chart, keep revising it with me, then learn from what I corrected"**. The evaluation skill answers **"does the audience recover the intended question and insight, is the artifact ready to send, and is the creator system improving?"**. The data-cleaning skill answers **"how do we make this source analysable without hiding judgement calls?"**. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**. The annotation skill answers **"what should this chart mark, and what should the mark say?"**. The explainer skill answers **"what do I write next to this chart so the reader knows what it says?"**. The R analysis skill answers **"how should the notebook doing all of this be written?"**.
 
 ## Repository layout
 
@@ -27,7 +27,7 @@ The split is deliberate. The repair-loop skill answers **"rebuild this chart, ke
 ├── dataviz-fix/                     # Iterative chart repair, feedback capture, and skill learning
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
-├── dataviz-eval/                    # Rendered-chart delivery-readiness gate
+├── dataviz-eval/                    # Artifact gate and chart-creator benchmark
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── dataviz-selector/                # Chart-selection skill; folder README explains layout
@@ -80,7 +80,7 @@ See: [`docs/skills/dataviz-fix.md`](docs/skills/dataviz-fix.md)
 
 ### `dataviz-eval`
 
-Use this after rendering when you need a clear Send, Revise, or Redesign verdict based on readability, integrity, hierarchy, and the actual delivery medium.
+Use this after rendering when you need a `Send`, `Revise`, `Redesign`, or `Not evaluable` verdict based on evidence, intended meaning, blind audience reading, visual reasoning, and the actual delivery medium. It also supports golden-set regression tests for chart-producing agents and skills.
 
 See: [`docs/skills/dataviz-eval.md`](docs/skills/dataviz-eval.md)
 

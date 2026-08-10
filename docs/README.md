@@ -9,7 +9,7 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`skills/karthik-powerpoint-style.md`](skills/karthik-powerpoint-style.md) - how to use the presentation-slide style skill
 - [`skills/dataviz-critique.md`](skills/dataviz-critique.md) - how to critique and redesign existing visuals
 - [`skills/dataviz-fix.md`](skills/dataviz-fix.md) - how to repair a chart iteratively and feed accepted corrections back into the skill stack
-- [`skills/dataviz-eval.md`](skills/dataviz-eval.md) - how to decide whether a rendered chart is ready to send
+- [`skills/dataviz-eval.md`](skills/dataviz-eval.md) - how to gate a rendered chart and benchmark the system that created it
 - [`skills/karthik-analysis-planner.md`](skills/karthik-analysis-planner.md) - how to turn fuzzy data questions into analysis contracts
 - [`skills/dataviz-orchestrator.md`](skills/dataviz-orchestrator.md) - how to run the full dataset-to-visual-story workflow
 - [`skills/dataset-question-generator.md`](skills/dataset-question-generator.md) - how to generate fresh visualisable questions from raw datasets

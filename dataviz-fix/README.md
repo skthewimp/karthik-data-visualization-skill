@@ -8,7 +8,8 @@ The skill keeps the original chart, each rendered revision, the user's correctio
 
 - Rebuilds an uploaded or pasted visualization as a real PNG, SVG, or PDF.
 - Iterates from short user feedback without restarting the chart each time.
-- Stores a case packet with original, revisions, feedback, and skill-version hashes.
+- Sends every render to a fresh independent `dataviz-eval` reviewer, saves the pre-intent blind read separately, and stores the scoped gate results, five release checks, failure codes, and minimum pass set.
+- Stores a case packet with original, revisions, independent review reports, feedback, and skill-version hashes.
 - Separates execution misses from missing, ambiguous, or conflicting skill rules.
 - Makes only reusable skill changes; it avoids overfitting one chart's values or layout.
 
@@ -20,7 +21,7 @@ The skill keeps the original chart, each rendered revision, the user's correctio
 
 ## Relationship to other skills
 
-`dataviz-fix` is the repair-loop umbrella. It calls `dataviz-critique`, `dataviz-selector`, `dataviz-eval`, `karthik-data-visualization`, `chart-annotations`, and the analytical skills only when their failure mode is relevant.
+`dataviz-fix` is the repair-loop umbrella. `dataviz-eval` is its required rendered-artifact gate. It calls `dataviz-critique`, `dataviz-selector`, `karthik-data-visualization`, `chart-annotations`, and the analytical skills when their failure mode is relevant.
 
 ## Edit rule
 

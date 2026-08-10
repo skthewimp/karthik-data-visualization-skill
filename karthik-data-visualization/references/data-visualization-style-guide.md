@@ -46,7 +46,16 @@ Do not generalize the beige background to unrelated projects.
 
 ## Color
 
-There is no single canonical palette. Pick color deliberately for the project.
+There is no single canonical palette. Pick colour deliberately for the project. Tufte's principle applies: colour must carry information, not advertise the designer.
+
+Start with the role:
+
+- **Emphasis:** one focal colour, neutral grey context.
+- **Nominal identity:** a small qualitative palette with similar visual weight.
+- **Ordered magnitude:** one perceptually ordered sequential scale.
+- **Direction around a meaningful midpoint:** a diverging scale anchored at that midpoint.
+
+Do not use a categorical palette for ordered data, a diverging scale without a meaningful centre, or a rainbow scale. Above roughly five categorical series, prefer grouping, direct labels, or small multiples over adding more hues.
 
 Use:
 
@@ -57,6 +66,18 @@ Use:
   context.
 - Domain-specific palettes when meaningful: weather, wind direction, cricket teams,
   political parties, etc.
+
+Contrast is a reading requirement, not a decoration rule:
+
+- Use WCAG AA as a practical target for chart text: 4.5:1 for normal text and 3:1 for large text.
+- Aim for 3:1 against the background for small points, thin lines, or other essential marks.
+- Large fills need not meet text contrast mechanically when direct labels, clear boundaries, and another channel make them robust.
+- Never use yellow or another essential high-luminance mark against white. Adjacent regions should differ in both hue and lightness where possible.
+- Do not use red and green as the only distinction. Pair colour with direct labels, position, shape, line style, or ordering.
+
+Keep semantics stable. The same series must keep the same colour across panels, legends, annotations, and revisions. Reserve the strongest saturation or warmest colour for the focal series or warning; equal-status series should have comparable visual weight.
+
+Inspect the export at delivery size, after chat compression, and in grayscale. Simulate common colour-vision deficiencies when tools are available. If the comparison disappears, change the encoding rather than simply increasing saturation.
 
 Text:
 - Main text: `#3C3C3C`
@@ -69,6 +90,8 @@ Avoid:
 - Pure black text.
 - Too many saturated colors.
 - Color without semantic purpose.
+- Legend swatches that do not exactly match their marks.
+- Faint adjacent fills that merge at thumbnail size.
 
 ## Typography
 

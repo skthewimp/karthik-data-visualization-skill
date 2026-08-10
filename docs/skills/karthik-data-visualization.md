@@ -19,6 +19,18 @@ The skill encodes Karthik's preferred chart style:
 - small multiples over crowded overlays
 - annotations that explain, not decorate
 
+Direct labels are not universal. Choose them when the chart's density and geometry allow every important mark or series to be named legibly and unambiguously at delivery size; otherwise use a categorical axis, legend, grouping, or small multiples.
+
+Give each category or series one primary identification route. When a direct label carries the identity that an axis or legend would carry, remove the redundant scaffolding. Keep quantitative scales, baselines, and references when they add information. In every system, the intended label-mark bond must be perceptually stronger than competing nearby relationships. Judge distance to the visible mark, not merely to a shared row, plot edge, or baseline; alignment alone does not bridge blank space. If direct labels would collide or drift away, change the identification system rather than forcing them.
+
+Colour mappings are literal. If a legend says blue, the corresponding marks must be blue. Preserve a source palette when it already has meaning; change it only to solve a stated comparison, contrast, or accessibility problem, then verify every swatch and mark in the export.
+
+Every encoded colour must remain perceptually distinct from the background, adjacent series, and its compressed delivery rendering. The broader system is restrained rather than monochrome: neutral equal-status marks unless a focal item is established, small qualitative palettes for identity, perceptually ordered scales for magnitude, and diverging scales only around a real midpoint.
+
+WCAG ratios are used as diagnostics, not as a palette generator. The practical targets are 4.5:1 for normal chart text, 3:1 for large text, and 3:1 against the background for small or thin essential marks. Large fills can rely on direct labels and restrained boundaries when the reading remains robust. Colour never carries identity alone; labels, position, shape, line style, or ordering provide a second channel.
+
+Stacked bars need a specific reason. Only segments beginning or ending on an aligned baseline support precise visual comparison; fixed-total stacks align both outer edges, but internal segments still float. Direct labels support lookup, not easy component-pattern comparison. If those patterns matter, use small multiples, grouped bars, lines, dots, or a table instead.
+
 ## Design principles
 
 The basic style is Tufte-inspired, but not Tufte cosplay.

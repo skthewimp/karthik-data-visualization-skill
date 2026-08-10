@@ -1,5 +1,27 @@
 # Devlog
 
+## 2026-08-10 - Dataviz eval framework rebuild
+
+### User prompts
+
+> "now let's fix the dataviz-eval skill. it was an adhoc thing built by hermes. need to build it up properly based on my principles and all the conversations on dataviz i'd had with hermes. also check out the 'measuring good' PDF"
+
+### What changed
+
+- Reconstructed the evaluation principles from four Hermes repair cases, 28 chart iterations, and the associated user feedback.
+- Used Vikram Nayak's Fifth Elephant 2026 talk to separate creator, expert reviewer, and audience reviewer roles and add an offline benchmark method.
+- Rebuilt `dataviz-eval` around blind reads, six hard gates, four verdicts, a minimum pass set, and chart-spec operations instead of vague feedback.
+- Added a failure taxonomy, gate anchors, representative golden-set guidance, inter-rater calibration, regression reporting, and rules for when a repeated failure should change a skill.
+- Forward-tested the skill on four raw Hermes artifacts. It caught a mistranscribed data row, lost provenance, thumbnail failures, and a broken slopegraph export; a second pass also learned to scope repair checks to source fidelity and not fail an accepted chart on an invented Telegram width.
+- Made `dataviz-eval` a required gate inside `dataviz-fix` rather than an optional companion mention. Added deterministic evaluation records to every case packet and explicit routing for `Send`, `Revise`, `Redesign`, and `Not evaluable`.
+- Audited the first live full-pipeline run. The evaluator falsely passed a floating FY20 label and a legend/mark colour mismatch, only the first of four iterations was evaluated, HTML was logged instead of the attached screenshot, skill files were changed mid-loop, and several replies omitted the chart. Added deterministic guards and literal edit checks for each failure.
+- Added the missed visual diagnosis from that run: totals on stacked bars did not make the intermediate components readable, yellow against white was unacceptable, and distinct legend colours were useless when the plotted segments used a different mapping. Routed these rules to selector, implementation, and evaluation rather than the repair umbrella.
+- Replaced the narrow yellow-on-white fix with a full colour system that keeps Tufte's hierarchy intact: focal colour plus grey context, data-type-aware scales, stable semantics, restrained saturation, colour-independent decoding, practical contrast targets, and export checks in grayscale, compressed, and colour-vision-deficiency views.
+- Updated both Codex and Claude/Hermes surfaces, human docs, changelog, and packaging rules for the new runtime reference.
+- Audited a later live run where the creator loaded `dataviz-eval` but gave all three of its own exports six `Pass` ratings. The final image still contained colliding text, uncertain label-to-mark pairing, large relationship-breaking gaps, and an unexplained focal colour.
+- Replaced self-review with a fresh Hermes `delegate_task` reviewer and a structured, artifact-hashed report. `case_manager.py` now rejects `Send` unless all six gates and five evidence-backed release checks pass.
+- Kept the repair generic: the reusable rules concern visual integrity, relationship traceability, spatial economy, encoding semantics, and delivery robustness. The failed sector chart remains a regression artifact; no sector name, chart type, colour, canvas size, or fixed threshold entered the skills.
+
 ## 2026-08-10 - Dataviz eval gate and documentation pass
 
 ### User prompts
@@ -11,10 +33,8 @@
 - Added the `dataviz-fix` repair loop and its persistent case manager for originals, iterations, feedback, acceptance, and skill diagnosis.
 - Fixed the pushed repair-loop bundle: `case_manager.py` had been hidden by the repo-wide private-script ignore rule even though `dataviz-fix` invokes it at runtime.
 - Added validation for missing or ignored runtime scripts and repaired the thirteen-skill navigation indexes.
-- Added a new `dataviz-eval` skill to separate chart critique/repair from the final readiness decision.
-- Documented the new skill in the public docs index and added a standalone docs page for it.
-- Reflected the latest repair-loop lessons in the changelog: inspect→revise→render, geometry before shrinking text, and export-vs-viewport mismatches.
-- Updated the dataviz skill stack so the evaluation gate sits between critique and repair, instead of being implicit inside chart implementation.
+- Added the initial `dataviz-eval` inspection gate and documented it in the public skill index.
+- Updated the dataviz skill stack with inspect-revise-render, geometry-before-type, and export-vs-viewport guidance.
 
 ## 2026-08-03 - Chart explainer skill
 
