@@ -19,3 +19,5 @@ dist/
 .DS_Store
 __pycache__/
 *.pyc
+.dataviz-tester/
+tester-outputs/

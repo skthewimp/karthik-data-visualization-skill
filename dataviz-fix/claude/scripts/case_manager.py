@@ -43,10 +43,81 @@ RELEASE_CHECK_NAMES = (
     "Delivery robustness",
 )
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
+SCHEMA_VERSION = 5
+DEFAULT_MAX_ITERATIONS = 3
+DEFAULT_MAX_STALLED_EVALUATIONS = 2
+ACTIVE_STATES = (
+    "build",
+    "blind_review",
+    "context_reveal",
+    "revise",
+    "redesign",
+    "user_review",
+)
+PAUSED_STATES = ("blocked", "stopped")
+TERMINAL_STATES = ("accepted", "accepted_with_override")
+STOP_KINDS = (
+    "user_stop",
+    "iteration_budget",
+    "time_budget",
+    "token_budget",
+    "cost_budget",
+    "no_progress",
+    "missing_context",
+    "missing_evidence",
+    "renderer_failure",
+    "other",
+)
+RESULT_RANK = {"Fail": 0, "Unknown": 0, "Concern": 1, "Pass": 2}
+CONTEXT_FIELDS = (
+    "audience",
+    "purpose",
+    "question",
+    "hypothesis",
+    "message",
+    "medium",
+    "dimensions",
+    "expansion_available",
+    "source_notes",
+    "preserve",
+    "accessibility",
+    "brand",
+    "tooling",
+    "output_constraints",
+)
+CONTEXT_SOURCES = ("user", "inferred", "unknown")
 
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return parsed
+
+
+def positive_float(value: str) -> float:
+    parsed = float(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return parsed
+
+
+def nonnegative_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be zero or greater")
+    return parsed
+
+
+def nonnegative_float(value: str) -> float:
+    parsed = float(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be zero or greater")
+    return parsed
 
 
 def root_dir() -> Path:
@@ -179,6 +250,11 @@ def validate_review_report(
     expected_sha = iteration["artifact"]["sha256"]
     if report.get("artifact_sha256") != expected_sha:
         raise SystemExit("Review report artifact_sha256 does not match the recorded iteration")
+    expected_context_version = iteration.get("context_version", 1)
+    if report.get("context_version") != expected_context_version:
+        raise SystemExit(
+            f"Review report context_version must be {expected_context_version}, not {report.get('context_version')!r}"
+        )
 
     verdict = report.get("verdict")
     if verdict not in VERDICTS:
@@ -231,6 +307,7 @@ def validate_review_report(
         "blind_response_sha256": blind_response_sha,
         "iteration": iteration["number"],
         "artifact_sha256": expected_sha,
+        "context_version": expected_context_version,
         "scope": scope,
         "tested_size": tested_size,
         "blind_reads": {"expert": expert, "audience": audience},
@@ -255,6 +332,303 @@ def read_json(path: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise SystemExit(f"Cannot read case file {path}: {exc}") from exc
+
+
+def infer_legacy_state(data: dict) -> str:
+    state = data.get("state")
+    if state in TERMINAL_STATES or state in ACTIVE_STATES or state in PAUSED_STATES:
+        return state
+    if not data.get("iterations"):
+        return "build"
+    latest_iteration = data["iterations"][-1]["number"]
+    evaluation = next(
+        (
+            item
+            for item in reversed(data.get("evaluations", []))
+            if item.get("iteration") == latest_iteration
+        ),
+        None,
+    )
+    if evaluation is None:
+        return "blind_review"
+    return {
+        "Send": "user_review",
+        "Revise": "revise",
+        "Redesign": "redesign",
+        "Not evaluable": "blocked",
+    }.get(evaluation.get("verdict"), "blocked")
+
+
+def context_field(value: str | None, source: str = "user") -> dict[str, str]:
+    clean = (value or "").strip()
+    return {
+        "value": clean,
+        "source": source if clean else "unknown",
+        "updated_at": now_iso(),
+    }
+
+
+def initial_context(data: dict) -> dict:
+    fields = {
+        name: context_field(
+            data.get(name) if name in ("audience", "medium") else None,
+            "user",
+        )
+        for name in CONTEXT_FIELDS
+    }
+    prompt = (data.get("request") or "").strip()
+    return {
+        "version": 1,
+        "updated_at": data.get("created_at", now_iso()),
+        "prompts": (
+            [{"number": 1, "at": data.get("created_at", now_iso()), "text": prompt, "source": "user"}]
+            if prompt
+            else []
+        ),
+        "fields": fields,
+    }
+
+
+def context_snapshot(context: dict, reason: str) -> dict:
+    return {
+        "version": context["version"],
+        "at": context["updated_at"],
+        "reason": reason,
+        "prompts": json.loads(json.dumps(context.get("prompts", []))),
+        "fields": json.loads(json.dumps(context["fields"])),
+    }
+
+
+def context_at_version(data: dict, version: int) -> dict:
+    snapshot = next(
+        (item for item in data.get("context_history", []) if item["version"] == version),
+        None,
+    )
+    if snapshot is None:
+        raise SystemExit(f"Context version {version} is missing from the case history")
+    return snapshot
+
+
+def upgrade_case(data: dict) -> dict:
+    original_state = data.get("state")
+    state = infer_legacy_state(data)
+    data["schema_version"] = SCHEMA_VERSION
+    data["state"] = state
+    context = data.setdefault("context", initial_context(data))
+    for name in CONTEXT_FIELDS:
+        context.setdefault("fields", {}).setdefault(name, context_field(None, "unknown"))
+    context.setdefault("prompts", [])
+    context.setdefault("version", data.get("context_version", 1))
+    context.setdefault("updated_at", data.get("updated_at", now_iso()))
+    data["context_version"] = context["version"]
+    data.setdefault("context_history", [context_snapshot(context, "Initial or migrated context")])
+    limits = data.setdefault("limits", {})
+    for name, value in {
+        "max_iterations": DEFAULT_MAX_ITERATIONS,
+        "max_stalled_evaluations": DEFAULT_MAX_STALLED_EVALUATIONS,
+        "max_elapsed_seconds": None,
+        "max_tokens": None,
+        "max_cost_usd": None,
+    }.items():
+        limits.setdefault(name, value)
+    telemetry = data.setdefault("telemetry", {})
+    for name, value in {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0,
+        "total_tokens": 0,
+        "cost_usd": 0.0,
+        "latency_seconds": 0.0,
+        "events": [],
+    }.items():
+        telemetry.setdefault(name, value)
+    data.setdefault("stalled_evaluations", 0)
+    data.setdefault("best_candidate", None)
+    data.setdefault("stop", None)
+    if "transitions" not in data:
+        data["transitions"] = [
+            {
+                "number": 1,
+                "at": data.get("created_at", now_iso()),
+                "from": original_state if original_state != state else None,
+                "to": state,
+                "action": "schema-upgrade" if original_state != state else "start",
+                "reason": "Inferred explicit loop state from the existing case record",
+                "iteration": data.get("iterations", [{}])[-1].get("number")
+                if data.get("iterations")
+                else None,
+                "artifact_sha256": data.get("iterations", [{}])[-1]
+                .get("artifact", {})
+                .get("sha256")
+                if data.get("iterations")
+                else None,
+                "context_version": data.get("context_version", 1),
+            }
+        ]
+    return data
+
+
+def load_case(path: Path) -> dict:
+    return upgrade_case(read_json(path))
+
+
+def require_state(data: dict, allowed: tuple[str, ...], action: str) -> None:
+    state = data["state"]
+    if state not in allowed:
+        choices = ", ".join(allowed)
+        raise SystemExit(f"Cannot {action} while case state is {state!r}; expected {choices}")
+
+
+def transition(
+    data: dict,
+    target: str,
+    action: str,
+    reason: str,
+    iteration: dict | None = None,
+) -> None:
+    source = data.get("state")
+    latest_evaluation = data.get("evaluations", [])[-1] if data.get("evaluations") else None
+    telemetry = data.get("telemetry", {})
+    data["state"] = target
+    data.setdefault("transitions", []).append(
+        {
+            "number": len(data["transitions"]) + 1,
+            "at": now_iso(),
+            "from": source,
+            "to": target,
+            "action": action,
+            "reason": reason,
+            "iteration": iteration.get("number") if iteration else None,
+            "artifact_sha256": iteration.get("artifact", {}).get("sha256")
+            if iteration
+            else None,
+            "context_version": data.get("context_version", 1),
+            "verdict": latest_evaluation.get("verdict") if latest_evaluation else None,
+            "usage": {
+                "calls": telemetry.get("calls", 0),
+                "total_tokens": telemetry.get("total_tokens", 0),
+                "cost_usd": telemetry.get("cost_usd", 0.0),
+                "latency_seconds": telemetry.get("latency_seconds", 0.0),
+            },
+        }
+    )
+    data["updated_at"] = now_iso()
+
+
+def elapsed_seconds(data: dict) -> float:
+    created = datetime.fromisoformat(data["created_at"])
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    return max(0.0, (datetime.now(timezone.utc) - created).total_seconds())
+
+
+def budget_status(data: dict) -> dict:
+    limits = data["limits"]
+    telemetry = data["telemetry"]
+    exhausted: list[str] = []
+    if len(data["iterations"]) >= limits["max_iterations"]:
+        exhausted.append("iteration_budget")
+    if limits.get("max_elapsed_seconds") is not None and elapsed_seconds(data) >= limits["max_elapsed_seconds"]:
+        exhausted.append("time_budget")
+    if limits.get("max_tokens") is not None and telemetry["total_tokens"] >= limits["max_tokens"]:
+        exhausted.append("token_budget")
+    if limits.get("max_cost_usd") is not None and telemetry["cost_usd"] >= limits["max_cost_usd"]:
+        exhausted.append("cost_budget")
+    return {
+        "exhausted": exhausted,
+        "iterations_used": len(data["iterations"]),
+        "iterations_remaining": max(0, limits["max_iterations"] - len(data["iterations"])),
+        "elapsed_seconds": round(elapsed_seconds(data), 3),
+        "tokens_used": telemetry["total_tokens"],
+        "cost_usd": round(telemetry["cost_usd"], 6),
+    }
+
+
+def stop_case(data: dict, kind: str, reason: str, action: str) -> None:
+    target = "blocked" if kind in ("no_progress", "missing_context", "missing_evidence", "renderer_failure") else "stopped"
+    data["stop"] = {
+        "at": now_iso(),
+        "kind": kind,
+        "reason": reason,
+        "best_candidate": data.get("best_candidate"),
+    }
+    transition(data, target, action, reason)
+
+
+def enforce_build_budget(data: dict, path: Path) -> None:
+    status = budget_status(data)
+    exhausted = status["exhausted"]
+    if not exhausted:
+        return
+    kind = exhausted[0]
+    reason = f"Cannot build another iteration: {kind.replace('_', ' ')} exhausted"
+    stop_case(data, kind, reason, "budget-check")
+    write_json(path, data)
+    raise SystemExit(f"{reason}; adjust limits and resume the case")
+
+
+def required_results(event: dict) -> list[str]:
+    gate_required = event.get("gate_required", {})
+    gate_results = [
+        result
+        for name, result in event.get("gates", {}).items()
+        if gate_required.get(name, True)
+    ]
+    release_results = [
+        item["result"] for item in event.get("release_checks", {}).values()
+    ]
+    return gate_results + release_results
+
+
+def candidate_rank(event: dict) -> list[int]:
+    results = required_results(event)
+    hard = sum(result in ("Fail", "Unknown") for result in results)
+    non_pass = sum(result != "Pass" for result in results)
+    passes = sum(result == "Pass" for result in results)
+    return [-hard, -non_pass, passes, -len(event.get("codes", []))]
+
+
+def update_best_candidate(data: dict, event: dict, iteration: dict) -> None:
+    rank = candidate_rank(event)
+    current = data.get("best_candidate")
+    if current is not None and rank <= current.get("rank", []):
+        return
+    data["best_candidate"] = {
+        "selected_at": now_iso(),
+        "iteration": iteration["number"],
+        "evaluation": event["number"],
+        "verdict": event["verdict"],
+        "artifact": iteration["artifact"],
+        "rank": rank,
+        "selection": "fewest unresolved required gates; hard failures cannot be averaged away",
+    }
+
+
+def evaluation_signature(event: dict) -> dict:
+    return {
+        "codes": sorted(event.get("codes", [])),
+        "gates": event.get("gates", {}),
+        "gate_required": event.get("gate_required", {}),
+        "release_checks": {
+            name: item.get("result")
+            for name, item in event.get("release_checks", {}).items()
+        },
+    }
+
+
+def update_stall_count(data: dict, event: dict) -> bool:
+    previous = data.get("evaluations", [])[-1] if data.get("evaluations") else None
+    if previous is None:
+        data["stalled_evaluations"] = 0
+        return False
+    stalled = (
+        event["verdict"] in ("Revise", "Redesign")
+        and previous.get("verdict") in ("Revise", "Redesign")
+        and evaluation_signature(event) == evaluation_signature(previous)
+    )
+    data["stalled_evaluations"] = data.get("stalled_evaluations", 0) + 1 if stalled else 0
+    return data["stalled_evaluations"] >= data["limits"]["max_stalled_evaluations"]
 
 
 def write_json(path: Path, data: dict) -> None:
@@ -344,24 +718,55 @@ def cmd_start(args: argparse.Namespace) -> None:
     original = copy_artifact(image, case_dir / f"original{ext}")
     snapshot = snapshot_skills(Path(args.skills_root) if args.skills_root else None, case_dir)
     data = {
-        "schema_version": 4,
+        "schema_version": SCHEMA_VERSION,
         "case_id": case_id,
         "session_id": args.session,
         "creator": args.creator or os.getenv("HERMES_AGENT_ID") or f"session:{args.session}",
-        "state": "active",
+        "state": "intake",
         "created_at": now_iso(),
         "updated_at": now_iso(),
         "request": args.request or "",
         "audience": args.audience or "",
         "medium": args.medium or "",
+        "context_version": 1,
         "original": original,
         "skill_snapshot": snapshot,
+        "limits": {
+            "max_iterations": args.max_iterations,
+            "max_stalled_evaluations": args.max_stalled_evaluations,
+            "max_elapsed_seconds": args.max_elapsed_minutes * 60
+            if args.max_elapsed_minutes
+            else None,
+            "max_tokens": args.max_tokens,
+            "max_cost_usd": args.max_cost_usd,
+        },
+        "telemetry": {
+            "calls": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "cached_input_tokens": 0,
+            "total_tokens": 0,
+            "cost_usd": 0.0,
+            "latency_seconds": 0.0,
+            "events": [],
+        },
+        "stalled_evaluations": 0,
+        "best_candidate": None,
+        "stop": None,
         "feedback": [],
         "iterations": [],
         "evaluations": [],
         "acceptance": None,
         "diagnosis": None,
+        "transitions": [],
     }
+    data["context"] = initial_context(data)
+    for name in CONTEXT_FIELDS:
+        value = getattr(args, name, None)
+        if value:
+            data["context"]["fields"][name] = context_field(value, "user")
+    data["context_history"] = [context_snapshot(data["context"], "Case intake")]
+    transition(data, "build", "start", "Case created; ready to build the first candidate")
     write_json(case_dir / "case.json", data)
     pointer = active_pointer(args.session)
     pointer.parent.mkdir(parents=True, exist_ok=True)
@@ -372,28 +777,68 @@ def cmd_start(args: argparse.Namespace) -> None:
 def cmd_feedback(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
     path = case_dir / "case.json"
-    data = read_json(path)
-    event = {"number": len(data["feedback"]) + 1, "at": now_iso(), "text": args.text}
+    data = load_case(path)
+    require_state(data, ACTIVE_STATES + PAUSED_STATES, "record feedback")
+    event = {
+        "number": len(data["feedback"]) + 1,
+        "at": now_iso(),
+        "text": args.text,
+        "acceptance_check": {
+            "target": args.target,
+            "current": args.current,
+            "required": args.required,
+            "why": args.why or "",
+        },
+    }
     data["feedback"].append(event)
-    data["updated_at"] = now_iso()
+    if data["state"] == "user_review":
+        transition(data, "revise", "feedback", "User correction requires another candidate")
+    else:
+        data["updated_at"] = now_iso()
     write_json(path, data)
-    print(json.dumps({"case_id": data["case_id"], "feedback": event["number"]}))
+    print(
+        json.dumps(
+            {
+                "case_id": data["case_id"],
+                "feedback": event["number"],
+                "state": data["state"],
+                "resume_required": data["state"] in PAUSED_STATES,
+            }
+        )
+    )
 
 
 def cmd_iterate(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
     path = case_dir / "case.json"
-    data = read_json(path)
+    data = load_case(path)
+    require_state(data, ("build", "revise", "redesign"), "record an iteration")
     if data["iterations"]:
         latest = data["iterations"][-1]["number"]
         evaluated = any(item["iteration"] == latest for item in data.get("evaluations", []))
-        if not evaluated:
+        cancelled = bool(data["iterations"][-1].get("cancelled_at"))
+        if not evaluated and not cancelled:
             raise SystemExit(f"Evaluate iteration {latest} before recording another iteration")
     number = len(data["iterations"]) + 1
     source = Path(args.output).expanduser().resolve()
     if not source.is_file():
         raise SystemExit(f"Artifact not found: {source}")
     validate_deliverable(source)
+    source_sha = sha256(source)
+    duplicate = next(
+        (
+            item
+            for item in data["iterations"]
+            if item["artifact"]["sha256"] == source_sha
+            and item.get("context_version", 1) == data.get("context_version", 1)
+        ),
+        None,
+    )
+    if duplicate:
+        raise SystemExit(
+            f"Artifact is unchanged from iteration {duplicate['number']} under context version "
+            f"{data.get('context_version', 1)}; change the artifact or context before reviewing again"
+        )
     ext = source.suffix.lower() or ".bin"
     artifact = copy_artifact(source, case_dir / f"iteration-{number:02d}{ext}")
     event = {
@@ -402,17 +847,29 @@ def cmd_iterate(args: argparse.Namespace) -> None:
         "summary": args.summary or "",
         "artifact": artifact,
         "feedback_count": len(data["feedback"]),
+        "context_version": data.get("context_version", 1),
     }
     data["iterations"].append(event)
-    data["updated_at"] = now_iso()
+    transition(data, "blind_review", "iterate", "Candidate recorded; independent blind review required", event)
     write_json(path, data)
-    print(json.dumps({"case_id": data["case_id"], "iteration": number, "path": artifact["path"]}))
+    print(
+        json.dumps(
+            {
+                "case_id": data["case_id"],
+                "iteration": number,
+                "path": artifact["path"],
+                "state": data["state"],
+                "budget": budget_status(data),
+            }
+        )
+    )
 
 
 def cmd_evaluate(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
     path = case_dir / "case.json"
-    data = read_json(path)
+    data = load_case(path)
+    require_state(data, ("context_reveal",), "record an evaluation")
     if not data["iterations"]:
         raise SystemExit("Cannot evaluate a case with no recorded iteration")
     iteration_number = args.iteration or data["iterations"][-1]["number"]
@@ -471,16 +928,70 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         "codes": report["codes"],
         "required_actions": report["required_actions"],
         "report": {"path": str(stored_report), "sha256": sha256(stored_report)},
+        "context_version": report["context_version"],
     }
+    stalled = update_stall_count(data, event)
     data["evaluations"].append(event)
-    data["updated_at"] = now_iso()
+    update_best_candidate(data, event, iterations[iteration_number])
+    if report["verdict"] == "Send":
+        transition(data, "user_review", "evaluate", "All required release gates passed", iterations[iteration_number])
+    elif report["verdict"] == "Not evaluable":
+        missing_kind = (
+            "missing_evidence"
+            if report["gates"]["Evidence"]["result"] == "Unknown"
+            else "missing_context"
+        )
+        stop_case(
+            data,
+            missing_kind,
+            "Required evidence or context is unavailable; human input is needed",
+            "evaluate",
+        )
+    elif stalled:
+        stop_case(
+            data,
+            "no_progress",
+            "Failure codes and gate results repeated without movement",
+            "evaluate",
+        )
+    else:
+        exhausted = budget_status(data)["exhausted"]
+        if exhausted:
+            stop_case(
+                data,
+                exhausted[0],
+                f"Evaluator requested {report['verdict']}, but {exhausted[0].replace('_', ' ')} is exhausted",
+                "evaluate",
+            )
+        else:
+            target = "revise" if report["verdict"] == "Revise" else "redesign"
+            transition(
+                data,
+                target,
+                "evaluate",
+                f"Independent reviewer verdict: {report['verdict']}",
+                iterations[iteration_number],
+            )
     write_json(path, data)
-    print(json.dumps({"case_id": data["case_id"], "evaluation": event["number"], "iteration": iteration_number, "verdict": report["verdict"]}))
+    print(
+        json.dumps(
+            {
+                "case_id": data["case_id"],
+                "evaluation": event["number"],
+                "iteration": iteration_number,
+                "verdict": report["verdict"],
+                "state": data["state"],
+                "stalled_evaluations": data["stalled_evaluations"],
+                "best_candidate": data["best_candidate"],
+            }
+        )
+    )
 
 
 def cmd_review_request(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
-    data = read_json(case_dir / "case.json")
+    data = load_case(case_dir / "case.json")
+    require_state(data, ("blind_review",), "request a blind review")
     if not data["iterations"]:
         raise SystemExit("Cannot request a review with no recorded iteration")
     iteration = data["iterations"][-1]
@@ -500,6 +1011,7 @@ def cmd_review_request(args: argparse.Namespace) -> None:
         "original": data["original"]["path"],
         "artifact": iteration["artifact"]["path"],
         "artifact_sha256": iteration["artifact"]["sha256"],
+        "context_version": iteration.get("context_version", 1),
         "dataviz_eval_skill": str(skill_path),
         "blind_response_path": str(blind_response_path),
         "reveal_path": str(reveal_path),
@@ -516,6 +1028,8 @@ def cmd_review_request(args: argparse.Namespace) -> None:
         ],
     }
     target = case_dir / f"review-blind-request-{iteration['number']:02d}.json"
+    if target.exists():
+        raise SystemExit(f"Blind review request already exists for iteration {iteration['number']}")
     if reveal_path.exists():
         raise SystemExit(f"Review reveal already exists for iteration {iteration['number']}")
     write_json(target, blind_request)
@@ -533,7 +1047,9 @@ def cmd_review_request(args: argparse.Namespace) -> None:
 
 def cmd_blind_submit(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
-    data = read_json(case_dir / "case.json")
+    case_path = case_dir / "case.json"
+    data = load_case(case_path)
+    require_state(data, ("blind_review",), "submit a blind review")
     if not data["iterations"]:
         raise SystemExit("Cannot submit a blind review with no recorded iteration")
     iteration = data["iterations"][-1]
@@ -552,6 +1068,10 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
 
     response_path = case_dir / f"review-response-{iteration['number']:02d}.json"
     review_token = token_hex(16)
+    review_context = context_at_version(data, iteration.get("context_version", 1))
+    context_values = {
+        name: detail["value"] for name, detail in review_context["fields"].items()
+    }
     rating_template = {
         name: {
             "required": True if name in CORE_GATE_NAMES else "<true if scope requires this gate; otherwise false>",
@@ -567,11 +1087,27 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
     reveal = {
         "case_id": data["case_id"],
         "iteration": iteration["number"],
+        "context_version": iteration.get("context_version", 1),
         "review_token": review_token,
-        "user_request": data["request"],
-        "audience": data.get("audience", ""),
-        "medium": data.get("medium", ""),
-        "active_user_corrections": [item["text"] for item in data["feedback"]],
+        "context": review_context,
+        "user_request": "\n\n".join(item["text"] for item in review_context.get("prompts", [])),
+        "audience": context_values.get("audience", ""),
+        "medium": context_values.get("medium", ""),
+        "active_user_corrections": [
+            item["text"] for item in data["feedback"][: iteration.get("feedback_count", 0)]
+        ],
+        "active_acceptance_checks": [
+            item.get(
+                "acceptance_check",
+                {
+                    "target": "legacy feedback",
+                    "current": "not structured",
+                    "required": item["text"],
+                    "why": "",
+                },
+            )
+            for item in data["feedback"][: iteration.get("feedback_count", 0)]
+        ],
         "blind_response_path": str(blind_response_path),
         "blind_response_sha256": sha256(blind_response_path),
         "response_path": str(response_path),
@@ -582,6 +1118,7 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
             "blind_response_sha256": sha256(blind_response_path),
             "iteration": iteration["number"],
             "artifact_sha256": iteration["artifact"]["sha256"],
+            "context_version": iteration.get("context_version", 1),
             "scope": "<evidence scope, audience, and medium>",
             "tested_size": "<actual or representative viewing condition>",
             "blind_reads": {
@@ -596,6 +1133,14 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
         },
     }
     write_json(reveal_path, reveal)
+    transition(
+        data,
+        "context_reveal",
+        "blind-submit",
+        "Blind read frozen; context revealed to the same independent reviewer",
+        iteration,
+    )
+    write_json(case_path, data)
     print(
         json.dumps(
             {
@@ -609,16 +1154,28 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
 
 
 def write_review_packet(case_dir: Path, data: dict) -> Path:
+    context_values = {
+        name: detail["value"] or "(unknown)"
+        for name, detail in data["context"]["fields"].items()
+    }
     lines = [
         f"# Dataviz repair case {data['case_id']}",
         "",
         f"- State: {data['state']}",
+        f"- Context version: {data['context_version']}",
         f"- Request: {data['request'] or '(none)'}",
-        f"- Audience: {data.get('audience') or '(not recorded)'}",
-        f"- Medium: {data.get('medium') or '(not recorded)'}",
+        f"- Audience: {context_values['audience']}",
+        f"- Purpose: {context_values['purpose']}",
+        f"- Question: {context_values['question']}",
+        f"- Hypothesis: {context_values['hypothesis']}",
+        f"- Message: {context_values['message']}",
+        f"- Medium: {context_values['medium']}",
         f"- Original: `{data['original']['path']}`",
         f"- Accepted iteration: {data['acceptance']['iteration']}",
         f"- Accepted artifact: `{data['acceptance']['path']}`",
+        f"- Best candidate before acceptance: iteration {data['best_candidate']['iteration'] if data.get('best_candidate') else '(none)'}",
+        f"- Limits: `{json.dumps(data['limits'], sort_keys=True)}`",
+        f"- Usage: `{json.dumps({name: value for name, value in data['telemetry'].items() if name != 'events'}, sort_keys=True)}`",
         f"- Skill snapshot: `{data['skill_snapshot'] or '(not captured)'}`",
         "",
         "## User feedback",
@@ -626,12 +1183,21 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
     ]
     if data["feedback"]:
         for item in data["feedback"]:
+            check = item.get("acceptance_check")
             lines.append(f"{item['number']}. {item['text']}")
+            if check:
+                lines.append(
+                    f"   - Check: {check['target']} - {check['current']} -> {check['required']}"
+                )
     else:
         lines.append("No correction was needed before acceptance.")
     lines.extend(["", "## Iterations", ""])
     for item in data["iterations"]:
-        lines.append(f"{item['number']}. `{item['artifact']['path']}` - {item['summary'] or '(no summary)'}")
+        cancellation = f"; cancelled: {item['cancel_reason']}" if item.get("cancelled_at") else ""
+        lines.append(
+            f"{item['number']}. `{item['artifact']['path']}` - context v{item.get('context_version', 1)}; "
+            f"{item['summary'] or '(no summary)'}{cancellation}"
+        )
     lines.extend(["", "## Evaluations", ""])
     evaluations = data.get("evaluations", [])
     if evaluations:
@@ -651,10 +1217,21 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
                     f"   - Tested size: {item.get('tested_size', '(not recorded)')}",
                     f"   - Release checks: {', '.join(f'{name}={detail['result']}' for name, detail in item.get('release_checks', {}).items()) or '(not recorded)'}",
                     f"   - Required actions: {', '.join(item['required_actions']) if isinstance(item['required_actions'], list) else item['required_actions'] or 'none'}",
+                    f"   - Context version: {item.get('context_version', 1)}"
+                    + (
+                        f"; superseded by v{item['superseded_by_context_version']}"
+                        if item.get("superseded_by_context_version")
+                        else ""
+                    ),
                 ]
             )
     else:
         lines.append("No evaluation was recorded.")
+    lines.extend(["", "## Loop transitions", ""])
+    for item in data.get("transitions", []):
+        lines.append(
+            f"{item['number']}. `{item.get('from')}` -> `{item['to']}` via `{item['action']}`: {item['reason']}"
+        )
     lines.extend(
         [
             "",
@@ -673,7 +1250,8 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
 def cmd_accept(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
     path = case_dir / "case.json"
-    data = read_json(path)
+    data = load_case(path)
+    require_state(data, ACTIVE_STATES + PAUSED_STATES, "accept a candidate")
     if not data["iterations"]:
         raise SystemExit("Cannot accept a case with no recorded iteration")
     accepted = data["iterations"][-1]
@@ -688,7 +1266,7 @@ def cmd_accept(args: argparse.Namespace) -> None:
         raise SystemExit(
             f"Latest verdict is {evaluation['verdict']}; pass --override-reason only after explicit user acceptance"
         )
-    data["state"] = "accepted" if evaluation["verdict"] == "Send" else "accepted_with_override"
+    accepted_state = "accepted" if evaluation["verdict"] == "Send" else "accepted_with_override"
     data["acceptance"] = {
         "at": now_iso(),
         "iteration": accepted["number"],
@@ -697,7 +1275,13 @@ def cmd_accept(args: argparse.Namespace) -> None:
         "evaluation_verdict": evaluation["verdict"],
         "override_reason": override_reason or None,
     }
-    data["updated_at"] = now_iso()
+    transition(
+        data,
+        accepted_state,
+        "accept",
+        "User accepted the latest independently evaluated candidate",
+        accepted,
+    )
     write_json(path, data)
     packet = write_review_packet(case_dir, data)
     print(
@@ -714,7 +1298,8 @@ def cmd_accept(args: argparse.Namespace) -> None:
 def cmd_diagnose(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
     path = case_dir / "case.json"
-    data = read_json(path)
+    data = load_case(path)
+    require_state(data, TERMINAL_STATES, "record a skill diagnosis")
     data["diagnosis"] = {
         "at": now_iso(),
         "classification": args.classification,
@@ -735,10 +1320,242 @@ def cmd_diagnose(args: argparse.Namespace) -> None:
     print(json.dumps({"case_id": data["case_id"], "diagnosis": data["diagnosis"]}))
 
 
+def cmd_context(args: argparse.Namespace) -> None:
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, ACTIVE_STATES + PAUSED_STATES, "update context")
+    updates = {
+        name: getattr(args, name)
+        for name in CONTEXT_FIELDS
+        if getattr(args, name) is not None
+    }
+    clear = csv_items(args.clear or "")
+    unknown_clear = sorted(set(clear) - set(CONTEXT_FIELDS))
+    if unknown_clear:
+        raise SystemExit(f"Unknown context fields to clear: {', '.join(unknown_clear)}")
+    prompt = (args.text or "").strip()
+    if not updates and not clear and not prompt:
+        raise SystemExit("Context update requires --text, a structured field, or --clear")
+
+    updates = {
+        name: value
+        for name, value in updates.items()
+        if data["context"]["fields"][name]["value"] != value.strip()
+        or data["context"]["fields"][name]["source"] != args.source
+    }
+    clear = [
+        name
+        for name in clear
+        if data["context"]["fields"][name]["value"]
+        or data["context"]["fields"][name]["source"] != "unknown"
+    ]
+    prompt_changed = bool(prompt) and not (
+        data["context"]["prompts"]
+        and data["context"]["prompts"][-1]["text"] == prompt
+        and data["context"]["prompts"][-1]["source"] == args.source
+    )
+    if not updates and not clear and not prompt_changed:
+        raise SystemExit("Context update makes no material change")
+
+    old_version = data["context"]["version"]
+    data["context"]["version"] += 1
+    data["context"]["updated_at"] = now_iso()
+    if prompt_changed:
+        data["context"]["prompts"].append(
+            {
+                "number": len(data["context"]["prompts"]) + 1,
+                "at": now_iso(),
+                "text": prompt,
+                "source": args.source,
+            }
+        )
+    for name, value in updates.items():
+        data["context"]["fields"][name] = context_field(value, args.source)
+    for name in clear:
+        data["context"]["fields"][name] = context_field(None, "unknown")
+    data["context_version"] = data["context"]["version"]
+    data["context_history"].append(context_snapshot(data["context"], args.reason))
+    data["audience"] = data["context"]["fields"]["audience"]["value"]
+    data["medium"] = data["context"]["fields"]["medium"]["value"]
+
+    latest_iteration = data["iterations"][-1] if data["iterations"] else None
+    if latest_iteration and data["state"] in ("blind_review", "context_reveal"):
+        latest_iteration["cancelled_at"] = now_iso()
+        latest_iteration["cancel_reason"] = (
+            f"Context changed from version {old_version} to {data['context_version']} before evaluation"
+        )
+    if data.get("evaluations"):
+        latest_evaluation = data["evaluations"][-1]
+        if latest_evaluation.get("context_version", 1) == old_version:
+            latest_evaluation["superseded_at"] = now_iso()
+            latest_evaluation["superseded_by_context_version"] = data["context_version"]
+
+    exhausted = budget_status(data)["exhausted"]
+    if exhausted:
+        stop_case(
+            data,
+            exhausted[0],
+            f"Context updated, but {exhausted[0].replace('_', ' ')} is exhausted",
+            "context-update",
+        )
+    else:
+        target = "revise" if data["iterations"] else "build"
+        data["stop"] = None
+        transition(
+            data,
+            target,
+            "context-update",
+            f"Context changed from version {old_version} to {data['context_version']}",
+            latest_iteration,
+        )
+    write_json(path, data)
+    print(
+        json.dumps(
+            {
+                "case_id": data["case_id"],
+                "context_version": data["context_version"],
+                "state": data["state"],
+                "context": data["context"],
+                "budget": budget_status(data),
+            }
+        )
+    )
+
+
 def cmd_status(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
-    data = read_json(case_dir / "case.json")
-    print(json.dumps(data, indent=2, ensure_ascii=False))
+    data = load_case(case_dir / "case.json")
+    output = json.loads(json.dumps(data))
+    output["budget_status"] = budget_status(data)
+    print(json.dumps(output, indent=2, ensure_ascii=False))
+
+
+def cmd_build_check(args: argparse.Namespace) -> None:
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, ("build", "revise", "redesign"), "start a build")
+    enforce_build_budget(data, path)
+    print(
+        json.dumps(
+            {
+                "case_id": data["case_id"],
+                "state": data["state"],
+                "next_iteration": len(data["iterations"]) + 1,
+                "budget": budget_status(data),
+            }
+        )
+    )
+
+
+def cmd_limits(args: argparse.Namespace) -> None:
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, ACTIVE_STATES + PAUSED_STATES, "change loop limits")
+    updates = {
+        "max_iterations": args.max_iterations,
+        "max_stalled_evaluations": args.max_stalled_evaluations,
+        "max_elapsed_seconds": args.max_elapsed_minutes * 60
+        if args.max_elapsed_minutes is not None
+        else None,
+        "max_tokens": args.max_tokens,
+        "max_cost_usd": args.max_cost_usd,
+    }
+    changed = False
+    for name, value in updates.items():
+        if value is not None:
+            data["limits"][name] = value
+            changed = True
+    if not changed:
+        print(json.dumps({"case_id": data["case_id"], "limits": data["limits"], "budget": budget_status(data)}))
+        return
+    data["updated_at"] = now_iso()
+    write_json(path, data)
+    print(json.dumps({"case_id": data["case_id"], "limits": data["limits"], "budget": budget_status(data)}))
+
+
+def cmd_usage(args: argparse.Namespace) -> None:
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    existing_iterations = {item["number"] for item in data["iterations"]}
+    planned_iteration = len(data["iterations"]) + 1
+    planned_usage = (
+        args.iteration == planned_iteration
+        and data["state"] in ("build", "revise", "redesign")
+    )
+    if args.iteration is not None and args.iteration not in existing_iterations and not planned_usage:
+        raise SystemExit(f"Iteration {args.iteration} does not exist and is not the next planned build")
+    event = {
+        "number": len(data["telemetry"]["events"]) + 1,
+        "at": now_iso(),
+        "stage": args.stage,
+        "iteration": args.iteration,
+        "planned_iteration": planned_usage,
+        "calls": args.calls,
+        "input_tokens": args.input_tokens,
+        "output_tokens": args.output_tokens,
+        "cached_input_tokens": args.cached_input_tokens,
+        "total_tokens": args.input_tokens + args.output_tokens,
+        "cost_usd": args.cost_usd,
+        "latency_seconds": args.latency_seconds,
+    }
+    data["telemetry"]["events"].append(event)
+    for name in (
+        "calls",
+        "input_tokens",
+        "output_tokens",
+        "cached_input_tokens",
+        "total_tokens",
+        "cost_usd",
+        "latency_seconds",
+    ):
+        data["telemetry"][name] += event[name]
+    data["telemetry"]["cost_usd"] = round(data["telemetry"]["cost_usd"], 8)
+    data["telemetry"]["latency_seconds"] = round(data["telemetry"]["latency_seconds"], 3)
+    data["updated_at"] = now_iso()
+    write_json(path, data)
+    print(json.dumps({"case_id": data["case_id"], "usage_event": event["number"], "telemetry": data["telemetry"], "budget": budget_status(data)}))
+
+
+def cmd_stop(args: argparse.Namespace) -> None:
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, ACTIVE_STATES, "stop a case")
+    stop_case(data, args.kind, args.reason, "stop")
+    write_json(path, data)
+    print(json.dumps({"case_id": data["case_id"], "state": data["state"], "stop": data["stop"], "best_candidate": data["best_candidate"]}))
+
+
+def cmd_resume(args: argparse.Namespace) -> None:
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, PAUSED_STATES, "resume a case")
+    exhausted = budget_status(data)["exhausted"]
+    if exhausted:
+        raise SystemExit(
+            f"Cannot resume while {', '.join(item.replace('_', ' ') for item in exhausted)} is exhausted; change limits first"
+        )
+    target = args.to
+    if target is None:
+        if not data["iterations"]:
+            target = "build"
+        else:
+            latest = data.get("evaluations", [])[-1] if data.get("evaluations") else None
+            target = {
+                "Send": "user_review",
+                "Redesign": "redesign",
+                "Revise": "revise",
+                "Not evaluable": "revise",
+            }.get(latest.get("verdict") if latest else None, "build")
+    data["stop"] = None
+    transition(data, target, "resume", args.reason)
+    write_json(path, data)
+    print(json.dumps({"case_id": data["case_id"], "state": data["state"], "budget": budget_status(data)}))
 
 
 def add_case_args(parser: argparse.ArgumentParser) -> None:
@@ -755,14 +1572,39 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--image", required=True)
     start.add_argument("--request", default="")
     start.add_argument("--audience", default="")
+    start.add_argument("--purpose", default="")
+    start.add_argument("--question", default="")
+    start.add_argument("--hypothesis", default="")
+    start.add_argument("--message", default="")
     start.add_argument("--medium", default="")
+    start.add_argument("--dimensions", default="")
+    start.add_argument("--expansion-available", choices=("yes", "no", "unknown"), default="")
+    start.add_argument("--source-notes", default="")
+    start.add_argument("--preserve", default="")
+    start.add_argument("--accessibility", default="")
+    start.add_argument("--brand", default="")
+    start.add_argument("--tooling", default="")
+    start.add_argument("--output-constraints", default="")
     start.add_argument("--skills-root")
     start.add_argument("--creator", help="stable creator identity; defaults to the Hermes agent or session")
+    start.add_argument("--max-iterations", type=positive_int, default=DEFAULT_MAX_ITERATIONS)
+    start.add_argument(
+        "--max-stalled-evaluations",
+        type=positive_int,
+        default=DEFAULT_MAX_STALLED_EVALUATIONS,
+    )
+    start.add_argument("--max-elapsed-minutes", type=positive_float)
+    start.add_argument("--max-tokens", type=positive_int)
+    start.add_argument("--max-cost-usd", type=positive_float)
     start.set_defaults(func=cmd_start)
 
     feedback = sub.add_parser("feedback", help="record user feedback verbatim")
     add_case_args(feedback)
     feedback.add_argument("--text", required=True)
+    feedback.add_argument("--target", required=True, help="element or relationship to inspect")
+    feedback.add_argument("--current", required=True, help="observable current state")
+    feedback.add_argument("--required", required=True, help="observable required state")
+    feedback.add_argument("--why", help="reader consequence")
     feedback.set_defaults(func=cmd_feedback)
 
     iterate = sub.add_parser("iterate", help="copy and record a rendered revision")
@@ -809,9 +1651,60 @@ def build_parser() -> argparse.ArgumentParser:
     diagnose.add_argument("--changed-files", default="")
     diagnose.set_defaults(func=cmd_diagnose)
 
+    context = sub.add_parser("context", help="append prompt context or update structured context")
+    add_case_args(context)
+    context.add_argument("--text", help="ordinary free-text context or correction")
+    context.add_argument("--source", choices=CONTEXT_SOURCES, default="user")
+    context.add_argument("--reason", default="Context updated")
+    context.add_argument("--clear", help="comma-separated context fields to mark unknown")
+    for field in CONTEXT_FIELDS:
+        option = "--" + field.replace("_", "-")
+        if field == "expansion_available":
+            context.add_argument(option, choices=("yes", "no", "unknown"))
+        else:
+            context.add_argument(option)
+    context.set_defaults(func=cmd_context)
+
     status = sub.add_parser("status", help="print the active case JSON")
     add_case_args(status)
     status.set_defaults(func=cmd_status)
+
+    build_check = sub.add_parser("build-check", help="verify state and budgets before model work")
+    add_case_args(build_check)
+    build_check.set_defaults(func=cmd_build_check)
+
+    limits = sub.add_parser("limits", help="show or update loop stopping limits")
+    add_case_args(limits)
+    limits.add_argument("--max-iterations", type=positive_int)
+    limits.add_argument("--max-stalled-evaluations", type=positive_int)
+    limits.add_argument("--max-elapsed-minutes", type=positive_float)
+    limits.add_argument("--max-tokens", type=positive_int)
+    limits.add_argument("--max-cost-usd", type=positive_float)
+    limits.set_defaults(func=cmd_limits)
+
+    usage = sub.add_parser("usage", help="record token, cost, call, and latency telemetry")
+    add_case_args(usage)
+    usage.add_argument("--stage", choices=("creator", "reviewer", "renderer", "other"), required=True)
+    usage.add_argument("--iteration", type=positive_int)
+    usage.add_argument("--calls", type=positive_int, default=1)
+    usage.add_argument("--input-tokens", type=nonnegative_int, default=0)
+    usage.add_argument("--output-tokens", type=nonnegative_int, default=0)
+    usage.add_argument("--cached-input-tokens", type=nonnegative_int, default=0)
+    usage.add_argument("--cost-usd", type=nonnegative_float, default=0.0)
+    usage.add_argument("--latency-seconds", type=nonnegative_float, default=0.0)
+    usage.set_defaults(func=cmd_usage)
+
+    stop = sub.add_parser("stop", help="stop or block a case with a recorded reason")
+    add_case_args(stop)
+    stop.add_argument("--kind", choices=STOP_KINDS, required=True)
+    stop.add_argument("--reason", required=True)
+    stop.set_defaults(func=cmd_stop)
+
+    resume = sub.add_parser("resume", help="resume a blocked or stopped case")
+    add_case_args(resume)
+    resume.add_argument("--reason", required=True)
+    resume.add_argument("--to", choices=("build", "revise", "redesign", "user_review"))
+    resume.set_defaults(func=cmd_resume)
     return parser
 
 

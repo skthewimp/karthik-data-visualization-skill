@@ -63,6 +63,7 @@ The split is deliberate. The repair-loop skill answers **"rebuild this chart, ke
 ├── karthik-r-analysis-style/        # How an exploratory R notebook is written
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
+├── tester/                          # Local repair-loop case console
 ├── docs/                            # Human docs; subfolder READMEs explain contents
 ├── sync-skills.py                   # Install Codex/Claude or the explicit Hermes surface
 └── sync.sh                          # Pull + install wrapper
@@ -222,6 +223,21 @@ To install one surface only:
 
 The Hermes surface installs the Claude-compatible copies under `~/.hermes/skills/data-science/`. It is explicit rather than part of `all`.
 
+## Run the local repair tester
+
+The local tester exercises the bounded case state machine before provider APIs are connected. It accepts a pasted or uploaded chart, records versioned context and structured feedback, enforces iteration and cost limits, preserves original/current/best artifacts, and exposes the case history. Candidate charts can be uploaded manually or generated through an opt-in local Codex runner.
+
+```bash
+python3 -m pip install -r tester/requirements.txt
+uvicorn tester.app:app --host 127.0.0.1 --port 8787 --reload
+```
+
+Open `http://127.0.0.1:8787`. This development server has no authentication. Keep it on localhost.
+
+Set `DATAVIZ_ENABLE_LOCAL_RUNNER=1` before starting the server to enable one bounded local creator-plus-reviewer cycle per click.
+
+See [`tester/README.md`](tester/README.md) and the [`repair-loop product roadmap`](docs/plans/dataviz-repair-product-roadmap.md).
+
 ## Validation and red-team prompts
 
 The selector skill includes:
@@ -233,6 +249,7 @@ The selector skill includes:
 - Source skills live in `<skill>/{codex,claude}/SKILL.md`.
 - `sync-skills.py` discovers every root-level directory containing both surface files.
 - `sync-skills.py --validate-only` checks frontmatter without copying files.
+- Repair-loop changes are covered by `dataviz-fix/tests/` and `tester/tests/`.
 - No generated `dist/` output is committed.
 - Keep README files in public folders. They are navigation aids for newcomers and should be updated when layout changes.
 

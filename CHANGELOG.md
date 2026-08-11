@@ -2,6 +2,26 @@
 
 All notable public changes to this repository are recorded here.
 
+## 2026-08-11
+
+### Added
+
+- Added a bounded repair state machine with explicit build, blind review, context reveal, revision, redesign, user review, blocked, stopped, and accepted states.
+- Added versioned context for audience, purpose, question, hypothesis, message, medium, delivery conditions, source notes, preservation rules, accessibility, brand, tooling, and output constraints. Each value records whether it came from the user, an inference, or remains unknown.
+- Added configurable iteration, elapsed-time, token, cost, and no-progress stops; original/current/best artifact preservation; structured feedback checks; and per-stage usage telemetry.
+- Added a local FastAPI case console for chart upload, context changes, feedback, manual candidate comparison, budgets, stop/resume, and history.
+- Added an opt-in local Codex runner that performs one ephemeral creator pass and one separate blind reviewer pass per click against the checked-out skills. It cannot start an open-ended autonomous loop.
+- Added measured cycle-token estimates and preflight budget checks. Completed artifacts and reviews are still preserved when one provider call crosses its estimate.
+- Added regression tests for loop termination, duplicate artifacts, changed context, reviewer sequencing, budgets, telemetry state, file validation, artifact delivery, and the tester API.
+- Added the staged roadmap for local testing, private Hermes deployment, and a possible public bring-your-own-key beta.
+
+### Changed
+
+- Changed the repair loop so an unchanged artifact cannot trigger another evaluation under the same context, repeated failures pause for human input, and every stop retains a useful next candidate.
+- Changed user corrections from loose prompts into observable acceptance checks while preserving the original wording.
+- Changed the local runner so the wrapper, rather than either model, records candidate and verdict transitions. This keeps telemetry attached before the transition and prevents the agents from advancing extra states.
+- Tightened `dataviz-eval` after an accepted live repair: quantitative axes, ticks, gridlines, baselines, and reference lines must each perform distinct reading work. Direct values do not automatically ban a scale, but redundant default scaffolding can no longer pass as neutral decoration.
+
 ## 2026-08-10
 
 ### Added

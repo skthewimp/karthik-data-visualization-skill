@@ -12,7 +12,7 @@ uploaded chart + optional context
 → diagnose
 → rebuild a real chart
 → run the `dataviz-eval` artifact gate
-→ revise or redesign until the gate says `Send`
+→ revise, redesign, pause, or stop within explicit limits
 → user feedback
 → revise until accepted
 → identify why the first result missed
@@ -54,13 +54,39 @@ python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" start \
   --session "${HERMES_SESSION_ID}" \
   --image "/absolute/path/to/input.png" \
   --request "<user request>" \
-  --audience "<intended audience or inferred audience>" \
-  --medium "<delivery medium and viewing condition>" \
+  --audience "<user-supplied audience, or omit>" \
+  --purpose "<decision or purpose, or omit>" \
+  --question "<analytical question, or omit>" \
+  --hypothesis "<hypothesis, or omit>" \
+  --message "<intended message, or omit>" \
+  --medium "<delivery medium, or omit>" \
   --creator "main:${HERMES_SESSION_ID}" \
   --skills-root "/home/karthik/.hermes/skills/data-science"
 ```
 
-Do this before editing. The command copies the original and snapshots the installed skills actually used by Hermes.
+Do this before editing. The command copies the original, snapshots the installed skills, records context version 1, and creates a bounded loop. It defaults to three autonomous iterations. Use `--max-elapsed-minutes`, `--max-tokens`, or `--max-cost-usd` when another hard budget matters.
+
+Do not put inferred context into user-supplied fields. Record it separately:
+
+```bash
+python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" context \
+  --session "${HERMES_SESSION_ID}" \
+  --source inferred \
+  --audience "<inferred audience>" \
+  --purpose "<inferred purpose>" \
+  --reason "Inferred from the supplied chart and conversation"
+```
+
+Use `context` whenever the user adds or changes the audience, purpose, question, hypothesis, message, medium, dimensions, source notes, preservation requirements, accessibility, brand, tooling, or output constraints. `--text` accepts an ordinary free-text prompt. Each material change creates a new context version, cancels an in-flight stale review, and supersedes an old verdict. An identical update creates no new version.
+
+Immediately before spending tokens or starting a renderer, run:
+
+```bash
+python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" build-check \
+  --session "${HERMES_SESSION_ID}"
+```
+
+Do not start the build if this preflight stops the case. Record the completed artifact with `iterate` after rendering even if that call crossed a budget; the budget controls the next build, not preservation or independent review of work already done.
 
 After every rendered revision:
 
@@ -74,9 +100,8 @@ python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" iterate \
 The creator must not grade its own export. After `iterate`, use a fresh leaf reviewer through Hermes `delegate_task` with `file`, `terminal`, and `vision` tools. Give it only:
 
 - the recorded artifact and original/source paths;
-- the user request, audience, medium, and active acceptance checks;
 - the installed `dataviz-eval` skill path;
-- a destination for its JSON report.
+- the blind-request path returned by `review-request`.
 
 Do not pass the creator's diagnosis, intended verdict, claimed fixes, or rendering code. Generate the bounded review packet and response template:
 
@@ -97,12 +122,32 @@ python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" evaluate \
 
 The report must identify the reviewer and exact artifact hash; include expert and audience blind reads; mark which gates are required by the declared scope; give evidence for all six gates and five general release checks; and state verdict, failure codes, and required actions. The case manager rejects `Send` unless every required gate and release check passes. A non-required gate stays `Unknown`; it is never converted to a fake pass. If independent review is unavailable, the artifact is `Not evaluable`, not self-approved.
 
+Record provider usage after creator and reviewer calls when the API or runtime exposes it:
+
+```bash
+python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" usage \
+  --session "${HERMES_SESSION_ID}" \
+  --stage creator \
+  --iteration 1 \
+  --input-tokens 10000 \
+  --output-tokens 2000 \
+  --cached-input-tokens 50000 \
+  --cost-usd 0.12 \
+  --latency-seconds 45
+```
+
+The case records calls, tokens, cost, and latency. Before another build, it enforces the configured iteration, time, token, and cost limits. Use `limits` to inspect or extend a budget after the user explicitly approves more work.
+
 Before acting on user feedback:
 
 ```bash
 python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" feedback \
   --session "${HERMES_SESSION_ID}" \
-  --text "<user feedback verbatim>"
+  --text "<user feedback verbatim>" \
+  --target "<element or relationship>" \
+  --current "<observable current state>" \
+  --required "<observable required state>" \
+  --why "<reader consequence>"
 ```
 
 ## Repair loop
@@ -157,11 +202,13 @@ Follow the verdict:
 - `Redesign`: return to `dataviz-critique` or `dataviz-selector`, rebuild, then evaluate again.
 - `Not evaluable`: obtain the missing artifact, evidence, or delivery condition when required; never present the candidate as approved.
 
-Limit autonomous render-evaluate cycles to three; user feedback starts a new cycle. After the third non-`Send` result, show the best candidate with the unresolved gate stated plainly instead of looping silently.
+Obey the recorded state. `Revise` and `Redesign` permit another bounded build. `Send` moves to `user_review`; it is not final until the user accepts it. `Not evaluable` becomes `blocked`. Repeated failure codes with unchanged gate results become `blocked` for no progress. Exhausted iteration, time, token, or cost budgets become `stopped`. In either paused state, show the reason, best candidate, and next action instead of looping silently.
+
+Use `stop --kind ... --reason ...` for an explicit user stop, missing context or evidence, or renderer failure. Use `resume --reason ...` only after the blocker changed; exhausted budgets must be extended with `limits` first. A stopped run retains every artifact, transition, feedback item, evaluation, and best candidate.
 
 ### 5. Continue from feedback
 
-Treat each user correction as evidence. Before editing, translate it into one observable check: target, current state, required state. Log it verbatim, change the smallest relevant part, render, record the media iteration, and run `dataviz-eval` with that check in the evaluation packet. Inspect the named element directly; do not infer success from a generic chart summary. Do not defend the earlier choice or repeat already accepted decisions.
+Treat each user correction as evidence. Before editing, translate it into one observable check: target, current state, required state. Log it with `feedback`. Record changes to audience, purpose, question, hypothesis, message, medium, or constraints with `context`; when one message contains both, call both commands. Change the smallest relevant part, render, record the media iteration, and run `dataviz-eval` with that check in the evaluation packet. Inspect the named element directly; do not infer success from a generic chart summary. Do not defend the earlier choice or repeat already accepted decisions.
 
 Do not send progress-only replies such as “I’ll fix it” or “now checking”. Use tools silently until a candidate is ready. Every chart or revision response must include the media attachment in the same response, plus no more than three short lines: what changed, whether values are exact or approximate, and `MEDIA:/absolute/path/to/output.png`. If the user asks where the graph is, return the media line immediately.
 

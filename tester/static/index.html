@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dataviz repair tester</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">Local case console</p>
+        <h1>Dataviz repair tester</h1>
+        <p class="lede">Paste a chart, state what it needs to do, and keep the context attached to every revision.</p>
+      </div>
+      <div class="mode-note">
+        <strong id="runner-heading">Checking local runner</strong>
+        <span id="runner-copy">The case console works in manual mode even when no model runner is enabled.</span>
+      </div>
+    </header>
+
+    <main>
+      <section id="intake" class="panel intake-panel">
+        <div class="section-heading">
+          <div>
+            <p class="step">1</p>
+            <h2>Start with the chart</h2>
+          </div>
+          <p>PNG or JPEG, up to 15 MB</p>
+        </div>
+
+        <form id="start-form">
+          <div id="drop-zone" class="drop-zone" tabindex="0">
+            <input id="chart-file" name="chart" type="file" accept="image/png,image/jpeg" hidden />
+            <img id="intake-preview" alt="Selected chart preview" hidden />
+            <div id="drop-copy">
+              <strong>Paste, drop, or choose a chart</strong>
+              <span>Click here or press ⌘V / Ctrl+V</span>
+            </div>
+          </div>
+
+          <div class="form-grid context-grid">
+            <label class="wide">
+              <span>What do you want changed?</span>
+              <textarea name="request" rows="3" placeholder="Repair this chart. Keep the data, but make the comparison easier to read."></textarea>
+            </label>
+            <label>
+              <span>Audience</span>
+              <input name="audience" placeholder="Investment committee" />
+            </label>
+            <label>
+              <span>Purpose or decision</span>
+              <input name="purpose" placeholder="Decide what needs discussion" />
+            </label>
+            <label>
+              <span>Analytical question</span>
+              <input name="question" placeholder="Which sectors moved most?" />
+            </label>
+            <label>
+              <span>Hypothesis</span>
+              <input name="hypothesis" placeholder="Losses are broader than gains" />
+            </label>
+            <label class="wide">
+              <span>Intended message</span>
+              <input name="message" placeholder="The downside is concentrated in a few sectors" />
+            </label>
+            <label>
+              <span>Medium</span>
+              <input name="medium" placeholder="Telegram, tap to expand" />
+            </label>
+            <label>
+              <span>Dimensions</span>
+              <input name="dimensions" placeholder="1200 × 900" />
+            </label>
+            <label>
+              <span>Maximum iterations</span>
+              <input name="max_iterations" type="number" min="1" value="3" />
+            </label>
+            <label>
+              <span>Maximum cost (optional)</span>
+              <input name="max_cost_usd" type="number" min="0.01" step="0.01" placeholder="$1.00" />
+            </label>
+            <label>
+              <span>Maximum tokens (optional)</span>
+              <input name="max_tokens" type="number" min="1" step="1000" placeholder="Measured estimate appears when available" />
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <p id="start-error" class="error" role="alert"></p>
+            <button class="primary" type="submit">Create case</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="workspace" hidden>
+        <div class="workspace-bar">
+          <div>
+            <p class="eyebrow" id="case-id"></p>
+            <h2 id="case-state">Case</h2>
+          </div>
+          <div class="status-row">
+            <span id="context-version" class="badge"></span>
+            <span id="iteration-budget" class="badge"></span>
+            <span id="cost-budget" class="badge"></span>
+            <span id="token-budget" class="badge"></span>
+          </div>
+        </div>
+
+        <section class="artifact-grid">
+          <article class="artifact-card">
+            <header><h3>Original</h3></header>
+            <div class="artifact-frame"><img id="original-artifact" alt="Original chart" /></div>
+          </article>
+          <article class="artifact-card">
+            <header><h3>Current candidate</h3><span id="latest-label">Not uploaded</span></header>
+            <div class="artifact-frame empty" id="latest-frame"><img id="latest-artifact" alt="Latest chart" hidden /></div>
+          </article>
+          <article class="artifact-card">
+            <header><h3>Best evaluated</h3><span id="best-label">None yet</span></header>
+            <div class="artifact-frame empty" id="best-frame"><img id="best-artifact" alt="Best evaluated chart" hidden /></div>
+          </article>
+        </section>
+
+        <section class="control-grid">
+          <article class="panel control-panel">
+            <div class="section-heading compact">
+              <div><p class="step">2</p><h2>Add context</h2></div>
+            </div>
+            <form id="context-form">
+              <label>
+                <span>Prompt</span>
+                <textarea name="text" rows="3" placeholder="This is for a general audience. The point is the asymmetry between losses and gains."></textarea>
+              </label>
+              <div class="form-grid two">
+                <label><span>Audience</span><input name="audience" /></label>
+                <label><span>Purpose</span><input name="purpose" /></label>
+                <label><span>Question</span><input name="question" /></label>
+                <label><span>Hypothesis</span><input name="hypothesis" /></label>
+                <label class="wide"><span>Message</span><input name="message" /></label>
+                <label><span>Medium</span><input name="medium" /></label>
+                <label><span>Dimensions</span><input name="dimensions" /></label>
+              </div>
+              <div class="inline-actions">
+                <select name="source" aria-label="Context source">
+                  <option value="user">User supplied</option>
+                  <option value="inferred">Inferred</option>
+                </select>
+                <button type="submit">Update context</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="panel control-panel">
+            <div class="section-heading compact">
+              <div><p class="step">3</p><h2>Record feedback</h2></div>
+            </div>
+            <form id="feedback-form">
+              <label><span>User's words</span><textarea name="text" rows="2" required></textarea></label>
+              <label><span>Target</span><input name="target" placeholder="Category-to-bar relationship" required /></label>
+              <label><span>Current state</span><input name="current" placeholder="Labels sit far from small bars" required /></label>
+              <label><span>Required state</span><input name="required" placeholder="Labels are adjacent or visibly connected" required /></label>
+              <label><span>Why</span><input name="why" placeholder="Readers should not trace across rows" /></label>
+              <button type="submit">Save feedback check</button>
+            </form>
+          </article>
+
+          <article class="panel control-panel">
+            <div class="section-heading compact">
+              <div><p class="step">4</p><h2>Build and review</h2></div>
+            </div>
+            <button id="run-button" class="primary" type="button" disabled>Run one local creator + reviewer cycle</button>
+            <p id="run-status" class="job-status">Local model runner is not enabled.</p>
+            <div class="manual-divider"><span>or upload a candidate manually</span></div>
+            <form id="iteration-form">
+              <label class="file-control">
+                <span>Rendered PNG or JPEG</span>
+                <input name="chart" type="file" accept="image/png,image/jpeg" required />
+              </label>
+              <label><span>What changed?</span><input name="summary" value="Manual candidate upload" /></label>
+              <button type="submit">Record candidate</button>
+              <p class="muted">Manual candidates still require an independent evaluation before another iteration.</p>
+            </form>
+          </article>
+
+          <article class="panel control-panel">
+            <div class="section-heading compact">
+              <div><p class="step">5</p><h2>Control the loop</h2></div>
+            </div>
+            <form id="limits-form" class="form-grid two">
+              <label><span>Maximum iterations</span><input name="max_iterations" type="number" min="1" /></label>
+              <label><span>Maximum cost</span><input name="max_cost_usd" type="number" min="0.01" step="0.01" /></label>
+              <label><span>Maximum tokens</span><input name="max_tokens" type="number" min="1" step="1000" /></label>
+              <button type="submit">Update limits</button>
+            </form>
+            <div class="danger-zone">
+              <button id="stop-button" type="button">Stop case</button>
+              <button id="resume-button" type="button">Resume case</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel history-panel">
+          <div class="section-heading compact">
+            <div><p class="step">6</p><h2>Case history</h2></div>
+            <button id="refresh-button" type="button">Refresh</button>
+          </div>
+          <div id="history"></div>
+        </section>
+
+        <p id="workspace-error" class="error" role="alert"></p>
+      </section>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

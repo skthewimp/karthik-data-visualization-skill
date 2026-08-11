@@ -1,5 +1,31 @@
 # Devlog
 
+## 2026-08-11 - Bounded repair loop and local tester
+
+### User prompts
+
+> "we need to loop engineer this properly so it doesn't go off into infinite loops"
+
+> "we need the ability to give more prompts on maybe the audience, the purpose, the hypothesis, the message"
+
+> "then to deploy a web app where people can use their own API keys and test this out"
+
+### What changed
+
+- Replaced the implicit prompt loop with explicit states, transition records, stopping reasons, configurable budgets, duplicate-artifact checks, no-progress detection, and best-candidate preservation.
+- Made audience, purpose, question, hypothesis, message, medium, delivery details, and constraints editable and versioned. Evaluations now identify the exact context version they used, and changed context cancels or supersedes stale review work.
+- Added token, cost, latency, and call telemetry without flattening gate results into one score.
+- Converted each user correction into a structured acceptance check: target, current state, required state, and reader consequence.
+- Added a localhost FastAPI case console with image paste/upload, context editing, feedback, manual candidate uploads, artifact comparison, limits, stop/resume, and history.
+- Added an opt-in local Codex runner. Each user action starts exactly one creator process and one fresh blind-review process against the checked-out skills; the UI never starts the next revision automatically.
+- Ran the first real local cycle on the problematic 30-sector chart. It produced one candidate and one independent `Send` verdict in 337 seconds. The candidate kept row labels beside their bar endpoints, removed the unexplained Banks emphasis, used one neutral categorical colour, and made the loss-gain asymmetry the title claim.
+- The live run exposed two workflow defects before deployment: the initial prompt was swallowed by the CLI image argument, and the outer development sandbox blocked nested Codex startup. Both failures consumed zero model tokens and were retained as stopped/blocked transitions before the successful resume.
+- The successful cycle reported 688,535 cumulative CLI tokens, including 590,592 cached input tokens. That showed that a cumulative token ceiling cannot interrupt one model call and that the tester needs a measured preflight estimate. Added the estimate, moved build checks before calls, and made the wrapper own artifact and verdict transitions.
+- Karthik rejected the first `Send` because exact direct labels still sat beside a redundant x-axis and gridlines. The second cycle removed both, retained the meaningful zero baseline, and kept dense row labels at regular weight; Karthik accepted it.
+- Classified the first `Send` as an ambiguous evaluator rule. `karthik-data-visualization` already required quantitative scales and references to add information, but `dataviz-eval` made duplicate categorical identity more explicit than duplicate quantitative scaffolding. Tightened only the evaluator rule and kept it conditional on the reading task rather than banning axes on directly labelled charts.
+- Kept raw provider adapters, bring-your-own-key handling, stronger isolation, and private deployment as separate milestones.
+- Added 26 regression tests across the case manager, tester API, and local-runner orchestration.
+
 ## 2026-08-10 - Dataviz eval framework rebuild
 
 ### User prompts

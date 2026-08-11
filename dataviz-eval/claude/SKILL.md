@@ -96,6 +96,7 @@ Run a literal element audit before passing `Information fit` or `Delivery`:
 - every direct value matches its mark and source value
 - the chosen identification system fits the chart's density and geometry: direct labels must remain legible and unambiguous; axes, legends, grouping, or small multiples are valid when direct labels would not
 - each category or series has one clear primary identification route; if a direct label supplies the same identity as a categorical axis or legend, the duplicate scaffolding must justify its reading value
+- each quantitative axis, tick set, gridline, baseline, and reference line performs a distinct reading task such as estimation, alignment, interpolation, threshold detection, or comparison of unlabeled marks. Exact direct values do not mechanically ban a scale, but a scale or grid that merely repeats those values without improving comparison is redundant and cannot pass as neutral decoration
 - every legend entry has plotted marks, and its swatch exactly matches those marks
 - every encoded colour remains perceptually distinct from adjacent series and the background under the intended delivery conditions
 - every requested removal is absent from the delivered artifact

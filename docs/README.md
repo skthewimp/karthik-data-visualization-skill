@@ -24,6 +24,8 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`../DEVLOG.md`](../DEVLOG.md) - session devlog with prompts and work done
 - [`blog/`](blog/) - longer project writeups
 - [`plans/`](plans/) - planning docs for future skill work
+- [`plans/dataviz-repair-product-roadmap.md`](plans/dataviz-repair-product-roadmap.md) - build order for the bounded loop, editable context, local tester, private deployment, and any later BYOK beta
+- [`../tester/README.md`](../tester/README.md) - run and test the local repair-loop case console
 
 ## Development workflow
 
