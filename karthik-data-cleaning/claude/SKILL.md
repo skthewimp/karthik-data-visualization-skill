@@ -7,6 +7,8 @@ description: >-
 
 # Karthik Data Cleaning
 
+Own contextual profiling, parsing, reshaping, joining, recoding, missingness decisions, and validation. Do not define the analytical question, prescribe exploratory notebook voice, or choose the final visual; those belong to `karthik-analysis-planner`, `karthik-r-analysis-style`, and `dataviz-selector`.
+
 Clean data like an analyst, not like an automated janitor. Cleaning is part of the analysis. It depends on the question, the unit of analysis, the source quirks, and the domain rules.
 
 Default stack: R/Rmd/Quarto with tidyverse-style pipelines. Use Python/SQL when the project already does, but keep the same judgement pattern.

@@ -10,6 +10,8 @@ metadata:
 
 Use for R analysis, exploratory `.Rmd` / `.qmd` notebooks, and analytics pipelines. Core rule: this is not generic EDA and not a polished report. It is a working scratchpad where the next chunk follows from what the previous chunk showed.
 
+Own R notebook texture, local precedent, exploratory branching, and R code conventions. `karthik-analysis-planner` owns the analysis contract, `karthik-data-cleaning` owns substantive data preparation and validation, `dataviz-selector` owns final chart choice, `karthik-data-visualization` owns publication-ready chart design, and `chart-explainer` owns notes attached to plots.
+
 ## Analyst, not software engineer
 
 This skill follows the same philosophy as Karthik's data-cleaning skill: analyze with context, not with software-engineering tidiness.
@@ -179,9 +181,7 @@ Avoid generated-sounding scaffolding:
 
 The notes above are lead-ins - what you are about to look at. Every plot also needs a note *after* it saying what it showed, because whoever reads this notebook did not run it.
 
-**REQUIRED SUB-SKILL:** use `chart-explainer` for these. Short version: one line with the claim and a number that has something to compare it to, one line of payoff. Same rough register as the rest of the notebook - no scaffolding headings.
-
-Most exploratory plots show nothing, and the note says so - `no signal here`, `one is larger than the other, that's all`. A notebook where every plot has a finding under it is a notebook where the notes were invented.
+Use `chart-explainer` for these notes. Do not restate or modify its note contract here. Keep its output in the same rough register as the surrounding notebook.
 
 ## Exploration moves that feel right
 
@@ -238,6 +238,8 @@ Common patterns:
 - `theme_bw()` / `theme_minimal()` with light cleanup.
 
 Do not turn first-pass plots into publication charts unless asked. But make them interpretable enough to guide the next cut.
+
+When a plot becomes a deliverable rather than a probe, hand chart-form choice to `dataviz-selector` and visual execution to `karthik-data-visualization`; do not extend these rough plotting defaults into a second publication style.
 
 ## Database / large data
 
@@ -311,9 +313,3 @@ Now take the first promising cut...
 Then continue from results. Do not fill the rest with hypothetical sections.
 
 For detailed sequential 20-step empirical audit, read `references/iterative-learning-20.md`. For behavioural forward-tests against 20 unseen notebooks, read `references/behavioral-forward-tests-20.md`.
-
-## Git safety
-
-- Never run destructive reset commands such as `git reset --hard`.
-- Preserve local work before risky operations.
-- Keep edits focused.

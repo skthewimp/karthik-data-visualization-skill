@@ -79,9 +79,9 @@ For narrow repairs, evaluate changed or targeted regions against the absolute re
 
 For each release check, record the most failure-prone element, pair, or region inspected. Test the worst example in every repeated placement pattern: direction, sign, length, or panel side can turn one shared labelling rule into different rendered relationships. Inspect the full artifact, representative delivery preview, and deterministic overlapping detail views when supplied; no one view can pass on behalf of a failing required view. Do not support a pass with a generic statement such as "no overlap".
 
-For relationship traceability, evaluate the identification system before judging individual labels. Direct labels, categorical axes, legends, grouping, and small multiples are alternatives chosen from the chart's density and geometry; none is universal. Prefer direct labels only when every important mark or series can be named legibly and unambiguously at delivery size. Give each category or series one primary identification route: when a direct label carries the same identity as a categorical axis or legend, duplicated scaffolding needs a clear reading purpose. Judge the complete identity-value-mark unit—a value beside a mark does not repair a category name stranded across whitespace. For every label, compare its intended target with nearby competing labels and marks: the intended bond must be perceptually strongest. Measure that relationship to the visible target, not merely to a common row, plot edge, or baseline; alignment alone does not bridge unstructured whitespace. Require adjacency or a restrained visual connection. If labels would collide or lose proximity, use another identification system or chart structure instead of forcing direct placement.
+For relationship traceability, apply the identification principles owned by `karthik-data-visualization`, then record the observable result. Judge complete identity-value-mark units and compare each intended pairing with nearby competitors at delivery size. The evaluation owns evidence and pass/fail status, not a second set of design prescriptions.
 
-When a shared legend or key is replaced across repeated panels, count the replacement instances panel by panel. Each panel that uses the mapping needs its own immediate identification route unless one deliberately shared replacement remains equally clear for every panel. A complete first panel cannot stand in for an unlabelled sibling panel.
+For every change that applies across repeated structures, derive the expected instance set from the source and change contract, then verify each applicable instance. Passing one instance cannot stand in for untested siblings.
 
 ## Gate anchors
 
@@ -112,7 +112,7 @@ For exploration, an honest "no defensible pattern" is a valid intended outcome. 
 
 ### Visual reasoning
 
-- **Pass:** chart form, scale, ordering, geometry, and visual channels make the intended comparison direct. Stacked forms are used only when broad composition is enough or every consequential component is directly readable.
+- **Pass:** chart form, scale, ordering, geometry, and visual channels make the intended comparison direct under the selection principles owned by `dataviz-selector`.
 - **Concern:** the comparison is possible but requires avoidable lookup or decoding.
 - **Fail:** the form or encoding obscures, distorts, or redirects the comparison.
 - **Unknown:** the artifact is missing or too broken to inspect.
@@ -142,7 +142,7 @@ Do not invent a universal Telegram or slide width. Record the tested size and wh
 
 Do not treat personal taste as a hard gate. Aesthetic mismatch becomes consequential when it affects comprehension, accessibility, trust, or an explicit delivery brief.
 
-Use numeric contrast as a diagnostic: target 4.5:1 for normal text, 3:1 for large text, and 3:1 against the background for small or thin essential marks. Do not force every large fill through text-level WCAG ratios when direct labels, boundaries, and another encoding channel make the reading reliable. Always inspect normal, grayscale, compressed, and colour-vision-deficiency views when colour is essential. Audit every semantic mapping end to end from data condition through marks, connectors, labels, annotations, and legend. For directional change, all elements must use the same stated comparison direction; the audience or brief determines the hue convention, and another channel must preserve the meaning without colour.
+Apply the colour and contrast principles owned by `karthik-data-visualization`. Record the tested viewing conditions, whether essential mappings agree end to end, and whether the reading survives without hue alone. Do not copy the creator skill's palette or threshold guidance into the evaluation rubric.
 
 ## Failure codes
 
@@ -168,7 +168,7 @@ Assign the smallest set of codes that explains the failure. Do not tag every min
 
 | Code | Failure |
 |---|---|
-| `V1` | Chart form does not fit the analytical comparison, including stacked bars used for precise comparison of intermediate or top segments. |
+| `V1` | Chart form does not fit the analytical comparison. |
 | `V2` | Encodings are redundant, conflicting, inaccessible, insufficiently distinct, or impose avoidable decoding. |
 | `V3` | Ordering, hierarchy, highlight, or annotation directs attention to the wrong thing. |
 

@@ -5,6 +5,8 @@ description: Choose what to mark on a chart, rank competing candidates, word the
 
 # Chart Annotations
 
+Own on-chart annotation selection, wording, visual weight, and placement. Do not choose the chart form, global visual system, adjacent explanatory note, critique structure, or release verdict; those belong to `dataviz-selector`, `karthik-data-visualization`, `chart-explainer`, `dataviz-critique`, and `dataviz-eval`.
+
 Use this when a chart exists or is being built and the reader should not have to infer the point. Annotation is not decoration and not a caption. It is the act of marking the specific evidence that carries the claim.
 
 This skill covers four decisions: what to mark, which candidate wins, how to word it, where to put it.
@@ -246,4 +248,4 @@ Fix and re-render. Do not declare done from code inspection.
 
 ## Relationship to other skills
 
-Use `dataviz-selector` first if the chart form is still open. Use `karthik-data-visualization` for palette, typography, and the surrounding chart style. Use `dataviz-critique` when reviewing someone else's annotated chart. Use `chart-improver` when the whole chart is being rebuilt. `dataviz-orchestrator` calls this skill at the charting step.
+Use `dataviz-selector` first if the chart form is still open. Use `karthik-data-visualization` for palette, typography, and the surrounding chart style. Use `dataviz-critique` when reviewing someone else's annotated chart. Use `dataviz-fix` when the whole chart enters a repair loop. `dataviz-orchestrator` calls this skill at the charting step.

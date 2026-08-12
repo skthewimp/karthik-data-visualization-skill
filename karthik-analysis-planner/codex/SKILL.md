@@ -10,6 +10,8 @@ metadata:
 
 Use this before evidence-building. Do not answer the question yet. Convert it into an analysis contract that another agent/notebook can execute.
 
+Own operational definitions, grain, denominator, metric, comparison, evidence requirements, caveats, and falsifiers. Do not perform data cleaning, choose chart forms, or prescribe notebook style; hand those stages to `karthik-data-cleaning`, `dataviz-selector`, and `karthik-r-analysis-style`.
+
 Core sequence:
 
 ```text

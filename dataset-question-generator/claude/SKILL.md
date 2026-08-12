@@ -7,6 +7,8 @@ description: Generate fresh, visualisable data questions from raw datasets; reje
 
 Use this before analysis planning or charting. The job is to turn a raw dataset into a short ranked set of good questions.
 
+Own question discovery and ranking only. `karthik-analysis-planner` turns one selected question into an executable contract; `karthik-data-cleaning` owns substantive preparation; `dataviz-selector` chooses a chart only after the question is fixed.
+
 Core sequence:
 
 ```text

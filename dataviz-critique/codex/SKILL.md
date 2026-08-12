@@ -12,6 +12,8 @@ Use this when the user gives a visualization, screenshot, chart spec, code outpu
 
 Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing; then offer a small set of better visualization alternatives, not just criticism.
 
+Own diagnosis, severity, and alternative interventions. Do not create a parallel chart-style rubric here. Apply `dataviz-selector` to judge form, `karthik-data-visualization` to judge execution, and `chart-annotations` to judge on-chart callouts. Use `dataviz-eval` instead when the job is a formal `Send`/`Revise`/`Redesign` gate.
+
 ## Inputs to seek or infer
 
 Prefer not to block. If context is missing, critique from what is visible and mark assumptions.
@@ -50,16 +52,11 @@ Then inspect pairwise fit:
 
 A chart can be visually attractive and still fail if any side of this triangle is weak.
 
-## Karthik critique lens
+## Diagnostic ownership
 
-Use these standards aggressively:
-
-- **Clarity first**: the chart must stand on its own. Missing axis labels, unclear units, ambiguous chart type, unexplained shading, or mystery encodings are major failures.
-- **Intentional design**: every colour, annotation, shade, line, sort order, and layout choice must earn its place. Defaults are not a defence.
-- **Fundamentals before polish**: check dimensional consistency, denominators, statistical meaning, uncertainty, and whether comparisons make analytical sense.
-- **Narrative with evidence**: a good chart communicates a point of view, not just numbers. If there is no claim, propose one; if the claim outruns the data, pull it back.
-- **No tool worship**: do not excuse dashboard clutter, BI defaults, AI-generated aesthetics, or flashy chart types if they add friction.
-- **Repeatable improvement**: recommend changes that can survive new data and reruns, not one-off cosmetic hacks.
+- Judge the question-data relationship here: dimensional consistency, denominators, statistical meaning, uncertainty, and whether the claim outruns the evidence.
+- Import form and visual-execution findings from the owning skills rather than restating their rules.
+- Recommend repeatable changes that survive new data and reruns, not one-off cosmetic coordinates, colours, or dimensions learned from the supplied image.
 
 ## Failure modes to look for
 
@@ -71,22 +68,17 @@ Use these standards aggressively:
 - Cherry-picked start/end dates, missing baseline, missing counterfactual, missing uncertainty.
 - Derived metrics unexplained; index values without base; log/normalization not disclosed.
 
-### Visual encoding
+### Visual form and execution
 
-- Ambiguous form: e.g. line chart shaded like an area chart with no reason.
-- Bars not starting at zero; dual axes; 3D effects; area/volume encoding for 1D quantities.
-- Wrong chart for task: map for ranking, pie/donut for precise comparison, stacked bars for small differences, spaghetti lines for many series.
-- Poor ordering: alphabetical when value/rank/time/order matters.
-- Overplotting, excessive categories, illegible labels, crowded legends.
-- Colour without meaning, too many similar hues, inaccessible contrast, red/green dependence, decorative palettes.
+- Apply `dataviz-selector` to test whether the form exposes the intended comparison.
+- Apply `karthik-data-visualization` to test hierarchy, identification, colour, spacing, typography, integrity, and delivery-size execution.
+- Apply `chart-annotations` only when on-chart marking is part of the problem.
 
 ### Communication
 
-- Title describes chart mechanics instead of making a claim.
-- Annotation explains the obvious, not the insight.
-- Legend forces back-and-forth lookup when direct labels would work.
-- Important caveats hidden in footnotes or absent.
-- Dashboard gives metrics but no interpretation, action, or priority.
+- Compare the apparent question and claim with the intended ones.
+- Flag missing context or caveats that change the reading.
+- Keep adjacent narration out of scope; `chart-explainer` owns the note that travels with a finished chart.
 
 ## Severity rubric
 
@@ -183,4 +175,3 @@ For quick requests, compress to: verdict, top 3 fixes, and 2 redesign alternativ
 ## Tone
 
 Be direct but useful. Avoid generic praise. Praise only what materially helps interpretation. Do not say "nice visualization" unless the question-data-visual fit is actually strong.
-

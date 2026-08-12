@@ -9,6 +9,8 @@ Use this before making a chart when the user has a dataset and a question/hypoth
 
 Core job: pick the visual form that makes the intended claim easiest to see and hardest to misread.
 
+Own chart-form and encoding selection only. `karthik-data-visualization` owns palette, typography, spacing, label execution, and rendered-output quality. `chart-annotations` owns what to mark and how to word it.
+
 For non-trivial chart selection, use the workflow and guardrails below; private local references may add nuance, but this public skill is self-contained.
 
 ## Workflow
@@ -18,7 +20,7 @@ For non-trivial chart selection, use the workflow and guardrails below; private 
 3. Identify the data grain: time series, category, entity, location, event/ball, survey response, model output, simulation, transaction, or scorecard metric.
 4. For time-series charts, inspect shape before choosing annotations: mark visible knee-bends/inflection years, local maxima/minima, and temporary peaks/troughs when they change the story.
 5. Choose the simplest chart that exposes that comparison.
-6. Add only necessary context: direct labels, event line/band, threshold, uncertainty ribbon, counterfactual, facet, or annotation. For lines, include sparse labels for knee-bends and temporary extrema when visually salient and analytically meaningful.
+6. Specify only the context layers the comparison requires: label system, event line/band, threshold, uncertainty ribbon, counterfactual, facet, or annotation target.
 7. Say what to avoid: misleading axis, overplotting, unnecessary regression, crowded legend, map-for-ranking, stacked bars for precise comparisons, etc.
 8. If generating code, then also apply `karthik-data-visualization` styling before final output.
 
@@ -29,8 +31,7 @@ For non-trivial chart selection, use the workflow and guardrails below; private 
 - Slowing growth: raw line + marked slowdown/knee + dotted earlier-growth projection; avoid YoY as main chart unless technical audience.
 - Forecast/anomaly: actual line, forecast/dashed line, uncertainty ribbon, highlighted anomaly/intervention window.
 - Many comparable series: small multiples or cluster prototypes; avoid spaghetti.
-- If the chart will be consumed in chat or at thumbnail size, prefer forms that support direct labels and strong contrast; avoid designs that depend on faint colour differences or tiny legends.
-- Choose colour by data role: focal-plus-grey for emphasis, qualitative hues for nominal identity, a perceptually ordered sequential scale for magnitude, and a diverging scale only around a meaningful midpoint. If colour is doing work that position or direct labels could do better, remove it.
+- If the chart will be consumed in chat or at thumbnail size, reject forms whose identity or comparison system cannot survive that size. Leave colour and label styling to `karthik-data-visualization`.
 - For slopegraphs, place endpoint labels where they remain paired and legible, then choose the aspect ratio from row density, label geometry, and delivery medium rather than a fixed orientation.
 - For exactly two time points, prefer a slopegraph over a dumbbell if the comparison can be labeled on both ends and the connector line can carry the change; choose a dumbbell only when the paired endpoint values need to be read as discrete markers.
 - Ranking: sorted horizontal bars; bar axis starts at 0; highlight an item only when the question, evidence, or stated story makes it focal. Otherwise keep equal-status items neutral.
@@ -64,16 +65,13 @@ If implementing: <short code/design note>
 ## Hard guardrails
 
 - One chart, one main job.
-- Never select pie charts, donut charts, 3D charts, animated/moving charts, interactive charts, gauges, radar/spider charts, or decorative infographic forms as the recommendation. If the user asks for one of these, say it is not recommended and offer the closest static alternative. Only mention the requested bad form as something to avoid.
-- Never recommend dashboards as a substitute for an interpreted story.
+- Do not recommend pie charts, donut charts, 3D charts, gauges, radar/spider charts, or decorative infographic forms when a clearer comparison form exists. Default to static output; use animation or interaction only when change over time, exploration, or monitoring genuinely requires it.
+- Do not recommend dashboards as a substitute for an interpreted story. Dashboards remain valid when the task is repeated monitoring or interactive lookup rather than explanation.
 - Bars start at zero; scatters need not.
 - Do not extend regression/counterfactual lines beyond defensible range without marking them as projections.
 - Label derived meaning directly when the evidence is a gap, quadrant, cluster, area between curves, knee-bend/inflection, or local maximum/minimum.
-- Prefer direct labels to legends.
-- Choose a form in which labels and marks pair without guesswork at delivery size. If the natural baseline pushes labels far from the marks they identify, use a compact row structure, restrained guides, a table-chart hybrid, faceting, or another form that restores immediate traceability.
-- Size the canvas from the information and delivery medium. Whitespace should group, separate, or emphasize; do not retain blank regions merely because the plotting library or source aspect ratio created them.
+- Reject a form when its identification system cannot pair labels and marks without guesswork at delivery size; choose another form rather than prescribing local label or canvas fixes here.
 - If part-to-whole is requested, prefer sorted bars, 100% stacked bars, tables, or small multiples over pies/donuts. Use stacking only when the reader needs broad composition, not precise component pattern comparison. Direct labels can support lookup of exact values; if comparison remains difficult or labels become crowded, change the form.
 - Use maps only for spatial stories.
 - If a clever chart needs too much explanation, use a simple chart plus annotation.
 - For line charts with obvious slope changes or temporary extrema, do not leave the viewer to infer them. Mark the specific year/period on the chart, but keep markers sparse and defensible.
-- Managers do not want dashboards; they want interpreted stories and actions.

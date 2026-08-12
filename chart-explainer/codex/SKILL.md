@@ -8,6 +8,8 @@ metadata:
 
 # Chart Explainer
 
+Own the short prose placed beside or below a finished chart or table. Do not write text on the chart, redesign it, critique it, or decide whether it passes release; those belong to `chart-annotations`, `karthik-data-visualization`, `dataviz-critique`, and `dataviz-eval`.
+
 Use this when a chart or table has to be understood by someone who was not in the analysis. The output is the text that sits **next to** the exhibit: the two lines in an email body, the note under a figure in a notebook, the message that carries a screenshot.
 
 Two situations trigger it. Either an exhibit already exists and needs narrating, or you are being asked to build an exploratory notebook - in which case the notes are part of what you are building, and the rules in "Exploratory notebooks you are building" below apply from the first plot.
@@ -178,7 +180,7 @@ Any failure: rewrite. Do not ship the note with a caveat about itself.
 
 - Text placed **on** the chart - `chart-annotations`
 - Whether the chart is any good - `dataviz-critique`
-- Fixing a chart that hides its message - `chart-improver`
+- Fixing a chart that hides its message - `dataviz-fix`
 - Longer prose around the analysis - `karthik-writing-style`
 
 If the chart is bad, still write the note. Do not critique it here.
