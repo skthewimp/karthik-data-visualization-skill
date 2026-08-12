@@ -72,6 +72,18 @@ class FeedbackInput(BaseModel):
     required: str
     why: str = ""
     supersedes: list[int] = Field(default_factory=list)
+    supersedes_actions: list[str] = Field(default_factory=list)
+
+
+class RequestCheckInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: str = Field(pattern="^(change|preserve)$")
+    text: str
+    target: str
+    current: str
+    required: str
+    why: str = ""
 
 
 class LimitUpdate(BaseModel):
@@ -211,6 +223,7 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
         message: str = Form(default=""),
         medium: str = Form(default=""),
         dimensions: str = Form(default=""),
+        preserve: str = Form(default=""),
         max_iterations: int = Form(default=3),
         max_tokens: int | None = Form(default=None),
         max_cost_usd: float | None = Form(default=None),
@@ -243,6 +256,7 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
             ("--message", message),
             ("--medium", medium),
             ("--dimensions", dimensions),
+            ("--preserve", preserve),
         ):
             if value.strip():
                 args.extend((option, value.strip()))
@@ -298,6 +312,30 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
         ]
         if feedback.supersedes:
             args.extend(("--supersedes", ",".join(map(str, feedback.supersedes))))
+        if feedback.supersedes_actions:
+            args.extend(("--supersedes-actions", ",".join(feedback.supersedes_actions)))
+        client.run(*args)
+        return decorate_case(client.status(case_id))
+
+    @app.post("/api/cases/{case_id}/checks")
+    def add_request_check(case_id: str, check: RequestCheckInput):
+        args = [
+            "check",
+            "--case",
+            validate_case_id(case_id),
+            "--kind",
+            check.kind,
+            "--text",
+            check.text,
+            "--target",
+            check.target,
+            "--current",
+            check.current,
+            "--required",
+            check.required,
+            "--why",
+            check.why,
+        ]
         client.run(*args)
         return decorate_case(client.status(case_id))
 

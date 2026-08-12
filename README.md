@@ -225,7 +225,7 @@ The Hermes surface installs the Claude-compatible copies under `~/.hermes/skills
 
 ## Run the local repair tester
 
-The local tester exercises the bounded case state machine before provider APIs are connected. It accepts a pasted or uploaded chart, records versioned context and structured feedback, enforces iteration and cost limits, preserves original/current/best artifacts, and exposes the case history. Candidate charts can be uploaded manually or generated through an opt-in local Codex runner.
+The local tester exercises the bounded case state machine before provider APIs are connected. It accepts a pasted or uploaded chart, records versioned context, explicit preservation requirements, and structured feedback, enforces iteration and cost limits, preserves original/current/best artifacts, and exposes the case history. Narrow repairs are treated as edit boundaries rather than invitations to redesign the chart. Candidate charts can be uploaded manually or generated through an opt-in local Codex runner.
 
 ```bash
 python3 -m pip install -r tester/requirements.txt

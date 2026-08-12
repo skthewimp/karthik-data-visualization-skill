@@ -478,6 +478,65 @@ class CaseManagerTest(unittest.TestCase):
             "Category-to-bar relationship",
         )
 
+    def test_preservation_contract_becomes_an_intake_release_check(self):
+        self.start("--preserve", "title, source note, and all plotted values")
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        request_output = self.run_cli("review-request", "--session", "test-session")
+        request = json.loads(request_output.stdout)
+        status = self.status()
+        iteration = status["iterations"][-1]
+        blind = {
+            "reviewer": "reviewer-agent",
+            "iteration": iteration["number"],
+            "artifact_sha256": iteration["artifact"]["sha256"],
+            "expert": "Blind expert read",
+            "audience": "Blind audience read",
+        }
+        Path(request["blind_response"]).write_text(json.dumps(blind), encoding="utf-8")
+        reveal_output = self.run_cli("blind-submit", "--session", "test-session")
+        reveal = json.loads(
+            Path(json.loads(reveal_output.stdout)["reveal"]).read_text(encoding="utf-8")
+        )
+        self.assertEqual(reveal["active_acceptance_checks"][0]["id"], "r1")
+        self.assertEqual(reveal["active_acceptance_checks"][0]["kind"], "preserve")
+        self.assertIn("title, source note", reveal["active_acceptance_checks"][0]["required"])
+
+    def test_intake_change_check_must_precede_first_iteration(self):
+        self.start()
+        self.run_cli(
+            "check",
+            "--session",
+            "test-session",
+            "--kind",
+            "change",
+            "--text",
+            "Remove the legend and label each series at its mark",
+            "--target",
+            "Series identification",
+            "--current",
+            "Readers must look up the legend",
+            "--required",
+            "No legend remains and every series is named at its mark",
+        )
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        rejected = self.run_cli(
+            "check",
+            "--session",
+            "test-session",
+            "--kind",
+            "change",
+            "--text",
+            "Late intake check",
+            "--target",
+            "Legend",
+            "--current",
+            "Present",
+            "--required",
+            "Absent",
+            ok=False,
+        )
+        self.assertIn("case state is 'blind_review'", rejected.stderr)
+
     def test_send_requires_every_active_user_acceptance_check_to_pass(self):
         self.start()
         self.run_cli(
@@ -536,6 +595,31 @@ class CaseManagerTest(unittest.TestCase):
             ["f2"],
         )
 
+    def test_user_feedback_can_supersede_a_conflicting_evaluator_action(self):
+        self.start("--max-iterations", "3")
+        self.iterate(self.write_png("candidate-1.png", b"candidate-1"))
+        self.review("Revise")
+        self.run_cli(
+            "feedback",
+            "--session",
+            "test-session",
+            "--text",
+            "Remove the legend; do not restore it as a fallback",
+            "--target",
+            "Legend",
+            "--current",
+            "The evaluator allowed a restored legend",
+            "--required",
+            "The legend is absent and direct labels carry every identity",
+            "--supersedes-actions",
+            "e1-a1",
+        )
+        self.iterate(self.write_png("candidate-2.png", b"candidate-2"))
+        self.review("Send")
+        second = self.status()["evaluations"][1]
+        self.assertEqual(second["carry_forward_checks"], [])
+        self.assertEqual([item["id"] for item in second["acceptance_checks"]], ["f1"])
+
     def test_noop_context_update_does_not_create_a_new_version(self):
         self.start("--audience", "General reader")
         result = self.run_cli(
@@ -568,7 +652,7 @@ class CaseManagerTest(unittest.TestCase):
         case["state"] = "active"
         case_path.write_text(json.dumps(case), encoding="utf-8")
         status = self.status()
-        self.assertEqual(status["schema_version"], 8)
+        self.assertEqual(status["schema_version"], 9)
         self.assertEqual(status["state"], "build")
         self.assertEqual(status["context_version"], 1)
         self.assertEqual(status["limits"]["max_iterations"], 3)

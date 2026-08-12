@@ -50,6 +50,7 @@ For a consequential evaluation, collect:
 | Audience | Sets knowledge, vocabulary, likely misreads, and action needs. |
 | Situation | Distinguishes exploration, explanation, decision support, teaching, and monitoring. |
 | Medium and size | Sets the real geometry, compression, distance, and interaction constraints. |
+| Change contract | Names each requested addition, removal, relocation, and preservation constraint as an observable release check. |
 | Creator version | Required for regression tests and skill attribution. |
 
 Missing fields become `Unknown`; they are not silently inferred. Declare whether the evidence gate covers **data validation** or only **source fidelity**. In a repair workflow, the supplied source chart can establish whether values, categories, qualifications, and provenance were preserved. That does not validate the upstream data, but the narrower gate can still pass.
@@ -72,9 +73,15 @@ These are context-sensitive invariants, not fixed chart templates or pixel thres
 
 Carry unresolved required actions forward between iterations. Treat every active, non-superseded user acceptance check the same way: one stable id, one explicit result, and direct evidence from the current artifact. Reveal them only after the next blind read, then require the reviewer to reinspect each named target. A prior action or user check closes only with an explicit `Pass`; silence, a better overall gate, or a non-intersecting but visibly crowded layout does not clear it.
 
+The change contract outranks reviewer preference. An explicit “only change X”, “remove Y”, or “preserve the rest” instruction is a release condition. A required action cannot contradict it. When later user feedback replaces an evaluator action, record that action as superseded instead of carrying two incompatible gates.
+
+For narrow repairs, evaluate changed or targeted regions against the absolute release standard. Evaluate untouched regions for preservation and regression against the source or latest accepted candidate. Keep unchanged pre-existing defects outside the authorized scope as explicit baseline concerns; they do not become minimum-pass actions unless they block the requested change or leave the artifact materially misleading. New regressions always fail.
+
 For each release check, record the most failure-prone element, pair, or region inspected. Test the worst example in every repeated placement pattern: direction, sign, length, or panel side can turn one shared labelling rule into different rendered relationships. Inspect the full artifact, representative delivery preview, and deterministic overlapping detail views when supplied; no one view can pass on behalf of a failing required view. Do not support a pass with a generic statement such as "no overlap".
 
 For relationship traceability, evaluate the identification system before judging individual labels. Direct labels, categorical axes, legends, grouping, and small multiples are alternatives chosen from the chart's density and geometry; none is universal. Prefer direct labels only when every important mark or series can be named legibly and unambiguously at delivery size. Give each category or series one primary identification route: when a direct label carries the same identity as a categorical axis or legend, duplicated scaffolding needs a clear reading purpose. Judge the complete identity-value-mark unit—a value beside a mark does not repair a category name stranded across whitespace. For every label, compare its intended target with nearby competing labels and marks: the intended bond must be perceptually strongest. Measure that relationship to the visible target, not merely to a common row, plot edge, or baseline; alignment alone does not bridge unstructured whitespace. Require adjacency or a restrained visual connection. If labels would collide or lose proximity, use another identification system or chart structure instead of forcing direct placement.
+
+When a shared legend or key is replaced across repeated panels, count the replacement instances panel by panel. Each panel that uses the mapping needs its own immediate identification route unless one deliberately shared replacement remains equally clear for every panel. A complete first panel cannot stand in for an unlabelled sibling panel.
 
 ## Gate anchors
 

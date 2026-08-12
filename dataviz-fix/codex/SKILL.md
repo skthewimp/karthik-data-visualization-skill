@@ -66,6 +66,23 @@ python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" start \
 
 Do this before editing. The command copies the original, snapshots the installed skills, records context version 1, and creates a bounded loop. It defaults to three autonomous iterations. Use `--max-elapsed-minutes`, `--max-tokens`, or `--max-cost-usd` when another hard budget matters.
 
+Turn the request into a change contract before the first build. Record each concrete requested change as an intake check:
+
+```bash
+python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" check \
+  --session "${HERMES_SESSION_ID}" \
+  --kind change \
+  --text "<user request verbatim>" \
+  --target "<element or relationship>" \
+  --current "<observable source state>" \
+  --required "<observable delivered state>" \
+  --why "<reader consequence>"
+```
+
+When the user says “only change X”, “keep the rest”, or names elements to preserve, pass that wording through `--preserve` at `start`. The case manager converts it into a required preservation check. Do not leave a literal edit instruction only inside the free-text request: the reviewer cannot enforce prose that was never made a check.
+
+Expand the check across repeated structures before rendering. If one legend, axis, annotation rule, or encoding applies to several panels, facets, rows, or series, name the expected instance count and location in `--required`. Do not treat a successful edit in one panel as completion for the whole chart.
+
 Do not put inferred context into user-supplied fields. Record it separately:
 
 ```bash
@@ -150,7 +167,7 @@ python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" feedback \
   --why "<reader consequence>"
 ```
 
-If later feedback clarifies or reverses an earlier check, add `--supersedes "<feedback number>"`. Do not leave contradictory checks active or silently rewrite history.
+If later feedback clarifies or reverses an earlier check, add `--supersedes "<feedback number>"`. If it overrides a carried evaluator action, add `--supersedes-actions "<action id>"` using the open ids shown by `status`. User corrections outrank reviewer preferences. Do not leave contradictory gates active or silently rewrite history.
 
 ## Repair loop
 
@@ -178,6 +195,7 @@ Do not give the full diagnosis unless asked. Use it to make the chart.
 - Treat HTML as rendering source only. Export and record the exact PNG, JPEG, SVG, or PDF that the interface will attach.
 - Never return ASCII art, a text-only mockup, or advice instead of the repaired chart.
 - Continue from the latest candidate and its generating code. Preserve every element that already passes and change only the current minimum pass set. Restart from the source only after a `Redesign` verdict; a routine `Revise` is not permission to discard prior work.
+- Treat the active change and preservation checks as the edit boundary. Make the literal requested change first. Do not retain, restore, or substitute an element the user explicitly asked to remove. Adjust an out-of-scope element only when the requested change makes that dependent adjustment unavoidable; record the reason.
 - An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Reusing an artifact is valid only when no active user check or unresolved evaluator action requires a change.
 - Use exact data when available; never present estimated screenshot values as exact.
 - Save code and outputs inside the active case directory when feasible.
@@ -187,6 +205,8 @@ Do not give the full diagnosis unless asked. Use it to make the chart.
 This is a render → independent evaluate → revise loop. Use the full `dataviz-eval` artifact-gate protocol on the actual recorded export, including its expert read, audience read, evidence scope, six gates, five release checks, verdict, failure codes, and minimum pass set. Keep the long evaluation internal unless the user asks for it.
 
 Every unresolved required action from one evaluation remains active in the next revealed review. Every active, non-superseded user acceptance check is also a first-class release gate with its own id, result, and direct evidence. A later overall gate cannot silently erase either. `Send` is invalid until every carried action and user check explicitly passes.
+
+For a narrow repair, the gate is scope-aware. Judge the requested and changed regions against the full quality standard. In untouched regions, test preservation and regression against the source or latest accepted candidate. Record an unchanged pre-existing defect outside the authorized scope as a baseline concern; do not turn it into a required action unless it blocks the requested correction or leaves the delivered chart materially misleading. A reviewer action may not conflict with an active user check.
 
 Review the exact export in at least three ways when available: the full artifact, a representative delivery-size preview, and deterministic overlapping detail views. A clean overview cannot overrule a collision, weak association, or mapping error in a dense local region.
 

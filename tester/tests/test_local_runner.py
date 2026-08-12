@@ -237,6 +237,9 @@ class LocalRunnerTests(unittest.TestCase):
             )
             self.assertIn("byte-for-byte", prompt)
             self.assertIn("Do not shorten, paraphrase, correct", prompt)
+            self.assertIn("active user checks as the change contract", prompt)
+            self.assertIn("every applicable panel, facet, row, or series", prompt)
+            self.assertIn("baseline_concerns", prompt)
 
     def test_revision_uses_latest_candidate_and_preserves_prior_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -259,6 +262,9 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertIn("Continue from the latest candidate", prompt)
             self.assertIn("Preserve what already passes", prompt)
             self.assertIn("unless the latest verdict is Redesign", prompt)
+            self.assertIn("edit boundary", prompt)
+            self.assertIn("do not retain or restore a forbidden element", prompt)
+            self.assertIn("every applicable panel, facet, row, or series", prompt)
 
     def test_reviewer_gets_delivery_preview_and_overlapping_detail_sheet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

@@ -72,6 +72,10 @@
               <span>Dimensions</span>
               <input name="dimensions" placeholder="1200 × 900" />
             </label>
+            <label class="wide">
+              <span>What must stay unchanged?</span>
+              <input name="preserve" placeholder="Title, data, annotations, dimensions, and every element outside the legend" />
+            </label>
             <label>
               <span>Maximum iterations</span>
               <input name="max_iterations" type="number" min="1" value="3" />
@@ -140,6 +144,7 @@
                 <label class="wide"><span>Message</span><input name="message" /></label>
                 <label><span>Medium</span><input name="medium" /></label>
                 <label><span>Dimensions</span><input name="dimensions" /></label>
+                <label class="wide"><span>Preserve</span><input name="preserve" /></label>
               </div>
               <div class="inline-actions">
                 <select name="source" aria-label="Context source">

@@ -2,6 +2,16 @@
 
 All notable public changes to this repository are recorded here.
 
+## 2026-08-12
+
+### Changed
+
+- Converted concrete intake edits and preservation requirements into a structured change contract that the independent reviewer must test directly.
+- Made narrow repairs scope-aware: changed regions face the full release standard, untouched regions are checked for preservation and regressions, and unchanged pre-existing defects outside scope are recorded separately instead of broadening the required edit.
+- Added explicit user-over-evaluator precedence. Later feedback can supersede a conflicting carried evaluator action, and reviewers cannot retain or restore an element the user asked to remove.
+- Added regression coverage for preservation checks, intake change checks, evaluator-action supersession, and local creator/reviewer scope instructions.
+- Made shared-key replacement panel-complete: intake checks enumerate repeated instances, creators apply the edit across every applicable panel or facet, and reviewers count each expected replacement rather than passing the first complete panel.
+
 ## 2026-08-11
 
 ### Added

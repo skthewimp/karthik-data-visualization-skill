@@ -1,5 +1,20 @@
 # Devlog
 
+## 2026-08-12 - Scope-safe chart repairs from Hermes feedback
+
+### User prompts
+
+> "go through all the hermes conversations about different dataviz etc. and see what possibly needs fixing in these skills, this is based on my feedback to mistakes etc. for testing use local files ... not hermes."
+
+### Work done
+
+- Reviewed ten Hermes dataviz-repair cases and separated chart-design mistakes already covered by the skills from a remaining loop defect: narrow requests and preservation requirements were prose, not release checks.
+- Added structured intake checks for additions, removals, relocations, and preservation. Later user feedback can now supersede a conflicting evaluator action without deleting the audit trail.
+- Made the requested edit boundary authoritative in the fixer, evaluator, local runner, and tester. Untouched regions are regression checks; pre-existing out-of-scope defects are recorded as baseline concerns rather than added to the required work.
+- Forward-tested the change on the local Zerodha VIX chart. The first cycle preserved the chart and removed the legend but found one label collision; the second moved only that label and received `Send`. Karthik then caught a missed requirement: the direct band labels belonged on both panels, not only the close-up. A third cycle added all three labels to the decade panel without changing anything else and received `Send`.
+- Converted that miss into a panel-completeness rule: a shared legend replacement must enumerate and verify every applicable panel, facet, row, or series rather than passing after the easiest instance.
+- Expanded the case-manager and tester regression suites and validated all 13 public skills.
+
 ## 2026-08-11 - Bounded repair loop and local tester
 
 ### User prompts

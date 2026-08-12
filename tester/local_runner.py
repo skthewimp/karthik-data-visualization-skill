@@ -406,6 +406,8 @@ DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} status --case {case_id}
 
 Inspect the recorded context and acceptance checks. Work only inside {case_dir}. Do not edit the checked-out repository or any skill. Render exactly one real PNG to {candidate_path} and inspect that exact export. Do not run iterate, review-request, blind-submit, evaluate, accept, diagnose, or any state-changing case-manager command. The wrapper will record the artifact after your process exits. Stop after the inspected PNG exists at the required path.
 
+Treat the active change and preservation checks as the edit boundary. Make each literal requested removal, addition, and relocation; do not retain or restore a forbidden element as a fallback. Expand shared edits across every applicable panel, facet, row, or series; do not stop after fixing one repeated instance. Preserve untouched elements unless a dependent adjustment is necessary for the requested change.
+
 Python, Matplotlib, NumPy, and Pillow are available with writable cache directories already configured. Prefer one Python rendering script. Use no more than six shell calls; do not install packages, probe alternative renderers, or compile another language. An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Copy an artifact unchanged only when no active correction or unresolved evaluator action requires a change.
 """
 
@@ -475,6 +477,8 @@ You are a fresh independent reviewer for case {case_id}, iteration {iteration}. 
 Open only the blind request at {request_path}. Do not open case.json, creator files, or any reveal file before freezing the blind read. Follow the request exactly: write the blind response, run `DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} blind-submit --case {case_id}`, then open the generated reveal and complete its response template with artifact-specific evidence. Do not run evaluate; the wrapper will validate and record your response after your process exits.
 
 When completing the revealed response, copy both saved `blind_reads` strings byte-for-byte from the frozen blind response. Do not shorten, paraphrase, correct, or otherwise rewrite them after intent is revealed.
+
+Treat active user checks as the change contract. Required actions must not conflict with them. For a narrow repair, judge changed regions absolutely and untouched regions for preservation and regression. Count required replacements in every applicable panel, facet, row, or series; one repaired repeated instance cannot pass for missing siblings. Put unchanged pre-existing defects outside the authorized scope in `baseline_concerns`, not `required_actions`, unless they block the requested correction or materially mislead.
 
 Do not modify the chart, source, skills, or creator files. Stop after the revealed response file exists.
 """

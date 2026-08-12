@@ -56,13 +56,19 @@ class TesterApiTests(unittest.TestCase):
         self.assertEqual(missing.status_code, 404)
 
     def test_create_case_records_context_and_serves_original(self) -> None:
-        case = self.create_case(question="Which sector moved most?", max_tokens=500000)
+        case = self.create_case(
+            question="Which sector moved most?",
+            preserve="Keep title, values, and dimensions unchanged",
+            max_tokens=500000,
+        )
 
         self.assertEqual(case["state"], "build")
         self.assertEqual(case["context_version"], 1)
         self.assertEqual(case["context"]["fields"]["audience"]["value"], "Board members")
         self.assertEqual(case["context"]["fields"]["question"]["source"], "user")
         self.assertEqual(case["limits"]["max_tokens"], 500000)
+        self.assertEqual(case["request_checks"][0]["kind"], "preserve")
+        self.assertIn("dimensions", case["request_checks"][0]["acceptance_check"]["required"])
         artifact = self.client.get(case["artifact_urls"]["original"])
         self.assertEqual(artifact.status_code, 200)
         self.assertEqual(artifact.content, PNG_1X1)
@@ -97,6 +103,24 @@ class TesterApiTests(unittest.TestCase):
         check = feedback.json()["feedback"][-1]["acceptance_check"]
         self.assertEqual(check["target"], "Category to mark binding")
         self.assertIn("one unit", check["required"])
+
+    def test_intake_check_api_records_change_contract_before_iteration(self) -> None:
+        case = self.create_case()
+        response = self.client.post(
+            f"/api/cases/{case['case_id']}/checks",
+            json={
+                "kind": "change",
+                "text": "Remove the top legend.",
+                "target": "Top legend",
+                "current": "Legend remains above the plot",
+                "required": "Top legend is absent",
+                "why": "The labels move into the chart",
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        check = response.json()["request_checks"][-1]
+        self.assertEqual(check["kind"], "change")
+        self.assertEqual(check["acceptance_check"]["target"], "Top legend")
 
     def test_manual_candidate_stop_and_resume_follow_state_machine(self) -> None:
         case = self.create_case()

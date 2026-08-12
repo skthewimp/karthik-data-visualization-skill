@@ -53,7 +53,7 @@ function renderCase(data) {
   renderArtifact("best", data.artifact_urls.best, data.best_candidate ? `iteration ${data.best_candidate.iteration}` : "None yet");
 
   const fields = data.context.fields;
-  for (const name of ["audience", "purpose", "question", "hypothesis", "message", "medium", "dimensions"]) {
+  for (const name of ["audience", "purpose", "question", "hypothesis", "message", "medium", "dimensions", "preserve"]) {
     const input = $(`#context-form [name="${name}"]`);
     if (input) input.value = fields[name]?.value || "";
   }

@@ -44,7 +44,7 @@ RELEASE_CHECK_NAMES = (
     "Delivery robustness",
 )
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 DEFAULT_MAX_ITERATIONS = 3
 DEFAULT_MAX_STALLED_EVALUATIONS = 2
 ACTIVE_STATES = (
@@ -367,6 +367,12 @@ def validate_review_report(
     ):
         raise SystemExit("Review report required_actions must be a list of non-empty strings")
     required_actions = [action.strip() for action in raw_actions]
+    raw_baseline_concerns = report.get("baseline_concerns", [])
+    if not isinstance(raw_baseline_concerns, list) or any(
+        not isinstance(item, str) or not item.strip() for item in raw_baseline_concerns
+    ):
+        raise SystemExit("Review report baseline_concerns must be a list of non-empty strings")
+    baseline_concerns = [item.strip() for item in raw_baseline_concerns]
 
     required_results = [item["result"] for item in gates.values() if item["required"]] + [
         item["result"] for item in release_checks.values()
@@ -404,12 +410,26 @@ def validate_review_report(
         "verdict": verdict,
         "codes": codes,
         "required_actions": required_actions,
+        "baseline_concerns": baseline_concerns,
     }
 
 
 def active_acceptance_checks(data: dict, iteration: dict) -> list[dict]:
     """Return non-superseded user checks active when an iteration was recorded."""
     checks: list[dict] = []
+    request_check_count = iteration.get(
+        "request_check_count", len(data.get("request_checks", []))
+    )
+    for item in data.get("request_checks", [])[:request_check_count]:
+        checks.append(
+            {
+                "id": f"r{item['number']}",
+                "request_check_number": item["number"],
+                "kind": item.get("kind", "change"),
+                "text": item.get("text", ""),
+                **item["acceptance_check"],
+            }
+        )
     feedback_count = iteration.get("feedback_count", 0)
     for item in data.get("feedback", [])[:feedback_count]:
         superseded_by = item.get("superseded_by_feedback")
@@ -446,9 +466,14 @@ def open_required_actions(data: dict, iteration: dict) -> list[dict]:
     )
     if previous is None:
         return []
+    superseded_action_ids = {
+        action_id
+        for item in data.get("feedback", [])[: iteration.get("feedback_count", 0)]
+        for action_id in item.get("supersedes_actions", [])
+    }
     stored = previous.get("open_required_actions")
     if isinstance(stored, list):
-        return stored
+        return [item for item in stored if item["id"] not in superseded_action_ids]
     return [
         {
             "id": f"e{previous['number']}-a{index}",
@@ -456,6 +481,7 @@ def open_required_actions(data: dict, iteration: dict) -> list[dict]:
             "source_evaluation": previous["number"],
         }
         for index, action in enumerate(previous.get("required_actions", []), start=1)
+        if f"e{previous['number']}-a{index}" not in superseded_action_ids
     ]
 
 
@@ -612,6 +638,7 @@ def upgrade_case(data: dict) -> dict:
     data.setdefault("stalled_evaluations", 0)
     data.setdefault("best_candidate", None)
     data.setdefault("stop", None)
+    data.setdefault("request_checks", [])
     if "transitions" not in data:
         data["transitions"] = [
             {
@@ -919,6 +946,7 @@ def cmd_start(args: argparse.Namespace) -> None:
         "stalled_evaluations": 0,
         "best_candidate": None,
         "stop": None,
+        "request_checks": [],
         "feedback": [],
         "iterations": [],
         "evaluations": [],
@@ -931,6 +959,21 @@ def cmd_start(args: argparse.Namespace) -> None:
         value = getattr(args, name, None)
         if value:
             data["context"]["fields"][name] = context_field(value, "user")
+    if args.preserve:
+        data["request_checks"].append(
+            {
+                "number": 1,
+                "at": now_iso(),
+                "kind": "preserve",
+                "text": f"Preserve: {args.preserve}",
+                "acceptance_check": {
+                    "target": "all elements named in the preservation contract",
+                    "current": f"The source or latest accepted candidate contains: {args.preserve}",
+                    "required": f"The delivered candidate still preserves: {args.preserve}",
+                    "why": "Prevent scope drift and regressions outside the requested repair.",
+                },
+            }
+        )
     data["context_history"] = [context_snapshot(data["context"], "Case intake")]
     transition(data, "build", "start", "Case created; ready to build the first candidate")
     write_json(case_dir / "case.json", data)
@@ -938,6 +981,33 @@ def cmd_start(args: argparse.Namespace) -> None:
     pointer.parent.mkdir(parents=True, exist_ok=True)
     pointer.write_text(str(case_dir) + "\n", encoding="utf-8")
     print(json.dumps({"case_id": case_id, "case_dir": str(case_dir), "original": original["path"]}))
+
+
+def cmd_check(args: argparse.Namespace) -> None:
+    """Record a concrete intake change or preservation check before the first build."""
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, ("build",), "record an intake acceptance check")
+    if data["iterations"]:
+        raise SystemExit("Use feedback after the first candidate; intake checks must precede iteration 1")
+    number = len(data["request_checks"]) + 1
+    event = {
+        "number": number,
+        "at": now_iso(),
+        "kind": args.kind,
+        "text": args.text,
+        "acceptance_check": {
+            "target": args.target,
+            "current": args.current,
+            "required": args.required,
+            "why": args.why or "",
+        },
+    }
+    data["request_checks"].append(event)
+    data["updated_at"] = now_iso()
+    write_json(path, data)
+    print(json.dumps({"case_id": data["case_id"], "request_check": number, "kind": args.kind}))
 
 
 def cmd_feedback(args: argparse.Namespace) -> None:
@@ -968,11 +1038,29 @@ def cmd_feedback(args: argparse.Namespace) -> None:
                     f"{prior['superseded_by_feedback']}"
                 )
             prior["superseded_by_feedback"] = number
+    supersedes_actions: list[str] = []
+    if args.supersedes_actions:
+        supersedes_actions = [
+            value.strip() for value in args.supersedes_actions.split(",") if value.strip()
+        ]
+        if len(supersedes_actions) != len(set(supersedes_actions)):
+            raise SystemExit("--supersedes-actions cannot repeat an action id")
+        latest_evaluation = data.get("evaluations", [])[-1] if data.get("evaluations") else {}
+        known_actions = {
+            item["id"] for item in latest_evaluation.get("open_required_actions", [])
+        }
+        invalid_actions = [value for value in supersedes_actions if value not in known_actions]
+        if invalid_actions:
+            raise SystemExit(
+                "--supersedes-actions must reference open evaluator action ids: "
+                + ", ".join(invalid_actions)
+            )
     event = {
         "number": number,
         "at": now_iso(),
         "text": args.text,
         "supersedes": supersedes,
+        "supersedes_actions": supersedes_actions,
         "acceptance_check": {
             "target": args.target,
             "current": args.current,
@@ -1037,6 +1125,7 @@ def cmd_iterate(args: argparse.Namespace) -> None:
         "summary": args.summary or "",
         "artifact": artifact,
         "feedback_count": len(data["feedback"]),
+        "request_check_count": len(data.get("request_checks", [])),
         "context_version": data.get("context_version", 1),
     }
     data["iterations"].append(event)
@@ -1123,6 +1212,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         "acceptance_checks": report["acceptance_checks"],
         "codes": report["codes"],
         "required_actions": report["required_actions"],
+        "baseline_concerns": report["baseline_concerns"],
         "report": {"path": str(stored_report), "sha256": sha256(stored_report)},
         "context_version": report["context_version"],
     }
@@ -1311,6 +1401,9 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
             "Inspect every active_acceptance_check directly in the current artifact.",
             "Record one acceptance_check result per id; user checks are release gates, not prose context.",
             "Send is invalid unless every active, non-superseded user acceptance check passes.",
+            "Treat active user checks as the change contract. A required action must not conflict with a change or preservation check.",
+            "For a narrow repair, test changed regions absolutely and untouched regions for preservation and regression. Put unchanged pre-existing defects outside the authorised scope in baseline_concerns; do not turn them into required actions unless they block the requested correction or materially mislead.",
+            "A later user correction outranks an older evaluator preference. Do not preserve or restore an element the user explicitly asked to remove.",
         ],
         "blind_response_path": str(blind_response_path),
         "blind_response_sha256": sha256(blind_response_path),
@@ -1350,6 +1443,7 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
             "verdict": "<Send|Revise|Redesign|Not evaluable>",
             "codes": ["<failure code; empty list only for Send>"],
             "required_actions": ["<minimum concrete change; empty list only for Send>"],
+            "baseline_concerns": ["<unchanged pre-existing issue outside authorised scope; empty when none>"],
         },
     }
     write_json(reveal_path, reveal)
@@ -1398,9 +1492,17 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
         f"- Usage: `{json.dumps({name: value for name, value in data['telemetry'].items() if name != 'events'}, sort_keys=True)}`",
         f"- Skill snapshot: `{data['skill_snapshot'] or '(not captured)'}`",
         "",
-        "## User feedback",
-        "",
     ]
+    if data.get("request_checks"):
+        lines.extend(["## Intake acceptance checks", ""])
+        for item in data["request_checks"]:
+            check = item["acceptance_check"]
+            lines.append(
+                f"{item['number']}. [{item.get('kind', 'change')}] {check['target']} - "
+                f"{check['current']} -> {check['required']}"
+            )
+        lines.append("")
+    lines.extend(["## User feedback", ""])
     if data["feedback"]:
         for item in data["feedback"]:
             check = item.get("acceptance_check")
@@ -1437,6 +1539,7 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
                     f"   - Tested size: {item.get('tested_size', '(not recorded)')}",
                     f"   - Release checks: {', '.join(f'{name}={detail['result']}' for name, detail in item.get('release_checks', {}).items()) or '(not recorded)'}",
                     f"   - Required actions: {', '.join(item['required_actions']) if isinstance(item['required_actions'], list) else item['required_actions'] or 'none'}",
+                    f"   - Baseline concerns outside scope: {', '.join(item.get('baseline_concerns', [])) or 'none'}",
                     f"   - Context version: {item.get('context_version', 1)}"
                     + (
                         f"; superseded by v{item['superseded_by_context_version']}"
@@ -1818,6 +1921,18 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--max-cost-usd", type=positive_float)
     start.set_defaults(func=cmd_start)
 
+    check = sub.add_parser(
+        "check", help="record a concrete intake change or preservation acceptance check"
+    )
+    add_case_args(check)
+    check.add_argument("--kind", choices=("change", "preserve"), default="change")
+    check.add_argument("--text", required=True)
+    check.add_argument("--target", required=True)
+    check.add_argument("--current", required=True)
+    check.add_argument("--required", required=True)
+    check.add_argument("--why")
+    check.set_defaults(func=cmd_check)
+
     feedback = sub.add_parser("feedback", help="record user feedback verbatim")
     add_case_args(feedback)
     feedback.add_argument("--text", required=True)
@@ -1828,6 +1943,10 @@ def build_parser() -> argparse.ArgumentParser:
     feedback.add_argument(
         "--supersedes",
         help="comma-separated earlier feedback numbers replaced by this clarification",
+    )
+    feedback.add_argument(
+        "--supersedes-actions",
+        help="comma-separated open evaluator action ids replaced by this user correction",
     )
     feedback.set_defaults(func=cmd_feedback)
 
