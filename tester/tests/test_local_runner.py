@@ -9,6 +9,8 @@ from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
+from PIL import Image
+
 from tester.local_runner import LocalCodexRunner, safe_environment
 
 
@@ -186,6 +188,95 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertEqual(command[-1], "-")
             self.assertNotIn("the prompt", command)
             self.assertEqual(kwargs["input"], "the prompt")
+            self.assertEqual(kwargs["env"]["MPLCONFIGDIR"], str(client.case_dir / ".matplotlib"))
+            self.assertEqual(kwargs["env"]["XDG_CACHE_HOME"], str(client.case_dir / ".cache"))
+
+    def test_reasoning_effort_can_be_overridden_for_fast_local_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp, patch.dict(
+            os.environ,
+            {"DATAVIZ_CODEX_REASONING_EFFORT": "medium"},
+        ):
+            root = Path(temp)
+            client = FakeCaseManager(root)
+            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
+            runner.executable = "/usr/bin/true"
+            runner.jobs["job"] = {
+                "job_id": "job",
+                "case_id": client.case_id,
+                "stage": "creator",
+                "updated_at": "",
+                "events": [],
+            }
+            with patch("tester.local_runner.subprocess.run") as run:
+                run.return_value = CompletedProcess(
+                    args=[],
+                    returncode=0,
+                    stdout='{"type":"turn.completed","usage":{}}\n',
+                    stderr="",
+                )
+                runner._invoke(
+                    "job",
+                    "creator",
+                    "the prompt",
+                    [Path(client.data["original"]["path"])],
+                    client.case_dir,
+                )
+            command = run.call_args.args[0]
+            self.assertIn('model_reasoning_effort="medium"', command)
+
+    def test_reviewer_prompt_preserves_frozen_blind_reads_verbatim(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            client = FakeCaseManager(root)
+            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
+            prompt = runner._reviewer_prompt(
+                client.case_id,
+                client.case_dir / "review-blind-request-01.json",
+                client.case_dir,
+                1,
+            )
+            self.assertIn("byte-for-byte", prompt)
+            self.assertIn("Do not shorten, paraphrase, correct", prompt)
+
+    def test_revision_uses_latest_candidate_and_preserves_prior_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            client = FakeCaseManager(root)
+            latest = client.case_dir / "iteration-01.png"
+            latest.write_bytes(b"latest")
+            client.data["iterations"].append(
+                {"number": 1, "artifact": {"path": str(latest)}}
+            )
+            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
+            images = runner._creator_images(client.data)
+            prompt = runner._creator_prompt(
+                client.case_id,
+                client.case_dir,
+                client.case_dir / "candidate-02.png",
+                2,
+            )
+            self.assertEqual(images, [Path(client.data["original"]["path"]), latest])
+            self.assertIn("Continue from the latest candidate", prompt)
+            self.assertIn("Preserve what already passes", prompt)
+            self.assertIn("unless the latest verdict is Redesign", prompt)
+
+    def test_reviewer_gets_delivery_preview_and_overlapping_detail_sheet(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            client = FakeCaseManager(root)
+            artifact = client.case_dir / "candidate.png"
+            Image.new("RGB", (1600, 1000), "white").save(artifact)
+            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
+            images = runner._reviewer_images(
+                Path(client.data["original"]["path"]), artifact, client.case_dir, 1
+            )
+            self.assertEqual(len(images), 4)
+            self.assertTrue(images[2].is_file())
+            self.assertTrue(images[3].is_file())
+            with Image.open(images[2]) as preview:
+                self.assertLessEqual(max(preview.size), 1200)
+            with Image.open(images[3]) as details:
+                self.assertGreater(details.width, details.height)
 
 
 if __name__ == "__main__":

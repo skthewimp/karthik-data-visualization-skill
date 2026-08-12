@@ -150,6 +150,8 @@ python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" feedback \
   --why "<reader consequence>"
 ```
 
+If later feedback clarifies or reverses an earlier check, add `--supersedes "<feedback number>"`. Do not leave contradictory checks active or silently rewrite history.
+
 ## Repair loop
 
 ### 1. Read the input
@@ -175,7 +177,8 @@ Do not give the full diagnosis unless asked. Use it to make the chart.
 - Produce a real PNG/SVG/PDF with reproducible R, Python, JavaScript, or editable vector code.
 - Treat HTML as rendering source only. Export and record the exact PNG, JPEG, SVG, or PDF that the interface will attach.
 - Never return ASCII art, a text-only mockup, or advice instead of the repaired chart.
-- Prefer editing the same chart code across revisions instead of restarting.
+- Continue from the latest candidate and its generating code. Preserve every element that already passes and change only the current minimum pass set. Restart from the source only after a `Redesign` verdict; a routine `Revise` is not permission to discard prior work.
+- An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Reusing an artifact is valid only when no active user check or unresolved evaluator action requires a change.
 - Use exact data when available; never present estimated screenshot values as exact.
 - Save code and outputs inside the active case directory when feasible.
 
@@ -183,13 +186,19 @@ Do not give the full diagnosis unless asked. Use it to make the chart.
 
 This is a render → independent evaluate → revise loop. Use the full `dataviz-eval` artifact-gate protocol on the actual recorded export, including its expert read, audience read, evidence scope, six gates, five release checks, verdict, failure codes, and minimum pass set. Keep the long evaluation internal unless the user asks for it.
 
+Every unresolved required action from one evaluation remains active in the next revealed review. Every active, non-superseded user acceptance check is also a first-class release gate with its own id, result, and direct evidence. A later overall gate cannot silently erase either. `Send` is invalid until every carried action and user check explicitly passes.
+
+Review the exact export in at least three ways when available: the full artifact, a representative delivery-size preview, and deterministic overlapping detail views. A clean overview cannot overrule a collision, weak association, or mapping error in a dense local region.
+
 The release checks are generic, not chart-specific:
 
-- **Visual integrity:** no collision, clipping, truncation, occlusion, or broken geometry.
+- **Visual integrity:** no collision, near-collision, clipping, truncation, occlusion, or broken geometry. Require enough visible clearance to separate neighbouring elements at delivery size; non-intersecting bounding boxes alone do not prove a pass. Treat text over a mark as intentional inside-labelling only when its contrast and padding preserve the reading. Inspect the worst example in each repeated placement pattern because direction, sign, length, or panel side can change the rendered relationship.
 - **Relationship traceability:** the identification system fits the chart's density and geometry; each label, value, mark, legend entry, and annotation pairs with what it describes without guesswork. The intended label-mark bond must be perceptually stronger than competing nearby relationships; shared-row alignment alone does not bridge blank space. Direct labels are preferred only when they stay legible and close to their targets; otherwise use an axis, legend, grouping, small multiples, or another structure.
 - **Spatial economy:** whitespace and aspect ratio support grouping and hierarchy rather than separating related elements or wasting the delivery surface.
 - **Encoding semantics:** every salient colour, size, shape, order, and highlight has a recoverable data or narrative role.
 - **Delivery robustness:** the exact export survives the intended display size and compression.
+
+For each release check, name the most failure-prone element, pair, or region inspected. A generic "no overlap" observation cannot support a pass.
 
 Do not replace these principles with chart names, preferred palettes, fixed pixel limits, or thresholds learned from one failed example. Use the failed examples as regression tests only.
 
@@ -208,7 +217,7 @@ Use `stop --kind ... --reason ...` for an explicit user stop, missing context or
 
 ### 5. Continue from feedback
 
-Treat each user correction as evidence. Before editing, translate it into one observable check: target, current state, required state. Log it with `feedback`. Record changes to audience, purpose, question, hypothesis, message, medium, or constraints with `context`; when one message contains both, call both commands. Change the smallest relevant part, render, record the media iteration, and run `dataviz-eval` with that check in the evaluation packet. Inspect the named element directly; do not infer success from a generic chart summary. Do not defend the earlier choice or repeat already accepted decisions.
+Treat each user correction as evidence. Before editing, translate it into one observable check: target, current state, required state. Log it with `feedback`. If the user corrects the principle itself, supersede the earlier check rather than accumulating a contradiction. Record changes to audience, purpose, question, hypothesis, message, medium, or constraints with `context`; when one message contains both, call both commands. Change the smallest relevant part of the latest candidate, render, record the media iteration, and run `dataviz-eval` with that check in the evaluation packet. Inspect the named element directly; do not infer success from a generic chart summary. Do not defend the earlier choice or repeat already accepted decisions.
 
 Do not send progress-only replies such as “I’ll fix it” or “now checking”. Use tools silently until a candidate is ready. Every chart or revision response must include the media attachment in the same response, plus no more than three short lines: what changed, whether values are exact or approximate, and `MEDIA:/absolute/path/to/output.png`. If the user asks where the graph is, return the media line immediately.
 
@@ -225,7 +234,7 @@ Do not edit any skill while the case is active. Finish the chart and obtain acce
      --session "${HERMES_SESSION_ID}"
    ```
 
-2. Compare the original, first output, accepted output, and every user correction.
+2. Compare the original, every output, the accepted output, and every user correction. Split a long case into distinct failure episodes; one case may expose separate creator, evaluator, and tooling misses.
    Include the recorded verdicts, failed gates, failure codes, and required actions. User acceptance remains authoritative even when the evaluator recorded a concern.
 3. Classify the first-output miss:
    - `execution-miss`: an existing rule was clear but not followed;
@@ -234,9 +243,8 @@ Do not edit any skill while the case is active. Finish the chart and obtain acce
    - `conflicting-rule`: two skills pushed in different directions;
    - `tooling`: image handling, rendering, inspection, or delivery failed;
    - `input-data`: the needed evidence was absent.
-4. Choose one owning skill. Patch the umbrella `dataviz-fix` skill only when sequencing, logging, revision, or acceptance caused the miss.
-   Put chart-design rules in the owning chart skill, not in this umbrella checklist.
-5. Change a skill only when the correction is reusable across future charts. Do not encode one chart's wording, colours, values, or layout as a general rule.
+4. Choose one owner for each distinct failure episode. Patch the umbrella `dataviz-fix` skill only when sequencing, logging, revision continuity, or acceptance caused that miss. Patch `dataviz-eval` when the reviewer failed to test or enforce an observable condition. Patch the chart skill when the design principle itself was missing, ambiguous, or conflicting.
+5. Change a skill or runner only when the correction is reusable across future charts. Do not encode one chart's wording, colours, values, or layout as a general rule. An execution miss that repeats despite a clear rule is an enforcement or observability problem: add a structured gate, deterministic view, or regression test instead of another prose rule.
 6. Make the smallest source change that would have produced the accepted result on the first attempt. Update both `codex/SKILL.md` and `claude/SKILL.md`; update a shared reference only when detailed guidance belongs there.
 7. Run `./sync.sh --no-pull --validate-only` in the source repo. Do not commit or push unless the user explicitly asks.
 8. Record the diagnosis:

@@ -34,6 +34,7 @@ GATE_NAMES = (
     "Delivery",
 )
 GATE_RESULTS = ("Pass", "Concern", "Fail", "Unknown")
+GATE_RESULT_ALIASES = {"match": "Pass", "partial": "Concern", "mismatch": "Fail"}
 CORE_GATE_NAMES = ("Evidence", "Visual reasoning", "Information fit", "Delivery")
 RELEASE_CHECK_NAMES = (
     "Visual integrity",
@@ -43,7 +44,7 @@ RELEASE_CHECK_NAMES = (
     "Delivery robustness",
 )
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 8
 DEFAULT_MAX_ITERATIONS = 3
 DEFAULT_MAX_STALLED_EVALUATIONS = 2
 ACTIVE_STATES = (
@@ -168,6 +169,7 @@ def validate_ratings(
     names: tuple[str, ...],
     field: str,
     include_required: bool = False,
+    require_stress_test: bool = False,
 ) -> dict[str, dict[str, object]]:
     if not isinstance(raw, dict):
         raise SystemExit(f"Review report {field!r} must be an object")
@@ -177,6 +179,8 @@ def validate_ratings(
         if not isinstance(item, dict):
             raise SystemExit(f"Review report missing {field}.{name}")
         result = item.get("result")
+        if isinstance(result, str):
+            result = GATE_RESULT_ALIASES.get(result.strip().lower(), result)
         evidence = item.get("evidence")
         if result not in GATE_RESULTS:
             raise SystemExit(
@@ -185,6 +189,13 @@ def validate_ratings(
         if not isinstance(evidence, str) or not evidence.strip():
             raise SystemExit(f"Review report {field}.{name}.evidence must be non-empty")
         rating: dict[str, object] = {"result": result, "evidence": evidence.strip()}
+        if require_stress_test:
+            stress_test = item.get("stress_test")
+            if not isinstance(stress_test, str) or not stress_test.strip():
+                raise SystemExit(
+                    f"Review report {field}.{name}.stress_test must name the most failure-prone element, pair, or region inspected"
+                )
+            rating["stress_test"] = stress_test.strip()
         if include_required:
             required = item.get("required")
             if not isinstance(required, bool):
@@ -229,6 +240,8 @@ def validate_review_report(
     review_token: str,
     blind_response: dict[str, str],
     blind_response_sha: str,
+    carry_forward_actions: list[dict],
+    acceptance_checks: list[dict],
 ) -> dict:
     if not isinstance(report, dict):
         raise SystemExit("Review report must be a JSON object")
@@ -270,8 +283,79 @@ def validate_review_report(
         raise SystemExit("Review report blind reads must match the saved pre-intent blind response")
     gates = validate_ratings(report.get("gates"), GATE_NAMES, "gates", include_required=True)
     release_checks = validate_ratings(
-        report.get("release_checks"), RELEASE_CHECK_NAMES, "release_checks"
+        report.get("release_checks"),
+        RELEASE_CHECK_NAMES,
+        "release_checks",
+        require_stress_test=True,
     )
+
+    raw_carry_checks = report.get("carry_forward_checks", [])
+    if not isinstance(raw_carry_checks, list):
+        raise SystemExit("Review report carry_forward_checks must be a list")
+    expected_by_id = {item["id"]: item for item in carry_forward_actions}
+    carry_checks: list[dict] = []
+    seen_ids: set[str] = set()
+    for item in raw_carry_checks:
+        if not isinstance(item, dict):
+            raise SystemExit("Each carry_forward_checks item must be an object")
+        action_id = item.get("id")
+        if action_id not in expected_by_id:
+            raise SystemExit(f"Unknown carry-forward action id {action_id!r}")
+        if action_id in seen_ids:
+            raise SystemExit(f"Duplicate carry-forward action id {action_id!r}")
+        result = item.get("result")
+        if result not in GATE_RESULTS:
+            raise SystemExit(
+                f"Invalid carry-forward result {result!r}; choose from {', '.join(GATE_RESULTS)}"
+            )
+        evidence = item.get("evidence")
+        if not isinstance(evidence, str) or not evidence.strip():
+            raise SystemExit(f"Carry-forward action {action_id} requires direct observed evidence")
+        carry_checks.append(
+            {"id": action_id, "result": result, "evidence": evidence.strip()}
+        )
+        seen_ids.add(action_id)
+    missing_carry_ids = [item["id"] for item in carry_forward_actions if item["id"] not in seen_ids]
+    if missing_carry_ids:
+        raise SystemExit(
+            "Review report must recheck every unresolved prior action: "
+            + ", ".join(missing_carry_ids)
+        )
+
+    raw_acceptance_results = report.get("acceptance_checks", [])
+    if not isinstance(raw_acceptance_results, list):
+        raise SystemExit("Review report acceptance_checks must be a list")
+    expected_acceptance_by_id = {item["id"]: item for item in acceptance_checks}
+    acceptance_results: list[dict] = []
+    seen_acceptance_ids: set[str] = set()
+    for item in raw_acceptance_results:
+        if not isinstance(item, dict):
+            raise SystemExit("Each acceptance_checks item must be an object")
+        check_id = item.get("id")
+        if check_id not in expected_acceptance_by_id:
+            raise SystemExit(f"Unknown active acceptance check id {check_id!r}")
+        if check_id in seen_acceptance_ids:
+            raise SystemExit(f"Duplicate active acceptance check id {check_id!r}")
+        result = item.get("result")
+        if result not in GATE_RESULTS:
+            raise SystemExit(
+                f"Invalid acceptance-check result {result!r}; choose from {', '.join(GATE_RESULTS)}"
+            )
+        evidence = item.get("evidence")
+        if not isinstance(evidence, str) or not evidence.strip():
+            raise SystemExit(f"Acceptance check {check_id} requires direct observed evidence")
+        acceptance_results.append(
+            {"id": check_id, "result": result, "evidence": evidence.strip()}
+        )
+        seen_acceptance_ids.add(check_id)
+    missing_acceptance_ids = [
+        item["id"] for item in acceptance_checks if item["id"] not in seen_acceptance_ids
+    ]
+    if missing_acceptance_ids:
+        raise SystemExit(
+            "Review report must test every active user acceptance check: "
+            + ", ".join(missing_acceptance_ids)
+        )
 
     raw_codes = report.get("codes", [])
     if not isinstance(raw_codes, list) or any(not isinstance(code, str) or not code.strip() for code in raw_codes):
@@ -286,6 +370,8 @@ def validate_review_report(
 
     required_results = [item["result"] for item in gates.values() if item["required"]] + [
         item["result"] for item in release_checks.values()
+    ] + [item["result"] for item in carry_checks] + [
+        item["result"] for item in acceptance_results
     ]
     if verdict == "Send":
         if any(result != "Pass" for result in required_results):
@@ -313,10 +399,90 @@ def validate_review_report(
         "blind_reads": {"expert": expert, "audience": audience},
         "gates": gates,
         "release_checks": release_checks,
+        "carry_forward_checks": carry_checks,
+        "acceptance_checks": acceptance_results,
         "verdict": verdict,
         "codes": codes,
         "required_actions": required_actions,
     }
+
+
+def active_acceptance_checks(data: dict, iteration: dict) -> list[dict]:
+    """Return non-superseded user checks active when an iteration was recorded."""
+    checks: list[dict] = []
+    feedback_count = iteration.get("feedback_count", 0)
+    for item in data.get("feedback", [])[:feedback_count]:
+        superseded_by = item.get("superseded_by_feedback")
+        if superseded_by and superseded_by <= feedback_count:
+            continue
+        check = item.get("acceptance_check") or {
+            "target": "legacy feedback",
+            "current": "not structured",
+            "required": item.get("text", ""),
+            "why": "",
+        }
+        checks.append(
+            {
+                "id": f"f{item['number']}",
+                "feedback_number": item["number"],
+                "text": item.get("text", ""),
+                **check,
+            }
+        )
+    return checks
+
+
+def open_required_actions(data: dict, iteration: dict) -> list[dict]:
+    """Return unresolved evaluator actions from the latest prior iteration."""
+    previous = next(
+        (
+            item
+            for item in reversed(data.get("evaluations", []))
+            if item.get("iteration", 0) < iteration["number"]
+            and item.get("context_version", 1) == iteration.get("context_version", 1)
+            and not item.get("superseded_at")
+        ),
+        None,
+    )
+    if previous is None:
+        return []
+    stored = previous.get("open_required_actions")
+    if isinstance(stored, list):
+        return stored
+    return [
+        {
+            "id": f"e{previous['number']}-a{index}",
+            "action": action,
+            "source_evaluation": previous["number"],
+        }
+        for index, action in enumerate(previous.get("required_actions", []), start=1)
+    ]
+
+
+def update_open_required_actions(
+    prior_actions: list[dict],
+    carry_checks: list[dict],
+    current_actions: list[str],
+    evaluation_number: int,
+) -> list[dict]:
+    """Keep prior actions open until directly passed, then add new actions."""
+    result_by_id = {item["id"]: item["result"] for item in carry_checks}
+    open_actions = [
+        item for item in prior_actions if result_by_id.get(item["id"]) != "Pass"
+    ]
+    existing_text = {item["action"] for item in open_actions}
+    for index, action in enumerate(current_actions, start=1):
+        if action in existing_text:
+            continue
+        open_actions.append(
+            {
+                "id": f"e{evaluation_number}-a{index}",
+                "action": action,
+                "source_evaluation": evaluation_number,
+            }
+        )
+        existing_text.add(action)
+    return open_actions
 
 
 def sha256(path: Path) -> str:
@@ -779,10 +945,34 @@ def cmd_feedback(args: argparse.Namespace) -> None:
     path = case_dir / "case.json"
     data = load_case(path)
     require_state(data, ACTIVE_STATES + PAUSED_STATES, "record feedback")
+    number = len(data["feedback"]) + 1
+    supersedes: list[int] = []
+    if args.supersedes:
+        try:
+            supersedes = [int(value.strip()) for value in args.supersedes.split(",") if value.strip()]
+        except ValueError as exc:
+            raise SystemExit("--supersedes must be a comma-separated list of feedback numbers") from exc
+        if len(supersedes) != len(set(supersedes)):
+            raise SystemExit("--supersedes cannot repeat a feedback number")
+        invalid = [value for value in supersedes if value < 1 or value >= number]
+        if invalid:
+            raise SystemExit(
+                "--supersedes must reference earlier feedback numbers: "
+                + ", ".join(str(value) for value in invalid)
+            )
+        for value in supersedes:
+            prior = data["feedback"][value - 1]
+            if prior.get("superseded_by_feedback"):
+                raise SystemExit(
+                    f"Feedback {value} was already superseded by feedback "
+                    f"{prior['superseded_by_feedback']}"
+                )
+            prior["superseded_by_feedback"] = number
     event = {
-        "number": len(data["feedback"]) + 1,
+        "number": number,
         "at": now_iso(),
         "text": args.text,
+        "supersedes": supersedes,
         "acceptance_check": {
             "target": args.target,
             "current": args.current,
@@ -897,6 +1087,8 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         raise SystemExit("Blind response changed after intent was revealed")
     blind_response = validate_blind_response(read_json(blind_response_path), iterations[iteration_number])
     creator = data.get("creator") or f"session:{data['session_id']}"
+    carry_actions = open_required_actions(data, iterations[iteration_number])
+    acceptance_checks = active_acceptance_checks(data, iterations[iteration_number])
     report = validate_review_report(
         raw_report,
         iterations[iteration_number],
@@ -904,6 +1096,8 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         reveal["review_token"],
         blind_response,
         blind_response_sha,
+        carry_actions,
+        acceptance_checks,
     )
     number = len(data.setdefault("evaluations", [])) + 1
     stored_report = case_dir / f"evaluation-{number:02d}.json"
@@ -925,11 +1119,19 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         "gate_required": {name: item["required"] for name, item in report["gates"].items()},
         "gate_evidence": {name: item["evidence"] for name, item in report["gates"].items()},
         "release_checks": report["release_checks"],
+        "carry_forward_checks": report["carry_forward_checks"],
+        "acceptance_checks": report["acceptance_checks"],
         "codes": report["codes"],
         "required_actions": report["required_actions"],
         "report": {"path": str(stored_report), "sha256": sha256(stored_report)},
         "context_version": report["context_version"],
     }
+    event["open_required_actions"] = update_open_required_actions(
+        carry_actions,
+        report["carry_forward_checks"],
+        report["required_actions"],
+        number,
+    )
     stalled = update_stall_count(data, event)
     data["evaluations"].append(event)
     update_best_candidate(data, event, iterations[iteration_number])
@@ -1081,9 +1283,15 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
         for name in GATE_NAMES
     }
     release_template = {
-        name: {"result": "<Pass|Concern|Fail|Unknown>", "evidence": "<specific observed evidence>"}
+        name: {
+            "result": "<Pass|Concern|Fail|Unknown>",
+            "evidence": "<specific observed evidence>",
+            "stress_test": "<most failure-prone element, pair, or region inspected and why it survives or fails>",
+        }
         for name in RELEASE_CHECK_NAMES
     }
+    carry_actions = open_required_actions(data, iteration)
+    acceptance_checks = active_acceptance_checks(data, iteration)
     reveal = {
         "case_id": data["case_id"],
         "iteration": iteration["number"],
@@ -1093,20 +1301,16 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
         "user_request": "\n\n".join(item["text"] for item in review_context.get("prompts", [])),
         "audience": context_values.get("audience", ""),
         "medium": context_values.get("medium", ""),
-        "active_user_corrections": [
-            item["text"] for item in data["feedback"][: iteration.get("feedback_count", 0)]
-        ],
-        "active_acceptance_checks": [
-            item.get(
-                "acceptance_check",
-                {
-                    "target": "legacy feedback",
-                    "current": "not structured",
-                    "required": item["text"],
-                    "why": "",
-                },
-            )
-            for item in data["feedback"][: iteration.get("feedback_count", 0)]
+        "active_user_corrections": [item["text"] for item in acceptance_checks],
+        "active_acceptance_checks": acceptance_checks,
+        "carry_forward_required_actions": carry_actions,
+        "release_instructions": [
+            "Inspect every carry_forward_required_action directly in the current artifact.",
+            "Record one carry_forward_check per id; do not infer resolution from an overall gate.",
+            "An unresolved prior action prevents Send and remains active for the next iteration.",
+            "Inspect every active_acceptance_check directly in the current artifact.",
+            "Record one acceptance_check result per id; user checks are release gates, not prose context.",
+            "Send is invalid unless every active, non-superseded user acceptance check passes.",
         ],
         "blind_response_path": str(blind_response_path),
         "blind_response_sha256": sha256(blind_response_path),
@@ -1127,6 +1331,22 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
             },
             "gates": rating_template,
             "release_checks": release_template,
+            "carry_forward_checks": [
+                {
+                    "id": item["id"],
+                    "result": "<Pass|Concern|Fail|Unknown>",
+                    "evidence": "<direct observation of the named target in this artifact>",
+                }
+                for item in carry_actions
+            ],
+            "acceptance_checks": [
+                {
+                    "id": item["id"],
+                    "result": "<Pass|Concern|Fail|Unknown>",
+                    "evidence": "<direct observation of the named user check in this artifact>",
+                }
+                for item in acceptance_checks
+            ],
             "verdict": "<Send|Revise|Redesign|Not evaluable>",
             "codes": ["<failure code; empty list only for Send>"],
             "required_actions": ["<minimum concrete change; empty list only for Send>"],
@@ -1605,6 +1825,10 @@ def build_parser() -> argparse.ArgumentParser:
     feedback.add_argument("--current", required=True, help="observable current state")
     feedback.add_argument("--required", required=True, help="observable required state")
     feedback.add_argument("--why", help="reader consequence")
+    feedback.add_argument(
+        "--supersedes",
+        help="comma-separated earlier feedback numbers replaced by this clarification",
+    )
     feedback.set_defaults(func=cmd_feedback)
 
     iterate = sub.add_parser("iterate", help="copy and record a rendered revision")

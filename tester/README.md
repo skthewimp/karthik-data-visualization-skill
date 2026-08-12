@@ -20,7 +20,9 @@ DATAVIZ_ENABLE_LOCAL_RUNNER=1 \
   uvicorn tester.app:app --host 127.0.0.1 --port 8787
 ```
 
-Each click runs one bounded cycle: one creator process, then one fresh reviewer process. Both are ephemeral. The creator can write only inside the case directory, and the reviewer receives the source and candidate before the versioned intent reveal. The UI never starts a second cycle automatically. Set `DATAVIZ_CODEX_MODEL` to override the local Codex default and `DATAVIZ_RUN_TIMEOUT_SECONDS` to change the 900-second per-process timeout.
+Each click runs one bounded cycle: one creator process, then one fresh reviewer process. Both are ephemeral. On revision, the creator receives the source and latest candidate and must preserve prior passes rather than restarting. The reviewer receives the source, exact candidate, a representative delivery-size preview, and an overlapping four-region detail sheet before the versioned intent reveal. The UI never starts a second cycle automatically. Set `DATAVIZ_CODEX_MODEL` to override the local Codex default, `DATAVIZ_CODEX_REASONING_EFFORT` to override its reasoning effort for faster regression runs, and `DATAVIZ_RUN_TIMEOUT_SECONDS` to change the 900-second per-process timeout.
+
+The creator receives writable Matplotlib and general cache directories and a six-call rendering budget. It should use the available Python stack rather than probing renderers or compiling another language. An artifact may be preserved unchanged only when no active user check or unresolved evaluator action requires a change.
 
 The local runner records Codex token and latency telemetry when the CLI returns it. Once a complete local cycle exists, the UI shows the median measured cycle-token estimate and refuses a run whose remaining token budget is lower. A token ceiling can stop the next model call; it cannot interrupt a provider call already in progress. The tester does not yet estimate dollar cost, accept browser-supplied API keys, or implement OpenAI/Anthropic/Google provider adapters.
 

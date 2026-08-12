@@ -81,7 +81,7 @@ For every creator-system release gate, use a fresh reviewer so the blind read is
 
 ### 5. Reveal intent and verify evidence
 
-Compare both blind reads with the intended question and insight. Mark each `Match`, `Partial`, `Mismatch`, or `Unknown`.
+Compare both blind reads with the intended question and insight. In the narrative comparison, use `Match`, `Partial`, `Mismatch`, or `Unknown`. These are not gate-result values: encode them in the report as `Pass`, `Concern`, `Fail`, or `Unknown` respectively.
 
 Then verify what appearance cannot establish:
 
@@ -97,22 +97,28 @@ Run a literal element audit before passing `Information fit` or `Delivery`:
 - the chosen identification system fits the chart's density and geometry: direct labels must remain legible and unambiguous; axes, legends, grouping, or small multiples are valid when direct labels would not
 - each category or series has one clear primary identification route; if a direct label supplies the same identity as a categorical axis or legend, the duplicate scaffolding must justify its reading value
 - each quantitative axis, tick set, gridline, baseline, and reference line performs a distinct reading task such as estimation, alignment, interpolation, threshold detection, or comparison of unlabeled marks. Exact direct values do not mechanically ban a scale, but a scale or grid that merely repeats those values without improving comparison is redundant and cannot pass as neutral decoration
-- every legend entry has plotted marks, and its swatch exactly matches those marks
+- every legend entry has plotted marks, and its colour, line/point/fill form, and other channels exactly match those marks; do not show unused categories or a generic swatch that misstates the plotted geometry
 - every encoded colour remains perceptually distinct from adjacent series and the background under the intended delivery conditions
 - every requested removal is absent from the delivered artifact
 - every requested addition or relocation appears in the requested place
 
 Run five release checks across chart types:
 
-1. **Visual integrity** - inspect text against text, text against marks, marks against marks, panel boundaries, clipping, truncation, occlusion, and export geometry. Any collision or damage that changes or slows the reading fails delivery; do not solve geometry first by shrinking type.
+1. **Visual integrity** - inspect text against text, text against marks, marks against marks, panel boundaries, clipping, truncation, occlusion, and export geometry. Test clearance, not only bounding-box intersection: visually touching, nearly touching, or crowded elements are non-passing when the gap no longer separates their roles at delivery size. Text placed over a mark is not "clear": classify it as intentional inside-labelling or as a collision, then test its contrast and padding against that mark. Check the worst example in every repeated placement pattern because direction, sign, length, or panel side can reverse which way a label extends. Any collision or damage that changes or slows the reading fails delivery; do not solve geometry first by shrinking type.
 2. **Relationship traceability** - confirm that each label, value, mark, legend entry, annotation, and reference line pairs with its target immediately at delivery size. For every label, compare the intended target with nearby competing labels and marks: the intended bond must be perceptually strongest. Judge distance to the visible target, not merely to a shared row, plot edge, or baseline; alignment alone does not bridge unstructured whitespace. Judge the complete identity-value-mark unit, not a value label in isolation. If direct placement cannot preserve that relationship, an axis, legend, grouping, or different structure is preferable.
 3. **Spatial economy** - inspect whitespace by relationship: title-to-plot, labels-to-marks, between panels, plot-to-notes, and outer margins. Whitespace must establish grouping, separation, or emphasis. Blank area that splits related elements, weakens hierarchy, or wastes the delivery surface is a geometry failure; dense but well-grouped layouts can pass.
 4. **Encoding semantics** - state the role of every salient colour, size, shape, order, and highlight. It must encode data, structure, uncertainty, or a declared focal point. A visually dominant encoding with no recoverable role is not optional decoration; it redirects attention and fails the relevant gate.
 5. **Delivery robustness** - inspect the exact export at the intended viewing condition, including representative downscaling or compression. A full-size file cannot pass on behalf of an unreadable delivered version.
 
+When deterministic views are supplied, inspect the full artifact, delivery-size preview, and every overlapping detail region. Use the detail views to audit dense or repeated placement patterns, not as separate artifacts. A pass at one scale or region cannot cancel a failure at another required viewing condition.
+
+For every release check, record a `stress_test` naming the most failure-prone element, pair, or region inspected and why it survives or fails. A generic claim such as "no overlap" cannot support `Pass`; identify the tightest or most crowded case checked.
+
 These are invariants, not prescriptions. Do not infer a preferred chart type, palette, pixel margin, number of highlights, or density threshold from one example. Judge whether the relationships remain accurate, legible, and intentional in context.
 
-Do not accept a generic visual summary as proof of a specific edit. Inspect the named element directly. If the latest user correction fails its acceptance check, the verdict cannot be `Send`.
+Do not accept a generic visual summary as proof of a specific edit. Record one explicit result with direct evidence for every active, non-superseded user acceptance-check id. Missing a check is an invalid report, not an implicit pass. If any active check does not pass, the verdict cannot be `Send`.
+
+Carry every unresolved required action from the previous evaluation into the next revealed review packet. Reinspect each named target in the new artifact and record `Pass`, `Concern`, `Fail`, or `Unknown` with direct evidence. Do not clear a prior action because an overall gate improved or the new reviewer failed to mention it; only an explicit `Pass` closes it.
 
 For stacked bars, identify what the reader must compare. Only segments that begin or end on an aligned baseline support precise visual comparison; in a fixed-total 100% stack, both outer edges align, while internal segments still float. Direct segment labels support value lookup but do not repair difficult across-bar pattern comparison. If the intended claim depends on precise component values or trends, choose a form with aligned component baselines.
 
@@ -123,6 +129,8 @@ Run a colour audit whenever colour carries meaning:
 - verify focal colour, saturation, and warmth match the information hierarchy rather than creating an accidental highlight
 - test normal text near 4.5:1, large text near 3:1, and small or thin essential marks near 3:1 against the background as practical targets, not substitutes for visual judgment
 - verify adjacent regions differ clearly, key distinctions survive grayscale and chat compression, and hue is not the only channel
+- trace each semantic mapping end to end: data condition → plotted mark or connector → direct label or annotation → legend. All appearances of one meaning must agree, and every legend meaning must appear in the chart
+- for signed or directional change, verify that every encoding is derived from the same stated comparison direction. The audience or brief determines the hue convention; sign, position, wording, shape, or another channel must preserve the meaning without colour alone
 
 Fail the relevant gate for legend-to-mark mismatch, essential marks that disappear into their background, colour-only distinctions that fail under common colour-vision deficiencies, or series that collapse into one another at delivery size. Do not require every large decorative fill to satisfy text-level WCAG contrast when labels, boundaries, and other channels make the reading robust.
 

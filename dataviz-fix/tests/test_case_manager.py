@@ -84,7 +84,15 @@ class CaseManagerTest(unittest.TestCase):
         )
         return json.loads(output.stdout)
 
-    def review(self, verdict="Revise"):
+    def review(
+        self,
+        verdict="Revise",
+        carry_forward_result="Pass",
+        acceptance_result="Pass",
+        insight_result=None,
+        omit_release_stress_test=False,
+        ok=True,
+    ):
         request_output = self.run_cli("review-request", "--session", "test-session")
         request = json.loads(request_output.stdout)
         status = self.status()
@@ -107,10 +115,19 @@ class CaseManagerTest(unittest.TestCase):
             required = name in CORE_GATES
             result = "Pass" if required else "Unknown"
             gates[name] = {"required": required, "result": result, "evidence": f"Evidence for {name}"}
+        if insight_result is not None:
+            gates["Insight"]["required"] = True
+            gates["Insight"]["result"] = insight_result
         release_checks = {
-            name: {"result": "Pass", "evidence": f"Evidence for {name}"}
+            name: {
+                "result": "Pass",
+                "evidence": f"Evidence for {name}",
+                "stress_test": f"Worst-case region for {name}",
+            }
             for name in RELEASE_CHECKS
         }
+        if omit_release_stress_test:
+            release_checks["Visual integrity"].pop("stress_test")
         codes = []
         actions = []
         if verdict in ("Revise", "Redesign"):
@@ -136,6 +153,22 @@ class CaseManagerTest(unittest.TestCase):
             "blind_reads": {"expert": blind["expert"], "audience": blind["audience"]},
             "gates": gates,
             "release_checks": release_checks,
+            "carry_forward_checks": [
+                {
+                    "id": item["id"],
+                    "result": carry_forward_result,
+                    "evidence": f"Direct recheck of {item['id']}",
+                }
+                for item in reveal.get("carry_forward_required_actions", [])
+            ],
+            "acceptance_checks": [
+                {
+                    "id": item["id"],
+                    "result": acceptance_result,
+                    "evidence": f"Direct recheck of {item['id']}",
+                }
+                for item in reveal.get("active_acceptance_checks", [])
+            ],
             "verdict": verdict,
             "codes": codes,
             "required_actions": actions,
@@ -148,8 +181,9 @@ class CaseManagerTest(unittest.TestCase):
             "test-session",
             "--report",
             response_path,
+            ok=ok,
         )
-        return json.loads(output.stdout)
+        return json.loads(output.stdout) if ok else output
 
     def test_duplicate_artifact_is_rejected_under_same_context(self):
         self.start()
@@ -230,6 +264,31 @@ class CaseManagerTest(unittest.TestCase):
         accepted = self.run_cli("accept", "--session", "test-session")
         self.assertIn("accepted", json.loads(accepted.stdout))
         self.assertEqual(self.status()["state"], "accepted")
+
+    def test_narrative_partial_normalizes_to_gate_concern(self):
+        self.start()
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        self.review("Revise", insight_result="Partial")
+        stored = self.status()["evaluations"][0]
+        self.assertEqual(stored["gates"]["Insight"], "Concern")
+
+    def test_release_check_requires_named_stress_test(self):
+        self.start()
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        rejected = self.review("Revise", omit_release_stress_test=True, ok=False)
+        self.assertIn("Visual integrity.stress_test", rejected.stderr)
+
+    def test_unresolved_evaluator_action_cannot_disappear(self):
+        self.start("--max-iterations", "3")
+        self.iterate(self.write_png("candidate-1.png", b"candidate-1"))
+        self.review("Revise")
+        first = self.status()["evaluations"][0]
+        self.assertEqual(len(first["open_required_actions"]), 1)
+
+        self.iterate(self.write_png("candidate-2.png", b"candidate-2"))
+        rejected = self.review("Send", carry_forward_result="Concern", ok=False)
+        self.assertIn("Send requires every required gate", rejected.stderr)
+        self.assertEqual(self.status()["state"], "context_reveal")
 
     def test_token_budget_blocks_the_next_build(self):
         self.start("--max-tokens", "10")
@@ -419,6 +478,64 @@ class CaseManagerTest(unittest.TestCase):
             "Category-to-bar relationship",
         )
 
+    def test_send_requires_every_active_user_acceptance_check_to_pass(self):
+        self.start()
+        self.run_cli(
+            "feedback",
+            "--session",
+            "test-session",
+            "--text",
+            "Keep labels clear of marks",
+            "--target",
+            "Label-to-mark separation",
+            "--current",
+            "A label touches a comparison line",
+            "--required",
+            "Every label has visible clearance or contrasting in-mark placement",
+        )
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        result = self.review("Send", acceptance_result="Concern", ok=False)
+        self.assertIn("Send requires", result.stderr)
+
+    def test_later_feedback_can_supersede_an_earlier_check(self):
+        self.start()
+        self.run_cli(
+            "feedback",
+            "--session",
+            "test-session",
+            "--text",
+            "Put every label outside",
+            "--target",
+            "Label placement",
+            "--current",
+            "Some labels are inside marks",
+            "--required",
+            "All labels sit outside",
+        )
+        self.run_cli(
+            "feedback",
+            "--session",
+            "test-session",
+            "--text",
+            "Inside labels are valid with contrast and padding",
+            "--target",
+            "Label legibility",
+            "--current",
+            "Placement was judged categorically",
+            "--required",
+            "Each label is legible and clearly bound to its mark",
+            "--supersedes",
+            "1",
+        )
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        self.review("Send")
+        status = self.status()
+        self.assertEqual(status["feedback"][0]["superseded_by_feedback"], 2)
+        self.assertEqual(
+            [item["id"] for item in status["evaluations"][0]["acceptance_checks"]],
+            ["f2"],
+        )
+
     def test_noop_context_update_does_not_create_a_new_version(self):
         self.start("--audience", "General reader")
         result = self.run_cli(
@@ -451,7 +568,7 @@ class CaseManagerTest(unittest.TestCase):
         case["state"] = "active"
         case_path.write_text(json.dumps(case), encoding="utf-8")
         status = self.status()
-        self.assertEqual(status["schema_version"], 5)
+        self.assertEqual(status["schema_version"], 8)
         self.assertEqual(status["state"], "build")
         self.assertEqual(status["context_version"], 1)
         self.assertEqual(status["limits"]["max_iterations"], 3)

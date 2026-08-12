@@ -12,6 +12,8 @@ from statistics import median
 from typing import Any
 from uuid import uuid4
 
+from PIL import Image
+
 
 RUNNABLE_STATES = ("build", "revise", "redesign")
 
@@ -49,6 +51,7 @@ class LocalCodexRunner:
             os.getenv("DATAVIZ_ENABLE_LOCAL_RUNNER") == "1" if enabled is None else enabled
         )
         self.model = os.getenv("DATAVIZ_CODEX_MODEL", "").strip()
+        self.reasoning_effort = os.getenv("DATAVIZ_CODEX_REASONING_EFFORT", "").strip()
         self.timeout_seconds = int(os.getenv("DATAVIZ_RUN_TIMEOUT_SECONDS", "900"))
         self.jobs: dict[str, dict[str, Any]] = {}
         self.active_cases: set[str] = set()
@@ -64,6 +67,7 @@ class LocalCodexRunner:
             "provider_runner": self.available,
             "runner": "local-codex" if self.available else None,
             "model": self.model or "Codex default",
+            "reasoning_effort": self.reasoning_effort or "Codex default",
             "run_scope": "one creator pass plus one fresh reviewer pass",
             "estimated_cycle_tokens": estimate,
         }
@@ -175,7 +179,7 @@ class LocalCodexRunner:
                 job_id,
                 "creator",
                 creator_prompt,
-                [Path(case["original"]["path"])],
+                self._creator_images(case),
                 case_dir,
             )
             self._record_usage(case_id, "creator", iteration_number, usage)
@@ -207,7 +211,12 @@ class LocalCodexRunner:
                 job_id,
                 "reviewer",
                 reviewer_prompt,
-                [Path(case["original"]["path"]), artifact],
+                self._reviewer_images(
+                    Path(case["original"]["path"]),
+                    artifact,
+                    case_dir,
+                    iteration_number,
+                ),
                 case_dir,
             )
             self._record_usage(case_id, "reviewer", iteration_number, usage)
@@ -284,15 +293,29 @@ class LocalCodexRunner:
         ]
         if self.model:
             command.extend(("--model", self.model))
+        if self.reasoning_effort:
+            command.extend(
+                ("--config", f'model_reasoning_effort="{self.reasoning_effort}"')
+            )
         for image in images:
             command.extend(("--image", str(image)))
         command.append("-")
         log_path = case_dir / f"local-{job_id}-{stage}.jsonl"
+        matplotlib_root = case_dir / ".matplotlib"
+        cache_root = case_dir / ".cache"
+        matplotlib_root.mkdir(exist_ok=True)
+        cache_root.mkdir(exist_ok=True)
         started = time.monotonic()
         result = subprocess.run(
             command,
             cwd=case_dir,
-            env=safe_environment({"DATAVIZ_FIX_ROOT": str(self.client.root)}),
+            env=safe_environment(
+                {
+                    "DATAVIZ_FIX_ROOT": str(self.client.root),
+                    "MPLCONFIGDIR": str(matplotlib_root),
+                    "XDG_CACHE_HOME": str(cache_root),
+                }
+            ),
             input=prompt,
             text=True,
             capture_output=True,
@@ -365,14 +388,80 @@ class LocalCodexRunner:
     ) -> str:
         manager = self.repo_root / "dataviz-fix" / "codex" / "scripts" / "case_manager.py"
         skill = self.repo_root / "dataviz-fix" / "codex" / "SKILL.md"
+        revision_instruction = (
+            "The first attached image is the source. The second is the latest candidate. "
+            "Continue from the latest candidate and its generating code in the case directory. "
+            "Preserve what already passes and apply only the active corrections and minimum pass set. "
+            "Do not restart from the source unless the latest verdict is Redesign."
+            if iteration > 1
+            else "The attached image is the source. Build the first candidate from it."
+        )
         return f"""Open and follow {skill}.
 
 You are the chart creator for case {case_id}, not its reviewer. Build exactly one candidate for iteration {iteration}. Read the current case using:
 
 DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} status --case {case_id}
 
-Inspect the attached original and the recorded context and acceptance checks. Work only inside {case_dir}. Do not edit the checked-out repository or any skill. Render exactly one real PNG to {candidate_path} and inspect that exact export. Do not run iterate, review-request, blind-submit, evaluate, accept, diagnose, or any state-changing case-manager command. The wrapper will record the artifact after your process exits. Stop after the inspected PNG exists at the required path.
+{revision_instruction}
+
+Inspect the recorded context and acceptance checks. Work only inside {case_dir}. Do not edit the checked-out repository or any skill. Render exactly one real PNG to {candidate_path} and inspect that exact export. Do not run iterate, review-request, blind-submit, evaluate, accept, diagnose, or any state-changing case-manager command. The wrapper will record the artifact after your process exits. Stop after the inspected PNG exists at the required path.
+
+Python, Matplotlib, NumPy, and Pillow are available with writable cache directories already configured. Prefer one Python rendering script. Use no more than six shell calls; do not install packages, probe alternative renderers, or compile another language. An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Copy an artifact unchanged only when no active correction or unresolved evaluator action requires a change.
 """
+
+    @staticmethod
+    def _creator_images(case: dict[str, Any]) -> list[Path]:
+        images = [Path(case["original"]["path"])]
+        if case.get("iterations"):
+            images.append(Path(case["iterations"][-1]["artifact"]["path"]))
+        return images
+
+    @staticmethod
+    def _reviewer_images(
+        source: Path,
+        artifact: Path,
+        case_dir: Path,
+        iteration: int,
+    ) -> list[Path]:
+        """Add deterministic delivery and detail views of the exact candidate."""
+        images = [source, artifact]
+        try:
+            with Image.open(artifact) as opened:
+                exact = opened.convert("RGB")
+
+            preview = exact.copy()
+            preview.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+            preview_path = case_dir / f"review-delivery-{iteration:02d}.png"
+            preview.save(preview_path)
+
+            width, height = exact.size
+            crop_width = max(1, min(width, round(width * 0.6)))
+            crop_height = max(1, min(height, round(height * 0.6)))
+            starts = (
+                (0, 0),
+                (max(0, width - crop_width), 0),
+                (0, max(0, height - crop_height)),
+                (max(0, width - crop_width), max(0, height - crop_height)),
+            )
+            crops: list[Image.Image] = []
+            for left, top in starts:
+                crop = exact.crop((left, top, left + crop_width, top + crop_height))
+                crop.thumbnail((900, 900), Image.Resampling.LANCZOS)
+                crops.append(crop)
+            gap = 12
+            cell_width = max(crop.width for crop in crops)
+            cell_height = max(crop.height for crop in crops)
+            sheet = Image.new("RGB", (cell_width * 2 + gap, cell_height * 2 + gap), "white")
+            for index, crop in enumerate(crops):
+                x = (index % 2) * (cell_width + gap)
+                y = (index // 2) * (cell_height + gap)
+                sheet.paste(crop, (x, y))
+            detail_path = case_dir / f"review-details-{iteration:02d}.png"
+            sheet.save(detail_path)
+            images.extend((preview_path, detail_path))
+        except (OSError, ValueError):
+            pass
+        return images
 
     def _reviewer_prompt(
         self, case_id: str, request_path: Path, case_dir: Path, iteration: int
@@ -381,9 +470,11 @@ Inspect the attached original and the recorded context and acceptance checks. Wo
         skill = self.repo_root / "dataviz-eval" / "codex" / "SKILL.md"
         return f"""Open and follow {skill}.
 
-You are a fresh independent reviewer for case {case_id}, iteration {iteration}. You did not create the chart. The first attached image is the source; the second is the delivered candidate.
+You are a fresh independent reviewer for case {case_id}, iteration {iteration}. You did not create the chart. The first attached image is the source; the second is the exact delivered candidate. When present, the third is a representative delivery-size preview and the fourth is an overlapping four-region detail sheet derived deterministically from that exact candidate. Inspect every supplied view. A clean full view cannot override a collision, mismatch, or ambiguity visible in a delivery or detail view.
 
 Open only the blind request at {request_path}. Do not open case.json, creator files, or any reveal file before freezing the blind read. Follow the request exactly: write the blind response, run `DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} blind-submit --case {case_id}`, then open the generated reveal and complete its response template with artifact-specific evidence. Do not run evaluate; the wrapper will validate and record your response after your process exits.
 
-Do not modify the chart, source, skills, or creator files. Stop after one evaluation is recorded.
+When completing the revealed response, copy both saved `blind_reads` strings byte-for-byte from the frozen blind response. Do not shorten, paraphrase, correct, or otherwise rewrite them after intent is revealed.
+
+Do not modify the chart, source, skills, or creator files. Stop after the revealed response file exists.
 """

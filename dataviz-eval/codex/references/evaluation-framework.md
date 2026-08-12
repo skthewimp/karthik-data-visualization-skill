@@ -62,13 +62,17 @@ The evaluator must inspect five relationships in addition to the six outcome gat
 
 | Release check | Pass condition |
 |---|---|
-| Visual integrity | Elements remain intact, legible, and collision-free. |
+| Visual integrity | Elements remain intact, legible, and separated by enough clearance to avoid collision or crowding at delivery size. Text over a mark counts as intentional inside-labelling only when contrast and padding preserve the reading. |
 | Relationship traceability | The identification system fits the chart; labels, values, marks, guides, and annotations pair with their targets without guesswork. |
 | Spatial economy | Whitespace and aspect ratio establish grouping, separation, or emphasis rather than fragmenting the reading. |
 | Encoding semantics | Every salient visual channel has a recoverable data, structural, uncertainty, or narrative role. |
 | Delivery robustness | The exact export survives the intended size, distance, and compression. |
 
 These are context-sensitive invariants, not fixed chart templates or pixel thresholds. A release report must state concrete evidence for each one. Evidence, Visual reasoning, Information fit, and Delivery are always required for a rendered artifact. Question and Insight can be non-required only when the task supplies no intended outcome to compare; they remain `Unknown`, not fake passes. `Send` requires all five release checks and every required outcome gate to pass.
+
+Carry unresolved required actions forward between iterations. Treat every active, non-superseded user acceptance check the same way: one stable id, one explicit result, and direct evidence from the current artifact. Reveal them only after the next blind read, then require the reviewer to reinspect each named target. A prior action or user check closes only with an explicit `Pass`; silence, a better overall gate, or a non-intersecting but visibly crowded layout does not clear it.
+
+For each release check, record the most failure-prone element, pair, or region inspected. Test the worst example in every repeated placement pattern: direction, sign, length, or panel side can turn one shared labelling rule into different rendered relationships. Inspect the full artifact, representative delivery preview, and deterministic overlapping detail views when supplied; no one view can pass on behalf of a failing required view. Do not support a pass with a generic statement such as "no overlap".
 
 For relationship traceability, evaluate the identification system before judging individual labels. Direct labels, categorical axes, legends, grouping, and small multiples are alternatives chosen from the chart's density and geometry; none is universal. Prefer direct labels only when every important mark or series can be named legibly and unambiguously at delivery size. Give each category or series one primary identification route: when a direct label carries the same identity as a categorical axis or legend, duplicated scaffolding needs a clear reading purpose. Judge the complete identity-value-mark unit—a value beside a mark does not repair a category name stranded across whitespace. For every label, compare its intended target with nearby competing labels and marks: the intended bond must be perceptually strongest. Measure that relationship to the visible target, not merely to a common row, plot edge, or baseline; alignment alone does not bridge unstructured whitespace. Require adjacency or a restrained visual connection. If labels would collide or lose proximity, use another identification system or chart structure instead of forcing direct placement.
 
@@ -131,7 +135,7 @@ Do not invent a universal Telegram or slide width. Record the tested size and wh
 
 Do not treat personal taste as a hard gate. Aesthetic mismatch becomes consequential when it affects comprehension, accessibility, trust, or an explicit delivery brief.
 
-Use numeric contrast as a diagnostic: target 4.5:1 for normal text, 3:1 for large text, and 3:1 against the background for small or thin essential marks. Do not force every large fill through text-level WCAG ratios when direct labels, boundaries, and another encoding channel make the reading reliable. Always inspect normal, grayscale, compressed, and colour-vision-deficiency views when colour is essential.
+Use numeric contrast as a diagnostic: target 4.5:1 for normal text, 3:1 for large text, and 3:1 against the background for small or thin essential marks. Do not force every large fill through text-level WCAG ratios when direct labels, boundaries, and another encoding channel make the reading reliable. Always inspect normal, grayscale, compressed, and colour-vision-deficiency views when colour is essential. Audit every semantic mapping end to end from data condition through marks, connectors, labels, annotations, and legend. For directional change, all elements must use the same stated comparison direction; the audience or brief determines the hue convention, and another channel must preserve the meaning without colour.
 
 ## Failure codes
 

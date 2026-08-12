@@ -71,6 +71,7 @@ class FeedbackInput(BaseModel):
     current: str
     required: str
     why: str = ""
+    supersedes: list[int] = Field(default_factory=list)
 
 
 class LimitUpdate(BaseModel):
@@ -280,7 +281,7 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
 
     @app.post("/api/cases/{case_id}/feedback")
     def add_feedback(case_id: str, feedback: FeedbackInput):
-        client.run(
+        args = [
             "feedback",
             "--case",
             validate_case_id(case_id),
@@ -294,7 +295,10 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
             feedback.required,
             "--why",
             feedback.why,
-        )
+        ]
+        if feedback.supersedes:
+            args.extend(("--supersedes", ",".join(map(str, feedback.supersedes))))
+        client.run(*args)
         return decorate_case(client.status(case_id))
 
     @app.post("/api/cases/{case_id}/iterations")
