@@ -1529,6 +1529,10 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
                 for name, result in item["gates"].items()
             )
             codes = ", ".join(item["codes"]) or "none"
+            release_checks = ", ".join(
+                f"{name}={detail['result']}"
+                for name, detail in item.get("release_checks", {}).items()
+            ) or "(not recorded)"
             lines.extend(
                 [
                     f"{item['number']}. Iteration {item['iteration']}: **{item['verdict']}**",
@@ -1537,7 +1541,7 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
                     f"   - Codes: {codes}",
                     f"   - Reviewer: {item.get('reviewer', '(legacy self-review)')}",
                     f"   - Tested size: {item.get('tested_size', '(not recorded)')}",
-                    f"   - Release checks: {', '.join(f'{name}={detail['result']}' for name, detail in item.get('release_checks', {}).items()) or '(not recorded)'}",
+                    f"   - Release checks: {release_checks}",
                     f"   - Required actions: {', '.join(item['required_actions']) if isinstance(item['required_actions'], list) else item['required_actions'] or 'none'}",
                     f"   - Baseline concerns outside scope: {', '.join(item.get('baseline_concerns', [])) or 'none'}",
                     f"   - Context version: {item.get('context_version', 1)}"

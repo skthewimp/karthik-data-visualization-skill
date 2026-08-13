@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Workflow and skill generalization
+
+- Reworked the visualization skill family around explicit ownership and handoffs: planning → cleaning → question generation → selection → construction → annotation → explanation → critique/repair → independent evaluation.
+- Generalized chart-selection, annotation, explanation, and critique guidance so recommendations depend on the analytical question, evidence, audience, medium, density, accessibility, and delivery constraints.
+- Removed example-specific and overfitted defaults, including fixed chart-type blacklists, mandatory annotation counts, fixed explanation lengths, named-domain assumptions, and universal legend or interaction rules.
+- Added semantic checks for measure meaning, time boundaries, universe and denominator, units, claim strength, and likely reader interpretation.
+- Kept Codex and Claude skill surfaces synchronized and installed the validated copies for Hermes.
+
+### Verification
+
+- `./sync.sh --no-pull --validate-only`
+- `./sync.sh --no-pull --surface hermes`
+- `./sync.sh --no-pull --surface claude`
+- `./sync.sh --no-pull --surface codex`
+- `git diff --check`
+- `pytest -q dataviz-fix/tests` — 23 tests passed
+
 All notable public changes to this repository are recorded here.
 
 ## 2026-08-12

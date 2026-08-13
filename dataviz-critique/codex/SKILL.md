@@ -1,9 +1,6 @@
 ---
 name: dataviz-critique
-description: Critique an existing data visualization against its context, data, intended message, and audience, then propose two or three improved visualization alternatives. Use when reviewing charts, dashboards, infographic-style visuals, plots, slides with charts, AI-generated visualizations, or drafts that need diagnosis, prioritized fixes, redesign options, or alternative story angles. Combines Kaiser Fung's question-data-visual trifecta checkup with Karthik Shashidhar's clarity-first, intentional-design, fundamentals-first visualization philosophy.
-metadata:
-  short-description: Critique visuals and propose alternatives
-  claude-description: Critique charts with Fung's trifecta, then suggest 2-3 stronger visualization alternatives.
+description: Critique charts with the question-data-visual triangle, semantic clarity, and evidence-fit principles, then suggest alternatives when useful.
 ---
 
 # Dataviz Critique
@@ -11,8 +8,6 @@ metadata:
 Use this when the user gives a visualization, screenshot, chart spec, code output, dashboard, or slide and asks whether it works or how to improve it.
 
 Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing; then offer a small set of better visualization alternatives, not just criticism.
-
-Own diagnosis, severity, and alternative interventions. Do not create a parallel chart-style rubric here. Apply `dataviz-selector` to judge form, `karthik-data-visualization` to judge execution, and `chart-annotations` to judge on-chart callouts. Use `dataviz-eval` instead when the job is a formal `Send`/`Revise`/`Redesign` gate.
 
 ## Inputs to seek or infer
 
@@ -25,6 +20,8 @@ Prefer not to block. If context is missing, critique from what is visible and ma
 - Intended message: the one sentence the viewer should leave with.
 
 ## First pass: say what it is
+
+Run a semantic ambiguity scan before stylistic critique: does the visual invite a materially wrong interpretation of the measure, denominator/universe, time/context, claim strength, or units? Classify each ambiguity as fatal/major/minor based on how much it changes the reader's interpretation.
 
 Before critique, identify:
 
@@ -52,33 +49,41 @@ Then inspect pairwise fit:
 
 A chart can be visually attractive and still fail if any side of this triangle is weak.
 
-## Diagnostic ownership
+## Karthik critique lens
 
-- Judge the question-data relationship here: dimensional consistency, denominators, statistical meaning, uncertainty, and whether the claim outruns the evidence.
-- Import form and visual-execution findings from the owning skills rather than restating their rules.
-- Recommend repeatable changes that survive new data and reruns, not one-off cosmetic coordinates, colours, or dimensions learned from the supplied image.
+Use these standards aggressively:
+
+- **Clarity first**: the chart must stand on its own. Missing axis labels, unclear units, ambiguous chart type, unexplained shading, or mystery encodings are major failures.
+- **Intentional design**: every colour, annotation, shade, line, sort order, and layout choice must earn its place. Defaults are not a defence.
+- **Fundamentals before polish**: check dimensional consistency, denominators, statistical meaning, uncertainty, and whether comparisons make analytical sense.
+- **Narrative with evidence**: a good chart communicates a point of view, not just numbers. If there is no claim, propose one; if the claim outruns the data, pull it back.
+- **No tool worship**: do not excuse dashboard clutter, BI defaults, AI-generated aesthetics, or flashy chart types if they add friction.
+- **Repeatable improvement**: recommend changes that can survive new data and reruns, not one-off cosmetic hacks.
 
 ## Failure modes to look for
 
 ### Meaning and data
 
 - No clear question, too many questions, or a chart that answers the wrong question.
-- Numerator/denominator mismatch; rates vs counts confusion; market cap vs GDP-style dimensional nonsense.
+- Numerator/denominator mismatch; confusion between levels, counts, rates, shares, indices, changes, or other measures; incompatible units.
 - Aggregation hiding distribution, outliers, subgroup reversal, cohort differences, or sample-size changes.
 - Cherry-picked start/end dates, missing baseline, missing counterfactual, missing uncertainty.
 - Derived metrics unexplained; index values without base; log/normalization not disclosed.
 
-### Visual form and execution
+### Visual encoding
 
-- Apply `dataviz-selector` to test whether the form exposes the intended comparison.
-- Apply `karthik-data-visualization` to test hierarchy, identification, colour, spacing, typography, integrity, and delivery-size execution.
-- Apply `chart-annotations` only when on-chart marking is part of the problem.
+- Use a form that preserves the relevant magnitude, comparison, uncertainty, and spatial meaning; commonly risky forms require explicit justification rather than blanket prohibition.
+- Poor ordering: alphabetical when value/rank/time/order matters.
+- Overplotting, excessive categories, illegible labels, crowded legends.
+- Colour without meaning, too many similar hues, inaccessible contrast, red/green dependence, decorative palettes.
 
 ### Communication
 
-- Compare the apparent question and claim with the intended ones.
-- Flag missing context or caveats that change the reading.
-- Keep adjacent narration out of scope; `chart-explainer` owns the note that travels with a finished chart.
+- Title describes chart mechanics instead of making a claim.
+- Annotation explains the obvious, not the insight.
+- Legend forces back-and-forth lookup when direct labels would work.
+- Important caveats hidden in footnotes or absent.
+- Dashboard gives metrics but no interpretation, action, or priority.
 
 ## Severity rubric
 
@@ -103,23 +108,7 @@ Do not over-focus on minor style while fatal data/question problems remain.
 
 ## Redesign alternatives
 
-When proposing alternatives, do not list random chart types. Each option must represent a distinct intervention level or analytical purpose. Prefer two options when the fix is obvious; use three when there are genuinely different story angles.
-
-Use this option set by default:
-
-1. **Minimal repair** — keep the original chart form where possible; fix labels, title, axis, scale, colour, ordering, annotation, and caveats. Best when the chart type is basically right but execution is poor.
-2. **Better analytical redesign** — change the chart form to better answer the stated question. Best when the current encoding is wrong for the comparison.
-3. **Different story lens** — reframe the view around a more revealing analytical question: totals → rates, average → distribution, snapshot → trend, level → change, ranking → decomposition, geography → comparison, dashboard → interpreted action. Best when the original question is underspecified or less useful than another defensible question.
-
-For each option, include:
-
-- Best when: when this option is appropriate.
-- Chart: the form to use.
-- Encoding: x/y/colour/facet/label/scale/order.
-- What it fixes or reveals: the viewer benefit.
-- Tradeoff: what this option loses, simplifies, or assumes.
-
-If only one redesign is defensible, say so and give one strong option rather than padding.
+Offer alternatives only when they address a diagnosed mismatch. Choose the number and kind of alternatives from the question, data, audience, medium, and constraints; do not force a fixed taxonomy or count. A minimal repair may be enough, and a redesign may be inappropriate when the evidence or question is the real limitation.
 
 ## Output format
 
@@ -175,3 +164,4 @@ For quick requests, compress to: verdict, top 3 fixes, and 2 redesign alternativ
 ## Tone
 
 Be direct but useful. Avoid generic praise. Praise only what materially helps interpretation. Do not say "nice visualization" unless the question-data-visual fit is actually strong.
+

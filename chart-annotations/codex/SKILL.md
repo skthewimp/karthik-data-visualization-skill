@@ -36,9 +36,9 @@ Exception: a chart designed to travel alone with no title bar or surrounding tex
 1. Write the one-sentence claim the chart must support.
 2. Enumerate annotation candidates from the chart's geometry.
 3. Run the concentration check.
-4. Rank candidates by significance.
-5. Apply the cap: one primary, at most two supporting.
-6. Write each label under the wording constraints.
+4. Rank candidates by relevance to the chart's claim, evidentiary strength, reader payoff, and visual salience.
+5. Select only as many as the chart can support without competing claims; there is no universal count.
+6. Write each label so it identifies the evidence and qualifies the claim appropriately.
 7. Place by proximity, with coordinates derived from the data; add a connector only if proximity fails.
 8. Render, inspect the image, fix collisions.
 
@@ -60,71 +60,24 @@ An absence - no trend, no gap, no change - is a finding, but it is not a candida
 
 Separate observed candidates from derived ones as you list them. A record year, a crossover, and an actual gap are **observed** - they are in the data. A knee from a breakpoint scan, a trend slope, a smoothed peak, a cluster boundary are **derived** - they are outputs of a model you chose. Derived features are annotatable, but they carry a higher bar (see "Annotating derived features").
 
-## Step 3: the concentration check
+## Step 3: concentration and candidate strength
 
-**Before annotating any aggregate, test whether a small subset explains most of it.**
+Before annotating an aggregate or apparent feature, inspect how the evidence is distributed, concentrated, and uncertain. If a subset materially changes the interpretation, expose it. Choose thresholds and robustness checks appropriate to the metric and claim rather than applying fixed percentages or universal tests.
 
-This is the most common annotation error and it is invisible from summary numbers.
+Rank candidates by relevance to the stated claim, evidentiary strength, interpretive value, and visual salience. Records, departures, events, persistence, gaps, and other features are candidate classes, not a fixed hierarchy.
 
-```text
-"Wettest November on record, 371mm"        <- aggregate frame
-170mm of that fell on Nov 15-16.
-"Record November, driven by one deluge"    <- correct frame
-```
-
-Rule: if fewer than ~20% of the observations carry more than ~50% of the effect, annotate the subset, not the aggregate. Do not call a window sustained, steady, or accumulating when a short burst explains it.
-
-The mirror error also applies: if the effect really is spread evenly, say so directly. "Rained every day" beats "wet period".
-
-**The check gates the title, not only the annotation.** Compute the share before writing either. If one state contributes 39% of a total increase, neither the annotation nor the title may say "drives almost all" - the honest frame is "the sharpest jump", which is a rank claim, not a share claim. Rank claims and share claims fail in different ways; know which one you are making.
-
-## Step 4: significance ladder
-
-When several candidates compete, rank in this order. It is a default, not a law - override it when the data says otherwise, and say why.
-
-1. **Record or boundary breach** covering most of the window. Extremes beat trends.
-2. **Large sustained departure from a stated baseline.** A big departure beats a modest one anywhere else on the chart.
-3. **Event with a visible downstream effect.** Annotate the effect, not just the event date.
-4. **Persistence** - a run with no exceptions. Say it plainly.
-5. **Aggregate excess or shortfall** - use only when nothing sharper exists.
-
-Two filters applied after ranking:
-
-- **One dominant frame.** A second signal earns its place only if it strengthens the first. Two unrelated signals means two charts.
-- **Skip the obvious value.** Annotate what the reader cannot compute by looking. The tallest bar being tallest is not an annotation.
-
-## When nothing clears the bar
-
-**No story, no annotation.** A noisy series with no trend, no breakpoint, and no outlier beyond ordinary variation gets no marks on it. This is a finding, not a failure to look hard enough, and the chart should be left clean.
-
-Do not manufacture a lead by promoting the largest wiggle. The wettest year in a 140-year record with no trend is not a story; it is the top of the distribution, which some year had to be. Marking it tells the reader it means something.
-
-Test before promoting any candidate: **would this feature still be there in a different sample?** A trend with p = 0.74, a run of six that a coin flip produces routinely, a single extreme inside one standard deviation - none survive that question, and none get annotated.
-
-The absence itself belongs in the title, where claims live. There is nothing on the chart to locate, so there is nothing to annotate.
-
-What still earns its place is **context that lets the reader verify the absence** - a variation band, a reference line, a decade average over noisy annual values. These are context layers, not annotations: they encode data or a stated baseline rather than pointing at a feature, and they are not subject to the annotation cap.
-
-```text
-Title:          India's annual rainfall has not shifted in 140 years
-Context layers: +/- 1 SD band, mean line, decade averages
-Annotations:    none
-```
-
-The difference matters. A band showing expected variation is evidence. A callout reading "every decade average falls inside the band" is the title said twice, taking up chart space to restate what the reader can already see.
+Distinguish observed description, exploratory signal, and inferential claim. Annotate a feature when it is relevant and accurately qualified; use uncertainty, sensitivity checks, or tentative wording when evidence is limited. If no feature clears the claim's evidentiary and communication bar, leave the chart unmarked and state the absence in the title or accompanying explanation.
 
 ## Annotating derived features
 
-A knee, a slope, a smoothed peak, or a cluster boundary comes from a model. Three extra rules apply:
-
-- **Validate before marking.** A breakpoint picked as the minimum of a scan is the best of many candidates, not a tested finding. Check it survives a sensitivity test, or word it as approximate.
-- **A split point you chose by eye is derived too, and is the easier one to get wrong.** Looking at a chart, picking the year the line seems to turn, then computing slopes on either side feels like observation but is a choice made after seeing the outcome. It gets the same treatment as a scanned breakpoint: test it, or word it loosely. Both segments then need describing honestly - a real acceleration from 1.5 to 12.1 points per decade is a better finding than a fabricated flat-then-takeoff.
+- **Validate before marking.** A breakpoint, trend, smoothed peak, or cluster boundary is a chosen or model-derived feature; test sensitivity or word it as approximate.
+- **A split point chosen by eye is derived too.** Test it or describe it as approximate, and describe both sides honestly.
 - **Word it with the uncertainty the method carries.** "around the mid-1950s" is honest for a scanned breakpoint; "in 1956" claims a precision the method does not have. Do not put a bare year on a derived knee unless the year is itself the result.
-- **Never let the fit outshout the data.** If a fitted line is the loudest element and the observations are faint grey behind it, the chart is arguing for the model rather than showing the evidence. Give the fit the accent only when the observations remain clearly readable.
+- **Keep the evidence visible.** A fitted or smoothed layer must not become more persuasive than the observations it summarizes.
 
 ## Step 5: how many
 
-**One primary, at most two supporting.** More than three candidates survive the ranking? Split the chart.
+Maintain a clear primary focus, but size the annotation set to the density, medium, and traceability needs. Additional labels are acceptable when they improve identification without creating clutter; split the chart when competing claims cannot be separated.
 
 **Contrast pairs are one annotation, not two.** When a claim is inherently about two ends - the highest and the lowest, the state that breaks the pattern against the one that follows it - the two labels are halves of a single point and share equal weight. Do not tier them into primary and supporting; that would say one end matters more, when the comparison is the finding. A contrast pair spends the primary slot, leaving one supporting annotation.
 
@@ -143,36 +96,11 @@ mutate(lbl = paste0("Rajasthan: ", sum(top$state == "Rajasthan"),
 
 Comparative words are quantitative claims wearing plain clothes. **flat, unchanged, steady, stagnant, doubled, tripled, halved, no different, as many as** - each one asserts a number and each one needs the number checked before it goes in the label. "Flat for the 45 years before" is a testable statement; if the pre-period slope is 1.5 points per decade at p = 0.0002, the label is false and the chart is worse than unannotated, because it invents a plateau the reader will believe.
 
-Constraints, all of them hard:
-
-- **Under 18 words.** Most good annotations are under eight.
-- **One simple claim.** No semicolons, no nested clauses, no "however" or "otherwise".
-- **Every number tied to its baseline and window in the same label.** "1mm vs 58mm expected", never a floating "1mm".
-- **No causal verb without causal evidence.** "followed", "coincided with" are safe; "caused", "drove", "led to" need the evidence.
-- **No inferred category the data does not contain.** Do not name a season, a phase, or a regime the dataset never labelled.
-
-Register - write like an observant person, not a report:
-
-| Banned | Use instead |
-|---|---|
-| drought, severe, gripped, collapse, soared | dry, sharp, fell, rose |
-| rainfall shortfall of, against normal, totalled just, the period saw | just 1mm vs 58mm usual |
-| unprecedented, dramatic, remarkable | give the number and let it be remarkable |
-
-Four label shapes that cover most cases:
-
-```text
-[event] on [date], then [effect]          Rain after Mar 10, then a 5C drop
-[state] from [date] to [date]. [gap]      Dry Oct 13-25. 1mm vs 58mm usual
-[extreme] for [window], [magnitude]       11 record days in a fortnight
-[aggregate], mostly [subset]              Record November, mostly Nov 15-16
-```
+Keep each label concise, single-purpose, and audience-appropriate. Tie numbers to their relevant baseline and window; qualify causal or inferential language; do not impose a universal word count or editorial vocabulary.
 
 ## Step 7: placement
 
-**Derive every annotation coordinate from the row it labels. Never hand-type coordinates.**
-
-This is the rule that prevents the worst annotation defect: a label attached to the wrong observation. Hand-placed coordinates drift as data, sort order, or scale limits change, and a label one row off is not a cosmetic problem - it states something false about a different entity, and it looks entirely correct.
+- Anchor data-linked labels to the underlying data or chart geometry so they remain correct under filtering, sorting, and rescaling. Literal coordinates are valid when the annotation is intentionally independent of a data observation, such as chart furniture or a fixed reference caption.
 
 Build a small annotation frame filtered from the plotting data, compute the offset from the value being labelled, and let the plotting layer position it:
 
@@ -191,10 +119,9 @@ The label text is computed from the same columns as the mark, so the number and 
 
 **Derive the anchor, then offset into whitespace.** A derived coordinate is the right anchor and usually the wrong resting place. Labelling a group of points at its centroid puts the text in the densest part of the cloud, where it is least readable - the centroid is the worst position available. Anchor on the group, then push the label to the outside edge of the cloud, into space no point occupies.
 
-Default is bare text sitting in whitespace beside the thing it labels. No box, no fill, no callout bubble.
+Use the least distracting treatment that preserves label-to-mark association and legibility. Choose bare text, a halo, box, fill, or connector based on background, density, contrast, and medium.
 
-- Connector only when the nearest free space is far enough that the pairing is ambiguous. Then a hairline grey segment, no arrowhead.
-- Arrowhead only when the target is one point among several similar points.
+- Preserve direct links between labels and the marks or groups they describe. Use a connector only when proximity and layout do not make the relationship clear.
 - A connector must never cross other data.
 - Text must never sit on top of data, gridlines, or another label.
 - If no honest placement exists, change the chart - widen margins, expand the axis range, move the panel - before dropping the annotation.

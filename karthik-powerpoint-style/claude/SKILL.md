@@ -9,8 +9,6 @@ Use this skill when creating, revising, or critiquing presentation slides, espec
 
 Core job: make slides feel like interpreted analysis, not decorated reporting.
 
-Own slide composition, titles, typography, deck rhythm, facilitator notes, and slide-level palette. Do not create a second chart-design system here. Use `dataviz-selector`, `karthik-data-visualization`, and `chart-annotations` for charts placed on slides.
-
 ## Start from Karthik's own material
 
 Before writing new slides on a topic, check whether Karthik's own decks, blogs, or notes already cover it.
@@ -26,7 +24,7 @@ Before writing new slides on a topic, check whether Karthik's own decks, blogs, 
 3. Title the slide plainly (see Slide titles): state the finding in plain words, or use a plain concept label or a direct question - never a crafted aphorism.
 4. Put the main evidence large and central; remove anything that does not support the claim.
 5. Add only necessary context: timeframe, comparator, source, caveat, annotation, or next action.
-6. For chart slides, use the identification and annotation systems chosen by the chart skills so the slide works without presenter narration.
+6. Use direct labels and annotations so the slide can be understood without presenter narration.
 7. Split crowded slides. Prefer two clear slides over one dense slide.
 
 ## Slide titles
@@ -61,8 +59,8 @@ Test: if the title could be a LinkedIn caption or a conference-talk tagline, it 
 - Avoid decoration, gradients, shadows, stock art, icons, ornamental dividers, and busy borders.
 - Use generous whitespace; do not fill the slide just because space exists.
 - Use a quiet visual hierarchy: title, subtitle/kicker, main evidence, annotation, source.
-- Use light grey for slide structure and one accent colour for slide-level emphasis. Embedded charts retain the semantic palette required by `karthik-data-visualization`.
-- Keep chart identification consistent with `karthik-data-visualization`.
+- Use light grey for structure and context; use one accent colour for the story.
+- Prefer direct labels over legends.
 - Keep footers small and muted.
 
 ## Typography
@@ -128,9 +126,10 @@ A teaching or workshop deck is a spine, not a script. During a hands-on exercise
 - Put all how-to detail, participant instructions, and things-to-watch-for in facilitator notes, not on the slide face.
 - Do not write out step-by-step instructions the room never sees.
 
-## Charts inside slides
+## Chart guardrails inside slides
 
-Use `dataviz-selector` for form choice, `karthik-data-visualization` for execution, and `chart-annotations` for on-chart callouts. This skill adds only slide-specific constraints: test the chart at normal presentation distance, reserve room for the slide title and source, and keep the chart large enough to remain the main evidence.
+- Choose chart form and delivery mode from the claim, evidence, audience, and medium; commonly risky forms require justification rather than blanket prohibition.
+- Do not rely on colour alone to explain meaning.
 
 ## Output expectations
 

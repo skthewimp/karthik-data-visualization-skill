@@ -99,11 +99,11 @@ cleaned <- raw %>%
     date = lubridate::ymd(date),
     amount = readr::parse_number(amount),
     city = stringr::str_to_title(city),
-    city = dplyr::case_when(
-      city == "Bengaluru" ~ "Bangalore",
-      city == "Thiruvananthapuram" ~ "Trivandrum",
-      TRUE ~ city
-    )
+city = dplyr::recode(city,
+  source_value_a = "canonical_value_a",
+  source_value_b = "canonical_value_b",
+  .default = city
+)
   )
 
 cleaned %>%

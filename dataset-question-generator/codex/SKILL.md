@@ -25,10 +25,10 @@ This skill is deliberately upstream of `karthik-analysis-planner`, `dataviz-sele
 1. Inspect the data first. Do not brainstorm from the filename alone.
 2. Profile the dataset: row count, row grain, date range, entities, measures, categories, missingness, and format breaks.
    - If profiling exposes messy types, repeated wide columns, broken joins, sentinels, or ambiguous duplicates, pause and do only the minimal contextual cleaning needed to inspect real signals.
-3. Identify visible signals: slope change, crossing, plateau, rebound, spike, seasonality, outlier, cluster, concentration, substitution, divergence, or denominator trap.
-4. Generate 8-15 rough candidate questions.
-5. Reject questions that are stale, obvious, non-measurable, or only restate column names.
-6. Return the best 3-7 questions, ranked. Fewer is fine if only a few are good.
+3. Identify candidate signals and questions from the values, structure, coverage, measurement properties, uncertainty, and user objective. Visible patterns are useful but not required; diagnostic questions about data quality, definitions, missingness, or absence can be valuable.
+4. Generate enough materially different candidate questions to cover the useful signals without padding.
+5. Reject questions that are non-measurable, redundant, unsupported by the data, or irrelevant to the stated purpose.
+6. Return a small ranked set sized to the evidence and user's need.
 
 ## What to inspect
 
@@ -57,15 +57,7 @@ Prefer questions with a visible comparison or mechanism:
 - Does the same story hold in value, volume, share, and average size?
 - Where are things stuck, delayed, concentrated, or leaking?
 
-Local analysis priors behind this:
-
-- Bangalore weather: test lived disputes against historical normals and records.
-- Bangalore wind/rain: abandon obvious but useless charts; ask a simpler mechanism question.
-- Payments/demonetisation: separate volume, value, average size, and counterfactual trend.
-- Elections: look for swings, regions, margins, corners, and seat-vote conversion - not just winners.
-- Operations data: find bottlenecks, time-in-stage, delay cost, and peer benchmarks.
-- Survey data: use ordered subgroup comparisons, concentration, and correlation structure.
-- Urban morphology: compare measured features against terrain, history, or periphery - do not just map them.
+Derive domain lenses from the observed fields, measurement properties, and user objective. Keep domain-specific priors as optional calibration material, not as default questions.
 
 ## Freshness filter
 
@@ -73,12 +65,11 @@ Before final output, test each candidate:
 
 | Criterion | Reject if weak |
 |---|---|
-| Visual contrast | no likely crossing, gap, slope change, outlier, distribution, or cluster |
-| Freshness | obvious, dated, or already answered by the public narrative |
-| Dataset support | needs external causal story not in the data |
-| Denominator clarity | no clear unit or denominator |
-| Karthik fit | dashboard-y, generic, or corporate-slop phrasing |
-| Teachability | no useful lesson in chart choice or metric design |
+| Analytical value | reject if it does not clarify a decision, mechanism, comparison, uncertainty, quality issue, or useful absence |
+| Evidence support | reject if required fields, comparisons, or definitions are unavailable |
+| Measurability | reject if the unit, metric, or comparison cannot be operationalized |
+| Distinctiveness | reject if it merely repeats another question without adding a useful lens |
+| Fit to purpose | reject if it does not serve the stated audience or decision |
 
 If a question sounds like "trend of X over time", rewrite it around the comparison: compared to what, split by whom, measured how, and why now?
 
@@ -114,6 +105,6 @@ Watch out: <denominator/caveat>
 - Do not answer questions before profiling.
 - Do not overfit to column names; inspect values and ranges.
 - Do not include stale defaults just because the domain suggests them.
-- Do not recommend dashboards as the output. Recommend interpreted questions.
+- Defer presentation-form decisions to `dataviz-selector`; note whether the question is for monitoring, exploration, comparison, or narrative use.
 - Do not use causal words unless the comparison design supports them.
 - Prefer fewer, sharper questions over a long generic list.

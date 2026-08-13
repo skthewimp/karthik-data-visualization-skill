@@ -18,11 +18,11 @@ This is not text on the chart. This is not a critique of the chart. It is the na
 
 ## The two-line contract
 
-Every exhibit gets **two lines. Not three.**
+Use the shortest explanation that makes the exhibit understandable in its delivery context. Two lines can be a useful compact default, but it is not a universal limit.
 
-**Line 1 - the claim.** A sentence with a subject and a verb, carrying at least one concrete number with its anchor.
+**Lead - the finding or orientation.** State what the exhibit is about and what it supports. Include a quantitative anchor when it improves understanding, but use a qualitative structure, ordering, pattern, or null result when that is more informative.
 
-**Line 2 - one payoff.** Pick exactly one:
+**Follow-up - one useful qualification or implication when needed.** Choose what prevents over-reading or helps the reader act; combine points only when separating them would reduce clarity.
 
 | Payoff | Use when | Example |
 |---|---|---|
@@ -93,7 +93,7 @@ The clusters are near-identical on every dimension. Nothing to act on here.
 Rules:
 
 - Say what you looked for and did not find. "No signal" alone is not enough; the reader needs to know which signal was tested.
-- Never upgrade weak to moderate. "There is some indication of a possible trend" is a way of claiming a finding without owning it. Either it is there or it is not.
+- Preserve the distinction between description, exploration, and inference. Match language to evidence strength and uncertainty: avoid inflated claims, but distinguish null, weak, suggestive, inconclusive, and heterogeneous findings when supported.
 - A weak-but-real relationship is stated as weak, with the strength quantified: "the relationship exists but it is weak - reserve price explains little of the variation."
 - Never manufacture. If you find yourself hunting the chart for something quotable, the note is "nothing here".
 

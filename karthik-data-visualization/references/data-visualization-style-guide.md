@@ -12,21 +12,19 @@ The canonical implementation is R/ggplot2 with `theme_minimal()` or
 `ggthemes::theme_tufte()`. Other languages should reproduce that aesthetic. Never let
 default matplotlib styling leak through.
 
-## Non-Negotiables
+## Core defaults
 
-- Always static: PNG or SVG.
-- Never interactive unless explicitly requested: no Plotly, D3, Bokeh, hover, zoom, or
-  tooltips.
-- No legends. Direct-label every series.
-- White background by default.
-- Warm beige `#e5e1d8` only for Bangalore weather charts or charts explicitly continuing
-  that family.
+These are context-sensitive defaults, not absolute requirements:
+
+- Prefer static PNG/SVG when it suits the delivery medium. Use interaction when it materially improves the task and the medium supports it; export a robust static view when required.
+- Use legends or direct labels according to density and identification clarity.
+- Use white backgrounds by default; use another background only when it improves contrast, grouping, or an established project system.
 - Use charcoal `#3C3C3C` text, not pure black.
-- Remove top/right spines.
-- Remove all gridlines by default.
-- Use clean sans fonts: Helvetica Neue, Helvetica, Arial.
-- Reorder facets by a meaningful metric, never alphabetically.
-- Inspect final exported image and adjust labels manually if needed.
+- Remove top/right spines when they do not carry useful structure.
+- Reduce gridlines when they compete with the data; retain them when they materially aid reading.
+- Use clean sans fonts when compatible with the project and delivery environment.
+- Reorder facets by a meaningful metric when order affects interpretation.
+- Inspect the final exported image at intended delivery size.
 
 ## Background
 
@@ -35,14 +33,7 @@ Default:
 - No panel border.
 - No decorative rectangle.
 
-Bangalore weather family only:
-- Background: `#e5e1d8`
-- Primary/focal: `#490000`
-- Historical bands: `#d4cbaa`
-- Baseline/normal: `#888888`
-- Accent: `#005566`, `#5f3946`, or `firebrick3`
-
-Do not generalize the beige background to unrelated projects.
+Bespoke palettes and templates belong in project-specific profiles. Do not treat one domain family as a universal default.
 
 ## Color
 
@@ -147,23 +138,18 @@ For subjective or illustrative values:
 
 ## Legends
 
-No legends. Ever.
+Use legends or direct labels according to density and identification clarity; no single identification device is universal.
 
-Use direct labels:
+Use direct labels when they fit cleanly:
 - Prefer direct labels over legends whenever the labels can fit cleanly on the chart.
 - End-of-line labels for line charts.
 - `geom_text()` / `annotate()` for small static labels.
 - `ggrepel::geom_text_repel()` for collision-prone labels.
 - Inline visual keys made with annotated segments and text are acceptable.
 
-If a legend feels necessary, rethink the chart:
-- Fewer series.
-- Facet it.
-- Label only focal lines.
-- Use end-of-line labels.
-- Split into small multiples.
+If a legend or other key feels difficult to use, first test whether fewer series, faceting, grouping, or direct labels would improve the mapping; retain the clearest solution for the actual density and medium.
 
-Legends force eye ping-pong and usually signal lazy chart construction.
+If the identification system remains difficult to use, simplify the series, facet, group, or change the form; do not assume one device is always best.
 
 ## Annotations
 
@@ -208,9 +194,9 @@ Rules:
 - Use `scales = "free"` or `scales = "free_y"` when magnitudes differ materially.
 - Keep facet labels bold and readable.
 
-## Chart Type Preferences
+## Chart form selection
 
-Preferred, roughly in order:
+Start from the analytical task and evidence, not a universal preference order. The following are common starting points; override them when another form makes the intended relationship more accurate and legible.
 
 1. Line + point for time series and trend comparison.
 2. Segment/range plots for bands, especially current vs historical range.
@@ -221,13 +207,7 @@ Preferred, roughly in order:
 7. Scatter + smooth for relationships.
 8. Ridgelines for distributions across groups.
 
-Avoid:
-- Pie charts.
-- Donut charts.
-- 3D charts.
-- Radar/spider charts.
-- Stacked bars when comparison matters, especially when the viewer needs to compare trends over time.
-- Interactive charts by default.
+Use the form that best preserves the intended relationship for the audience and medium; commonly risky forms require explicit justification rather than blanket prohibition.
 
 ## Composition
 
@@ -463,10 +443,10 @@ These are deliberate choices.
 
 | Mistake | Fix |
 |---|---|
-| Using beige for every chart | Use white by default. Beige only for Bangalore weather lineage. |
+| Using a project-specific background everywhere | Keep project-specific palettes in their profile; choose the background that supports the current audience and medium. |
 | Using default matplotlib | Override fonts, colors, spines, grid, and background. |
 | Using pure black | Use `#3C3C3C`. |
-| Adding a legend | Direct-label or rethink the chart. |
+| Adding a legend | Choose the clearest identification system for the density and medium. |
 | Keeping gridlines everywhere | Remove all; add subtle horizontal major only if needed. |
 | Alphabetical facets | Reorder by a meaningful metric. |
 | Thick axis lines | Use `linewidth = 0.2-0.3` or remove. |
@@ -477,15 +457,15 @@ These are deliberate choices.
 | Too many annotations | Label only meaningful points. |
 | Overlapping labels | Use ggrepel/adjustText and manually inspect. |
 | Shrinking text to fit | Increase figure size first. |
-| Making charts interactive | Export static PNG/SVG. |
+| Making charts interactive by default | Choose interaction or a static export according to the medium and task. |
 | Using stacked bars for comparison | Use facets, lines, or horizontal bars. |
 
 ## Final Checklist
 
 Before considering a chart done:
 
-- Is it static?
-- Is the background white unless it is a Bangalore weather chart?
+- Is the delivery mode appropriate to the audience and medium?
+- Is the background appropriate to the audience, medium, and project system?
 - Are top/right spines removed?
 - Are gridlines removed or minimal?
 - Is text charcoal, not black?

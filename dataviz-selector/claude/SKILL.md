@@ -9,45 +9,38 @@ Use this before making a chart when the user has a dataset and a question/hypoth
 
 Core job: pick the visual form that makes the intended claim easiest to see and hardest to misread.
 
-Own chart-form and encoding selection only. `karthik-data-visualization` owns palette, typography, spacing, label execution, and rendered-output quality. `chart-annotations` owns what to mark and how to word it.
-
 For non-trivial chart selection, use the workflow and guardrails below; private local references may add nuance, but this public skill is self-contained.
 
 ## Workflow
 
+0. **Disambiguate semantics before choosing a chart:** identify the measure, denominator, displayed universe, relevant time/context boundaries, claim strength, and audience meaning of the units. Choose a form and semantic cues that make the intended comparison hard to misread; do not prescribe a chart type, vocabulary, or annotation when another defensible design communicates the distinction equally well.
+
 1. State the one-sentence claim the chart must support. If there are multiple claims, split into multiple charts.
 2. Identify the comparison: time, peers, baseline, target, counterfactual, distribution, spatial context, model expectation, or decomposition.
 3. Identify the data grain: time series, category, entity, location, event/ball, survey response, model output, simulation, transaction, or scorecard metric.
-4. For time-series charts, inspect shape before choosing annotations: mark visible knee-bends/inflection years, local maxima/minima, and temporary peaks/troughs when they change the story.
+4. Inspect the data's structure for features relevant to the stated claim. Treat apparent breaks, extremes, clusters, or changes as candidates only when they are robust enough, materially informative, and useful at the intended viewing scale; detailed candidate selection belongs to `chart-annotations`.
 5. Choose the simplest chart that exposes that comparison.
-6. Specify only the context layers the comparison requires: label system, event line/band, threshold, uncertainty ribbon, counterfactual, facet, or annotation target.
+- Add only necessary context: direct labels, event line/band, threshold, uncertainty ribbon, counterfactual, facet, or annotation. Detailed annotation selection belongs to `chart-annotations`.
 7. Say what to avoid: misleading axis, overplotting, unnecessary regression, crowded legend, map-for-ranking, stacked bars for precise comparisons, etc.
 8. If generating code, then also apply `karthik-data-visualization` styling before final output.
 
 ## Fast chooser
 
-- Trend/intervention: line + points; vertical marker; optional pre-period trend/counterfactual. Mark knee-bend years where slope visibly changes.
-- S-curve/adoption/diffusion pattern: line with muted raw points/annual values, emphasized smoothed line, labels for takeoff knee, acceleration/deceleration knees, plateau/peak, and any temporary local maximum/minimum. Avoid smooth-only lines that hide turns.
-- Slowing growth: raw line + marked slowdown/knee + dotted earlier-growth projection; avoid YoY as main chart unless technical audience.
+- Trend/intervention: choose a form that exposes level, change, comparison, and uncertainty; add a supported event or baseline context when it changes interpretation.
+- Nonlinear or changing trajectories: show the observations and use a derived summary only when its assumptions and uncertainty remain visible.
+- Slowing growth: show the level and the comparison that establishes slowing; use a derivative or projection only when it answers the stated question and is interpretable to the audience.
 - Forecast/anomaly: actual line, forecast/dashed line, uncertainty ribbon, highlighted anomaly/intervention window.
 - Many comparable series: small multiples or cluster prototypes; avoid spaghetti.
-- If the chart will be consumed in chat or at thumbnail size, reject forms whose identity or comparison system cannot survive that size. Leave colour and label styling to `karthik-data-visualization`.
+- If the chart will be consumed in chat or at thumbnail size, prefer forms that support direct labels and strong contrast; avoid designs that depend on faint colour differences or tiny legends.
+- Choose colour by data role: focal-plus-grey for emphasis, qualitative hues for nominal identity, a perceptually ordered sequential scale for magnitude, and a diverging scale only around a meaningful midpoint. If colour is doing work that position or direct labels could do better, remove it.
 - For slopegraphs, place endpoint labels where they remain paired and legible, then choose the aspect ratio from row density, label geometry, and delivery medium rather than a fixed orientation.
-- For exactly two time points, prefer a slopegraph over a dumbbell if the comparison can be labeled on both ends and the connector line can carry the change; choose a dumbbell only when the paired endpoint values need to be read as discrete markers.
+- For two-point comparisons, choose among slopegraphs, dumbbells, paired bars, dot plots, or tables according to whether the main task is seeing change, comparing endpoint values, or reading exact values. The number of time points alone does not determine the form.
 - Ranking: sorted horizontal bars; bar axis starts at 0; highlight an item only when the question, evidence, or stated story makes it focal. Otherwise keep equal-status items neutral.
 - Composition/share substitution: use 100% stacked bars or areas only when broad mix is the story. Only segments that begin or end on an aligned baseline support precise visual comparison; a fixed-total stack aligns both outer edges, while internal segments still float. If the claim depends on component patterns across periods or groups, use small multiples, grouped bars, dot plots, lines, or a compact table instead.
 - Distribution/skew/tails: histogram, density, ECDF, box, or violin; log scale for income/wealth/power-law data.
 - Relationship: scatter with direct labels; regression only when relationship is the claim and uncertainty is shown.
-- Normalized insight from canonical totals: when the source data's canonical measure is a total and the analysis adds a denominator (population, users, accounts, GDP, area), prefer a scatter of denominator vs total with diagonal iso-lines for the normalized metric. This preserves the original magnitude while showing per-capita/per-unit outliers. Use a ranked bar only when the normalized metric is itself the canonical measure or when ranking alone is the story.
-- Elections: vote-seat scatter, swing-to-seats curves, margin/vote distributions, or selected maps depending on mechanism.
-- Sports mechanism: win-probability/advantage trajectory, phase curves, impact-in-context; avoid scorecard-only visuals.
-- Geography: map only when spatial pattern/shape matters; otherwise sorted bars/table.
-- Survey ordinal shape: faceted rating histograms for polarisation; diverging stacked bars for broad Likert composition.
-- Scenario/simulation: input-output scatter with threshold quadrants, density by alpha, fan/ribbon, or clustered representative paths.
-- Decomposition/root cause: waterfall/bridge, ranked contribution bars, or compact root-cause table.
-- Management scan: scorecard table first, diagnostic chart second, action implication explicit.
-- Model explanation: observable category-rate/scenario-effect charts before coefficient tables.
-- Risk/portfolio: distributions/scenarios/downside tails/utility curves; avoid mean-volatility alone.
+- Normalization: preserve the relationship between numerator and denominator, then choose a form based on whether the task is ranking, scale diagnosis, temporal/spatial variation, or distribution.
+- Domain-specific questions: derive the form from the mechanism, comparison, uncertainty, and audience rather than applying a domain recipe.
 
 ## Output format for recommendations
 
@@ -65,13 +58,15 @@ If implementing: <short code/design note>
 ## Hard guardrails
 
 - One chart, one main job.
-- Do not recommend pie charts, donut charts, 3D charts, gauges, radar/spider charts, or decorative infographic forms when a clearer comparison form exists. Default to static output; use animation or interaction only when change over time, exploration, or monitoring genuinely requires it.
-- Do not recommend dashboards as a substitute for an interpreted story. Dashboards remain valid when the task is repeated monitoring or interactive lookup rather than explanation.
+Treat commonly problematic forms as risk conditions, not universal prohibitions. Recommend the simplest form that preserves the intended comparison in the actual medium. A form that is often misleading may still be appropriate when its purpose, encoding, audience, and limitations are explicit; reject it when it obscures magnitude, comparison, uncertainty, or interpretation.
 - Bars start at zero; scatters need not.
 - Do not extend regression/counterfactual lines beyond defensible range without marking them as projections.
 - Label derived meaning directly when the evidence is a gap, quadrant, cluster, area between curves, knee-bend/inflection, or local maximum/minimum.
-- Reject a form when its identification system cannot pair labels and marks without guesswork at delivery size; choose another form rather than prescribing local label or canvas fixes here.
+- Prefer direct labels to legends.
+- Choose a form in which labels and marks pair without guesswork at delivery size. If the natural baseline pushes labels far from the marks they identify, use a compact row structure, restrained guides, a table-chart hybrid, faceting, or another form that restores immediate traceability.
+- Size the canvas from the information and delivery medium. Whitespace should group, separate, or emphasize; do not retain blank regions merely because the plotting library or source aspect ratio created them.
 - If part-to-whole is requested, prefer sorted bars, 100% stacked bars, tables, or small multiples over pies/donuts. Use stacking only when the reader needs broad composition, not precise component pattern comparison. Direct labels can support lookup of exact values; if comparison remains difficult or labels become crowded, change the form.
 - Use maps only for spatial stories.
 - If a clever chart needs too much explanation, use a simple chart plus annotation.
-- For line charts with obvious slope changes or temporary extrema, do not leave the viewer to infer them. Mark the specific year/period on the chart, but keep markers sparse and defensible.
+- Add a label or annotation only when it materially improves the intended reading; detailed candidate selection and wording belong to `chart-annotations`.
+- Choose between a chart, table, dashboard, or interactive view according to whether the task is monitoring, exploration, comparison, or narrative explanation.

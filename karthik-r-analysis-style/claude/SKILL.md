@@ -20,7 +20,7 @@ Do:
 - Start from the analytical question and unit of analysis, not from a code structure.
 - Let messy facts change the next step.
 - Keep local, disposable objects if they help thinking.
-- Use domain names and metrics even if they are not perfectly generalized.
+- Use domain names and metrics when they are supported by the current question and data; do not treat examples from one notebook family as universal defaults.
 - Clean or transform only what helps answer the next question.
 - Keep caveats near the chunk that revealed them.
 

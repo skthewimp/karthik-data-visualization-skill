@@ -81,7 +81,7 @@ python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" check \
 
 When the user says “only change X”, “keep the rest”, or names elements to preserve, pass that wording through `--preserve` at `start`. The case manager converts it into a required preservation check. Do not leave a literal edit instruction only inside the free-text request: the reviewer cannot enforce prose that was never made a check.
 
-Expand each check across every applicable repeated instance before rendering. Record the expected instance count or locations in `--required`; one successful instance cannot complete a multi-instance change.
+Expand the check across repeated structures before rendering. If one legend, axis, annotation rule, or encoding applies to several panels, facets, rows, or series, name the expected instance count and location in `--required`. Do not treat a successful edit in one panel as completion for the whole chart.
 
 Do not put inferred context into user-supplied fields. Record it separately:
 
@@ -102,6 +102,8 @@ Immediately before spending tokens or starting a renderer, run:
 python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" build-check \
   --session "${HERMES_SESSION_ID}"
 ```
+
+**Repair preflight:** translate any material ambiguity or user correction into an observable check. Use `dataviz-eval` for the semantic and artifact-quality criteria; this skill owns recording the check and carrying it through revisions, not redefining the evaluation standard.
 
 Do not start the build if this preflight stops the case. Record the completed artifact with `iterate` after rendering even if that call crossed a budget; the budget controls the next build, not preservation or independent review of work already done.
 
@@ -202,9 +204,19 @@ Do not give the full diagnosis unless asked. Use it to make the chart.
 
 ### 4. Inspect before sending
 
-Run the full `dataviz-eval` artifact gate on the recorded export. That skill exclusively owns blind reads, evidence scope, outcome gates, release checks, verdict rules, failure codes, scope-aware evaluation, and the minimum pass set. Do not restate or modify its rubric here.
+This is a render → independent evaluate → revise loop. Invoke `dataviz-eval` on the actual recorded export for expert/audience reads, evidence scope, gates, release checks, verdict, and minimum pass set. Keep the long evaluation internal unless the user asks for it.
 
-This skill owns only the loop consequences: carry unresolved actions and active user checks into the next packet, preserve the artifact and context versions, and allow another build only when the recorded verdict and budgets permit it. Review the exact export and every derivative view requested by `dataviz-eval`; never self-approve or substitute a local style preference for its report.
+Every unresolved required action from one evaluation remains active in the next revealed review. Every active, non-superseded user acceptance check is also a first-class release gate with its own id, result, and direct evidence. A later overall gate cannot silently erase either. `Send` is invalid until every carried action and user check explicitly passes.
+
+For a narrow repair, the gate is scope-aware. Judge the requested and changed regions against the full quality standard. In untouched regions, test preservation and regression against the source or latest accepted candidate. Record an unchanged pre-existing defect outside the authorized scope as a baseline concern; do not turn it into a required action unless it blocks the requested correction or leaves the delivered chart materially misleading. A reviewer action may not conflict with an active user check.
+
+Review the exact export in at least three ways when available: the full artifact, a representative delivery-size preview, and deterministic overlapping detail views. A clean overview cannot overrule a collision, weak association, or mapping error in a dense local region.
+
+The independent evaluator owns the release checks and their evidence. The repair case must carry every unresolved action forward, verify that every active user check is explicitly reported, and reject self-approval; it must not copy the evaluator's detailed criteria into this workflow.
+
+Do not replace these principles with chart names, preferred palettes, fixed pixel limits, or thresholds learned from one failed example. Use the failed examples as regression tests only.
+
+This gate covers static rendered deliverables. Keep editable code, slides, or HTML when useful, but record and review the exported PNG, JPEG, SVG, or PDF the user will actually receive.
 
 Follow the verdict:
 
@@ -238,7 +250,7 @@ Do not edit any skill while the case is active. Finish the chart and obtain acce
 
 2. Compare the original, every output, the accepted output, and every user correction. Split a long case into distinct failure episodes; one case may expose separate creator, evaluator, and tooling misses.
    Include the recorded verdicts, failed gates, failure codes, and required actions. User acceptance remains authoritative even when the evaluator recorded a concern.
-3. Classify each distinct failure episode:
+3. Classify the first-output miss:
    - `execution-miss`: an existing rule was clear but not followed;
    - `missing-rule`: no reusable rule covered the correction;
    - `ambiguous-rule`: wording allowed the wrong choice;
@@ -246,7 +258,7 @@ Do not edit any skill while the case is active. Finish the chart and obtain acce
    - `tooling`: image handling, rendering, inspection, or delivery failed;
    - `input-data`: the needed evidence was absent.
 4. Choose one owner for each distinct failure episode. Patch the umbrella `dataviz-fix` skill only when sequencing, logging, revision continuity, or acceptance caused that miss. Patch `dataviz-eval` when the reviewer failed to test or enforce an observable condition. Patch the chart skill when the design principle itself was missing, ambiguous, or conflicting.
-5. Change a skill or runner only when the correction is reusable across structurally different charts and survives a counterexample. Keep one-case lessons in regression fixtures. Do not encode one chart's wording, colours, values, layout, or chart family as a general rule. An execution miss that repeats despite a clear rule is an enforcement or observability problem: add a structured gate, deterministic view, or regression test instead of another prose rule.
+5. Change a skill or runner only when evidence points to a reusable rule, missing tool, or ambiguous instruction. Abstract user feedback one level above its examples: describe the reader's mistaken mental model and the violated relationship between evidence, encoding, context, and claim. Do not turn nouns from one chart, domain, event, unit system, or wording into a standing checklist. Before committing a lesson, test it against at least two unrelated chart situations and remove any clause that only handles the originating example. Keep one-off chart preferences in the case record. An execution miss that repeats despite a clear rule is an enforcement or observability problem: add a structured gate, deterministic view, or regression test instead of another prose rule.
 6. Make the smallest source change that would have produced the accepted result on the first attempt. Update both `codex/SKILL.md` and `claude/SKILL.md`; update a shared reference only when detailed guidance belongs there.
 7. Run `./sync.sh --no-pull --validate-only` in the source repo. Do not commit or push unless the user explicitly asks.
 8. Record the diagnosis:

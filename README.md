@@ -2,7 +2,7 @@
 
 Public data visualization skills for Codex, Claude, and Hermes.
 
-This repo contains thirteen related skills:
+This repo contains thirteen related skills, coordinated as a context-sensitive visualization workflow:
 
 1. **`dataviz-fix`** - iterative repair and learning-loop rules: rebuild a pasted chart, require an independent artifact-hashed review, preserve revisions and feedback, then route reusable lessons to the owning skill.
 2. **`dataviz-eval`** - artifact and creator-system evaluation rules for separate blind review, scoped send/revise/redesign decisions, failure analysis, and regression benchmarks.
@@ -18,7 +18,7 @@ This repo contains thirteen related skills:
 12. **`chart-explainer`** - accompanying-note rules for writing the two lines that travel with a finished chart or table into an email, notebook, or message.
 13. **`karthik-r-analysis-style`** - notebook rules for how an exploratory R scratchpad is written: local precedent, analyst-first probes, tidyverse/tidytable idiom, and the working-note register.
 
-The split is deliberate. The repair-loop skill answers **"rebuild this chart, keep revising it with me, then learn from what I corrected"**. The evaluation skill answers **"does the audience recover the intended question and insight, is the artifact ready to send, and is the creator system improving?"**. The data-cleaning skill answers **"how do we make this source analysable without hiding judgement calls?"**. The question generator answers **"what is worth asking of this raw dataset?"**. The orchestrator answers **"take this from dataset to visual story"**. One skill answers **"what chart should I use?"**. Another answers **"how should this chart look once I have chosen it?"**. The critique skill answers **"what is wrong with this chart, how should it improve, and what alternatives would work better?"**. The PowerPoint skill answers **"how should this analysis become slides?"**. The analysis planner answers **"what exactly are we measuring, against what denominator, and what would falsify the claim?"**. The annotation skill answers **"what should this chart mark, and what should the mark say?"**. The explainer skill answers **"what do I write next to this chart so the reader knows what it says?"**. The R analysis skill answers **"how should the notebook doing all of this be written?"**.
+The split is deliberate. The orchestrator routes the work and preserves handoffs; it does not duplicate every specialist procedure. Planning defines the analytical claim and evidence contract. Cleaning establishes provenance, grain, and data validity. Question generation proposes supported questions. Selection chooses an encoding for the task. Construction implements it. Annotation adds supported context. Explanation communicates the result at calibrated strength. Critique diagnoses interpretive failures. Repair manages bounded revisions and reusable lessons. Evaluation independently verifies semantic, visual, evidentiary, and delivery outcomes.
 
 ## Repository layout
 
@@ -102,7 +102,7 @@ Use this when you have a dataset and a question such as:
 - "Which constituency map shows gerrymandering?"
 - "What chart should I use for this survey result?"
 
-The skill chooses the chart form and explains the encoding. It also has hard guardrails against bad defaults: no pie charts, donut charts, 3D charts, animated charts, interactive charts as the core recommendation, gauges, radar/spider charts, or decorative infographic forms.
+The skill chooses the chart form and explains the encoding. Commonly risky forms are treated as context-dependent choices: assess them against the claim, evidence, audience, medium, density, accessibility, and risk of misinterpretation rather than applying a universal blacklist.
 
 See: [`docs/skills/dataviz-selector.md`](docs/skills/dataviz-selector.md)
 
@@ -114,7 +114,7 @@ See: [`docs/skills/karthik-data-visualization.md`](docs/skills/karthik-data-visu
 
 ### `dataviz-critique`
 
-Use this when you have an existing visual and context such as the intended story, data, audience, or decision, and you want to know what works, what fails, how to improve it, and what 2-3 alternative visualizations would work better.
+Use this when you have an existing visual and context such as the intended story, data, audience, or decision, and you want to know what works, what fails, and how to improve it. Alternatives are proposed only when they address a diagnosed mismatch.
 
 See: [`docs/skills/dataviz-critique.md`](docs/skills/dataviz-critique.md)
 
@@ -155,7 +155,7 @@ See: [`docs/skills/chart-annotations.md`](docs/skills/chart-annotations.md)
 
 ### `chart-explainer`
 
-Use this when a chart or table is finished and someone else has to be told what it says - two lines above a graph in an email, a note per figure in an exploratory notebook, or a line carrying a screenshot into a chat. It enforces a claim with an anchored number plus one payoff, computes numbers from the data rather than reading them off the image, and treats "nothing here" as a legitimate answer instead of manufacturing a finding.
+Use this when a chart or table is finished and someone else has to be told what it says - a concise note above a graph in an email, under a figure in a notebook, or alongside a screenshot in chat. It uses the shortest sufficient explanation, anchors claims to evidence and comparison, and treats "nothing here" as a legitimate answer instead of manufacturing a finding.
 
 See: [`docs/skills/chart-explainer.md`](docs/skills/chart-explainer.md)
 
