@@ -430,3 +430,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - .gitignore | 8 +++-
 
 <!-- codex-session:019f26a5-c9d8-7292-8734-869cb2992a60:end -->
+
+<!-- codex-session:019ff565-7102-71d1-b38d-b03059979603:start -->
+## 2026-08-12 15:24 IST | Codex session `019ff565-710`
+
+### User prompts
+> ok we need to audit all the skills again. using hte local zerodha images for testing. now in the last few iterations, the fixes seemm to be way too specific to the specific cases and feedback and not generic enough. s...
+> ok can you clean up the stuff, putting things in the most important skill? so there is no overlap or contraciction?
+> yeah just push and commit and deploy to hermes
+
+### Work done
+- Review `git diff --stat`; the ownership cleanup is complete. Step 4/4 done: 1. Consolidated responsibilities across all 13 skills. - `dataviz-selector`: form and encoding choice. - `karthik-data-visualization`: visual...
+- Start a new Hermes session to load the updated skill text. Step 3/3 done: 1. Committed `b83b929 refactor(skills): clarify ownership boundaries` 2. Pushed `main` to GitHub. 3. Deployed and verified all 13 Hermes skills...
+
+<!-- codex-session:019ff565-7102-71d1-b38d-b03059979603:end -->
