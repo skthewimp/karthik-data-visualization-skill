@@ -333,6 +333,7 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
 
 ## Development notes
 
+- [`AGENTS.md`](AGENTS.md) contains the maintainer-only publish and Hermes deployment rule. Its remote-host actions do not apply to third-party clones or forks.
 - Source skills live in `<skill>/{codex,claude}/SKILL.md`.
 - `sync-skills.py` discovers every root-level directory containing both surface files.
 - `sync-skills.py --validate-only` checks frontmatter without copying files.

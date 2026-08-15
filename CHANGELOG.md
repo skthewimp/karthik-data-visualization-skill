@@ -44,6 +44,7 @@ All notable public changes to this repository are recorded here.
 - Deployed the exact pushed commit to Hermes, synced the 13 repo skills, registered the stdio server, restarted the gateway, and verified the full suite plus direct MCP protocol tests on the host.
 - Clarified that the MCP renderer is a backend adapter rather than a style system. Project-native renderers are preserved, new Karthik-style static charts prefer R/ggplot2 when available, and metadata support cannot justify translating a sound chart into default-looking Matplotlib.
 - Reworked the root README into an agent entry point with generation and repair reading paths, generic Codex/Claude/Hermes installation, the two-part skills-plus-MCP setup, current renderer limits, security boundaries, and direct links to deeper contracts.
+- Added repo-local Codex and Claude instructions for Karthik's default validate → commit → push → Hermes deployment workflow, with explicit safeguards for third-party clones, unrelated changes, test failures, and remote divergence.
 
 ## 2026-08-12
 

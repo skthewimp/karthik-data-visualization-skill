@@ -54,3 +54,16 @@ def test_public_entrypoint_explains_installation_and_renderer_boundary() -> None
 
     sync_help = (ROOT / "sync.sh").read_text(encoding="utf-8")
     assert "--surface all|codex|claude|hermes" in sync_help
+
+
+def test_maintainer_publish_rule_is_persistent_and_third_party_safe() -> None:
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    claude = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+
+    assert "completed changes" in agents
+    assert "push it to GitHub" in agents
+    assert "Deploy the pushed commit on Hermes" in agents
+    assert "Third-party clones and forks must not push" in agents
+    assert "Do not force-push" in agents
+    assert "An explicit instruction not to commit, push, or deploy overrides" in agents
+    assert "Read and follow [`AGENTS.md`](AGENTS.md)" in claude

@@ -18,6 +18,8 @@
 
 > "make sure the readme is proper so that anyone just pointing their LLM at the repo can get full value"
 
+> "henceforth in this folder, whenever we make some changes, automatically commit and push to github, and deploy on hermes. put that into memory"
+
 ### Work done
 
 - Audited the full skill stack, repair state machine, local runner, tester artifacts, docs, and 39-test baseline before designing the MCP boundary.
@@ -31,6 +33,7 @@
 - Deployed the pushed commit to `server`, synced all 13 repo skills, registered `mcp_servers.karthik_dataviz`, restarted the active gateway, and verified 62 host tests, three direct stdio protocol tests, installed-skill parity, and the packaged case-manager runtime.
 - Separated renderer infrastructure from visual style. The current Matplotlib geometry adapter no longer gets to force backend translation; project-native code is preserved and new Karthik-style static charts prefer R/ggplot2 where available.
 - Turned the root README into a practical entry point for agents and third-party users, including the exact skill reading paths, two-part installation, generic client commands, renderer trade-offs, trust boundary, and current MCP coverage.
+- Added tracked `AGENTS.md` and `CLAUDE.md` repository instructions so completed maintainer changes default to validation, commit, push, and exact-commit Hermes deployment. The rule is scoped away from third-party clones and stops on ambiguous worktrees, failed tests, or unsafe remote state.
 
 ## 2026-08-12 - Scope-safe chart repairs from Hermes feedback
 
