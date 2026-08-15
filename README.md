@@ -230,12 +230,12 @@ On Karthik's Hermes host, use the separate MCP environment and register it in He
 ssh server
 cd /home/karthik/apps/karthik-data-visualization-skill
 git pull --ff-only
-python3 -m venv .venv
+~/.hermes/hermes-agent/venv/bin/python -m venv .venv
 .venv/bin/python -m pip install -e .
 ./sync.sh --no-pull --surface hermes
 ```
 
-The Hermes agent environment currently uses MCP SDK 1.x, while this server requires MCP SDK 2.x. Do not install this package into the agent environment. The exact `~/.hermes/config.yaml` entry and restart/verification commands are in [`dataviz_mcp/README.md`](dataviz_mcp/README.md#deploy-on-karthiks-hermes-host).
+The host's system Python lacks `ensurepip`, so its bundled Hermes Python creates the environment. The new environment is still separate: the Hermes agent environment currently uses MCP SDK 1.x, while this server requires MCP SDK 2.x. Do not install this package into the agent environment. The exact `~/.hermes/config.yaml` entry and restart/verification commands are in [`dataviz_mcp/README.md`](dataviz_mcp/README.md#deploy-on-karthiks-hermes-host).
 
 ## Run the local repair tester
 

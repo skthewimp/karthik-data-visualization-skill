@@ -74,12 +74,12 @@ Pull the committed repository, create the server's isolated MCP environment, ins
 ssh server
 cd /home/karthik/apps/karthik-data-visualization-skill
 git pull --ff-only
-python3 -m venv .venv
-.venv/bin/python -m pip install -e .
+~/.hermes/hermes-agent/venv/bin/python -m venv .venv
+.venv/bin/python -m pip install -e ".[test]"
 ./sync.sh --no-pull --surface hermes
 ```
 
-Use a separate environment here. The Hermes agent environment at `~/.hermes/hermes-agent/venv` currently uses MCP SDK 1.x; the dataviz server requires MCP SDK 2.x. Installing the package into the agent environment would force an avoidable dependency upgrade.
+The host's system Python lacks `ensurepip`, so the command uses Hermes's bundled Python only to create the new environment. The environments remain separate. The Hermes agent environment at `~/.hermes/hermes-agent/venv` currently uses MCP SDK 1.x; the dataviz server requires MCP SDK 2.x. Installing the package into the agent environment would force an avoidable dependency upgrade.
 
 Add this sibling under the existing `mcp_servers:` key in `~/.hermes/config.yaml`:
 

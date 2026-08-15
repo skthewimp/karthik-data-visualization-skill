@@ -23,6 +23,7 @@
 - Added deterministic defect fixtures and a coffee-price regression through the real case state machine: the bad layout reaches `Revise`, the placement-only repair reaches `Send`, and revision comparison records the improvement.
 - Documented the architecture, generation and repair sequences, tool contracts, bundle lifecycle, portable Codex/Claude/Hermes case paths, client registration, coverage limits, and verification process in the same repo.
 - Documented Hermes as two explicit deployment surfaces: synced skills and an isolated MCP 2.x stdio process. The separate environment avoids upgrading the Hermes agent's MCP 1.x dependency.
+- Fixed two deployment issues found on the real host: its system Python lacks `ensurepip`, and the package's test extra omitted the tester's FastAPI dependencies. Hermes's bundled Python now creates a separate environment, and `.[test]` installs the complete suite.
 
 ## 2026-08-12 - Scope-safe chart repairs from Hermes feedback
 

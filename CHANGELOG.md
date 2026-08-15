@@ -40,6 +40,7 @@ All notable public changes to this repository are recorded here.
 - Expanded the coffee regression through the real case state machine: bad geometry reaches `Revise`, the placement-only repair reaches `Send`, and the exact repaired artifact becomes current.
 - Removed the repair skill's Hermes-only runtime assumption. Codex, Claude Code, and Hermes now resolve their own installed case-manager path, retain the returned case id, and use the same versioned workflow.
 - Documented the complete Hermes deployment boundary: skill sync plus a separately isolated MCP 2.x stdio runtime, config registration, gateway restart, and verification.
+- Completed the test extra with the local tester's FastAPI dependencies so `pip install -e ".[test]"` can run the repository's configured full suite on a clean host.
 
 ## 2026-08-12
 
