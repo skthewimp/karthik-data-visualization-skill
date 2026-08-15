@@ -44,7 +44,7 @@ RELEASE_CHECK_NAMES = (
     "Delivery robustness",
 )
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 DEFAULT_MAX_ITERATIONS = 3
 DEFAULT_MAX_STALLED_EVALUATIONS = 2
 ACTIVE_STATES = (
@@ -263,6 +263,11 @@ def validate_review_report(
     expected_sha = iteration["artifact"]["sha256"]
     if report.get("artifact_sha256") != expected_sha:
         raise SystemExit("Review report artifact_sha256 does not match the recorded iteration")
+    expected_inspection_sha = iteration.get("inspection", {}).get("sha256")
+    if expected_inspection_sha and report.get("deterministic_inspection_sha256") != expected_inspection_sha:
+        raise SystemExit(
+            "Review report deterministic_inspection_sha256 does not match the recorded inspection"
+        )
     expected_context_version = iteration.get("context_version", 1)
     if report.get("context_version") != expected_context_version:
         raise SystemExit(
@@ -399,6 +404,7 @@ def validate_review_report(
         "blind_response_sha256": blind_response_sha,
         "iteration": iteration["number"],
         "artifact_sha256": expected_sha,
+        "deterministic_inspection_sha256": expected_inspection_sha,
         "context_version": expected_context_version,
         "scope": scope,
         "tested_size": tested_size,
@@ -1118,7 +1124,40 @@ def cmd_iterate(args: argparse.Namespace) -> None:
             f"{data.get('context_version', 1)}; change the artifact or context before reviewing again"
         )
     ext = source.suffix.lower() or ".bin"
+    manifest_source = None
+    validated_manifest = None
+    validated_sidecars: dict[str, tuple[Path, str]] = {}
+    if args.bundle_manifest:
+        manifest_source = Path(args.bundle_manifest).expanduser().resolve()
+        validated_manifest = read_json(manifest_source)
+        if validated_manifest.get("artifact", {}).get("sha256") != source_sha:
+            raise SystemExit("Render bundle manifest does not match the iteration artifact hash")
+        for key, suffix in (
+            ("chart_spec", "chart-spec.json"),
+            ("layout_metadata", "layout-metadata.json"),
+        ):
+            item = validated_manifest.get(key)
+            if not isinstance(item, dict) or not item.get("path") or not item.get("sha256"):
+                raise SystemExit(f"Render bundle manifest is missing {key}")
+            sidecar_source = Path(item["path"]).expanduser().resolve()
+            if not sidecar_source.is_file() or sha256(sidecar_source) != item["sha256"]:
+                raise SystemExit(f"Render bundle {key} hash does not match its file")
+            validated_sidecars[key] = (sidecar_source, suffix)
+
     artifact = copy_artifact(source, case_dir / f"iteration-{number:02d}{ext}")
+    render_bundle = None
+    if validated_manifest is not None and manifest_source is not None:
+        sidecars: dict[str, dict] = {}
+        for key, (sidecar_source, suffix) in validated_sidecars.items():
+            sidecars[key] = copy_artifact(
+                sidecar_source,
+                case_dir / f"iteration-{number:02d}-{suffix}",
+            )
+        manifest_copy = copy_artifact(
+            manifest_source,
+            case_dir / f"iteration-{number:02d}-manifest.json",
+        )
+        render_bundle = {"manifest": manifest_copy, **sidecars}
     event = {
         "number": number,
         "at": now_iso(),
@@ -1128,6 +1167,8 @@ def cmd_iterate(args: argparse.Namespace) -> None:
         "request_check_count": len(data.get("request_checks", [])),
         "context_version": data.get("context_version", 1),
     }
+    if render_bundle:
+        event["render_bundle"] = render_bundle
     data["iterations"].append(event)
     transition(data, "blind_review", "iterate", "Candidate recorded; independent blind review required", event)
     write_json(path, data)
@@ -1139,6 +1180,81 @@ def cmd_iterate(args: argparse.Namespace) -> None:
                 "path": artifact["path"],
                 "state": data["state"],
                 "budget": budget_status(data),
+            }
+        )
+    )
+
+
+def cmd_inspect(args: argparse.Namespace) -> None:
+    """Attach deterministic inspection evidence to the latest exact iteration."""
+    case_dir = resolve_case(args)
+    case_path = case_dir / "case.json"
+    data = load_case(case_path)
+    require_state(data, ("blind_review",), "record deterministic inspection")
+    if not data["iterations"]:
+        raise SystemExit("Cannot inspect a case with no recorded iteration")
+    iteration = data["iterations"][-1]
+    if iteration.get("inspection"):
+        raise SystemExit(f"Iteration {iteration['number']} already has deterministic inspection")
+    request_path = case_dir / f"review-blind-request-{iteration['number']:02d}.json"
+    if request_path.exists():
+        raise SystemExit("Record deterministic inspection before creating the blind review request")
+    report_path = Path(args.report).expanduser().resolve()
+    report = read_json(report_path)
+    if report.get("artifact", {}).get("sha256") != iteration["artifact"]["sha256"]:
+        raise SystemExit("Inspection report artifact hash does not match the recorded iteration")
+    if not isinstance(report.get("checks_complete"), bool):
+        raise SystemExit("Inspection report checks_complete must be true or false")
+    if not isinstance(report.get("passes_geometry_checks"), bool):
+        raise SystemExit("Inspection report passes_geometry_checks must be true or false")
+    if not isinstance(report.get("defects"), list):
+        raise SystemExit("Inspection report defects must be a list")
+
+    metadata = report.get("layout_metadata")
+    stored_metadata = None
+    if metadata is not None:
+        if not isinstance(metadata, dict) or not metadata.get("path") or not metadata.get("sha256"):
+            raise SystemExit("Inspection report layout_metadata is invalid")
+        source_metadata = Path(metadata["path"]).expanduser().resolve()
+        if not source_metadata.is_file() or sha256(source_metadata) != metadata["sha256"]:
+            raise SystemExit("Inspection layout metadata hash does not match its file")
+        bundled = iteration.get("render_bundle", {}).get("layout_metadata")
+        if bundled and bundled.get("sha256") == metadata["sha256"]:
+            stored_metadata = bundled
+        else:
+            stored_metadata = copy_artifact(
+                source_metadata,
+                case_dir / f"iteration-{iteration['number']:02d}-inspection-layout.json",
+            )
+        report["layout_metadata"] = {
+            "path": stored_metadata["path"],
+            "sha256": stored_metadata["sha256"],
+        }
+
+    report["artifact"]["path"] = iteration["artifact"]["path"]
+    stored_report = case_dir / f"inspection-{iteration['number']:02d}.json"
+    write_json(stored_report, report)
+    inspection = {
+        "path": str(stored_report),
+        "sha256": sha256(stored_report),
+        "checks_complete": report["checks_complete"],
+        "passes_geometry_checks": report["passes_geometry_checks"],
+        "defect_codes": [
+            item.get("code")
+            for item in report["defects"]
+            if isinstance(item, dict) and item.get("code")
+        ],
+        "layout_metadata": stored_metadata,
+    }
+    iteration["inspection"] = inspection
+    data["updated_at"] = now_iso()
+    write_json(case_path, data)
+    print(
+        json.dumps(
+            {
+                "case_id": data["case_id"],
+                "iteration": iteration["number"],
+                "inspection": inspection,
             }
         )
     )
@@ -1216,6 +1332,8 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         "report": {"path": str(stored_report), "sha256": sha256(stored_report)},
         "context_version": report["context_version"],
     }
+    if iterations[iteration_number].get("inspection"):
+        event["deterministic_inspection"] = iterations[iteration_number]["inspection"]
     event["open_required_actions"] = update_open_required_actions(
         carry_actions,
         report["carry_forward_checks"],
@@ -1304,6 +1422,7 @@ def cmd_review_request(args: argparse.Namespace) -> None:
         "artifact": iteration["artifact"]["path"],
         "artifact_sha256": iteration["artifact"]["sha256"],
         "context_version": iteration.get("context_version", 1),
+        "deterministic_inspection": iteration.get("inspection"),
         "dataviz_eval_skill": str(skill_path),
         "blind_response_path": str(blind_response_path),
         "reveal_path": str(reveal_path),
@@ -1313,6 +1432,7 @@ def cmd_review_request(args: argparse.Namespace) -> None:
         "review_instructions": [
             "You are a fresh independent release reviewer, not the chart creator.",
             "Inspect the original and exact delivered artifact; the intent reveal does not exist yet.",
+            "Inspect the artifact visually first, then incorporate deterministic_inspection when present; it is bound to the same artifact hash.",
             "Write reviewer, iteration, artifact_sha256, expert, and audience to blind_response_path.",
             "After saving the blind response, run blind_submit_command to freeze it and create reveal_path.",
             "Then open reveal_path and finish the gate review in this same reviewer context.",
@@ -1415,6 +1535,7 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
             "blind_response_sha256": sha256(blind_response_path),
             "iteration": iteration["number"],
             "artifact_sha256": iteration["artifact"]["sha256"],
+            "deterministic_inspection_sha256": iteration.get("inspection", {}).get("sha256"),
             "context_version": iteration.get("context_version", 1),
             "scope": "<evidence scope, audience, and medium>",
             "tested_size": "<actual or representative viewing condition>",
@@ -1958,7 +2079,18 @@ def build_parser() -> argparse.ArgumentParser:
     add_case_args(iterate)
     iterate.add_argument("--output", required=True)
     iterate.add_argument("--summary", default="")
+    iterate.add_argument(
+        "--bundle-manifest",
+        help="optional render bundle manifest whose spec and layout sidecars match the output hash",
+    )
     iterate.set_defaults(func=cmd_iterate)
+
+    inspect = sub.add_parser(
+        "inspect", help="attach deterministic inspection evidence to the latest iteration"
+    )
+    add_case_args(inspect)
+    inspect.add_argument("--report", required=True)
+    inspect.set_defaults(func=cmd_inspect)
 
     evaluate = sub.add_parser("evaluate", help="record a dataviz-eval verdict for an iteration")
     add_case_args(evaluate)

@@ -11,4 +11,6 @@ The skill coordinates the existing suite:
 - `karthik-data-visualization` for Karthik's chart aesthetic.
 - `dataviz-critique` for rendered-output review and iteration.
 
+After rendering, the workflow uses deterministic artifact inspection when available, binds it to the export hash, and fixes concrete geometry defects before broader critique or release evaluation. Raster-only inspection does not prove that layout checks passed.
+
 Default output: code/notebook with visible cleaning rules, exported chart, compact facts table, one-sentence claim, and caveats.

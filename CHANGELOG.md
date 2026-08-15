@@ -21,6 +21,21 @@
 
 All notable public changes to this repository are recorded here.
 
+## 2026-08-15
+
+### Added
+
+- Added a local stdio MCP server with three mechanical capabilities: render a trusted Matplotlib builder into a versioned bundle, inspect the exact raster with renderer geometry, and compare two inspected revisions.
+- Added layout metadata for plot bounds, text and annotation boxes, line paths, legends, and data-to-pixel transforms. Inspection reports clipping, canvas overflow, annotation collisions, annotation-series intersections, text margins, and long unwrapped labels.
+- Added deterministic fixtures for each failure mode plus an end-to-end coffee-price annotation repair that fails its first inspection and passes after a placement-only revision.
+
+### Changed
+
+- Extended repair-loop cases to preserve render manifests, chart specs, layout metadata, and artifact-hashed inspection reports. Independent evaluations must reference the same inspection hash when one exists.
+- Updated the local runner to attach inspection evidence before blind review. Metadata-aware builders receive complete geometry checks; raster-only candidates retain explicit unknowns.
+- Added minimal orchestrator, evaluator, and fixer instructions requiring exact-artifact inspection without moving analytical or visual judgement into MCP.
+- Documented the architectural boundary, hash/version flow, tool contracts, Codex and Claude Code setup, supported geometry, honest unknown states, repair sequence, and end-to-end test procedure.
+
 ## 2026-08-12
 
 ### Changed

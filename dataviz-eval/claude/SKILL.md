@@ -71,6 +71,8 @@ Do not invent a fixed display width. If the exact size is unknown, use a represe
 
 Treat the export as the source of truth. Do not approve a browser viewport, plotting window, HTML source, or code path that differs from the delivered media file. For a chat workflow, evaluate the exact PNG, JPEG, SVG, or PDF that will be attached.
 
+When deterministic render inspection is available, require its artifact hash to match this export and record the inspection hash in the evaluation. Use complete metadata-backed failures as evidence for the relevant release checks and minimum pass set. An incomplete raster-only report leaves geometry checks unknown; it cannot support a pass. Deterministic checks supply mechanical evidence but never decide the analytical or communication verdict.
+
 ### 3. Run an expert blind read
 
 Without using the stated intent, record:

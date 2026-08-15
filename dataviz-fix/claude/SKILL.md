@@ -206,6 +206,8 @@ Do not give the full diagnosis unless asked. Use it to make the chart.
 
 This is a render → independent evaluate → revise loop. Invoke `dataviz-eval` on the actual recorded export for expert/audience reads, evidence scope, gates, release checks, verdict, and minimum pass set. Keep the long evaluation internal unless the user asks for it.
 
+Before requesting the independent review, use any available deterministic artifact-inspection capability on the exact recorded export. Preserve its artifact-bound report with the iteration. Repair its concrete mechanical defects first and keep unrelated passing regions unchanged; do not treat a collision or clipping report as permission to redesign the chart. If only raster inspection is possible, record the missing geometry evidence instead of converting it into a pass.
+
 Every unresolved required action from one evaluation remains active in the next revealed review. Every active, non-superseded user acceptance check is also a first-class release gate with its own id, result, and direct evidence. A later overall gate cannot silently erase either. `Send` is invalid until every carried action and user check explicitly passes.
 
 For a narrow repair, the gate is scope-aware. Judge the requested and changed regions against the full quality standard. In untouched regions, test preservation and regression against the source or latest accepted candidate. Record an unchanged pre-existing defect outside the authorized scope as a baseline concern; do not turn it into a required action unless it blocks the requested correction or leaves the delivered chart materially misleading. A reviewer action may not conflict with an active user check.

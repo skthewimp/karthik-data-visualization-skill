@@ -5,6 +5,7 @@ import time
 import unittest
 import re
 import os
+import base64
 from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
@@ -14,6 +15,11 @@ from PIL import Image
 from tester.local_runner import LocalCodexRunner, safe_environment
 
 
+PNG_1X1 = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
+
+
 class FakeCaseManager:
     def __init__(self, root: Path):
         self.root = root
@@ -21,7 +27,7 @@ class FakeCaseManager:
         self.case_dir = root / "cases" / self.case_id
         self.case_dir.mkdir(parents=True)
         original = self.case_dir / "original.png"
-        original.write_bytes(b"original")
+        original.write_bytes(PNG_1X1)
         self.data = {
             "case_id": self.case_id,
             "state": "build",
@@ -54,6 +60,13 @@ class FakeCaseManager:
             request = self.case_dir / "review-blind-request-01.json"
             request.write_text("{}", encoding="utf-8")
             return {"request": str(request)}
+        if args[0] == "inspect":
+            report = Path(str(args[args.index("--report") + 1]))
+            self.data["iterations"][-1]["inspection"] = {
+                "path": str(report),
+                "sha256": "inspection-sha",
+            }
+            return {}
         if args[0] == "evaluate":
             self.data["evaluations"].append({"iteration": 1, "verdict": "Revise"})
             self.data["state"] = "revise"
@@ -98,9 +111,9 @@ class LocalRunnerTests(unittest.TestCase):
                     match = re.search(r"Render exactly one real PNG to (.+?) and inspect", prompt)
                     self.assertIsNotNone(match)
                     artifact = Path(match.group(1))
-                    artifact.write_bytes(b"candidate")
+                    artifact.write_bytes(PNG_1X1)
                 else:
-                    self.assertEqual(len(images), 2)
+                    self.assertEqual(len(images), 4)
                     (client.case_dir / "review-response-01.json").write_text("{}", encoding="utf-8")
                     client.data["state"] = "context_reveal"
                 return {
@@ -124,7 +137,15 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertEqual(client.data["state"], "revise")
             self.assertEqual(
                 [call[0] for call in client.calls],
-                ["build-check", "usage", "iterate", "review-request", "usage", "evaluate"],
+                [
+                    "build-check",
+                    "usage",
+                    "iterate",
+                    "inspect",
+                    "review-request",
+                    "usage",
+                    "evaluate",
+                ],
             )
 
     def test_usage_parser_uses_completed_turn(self) -> None:
@@ -189,6 +210,7 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertNotIn("the prompt", command)
             self.assertEqual(kwargs["input"], "the prompt")
             self.assertEqual(kwargs["env"]["MPLCONFIGDIR"], str(client.case_dir / ".matplotlib"))
+            self.assertEqual(kwargs["env"]["PYTHONPATH"], str(runner.repo_root))
             self.assertEqual(kwargs["env"]["XDG_CACHE_HOME"], str(client.case_dir / ".cache"))
 
     def test_reasoning_effort_can_be_overridden_for_fast_local_runs(self) -> None:

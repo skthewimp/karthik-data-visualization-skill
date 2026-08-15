@@ -54,6 +54,8 @@ A downstream stage may reject or narrow an upstream artifact, but must state the
 - Do not deliver until the exact artifact has been inspected under its intended delivery condition and the applicable evaluation gate passes.
 - Stop when the stated pass line is met; do not keep revising for taste.
 
+When a deterministic artifact-inspection capability is available, run it on the exact export before critique, evaluation, or delivery. Prefer renderer metadata bound to the artifact hash; raster-only inspection leaves geometry checks unknown. Repair reported mechanical defects through the owning implementation or annotation stage before reopening broader design choices.
+
 ### 5. Output package
 
 Leave behind only the artifacts useful for reproduction and review: source/analysis code, prepared-data notes when needed, facts table, chart specification, exported media, and evaluation or caveat note. Keep one-off preferences and domain examples in the case record or optional references, not in this orchestration layer.

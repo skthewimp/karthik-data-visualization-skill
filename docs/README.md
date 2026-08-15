@@ -20,6 +20,7 @@ Human-facing documentation for the public data visualization skills. Start here 
 
 ## Project notes
 
+- [`mcp.md`](mcp.md) - the boundary between skill judgement and deterministic rendering/inspection capabilities
 - [`../CHANGELOG.md`](../CHANGELOG.md) - release-style summary of public repo changes
 - [`../DEVLOG.md`](../DEVLOG.md) - session devlog with prompts and work done
 - [`blog/`](blog/) - longer project writeups

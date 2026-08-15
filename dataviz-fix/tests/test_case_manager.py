@@ -1,4 +1,5 @@
 import json
+import hashlib
 import os
 import subprocess
 import tempfile
@@ -91,6 +92,7 @@ class CaseManagerTest(unittest.TestCase):
         acceptance_result="Pass",
         insight_result=None,
         omit_release_stress_test=False,
+        inspection_sha_override=None,
         ok=True,
     ):
         request_output = self.run_cli("review-request", "--session", "test-session")
@@ -147,6 +149,11 @@ class CaseManagerTest(unittest.TestCase):
             "blind_response_sha256": reveal["blind_response_sha256"],
             "iteration": iteration["number"],
             "artifact_sha256": iteration["artifact"]["sha256"],
+            "deterministic_inspection_sha256": (
+                inspection_sha_override
+                if inspection_sha_override is not None
+                else iteration.get("inspection", {}).get("sha256")
+            ),
             "context_version": iteration.get("context_version", 1),
             "scope": "Source fidelity at screen size",
             "tested_size": "1200 px wide",
@@ -184,6 +191,108 @@ class CaseManagerTest(unittest.TestCase):
             ok=ok,
         )
         return json.loads(output.stdout) if ok else output
+
+    def test_render_bundle_and_inspection_are_bound_to_exact_iteration(self):
+        self.start()
+        candidate = self.write_png("candidate.png", b"candidate")
+        artifact_sha = hashlib.sha256(candidate.read_bytes()).hexdigest()
+        spec = self.root / "chart-spec.json"
+        layout = self.root / "layout-metadata.json"
+        spec.write_text('{"renderer":"matplotlib"}', encoding="utf-8")
+        layout.write_text('{"coordinate_system":"pixels"}', encoding="utf-8")
+        manifest = self.root / "manifest.json"
+        manifest.write_text(
+            json.dumps(
+                {
+                    "artifact": {"path": str(candidate), "sha256": artifact_sha},
+                    "chart_spec": {
+                        "path": str(spec),
+                        "sha256": hashlib.sha256(spec.read_bytes()).hexdigest(),
+                    },
+                    "layout_metadata": {
+                        "path": str(layout),
+                        "sha256": hashlib.sha256(layout.read_bytes()).hexdigest(),
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.run_cli(
+            "iterate",
+            "--session",
+            "test-session",
+            "--output",
+            candidate,
+            "--bundle-manifest",
+            manifest,
+        )
+        recorded = self.status()["iterations"][-1]
+        inspection = self.root / "inspection.json"
+        inspection.write_text(
+            json.dumps(
+                {
+                    "artifact": {
+                        "path": str(candidate),
+                        "sha256": recorded["artifact"]["sha256"],
+                    },
+                    "layout_metadata": {
+                        "path": str(layout),
+                        "sha256": hashlib.sha256(layout.read_bytes()).hexdigest(),
+                    },
+                    "checks_complete": True,
+                    "passes_geometry_checks": False,
+                    "defects": [
+                        {
+                            "code": "ANNOTATION_SERIES_COLLISION",
+                            "severity": "high",
+                            "element_ids": ["event", "series"],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.run_cli(
+            "inspect", "--session", "test-session", "--report", inspection
+        )
+        recorded = self.status()["iterations"][-1]
+        self.assertTrue(Path(recorded["render_bundle"]["chart_spec"]["path"]).is_file())
+        self.assertEqual(
+            recorded["inspection"]["defect_codes"],
+            ["ANNOTATION_SERIES_COLLISION"],
+        )
+        request = json.loads(
+            self.run_cli("review-request", "--session", "test-session").stdout
+        )
+        packet = json.loads(Path(request["request"]).read_text(encoding="utf-8"))
+        self.assertEqual(
+            packet["deterministic_inspection"]["sha256"],
+            recorded["inspection"]["sha256"],
+        )
+
+    def test_evaluation_rejects_the_wrong_deterministic_inspection_hash(self):
+        self.start()
+        candidate = self.write_png("candidate.png", b"candidate")
+        self.iterate(candidate)
+        iteration = self.status()["iterations"][-1]
+        inspection = self.root / "inspection.json"
+        inspection.write_text(
+            json.dumps(
+                {
+                    "artifact": iteration["artifact"],
+                    "layout_metadata": None,
+                    "checks_complete": False,
+                    "passes_geometry_checks": False,
+                    "defects": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.run_cli("inspect", "--session", "test-session", "--report", inspection)
+        rejected = self.review(
+            "Revise", inspection_sha_override="0" * 64, ok=False
+        )
+        self.assertIn("deterministic_inspection_sha256", rejected.stderr)
 
     def test_duplicate_artifact_is_rejected_under_same_context(self):
         self.start()
@@ -652,7 +761,7 @@ class CaseManagerTest(unittest.TestCase):
         case["state"] = "active"
         case_path.write_text(json.dumps(case), encoding="utf-8")
         status = self.status()
-        self.assertEqual(status["schema_version"], 9)
+        self.assertEqual(status["schema_version"], 10)
         self.assertEqual(status["state"], "build")
         self.assertEqual(status["context_version"], 1)
         self.assertEqual(status["limits"]["max_iterations"], 3)

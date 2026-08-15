@@ -64,6 +64,7 @@ The split is deliberate. The orchestrator routes the work and preserves handoffs
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── tester/                          # Local repair-loop case console
+├── dataviz_mcp/                     # Local stdio MCP: render, inspect, compare
 ├── docs/                            # Human docs; subfolder READMEs explain contents
 ├── sync-skills.py                   # Install Codex/Claude or the explicit Hermes surface
 └── sync.sh                          # Pull + install wrapper
@@ -237,6 +238,27 @@ Open `http://127.0.0.1:8787`. This development server has no authentication. Kee
 Set `DATAVIZ_ENABLE_LOCAL_RUNNER=1` before starting the server to enable one bounded local creator-plus-reviewer cycle per click.
 
 See [`tester/README.md`](tester/README.md) and the [`repair-loop product roadmap`](docs/plans/dataviz-repair-product-roadmap.md).
+
+## Run the local MCP server
+
+The metadata-first MCP server exposes deterministic chart rendering, exact-artifact geometry inspection, and revision comparison. It leaves analytical and visual judgement in the skills.
+
+```bash
+python3 -m pip install -e .
+python3 -m dataviz_mcp
+```
+
+Register the installed server with Codex or Claude Code using the same virtual-environment interpreter:
+
+```bash
+codex mcp add karthik-dataviz -- \
+  /Users/Karthik/envs/datascience/.venv/bin/python -m dataviz_mcp
+
+claude mcp add --scope user karthik-dataviz -- \
+  /Users/Karthik/envs/datascience/.venv/bin/python -m dataviz_mcp
+```
+
+See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, version guarantees, inspection coverage, and tested repair sequence. See [`dataviz_mcp/README.md`](dataviz_mcp/README.md) for installation, client registration, tool parameters, the chart-builder contract, and the local security boundary.
 
 ## Validation and red-team prompts
 

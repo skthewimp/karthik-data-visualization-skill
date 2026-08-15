@@ -19,5 +19,6 @@ dist/
 .DS_Store
 __pycache__/
 *.pyc
+*.egg-info/
 .dataviz-tester/
 tester-outputs/

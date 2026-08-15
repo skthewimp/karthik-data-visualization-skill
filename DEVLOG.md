@@ -8,6 +8,8 @@
 
 > "I care more about a useful inspection primitive than about fancy MCP completeness."
 
+> "properly document all the process and changes, and then commit and push. all in the same repo only"
+
 ### Work done
 
 - Audited the full skill stack, repair state machine, local runner, tester artifacts, docs, and 39-test baseline before designing the MCP boundary.
@@ -15,6 +17,7 @@
 - Made render metadata the primary geometry source and the exact PNG the source for dimensions, hashes, and pixel comparison. Raster-only inspection now stays explicitly incomplete.
 - Bound render bundles and inspection reports into case schema 10, including the exact inspection hash required by independent evaluation.
 - Added deterministic defect fixtures and a coffee-price repair regression, inspected both generated PNGs, and installed the editable server in the active datascience environment.
+- Documented the architecture, tool contracts, bundle lifecycle, client registration, coverage limits, repair integration, and verification process in the same repo.
 
 ## 2026-08-12 - Scope-safe chart repairs from Hermes feedback
 

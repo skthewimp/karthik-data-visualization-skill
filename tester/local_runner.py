@@ -12,7 +12,9 @@ from statistics import median
 from typing import Any
 from uuid import uuid4
 
-from PIL import Image
+from dataviz_mcp.artifacts import read_json, sha256_file
+from dataviz_mcp.inspection import inspect_rendered_chart
+from dataviz_mcp.review_views import build_review_views
 
 
 RUNNABLE_STATES = ("build", "revise", "redesign")
@@ -185,7 +187,7 @@ class LocalCodexRunner:
             self._record_usage(case_id, "creator", iteration_number, usage)
             if not candidate_path.is_file():
                 raise RuntimeError(f"Creator did not write the required artifact: {candidate_path}")
-            self.client.run(
+            iterate_args: list[object] = [
                 "iterate",
                 "--case",
                 case_id,
@@ -193,12 +195,37 @@ class LocalCodexRunner:
                 candidate_path,
                 "--summary",
                 "Local runner candidate",
-            )
+            ]
+            manifest_path = case_dir / "manifest.json"
+            layout_path: Path | None = None
+            if manifest_path.is_file():
+                try:
+                    manifest = read_json(manifest_path)
+                    if manifest.get("artifact", {}).get("sha256") == sha256_file(candidate_path):
+                        iterate_args.extend(("--bundle-manifest", manifest_path))
+                        layout_path = Path(manifest["layout_metadata"]["path"])
+                except (KeyError, TypeError, ValueError):
+                    layout_path = None
+            self.client.run(*iterate_args)
             case = self.client.status(case_id)
             if case["state"] != "blind_review" or len(case["iterations"]) < iteration_number:
                 raise RuntimeError(
                     "Creator finished without recording exactly one candidate through case_manager.py"
                 )
+            recorded_artifact = Path(case["iterations"][-1]["artifact"]["path"])
+            inspection_path = case_dir / f"runner-{job_id}-inspection-{iteration_number:02d}.json"
+            inspect_rendered_chart(
+                str(recorded_artifact),
+                str(layout_path) if layout_path else None,
+                str(inspection_path),
+            )
+            self.client.run(
+                "inspect",
+                "--case",
+                case_id,
+                "--report",
+                inspection_path,
+            )
 
             self._event(job_id, "reviewer", f"Preparing blind review for candidate {iteration_number}")
             request = self.client.run("review-request", "--case", case_id)
@@ -313,6 +340,7 @@ class LocalCodexRunner:
                 {
                     "DATAVIZ_FIX_ROOT": str(self.client.root),
                     "MPLCONFIGDIR": str(matplotlib_root),
+                    "PYTHONPATH": str(self.repo_root),
                     "XDG_CACHE_HOME": str(cache_root),
                 }
             ),
@@ -408,7 +436,7 @@ Inspect the recorded context and acceptance checks. Work only inside {case_dir}.
 
 Treat the active change and preservation checks as the edit boundary. Make each literal requested removal, addition, and relocation; do not retain or restore a forbidden element as a fallback. Expand shared edits across every applicable panel, facet, row, or series; do not stop after fixing one repeated instance. Preserve untouched elements unless a dependent adjustment is necessary for the requested change.
 
-Python, Matplotlib, NumPy, and Pillow are available with writable cache directories already configured. Prefer one Python rendering script. Use no more than six shell calls; do not install packages, probe alternative renderers, or compile another language. An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Copy an artifact unchanged only when no active correction or unresolved evaluator action requires a change.
+Python, Matplotlib, NumPy, Pillow, and this repo's `dataviz_mcp` package are available with writable cache directories already configured. Prefer one Python rendering script with a `build_chart()` function. When practical, call `dataviz_mcp.rendering.render_chart` with output_dir `{case_dir}` and artifact_name `{candidate_path.name}` so the wrapper can preserve render metadata and run complete geometry checks. Tag annotation and series artists with stable gids such as `annotation:event-id` and `series:metric-id`. Use no more than six shell calls; do not install packages, probe alternative renderers, or compile another language. An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Copy an artifact unchanged only when no active correction or unresolved evaluator action requires a change.
 """
 
     @staticmethod
@@ -427,42 +455,18 @@ Python, Matplotlib, NumPy, and Pillow are available with writable cache director
     ) -> list[Path]:
         """Add deterministic delivery and detail views of the exact candidate."""
         images = [source, artifact]
-        try:
-            with Image.open(artifact) as opened:
-                exact = opened.convert("RGB")
-
-            preview = exact.copy()
-            preview.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+        views = build_review_views(
+            artifact,
+            case_dir,
+            f"review-{iteration:02d}",
+        )
+        if views:
+            # Retain the historical filenames used by case packets and tests.
             preview_path = case_dir / f"review-delivery-{iteration:02d}.png"
-            preview.save(preview_path)
-
-            width, height = exact.size
-            crop_width = max(1, min(width, round(width * 0.6)))
-            crop_height = max(1, min(height, round(height * 0.6)))
-            starts = (
-                (0, 0),
-                (max(0, width - crop_width), 0),
-                (0, max(0, height - crop_height)),
-                (max(0, width - crop_width), max(0, height - crop_height)),
-            )
-            crops: list[Image.Image] = []
-            for left, top in starts:
-                crop = exact.crop((left, top, left + crop_width, top + crop_height))
-                crop.thumbnail((900, 900), Image.Resampling.LANCZOS)
-                crops.append(crop)
-            gap = 12
-            cell_width = max(crop.width for crop in crops)
-            cell_height = max(crop.height for crop in crops)
-            sheet = Image.new("RGB", (cell_width * 2 + gap, cell_height * 2 + gap), "white")
-            for index, crop in enumerate(crops):
-                x = (index % 2) * (cell_width + gap)
-                y = (index // 2) * (cell_height + gap)
-                sheet.paste(crop, (x, y))
             detail_path = case_dir / f"review-details-{iteration:02d}.png"
-            sheet.save(detail_path)
+            views[0].replace(preview_path)
+            views[1].replace(detail_path)
             images.extend((preview_path, detail_path))
-        except (OSError, ValueError):
-            pass
         return images
 
     def _reviewer_prompt(
@@ -475,6 +479,8 @@ Python, Matplotlib, NumPy, and Pillow are available with writable cache director
 You are a fresh independent reviewer for case {case_id}, iteration {iteration}. You did not create the chart. The first attached image is the source; the second is the exact delivered candidate. When present, the third is a representative delivery-size preview and the fourth is an overlapping four-region detail sheet derived deterministically from that exact candidate. Inspect every supplied view. A clean full view cannot override a collision, mismatch, or ambiguity visible in a delivery or detail view.
 
 Open only the blind request at {request_path}. Do not open case.json, creator files, or any reveal file before freezing the blind read. Follow the request exactly: write the blind response, run `DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} blind-submit --case {case_id}`, then open the generated reveal and complete its response template with artifact-specific evidence. Do not run evaluate; the wrapper will validate and record your response after your process exits.
+
+Inspect the artifact visually before opening any deterministic inspection named in the blind request. Then incorporate that exact-hash inspection result. A complete failing geometry check cannot be overridden by a clean-looking overview; an incomplete raster-only report is unknown, not a pass.
 
 When completing the revealed response, copy both saved `blind_reads` strings byte-for-byte from the frozen blind response. Do not shorten, paraphrase, correct, or otherwise rewrite them after intent is revealed.
 

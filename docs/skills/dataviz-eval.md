@@ -13,6 +13,8 @@ The rebuilt skill evaluates the complete path from evidence and intent to what t
 
 The evaluator first inspects the actual deliverable at its real viewing size. A browser preview or plotting window is not enough. Telegram thumbnails, slide distance, exported dimensions, and PDF rendering can introduce failures that do not exist in the editor.
 
+When renderer metadata exists, the evaluator also receives a deterministic inspection report tied to the same artifact hash. Complete clipping or collision failures become evidence for the release checks; an incomplete raster-only report remains unknown. The report helps with mechanical failures but does not decide whether the chart asks the right question or communicates the right point.
+
 It then gives the source and artifact to a fresh reviewer and saves two blind reads before revealing the intended message, audience, medium, or active corrections. The chart creator cannot issue its own `Send`; creator reasoning, claimed fixes, preferred verdict, and code are withheld throughout.
 
 - **Expert read:** What question and point does the artifact appear to communicate? Do the title, metrics, form, labels, highlights, and notes agree? Are there evidence or rendering problems?
