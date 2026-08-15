@@ -495,3 +495,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - .gitignore | 1 +
 
 <!-- codex-session:01a004f8-6490-7812-9a21-1e1cb2166794:end -->
+
+<!-- codex-session:01a005d3-ca03-7a21-930e-1d5d62205760:start -->
+## 2026-08-15 19:59 IST | Codex session `01a005d3-ca0`
+
+### User prompts
+> check the latest dataviz-fix on hermes. i'm not happy with this at all. seems like it has done nothing. the person who had sent me the chart had sent me this feedback about the origial chart. Issues with the top chart...
+> so oinly the skills got changed? how do we make sure this doesn't happen? so many times i've got this "agent ignored existing rules". look into history you can see
+> how do i trust you this time, when you've told me several times b efore that you've fixed it? like even the previous iteration didnt work. exact same (poor) result happened.
+
+### Work done
+- Step 2/4 done: 53 workflow tests pass, including hard failure when the writing skill is missing and rejection when either presentation gate is absent or non-pass. Next: run the full repository validation.
+- Step 3/4 done: all 80 tests pass; skill-bundle validation and `git diff --check` pass. Next: publish this generic workflow fix and deploy the exact commit to Hermes.
+
+<!-- codex-session:01a005d3-ca03-7a21-930e-1d5d62205760:end -->
