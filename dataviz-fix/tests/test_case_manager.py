@@ -35,6 +35,13 @@ RELEASE_CHECKS = (
     "Encoding semantics",
     "Delivery robustness",
 )
+SEMANTIC_DIMENSIONS = (
+    "measure",
+    "time_context",
+    "universe_denominator",
+    "claim_strength",
+    "audience_units",
+)
 
 
 class CaseManagerTest(unittest.TestCase):
@@ -78,6 +85,37 @@ class CaseManagerTest(unittest.TestCase):
             "creator-agent",
             *extra,
         )
+        started = json.loads(output.stdout)
+        self.record_semantic_preflight()
+        return started
+
+    def record_semantic_preflight(self, result="clear"):
+        status = self.status()
+        report = self.root / f"semantic-preflight-v{status['context_version']}.json"
+        report.write_text(
+            json.dumps(
+                {
+                    "context_version": status["context_version"],
+                    "dimensions": {
+                        name: {
+                            "result": result,
+                            "observed": f"Observed {name}",
+                            "risk": f"Risk assessed for {name}",
+                            "required": f"Required delivered state for {name}",
+                        }
+                        for name in SEMANTIC_DIMENSIONS
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        output = self.run_cli(
+            "semantic-preflight",
+            "--session",
+            "test-session",
+            "--report",
+            report,
+        )
         return json.loads(output.stdout)
 
     def status(self):
@@ -104,6 +142,7 @@ class CaseManagerTest(unittest.TestCase):
         insight_result=None,
         omit_release_stress_test=False,
         inspection_sha_override=None,
+        semantic_result="Pass",
         ok=True,
     ):
         request_output = self.run_cli("review-request", "--session", "test-session")
@@ -139,6 +178,15 @@ class CaseManagerTest(unittest.TestCase):
             }
             for name in RELEASE_CHECKS
         }
+        semantic_checks = {
+            name: {
+                "result": semantic_result,
+                "misleading_interpretation": f"Competing reading for {name}",
+                "defensible_interpretation": f"Supported reading for {name}",
+                "evidence": f"Direct semantic evidence for {name}",
+            }
+            for name in SEMANTIC_DIMENSIONS
+        }
         if omit_release_stress_test:
             release_checks["Visual integrity"].pop("stress_test")
         codes = []
@@ -170,6 +218,7 @@ class CaseManagerTest(unittest.TestCase):
             "tested_size": "1200 px wide",
             "blind_reads": {"expert": blind["expert"], "audience": blind["audience"]},
             "gates": gates,
+            "semantic_checks": semantic_checks,
             "release_checks": release_checks,
             "carry_forward_checks": [
                 {
@@ -641,6 +690,7 @@ class CaseManagerTest(unittest.TestCase):
         payload = json.loads(updated.stdout)
         self.assertEqual(payload["context_version"], 2)
         self.assertEqual(payload["state"], "revise")
+        self.record_semantic_preflight()
         second = self.iterate(candidate, "Same artifact under changed context")
         self.assertEqual(second["iteration"], 2)
         status = self.status()
@@ -663,11 +713,14 @@ class CaseManagerTest(unittest.TestCase):
         status = self.status()
         self.assertIn("cancelled_at", status["iterations"][0])
         self.assertTrue(Path(status["iterations"][0]["artifact"]["path"]).exists())
+        self.record_semantic_preflight()
         second = self.iterate(candidate, "Reassess under context version 2")
         self.assertEqual(second["iteration"], 2)
 
     def test_reveal_uses_versioned_context_and_provenance(self):
         self.start(
+            "--context-source",
+            "user",
             "--audience",
             "General reader",
             "--purpose",
@@ -775,6 +828,38 @@ class CaseManagerTest(unittest.TestCase):
         )
         self.assertIn("case state is 'blind_review'", rejected.stderr)
 
+    def test_iteration_requires_current_semantic_preflight(self):
+        self.run_cli(
+            "start",
+            "--session",
+            "test-session",
+            "--image",
+            self.original,
+            "--creator",
+            "creator-agent",
+        )
+        rejected = self.run_cli(
+            "iterate",
+            "--session",
+            "test-session",
+            "--output",
+            self.write_png("candidate.png", b"candidate"),
+            ok=False,
+        )
+        self.assertIn("five-part semantic preflight", rejected.stderr)
+
+    def test_structured_intake_context_defaults_to_inferred(self):
+        self.start("--audience", "General reader", "--message", "A directional claim")
+        context = self.status()["context"]["fields"]
+        self.assertEqual(context["audience"]["source"], "inferred")
+        self.assertEqual(context["message"]["source"], "inferred")
+
+    def test_send_requires_every_semantic_dimension_to_pass(self):
+        self.start()
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        result = self.review("Send", semantic_result="Concern", ok=False)
+        self.assertIn("Send requires", result.stderr)
+
     def test_send_requires_every_active_user_acceptance_check_to_pass(self):
         self.start()
         self.run_cli(
@@ -859,7 +944,7 @@ class CaseManagerTest(unittest.TestCase):
         self.assertEqual([item["id"] for item in second["acceptance_checks"]], ["f1"])
 
     def test_noop_context_update_does_not_create_a_new_version(self):
-        self.start("--audience", "General reader")
+        self.start("--context-source", "user", "--audience", "General reader")
         result = self.run_cli(
             "context",
             "--session",
@@ -890,7 +975,7 @@ class CaseManagerTest(unittest.TestCase):
         case["state"] = "active"
         case_path.write_text(json.dumps(case), encoding="utf-8")
         status = self.status()
-        self.assertEqual(status["schema_version"], 10)
+        self.assertEqual(status["schema_version"], 11)
         self.assertEqual(status["state"], "build")
         self.assertEqual(status["context_version"], 1)
         self.assertEqual(status["limits"]["max_iterations"], 3)

@@ -12,6 +12,7 @@ The skill keeps the original chart, each rendered revision, the user's correctio
 - Sends every render to a fresh independent `dataviz-eval` reviewer, saves the pre-intent blind read separately, and stores the scoped gate results, five release checks, failure codes, and minimum pass set.
 - Uses explicit states and configurable iteration, time, token, and cost limits; unchanged artifacts and stalled evaluations cannot create endless cycles.
 - Runs a deterministic build preflight before spending another model call, while preserving a completed artifact when one call crosses its estimate.
+- Requires a context-versioned semantic preflight and an independent result for measure, time/context, universe/denominator, claim strength, and audience units.
 - Preserves the strongest independently evaluated candidate when a case blocks or stops.
 - Stores a case packet with original, revisions, independent review reports, feedback, and skill-version hashes.
 - Separates execution misses from missing, ambiguous, or conflicting skill rules.

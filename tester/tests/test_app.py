@@ -41,6 +41,28 @@ class TesterApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
+    def record_semantic_preflight(self, case_id: str) -> dict:
+        payload = {
+            name: {
+                "result": "clear",
+                "observed": f"Observed {name}",
+                "risk": f"Risk assessed for {name}",
+                "required": f"Required state for {name}",
+            }
+            for name in (
+                "measure",
+                "time_context",
+                "universe_denominator",
+                "claim_strength",
+                "audience_units",
+            )
+        }
+        response = self.client.post(
+            f"/api/cases/{case_id}/semantic-preflight", json=payload
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()
+
     def test_health_marks_console_as_not_a_provider_runner(self) -> None:
         response = self.client.get("/api/health")
         self.assertEqual(response.status_code, 200)
@@ -125,6 +147,8 @@ class TesterApiTests(unittest.TestCase):
     def test_manual_candidate_stop_and_resume_follow_state_machine(self) -> None:
         case = self.create_case()
         case_id = case["case_id"]
+        case = self.record_semantic_preflight(case_id)
+        self.assertEqual(case["semantic_preflights"][0]["context_version"], 1)
         candidate = self.client.post(
             f"/api/cases/{case_id}/iterations",
             data={"summary": "First repair"},

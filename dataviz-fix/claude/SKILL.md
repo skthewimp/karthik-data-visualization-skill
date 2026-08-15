@@ -1,6 +1,6 @@
 ---
 name: dataviz-fix
-description: Iteratively repair an uploaded or pasted data visualization, preserve revisions and feedback, then improve the owning dataviz skill from the accepted result.
+description: Iteratively repair an uploaded or pasted data visualization, preserve revisions and feedback, then improve the owning dataviz skill.
 ---
 
 # Dataviz Fix
@@ -35,6 +35,8 @@ Use the smallest relevant subset:
 
 Always load `dataviz-eval` for the rendered-artifact gate. Choose the other companion skills by failure mode.
 
+For an open-ended repair or redesign, always load `dataviz-critique` and `dataviz-selector`; the source chart's title and form are hypotheses to test, not intent or evidence to preserve. For a narrow literal edit, use only the companion skills needed by the named change.
+
 ## Case log
 
 Persist each example so the accepted result can teach the skills. Resolve these placeholders once and substitute their literal values in every command:
@@ -61,8 +63,11 @@ python3 "${CASE_MANAGER}" start \
   --message "<intended message, or omit>" \
   --medium "<delivery medium, or omit>" \
   --creator "main:${CASE_SESSION}" \
+  --context-source user \
   --skills-root "${SKILLS_ROOT}"
 ```
+
+Pass `--context-source user` only when every structured intake field in that command was explicitly supplied by the user. The default is `inferred`. Do not upgrade a paraphrase of the source title or the creator's proposed story to user intent.
 
 Do this before editing. The command copies the original, snapshots the installed skills, records context version 1, and creates a bounded loop. It defaults to three autonomous iterations. Use `--max-elapsed-minutes`, `--max-tokens`, or `--max-cost-usd` when another hard budget matters.
 
@@ -96,14 +101,33 @@ python3 "${CASE_MANAGER}" context \
 
 Use `context` whenever the user adds or changes the audience, purpose, question, hypothesis, message, medium, dimensions, source notes, preservation requirements, accessibility, brand, tooling, or output constraints. `--text` accepts an ordinary free-text prompt. Each material change creates a new context version, cancels an in-flight stale review, and supersedes an old verdict. An identical update creates no new version.
 
-Immediately before spending tokens or starting a renderer, run:
+Before the first render under each context version, save a five-part semantic preflight as JSON:
+
+```json
+{
+  "context_version": 1,
+  "dimensions": {
+    "measure": {"result": "clear|repair|unknown", "observed": "...", "risk": "...", "required": "..."},
+    "time_context": {"result": "clear|repair|unknown", "observed": "...", "risk": "...", "required": "..."},
+    "universe_denominator": {"result": "clear|repair|unknown", "observed": "...", "risk": "...", "required": "..."},
+    "claim_strength": {"result": "clear|repair|unknown", "observed": "...", "risk": "...", "required": "..."},
+    "audience_units": {"result": "clear|repair|unknown", "observed": "...", "risk": "...", "required": "..."}
+  }
+}
+```
+
+Each `required` value must describe an observable delivered state, not a preferred chart type or wording. `clear` still needs observed evidence and a concrete no-regression state. Record it, then run the build check:
 
 ```bash
+python3 "${CASE_MANAGER}" semantic-preflight \
+  --case "${CASE_ID}" \
+  --report "/absolute/path/to/semantic-preflight.json"
+
 python3 "${CASE_MANAGER}" build-check \
   --case "${CASE_ID}"
 ```
 
-**Repair preflight:** translate any material ambiguity or user correction into an observable check. Use `dataviz-eval` for the semantic and artifact-quality criteria; this skill owns recording the check and carrying it through revisions, not redefining the evaluation standard.
+**Repair preflight:** for an open-ended repair, run the critique and selection passes first, then carry every fatal or major ambiguity into the semantic preflight and the design. For a narrow correction, translate the named change into an observable check and make sure the semantic preflight prevents regressions elsewhere. Use `dataviz-eval` for the release criteria; this skill owns recording and sequencing, not redefining them.
 
 Do not start the build if this preflight stops the case. Record the completed artifact with `iterate` after rendering even if that call crossed a budget; the budget controls the next build, not preservation or independent review of work already done.
 
@@ -147,7 +171,7 @@ python3 "${CASE_MANAGER}" evaluate \
   --report "/absolute/path/to/independent-review.json"
 ```
 
-The report must identify the reviewer and exact artifact hash; include expert and audience blind reads; mark which gates are required by the declared scope; give evidence for all six gates and five general release checks; and state verdict, failure codes, and required actions. The case manager rejects `Send` unless every required gate and release check passes. A non-required gate stays `Unknown`; it is never converted to a fake pass. If independent review is unavailable, the artifact is `Not evaluable`, not self-approved.
+The report must identify the reviewer and exact artifact hash; include expert and audience blind reads; independently recheck all five semantic dimensions; mark which gates are required by the declared scope; give evidence for all six gates and five general release checks; and state verdict, failure codes, and required actions. The creator's semantic preflight is a hypothesis, not evidence. The case manager rejects `Send` unless every semantic check, required gate, and release check passes. A non-required gate stays `Unknown`; it is never converted to a fake pass. If independent review is unavailable, the artifact is `Not evaluable`, not self-approved.
 
 Record provider usage after creator and reviewer calls when the API or runtime exposes it:
 

@@ -38,8 +38,6 @@ CONTEXT_FIELDS = (
     "tooling",
     "output_constraints",
 )
-
-
 class ContextUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -84,6 +82,25 @@ class RequestCheckInput(BaseModel):
     current: str
     required: str
     why: str = ""
+
+
+class SemanticDimensionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    result: str = Field(pattern="^(clear|repair|unknown)$")
+    observed: str
+    risk: str
+    required: str
+
+
+class SemanticPreflightInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    measure: SemanticDimensionInput
+    time_context: SemanticDimensionInput
+    universe_denominator: SemanticDimensionInput
+    claim_strength: SemanticDimensionInput
+    audience_units: SemanticDimensionInput
 
 
 class LimitUpdate(BaseModel):
@@ -244,6 +261,8 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
             upload,
             "--creator",
             f"tester:{session_id}",
+            "--context-source",
+            "user",
             "--max-iterations",
             max_iterations,
         ]
@@ -337,6 +356,31 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
             check.why,
         ]
         client.run(*args)
+        return decorate_case(client.status(case_id))
+
+    @app.post("/api/cases/{case_id}/semantic-preflight")
+    def add_semantic_preflight(case_id: str, preflight: SemanticPreflightInput):
+        case_id = validate_case_id(case_id)
+        case = client.status(case_id)
+        case_dir = client.root / "cases" / case_id
+        report_path = case_dir / f"tester-semantic-preflight-v{case['context_version']}.json"
+        report_path.write_text(
+            json.dumps(
+                {
+                    "context_version": case["context_version"],
+                    "dimensions": preflight.model_dump(),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        client.run(
+            "semantic-preflight",
+            "--case",
+            case_id,
+            "--report",
+            report_path,
+        )
         return decorate_case(client.status(case_id))
 
     @app.post("/api/cases/{case_id}/iterations")

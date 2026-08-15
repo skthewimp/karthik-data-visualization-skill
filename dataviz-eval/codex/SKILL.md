@@ -38,6 +38,8 @@ Before passing Evidence, Question, Insight, or Information fit, test whether the
 
 Record each ambiguity as a concrete required check with the misleading interpretation, the defensible interpretation, and the evidence needed to distinguish them. These are semantic principles, not a vocabulary list or a prescribed visual solution.
 
+When the review packet supplies a `semantic_checks` template, return one result for each named dimension. Do not collapse them into the six outcome gates or infer that a clear axis fixes a conflicting title, universe, claim, or audience convention. Treat the creator's semantic preflight as a hypothesis to challenge against the source and exact artifact.
+
 ### 1. Establish the evaluation packet
 
 Capture, when available:
@@ -56,6 +58,8 @@ Set the evidence scope explicitly:
 - **Source fidelity** when repairing a supplied chart without its underlying data. Verify that the repair preserves the source values, categories, qualifications, and provenance; do not pretend to validate the upstream source.
 
 Keep intended question and insight out of the first two reads. If either is missing, do not invent it. Mark the comparison `Unknown` later.
+
+After intent reveal, compare every structured context field's provenance with the verbatim request. An `inferred` question, message, or purpose is not user intent and cannot justify a pass when the source or artifact does not support it.
 
 Do not block on every missing field. Judge evidence against the declared scope. A source-fidelity check can pass without underlying data, but state that upstream accuracy was not tested. However, missing underlying data is a hard boundary: do not pass invented, reconstructed, or visually estimated subcomponents as factual evidence. If a redesign requires values not directly available in the source artifact, omit those encodings, label them explicitly as approximate, or mark the artifact Not evaluable; do not let a source-fidelity pass certify them.
 

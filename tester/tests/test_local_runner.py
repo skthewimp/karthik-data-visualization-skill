@@ -31,8 +31,10 @@ class FakeCaseManager:
         self.data = {
             "case_id": self.case_id,
             "state": "build",
+            "context_version": 1,
             "original": {"path": str(original)},
             "iterations": [],
+            "semantic_preflights": [],
             "evaluations": [],
             "limits": {"max_tokens": None},
             "telemetry": {"total_tokens": 0},
@@ -112,6 +114,7 @@ class LocalRunnerTests(unittest.TestCase):
                     self.assertIsNotNone(match)
                     artifact = Path(match.group(1))
                     artifact.write_bytes(PNG_1X1)
+                    client.data["semantic_preflights"].append({"context_version": 1})
                 else:
                     self.assertEqual(len(images), 4)
                     (client.case_dir / "review-response-01.json").write_text("{}", encoding="utf-8")
@@ -138,8 +141,8 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertEqual(
                 [call[0] for call in client.calls],
                 [
-                    "build-check",
                     "usage",
+                    "build-check",
                     "iterate",
                     "inspect",
                     "review-request",
@@ -279,6 +282,7 @@ class LocalRunnerTests(unittest.TestCase):
                 client.case_dir,
                 client.case_dir / "candidate-02.png",
                 2,
+                1,
             )
             self.assertEqual(images, [Path(client.data["original"]["path"]), latest])
             self.assertIn("Continue from the latest candidate", prompt)
@@ -287,6 +291,8 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertIn("edit boundary", prompt)
             self.assertIn("do not retain or restore a forbidden element", prompt)
             self.assertIn("every applicable panel, facet, row, or series", prompt)
+            self.assertIn("semantic-preflight", prompt)
+            self.assertIn("structured field marked `inferred`", prompt)
 
     def test_reviewer_gets_delivery_preview_and_overlapping_detail_sheet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

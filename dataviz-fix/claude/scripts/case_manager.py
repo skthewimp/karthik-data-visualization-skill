@@ -44,7 +44,7 @@ RELEASE_CHECK_NAMES = (
     "Delivery robustness",
 )
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 DEFAULT_MAX_ITERATIONS = 3
 DEFAULT_MAX_STALLED_EVALUATIONS = 2
 ACTIVE_STATES = (
@@ -87,6 +87,14 @@ CONTEXT_FIELDS = (
     "output_constraints",
 )
 CONTEXT_SOURCES = ("user", "inferred", "unknown")
+SEMANTIC_DIMENSIONS = (
+    "measure",
+    "time_context",
+    "universe_denominator",
+    "claim_strength",
+    "audience_units",
+)
+SEMANTIC_PREFLIGHT_RESULTS = ("clear", "repair", "unknown")
 
 
 def now_iso() -> str:
@@ -233,6 +241,75 @@ def validate_blind_response(raw: object, iteration: dict) -> dict[str, str]:
     }
 
 
+def validate_semantic_checks(raw: object) -> dict[str, dict[str, str]]:
+    if not isinstance(raw, dict):
+        raise SystemExit("Review report 'semantic_checks' must be an object")
+    checks: dict[str, dict[str, str]] = {}
+    for name in SEMANTIC_DIMENSIONS:
+        item = raw.get(name)
+        if not isinstance(item, dict):
+            raise SystemExit(f"Review report missing semantic_checks.{name}")
+        result = item.get("result")
+        if result not in GATE_RESULTS:
+            raise SystemExit(
+                f"Invalid semantic_checks.{name}.result {result!r}; "
+                f"choose from {', '.join(GATE_RESULTS)}"
+            )
+        checks[name] = {
+            "result": result,
+            "misleading_interpretation": nonempty_text(
+                item.get("misleading_interpretation"),
+                f"semantic_checks.{name}.misleading_interpretation",
+            ),
+            "defensible_interpretation": nonempty_text(
+                item.get("defensible_interpretation"),
+                f"semantic_checks.{name}.defensible_interpretation",
+            ),
+            "evidence": nonempty_text(
+                item.get("evidence"), f"semantic_checks.{name}.evidence"
+            ),
+        }
+    extra = sorted(set(raw) - set(SEMANTIC_DIMENSIONS))
+    if extra:
+        raise SystemExit(f"Unknown semantic_checks entries: {', '.join(extra)}")
+    return checks
+
+
+def validate_semantic_preflight(raw: object, context_version: int) -> dict:
+    if not isinstance(raw, dict):
+        raise SystemExit("Semantic preflight report must be a JSON object")
+    reported_version = raw.get("context_version")
+    if reported_version != context_version:
+        raise SystemExit(
+            f"Semantic preflight context_version must be {context_version}, "
+            f"not {reported_version!r}"
+        )
+    dimensions = raw.get("dimensions")
+    if not isinstance(dimensions, dict):
+        raise SystemExit("Semantic preflight report 'dimensions' must be an object")
+    validated: dict[str, dict[str, str]] = {}
+    for name in SEMANTIC_DIMENSIONS:
+        item = dimensions.get(name)
+        if not isinstance(item, dict):
+            raise SystemExit(f"Semantic preflight missing dimensions.{name}")
+        result = item.get("result")
+        if result not in SEMANTIC_PREFLIGHT_RESULTS:
+            raise SystemExit(
+                f"Invalid dimensions.{name}.result {result!r}; "
+                f"choose from {', '.join(SEMANTIC_PREFLIGHT_RESULTS)}"
+            )
+        validated[name] = {
+            "result": result,
+            "observed": nonempty_text(item.get("observed"), f"dimensions.{name}.observed"),
+            "risk": nonempty_text(item.get("risk"), f"dimensions.{name}.risk"),
+            "required": nonempty_text(item.get("required"), f"dimensions.{name}.required"),
+        }
+    extra = sorted(set(dimensions) - set(SEMANTIC_DIMENSIONS))
+    if extra:
+        raise SystemExit(f"Unknown semantic preflight dimensions: {', '.join(extra)}")
+    return {"context_version": context_version, "dimensions": validated}
+
+
 def validate_review_report(
     report: dict,
     iteration: dict,
@@ -287,6 +364,7 @@ def validate_review_report(
     if expert != blind_response["expert"] or audience != blind_response["audience"]:
         raise SystemExit("Review report blind reads must match the saved pre-intent blind response")
     gates = validate_ratings(report.get("gates"), GATE_NAMES, "gates", include_required=True)
+    semantic_checks = validate_semantic_checks(report.get("semantic_checks"))
     release_checks = validate_ratings(
         report.get("release_checks"),
         RELEASE_CHECK_NAMES,
@@ -381,7 +459,9 @@ def validate_review_report(
 
     required_results = [item["result"] for item in gates.values() if item["required"]] + [
         item["result"] for item in release_checks.values()
-    ] + [item["result"] for item in carry_checks] + [
+    ] + [item["result"] for item in semantic_checks.values()] + [
+        item["result"] for item in carry_checks
+    ] + [
         item["result"] for item in acceptance_results
     ]
     if verdict == "Send":
@@ -428,6 +508,7 @@ def validate_review_report(
         "tested_size": tested_size,
         "blind_reads": {"expert": expert, "audience": audience},
         "gates": gates,
+        "semantic_checks": semantic_checks,
         "release_checks": release_checks,
         "carry_forward_checks": carry_checks,
         "acceptance_checks": acceptance_results,
@@ -585,10 +666,11 @@ def context_field(value: str | None, source: str = "user") -> dict[str, str]:
 
 
 def initial_context(data: dict) -> dict:
+    intake_source = data.get("intake_context_source", "unknown")
     fields = {
         name: context_field(
             data.get(name) if name in ("audience", "medium") else None,
-            "user",
+            intake_source,
         )
         for name in CONTEXT_FIELDS
     }
@@ -623,6 +705,26 @@ def context_at_version(data: dict, version: int) -> dict:
     if snapshot is None:
         raise SystemExit(f"Context version {version} is missing from the case history")
     return snapshot
+
+
+def semantic_preflight_at_version(data: dict, version: int) -> dict | None:
+    return next(
+        (
+            item
+            for item in reversed(data.get("semantic_preflights", []))
+            if item.get("context_version") == version
+        ),
+        None,
+    )
+
+
+def require_current_semantic_preflight(data: dict) -> dict:
+    preflight = semantic_preflight_at_version(data, data.get("context_version", 1))
+    if preflight is None:
+        raise SystemExit(
+            "Record the five-part semantic preflight for the current context before building"
+        )
+    return preflight
 
 
 def upgrade_case(data: dict) -> dict:
@@ -663,6 +765,7 @@ def upgrade_case(data: dict) -> dict:
     data.setdefault("best_candidate", None)
     data.setdefault("stop", None)
     data.setdefault("request_checks", [])
+    data.setdefault("semantic_preflights", [])
     if "transitions" not in data:
         data["transitions"] = [
             {
@@ -945,6 +1048,7 @@ def cmd_start(args: argparse.Namespace) -> None:
         "request": args.request or "",
         "audience": args.audience or "",
         "medium": args.medium or "",
+        "intake_context_source": args.context_source,
         "context_version": 1,
         "original": original,
         "skill_snapshot": snapshot,
@@ -971,6 +1075,7 @@ def cmd_start(args: argparse.Namespace) -> None:
         "best_candidate": None,
         "stop": None,
         "request_checks": [],
+        "semantic_preflights": [],
         "feedback": [],
         "iterations": [],
         "evaluations": [],
@@ -982,7 +1087,7 @@ def cmd_start(args: argparse.Namespace) -> None:
     for name in CONTEXT_FIELDS:
         value = getattr(args, name, None)
         if value:
-            data["context"]["fields"][name] = context_field(value, "user")
+            data["context"]["fields"][name] = context_field(value, args.context_source)
     if args.preserve:
         data["request_checks"].append(
             {
@@ -1032,6 +1137,43 @@ def cmd_check(args: argparse.Namespace) -> None:
     data["updated_at"] = now_iso()
     write_json(path, data)
     print(json.dumps({"case_id": data["case_id"], "request_check": number, "kind": args.kind}))
+
+
+def cmd_semantic_preflight(args: argparse.Namespace) -> None:
+    """Record the creator's semantic audit before rendering under this context."""
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, ("build", "revise", "redesign"), "record a semantic preflight")
+    if data["iterations"] and data["iterations"][-1].get("context_version") == data["context_version"]:
+        latest_iteration = data["iterations"][-1]["number"]
+        evaluated = any(
+            item["iteration"] == latest_iteration for item in data.get("evaluations", [])
+        )
+        if not evaluated:
+            raise SystemExit(
+                f"Evaluate iteration {latest_iteration} before replacing its semantic preflight"
+            )
+    report_path = Path(args.report).expanduser().resolve()
+    validated = validate_semantic_preflight(read_json(report_path), data["context_version"])
+    event = {
+        "number": len(data["semantic_preflights"]) + 1,
+        "at": now_iso(),
+        **validated,
+        "report_sha256": sha256(report_path),
+    }
+    data["semantic_preflights"].append(event)
+    data["updated_at"] = now_iso()
+    write_json(path, data)
+    print(
+        json.dumps(
+            {
+                "case_id": data["case_id"],
+                "semantic_preflight": event["number"],
+                "context_version": event["context_version"],
+            }
+        )
+    )
 
 
 def cmd_feedback(args: argparse.Namespace) -> None:
@@ -1115,6 +1257,7 @@ def cmd_iterate(args: argparse.Namespace) -> None:
     path = case_dir / "case.json"
     data = load_case(path)
     require_state(data, ("build", "revise", "redesign"), "record an iteration")
+    require_current_semantic_preflight(data)
     if data["iterations"]:
         latest = data["iterations"][-1]["number"]
         evaluated = any(item["iteration"] == latest for item in data.get("evaluations", []))
@@ -1548,8 +1691,22 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
         }
         for name in RELEASE_CHECK_NAMES
     }
+    semantic_template = {
+        name: {
+            "result": "<Pass|Concern|Fail|Unknown>",
+            "misleading_interpretation": "<materially wrong reading a viewer could take, or 'No material competing reading observed'>",
+            "defensible_interpretation": "<reading supported by the artifact and evidence>",
+            "evidence": "<specific title, mark, scale, unit, boundary, universe, or comparator inspected>",
+        }
+        for name in SEMANTIC_DIMENSIONS
+    }
     carry_actions = open_required_actions(data, iteration)
     acceptance_checks = active_acceptance_checks(data, iteration)
+    semantic_preflight = semantic_preflight_at_version(
+        data, iteration.get("context_version", 1)
+    )
+    if semantic_preflight is None:
+        raise SystemExit("Iteration is missing its context-matched semantic preflight")
     reveal = {
         "case_id": data["case_id"],
         "iteration": iteration["number"],
@@ -1561,8 +1718,12 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
         "medium": context_values.get("medium", ""),
         "active_user_corrections": [item["text"] for item in acceptance_checks],
         "active_acceptance_checks": acceptance_checks,
+        "semantic_preflight": semantic_preflight,
         "carry_forward_required_actions": carry_actions,
         "release_instructions": [
+            "Re-run all five semantic dimensions against the artifact and source; the creator preflight is a hypothesis, not evidence.",
+            "Challenge inferred context against the verbatim user_request and source. Do not grade an unsupported inferred question or message as user intent.",
+            "For each semantic check, state the misleading interpretation, the defensible interpretation, and direct observed evidence.",
             "Inspect every carry_forward_required_action directly in the current artifact.",
             "Record one carry_forward_check per id; do not infer resolution from an overall gate.",
             "An unresolved prior action prevents Send and remains active for the next iteration.",
@@ -1592,6 +1753,7 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
                 "audience": blind_response["audience"],
             },
             "gates": rating_template,
+            "semantic_checks": semantic_template,
             "release_checks": release_template,
             "carry_forward_checks": [
                 {
@@ -1932,6 +2094,7 @@ def cmd_build_check(args: argparse.Namespace) -> None:
     path = case_dir / "case.json"
     data = load_case(path)
     require_state(data, ("build", "revise", "redesign"), "start a build")
+    preflight = require_current_semantic_preflight(data)
     enforce_build_budget(data, path)
     print(
         json.dumps(
@@ -1939,6 +2102,7 @@ def cmd_build_check(args: argparse.Namespace) -> None:
                 "case_id": data["case_id"],
                 "state": data["state"],
                 "next_iteration": len(data["iterations"]) + 1,
+                "semantic_preflight": preflight["number"],
                 "budget": budget_status(data),
             }
         )
@@ -2067,6 +2231,12 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--session", default="default")
     start.add_argument("--image", required=True)
     start.add_argument("--request", default="")
+    start.add_argument(
+        "--context-source",
+        choices=("user", "inferred"),
+        default="inferred",
+        help="provenance for structured intake fields; use user only for explicitly supplied context",
+    )
     start.add_argument("--audience", default="")
     start.add_argument("--purpose", default="")
     start.add_argument("--question", default="")
@@ -2105,6 +2275,18 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--required", required=True)
     check.add_argument("--why")
     check.set_defaults(func=cmd_check)
+
+    semantic_preflight = sub.add_parser(
+        "semantic-preflight",
+        help="record the five-part semantic audit required before rendering",
+    )
+    add_case_args(semantic_preflight)
+    semantic_preflight.add_argument(
+        "--report",
+        required=True,
+        help="JSON containing context_version and all required semantic dimensions",
+    )
+    semantic_preflight.set_defaults(func=cmd_semantic_preflight)
 
     feedback = sub.add_parser("feedback", help="record user feedback verbatim")
     add_case_args(feedback)

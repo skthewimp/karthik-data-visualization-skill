@@ -171,11 +171,14 @@ class LocalCodexRunner:
             case = self.client.status(case_id)
             case_dir = self.client.root / "cases" / case_id
             iteration_number = len(case["iterations"]) + 1
-            self.client.run("build-check", "--case", case_id)
             candidate_path = case_dir / f"runner-{job_id}-candidate-{iteration_number:02d}.png"
             self._event(job_id, "creator", f"Building candidate {iteration_number}")
             creator_prompt = self._creator_prompt(
-                case_id, case_dir, candidate_path, iteration_number
+                case_id,
+                case_dir,
+                candidate_path,
+                iteration_number,
+                case["context_version"],
             )
             usage = self._invoke(
                 job_id,
@@ -187,6 +190,15 @@ class LocalCodexRunner:
             self._record_usage(case_id, "creator", iteration_number, usage)
             if not candidate_path.is_file():
                 raise RuntimeError(f"Creator did not write the required artifact: {candidate_path}")
+            case = self.client.status(case_id)
+            if not any(
+                item.get("context_version") == case["context_version"]
+                for item in case.get("semantic_preflights", [])
+            ):
+                raise RuntimeError(
+                    "Creator finished without recording the required semantic preflight"
+                )
+            self.client.run("build-check", "--case", case_id)
             iterate_args: list[object] = [
                 "iterate",
                 "--case",
@@ -413,6 +425,7 @@ class LocalCodexRunner:
         case_dir: Path,
         candidate_path: Path,
         iteration: int,
+        context_version: int,
     ) -> str:
         manager = self.repo_root / "dataviz-fix" / "codex" / "scripts" / "case_manager.py"
         skill = self.repo_root / "dataviz-fix" / "codex" / "SKILL.md"
@@ -424,6 +437,7 @@ class LocalCodexRunner:
             if iteration > 1
             else "The attached image is the source. Build the first candidate from it."
         )
+        semantic_path = case_dir / f"semantic-preflight-v{context_version}.json"
         return f"""Open and follow {skill}.
 
 You are the chart creator for case {case_id}, not its reviewer. Build exactly one candidate for iteration {iteration}. Read the current case using:
@@ -432,7 +446,9 @@ DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} status --case {case_id}
 
 {revision_instruction}
 
-Inspect the recorded context and acceptance checks. Work only inside {case_dir}. Do not edit the checked-out repository or any skill. Render exactly one real PNG to {candidate_path} and inspect that exact export. Do not run iterate, review-request, blind-submit, evaluate, accept, diagnose, or any state-changing case-manager command. The wrapper will record the artifact after your process exits. Stop after the inspected PNG exists at the required path.
+Inspect the recorded context and acceptance checks. Work only inside {case_dir}. Do not edit the checked-out repository or any skill. Render exactly one real PNG to {candidate_path} and inspect that exact export. Do not run iterate, review-request, blind-submit, evaluate, accept, or diagnose. The wrapper will record the artifact after your process exits. Stop after the inspected PNG exists at the required path.
+
+Before starting the renderer, audit measure, time/context, universe/denominator, claim strength, and audience units. Write the complete context-version {context_version} report to {semantic_path}, run `DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} semantic-preflight --case {case_id} --report {semantic_path}`, then run `DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} build-check --case {case_id}`. These are the only state-changing case-manager commands you may run. Treat every structured field marked `inferred` as a hypothesis, not user intent. For an open-ended repair, run the critique and chart-selection reasoning before choosing the form. Each preflight `required` value must be an observable delivered state, not a prescribed chart type.
 
 Treat the active change and preservation checks as the edit boundary. Make each literal requested removal, addition, and relocation; do not retain or restore a forbidden element as a fallback. Expand shared edits across every applicable panel, facet, row, or series; do not stop after fixing one repeated instance. Preserve untouched elements unless a dependent adjustment is necessary for the requested change.
 
