@@ -16,6 +16,7 @@ The skill keeps the original chart, each rendered revision, the user's correctio
 - Preserves the strongest independently evaluated candidate when a case blocks or stops.
 - Stores a case packet with original, revisions, independent review reports, feedback, and skill-version hashes.
 - Separates execution misses from missing, ambiguous, or conflicting skill rules.
+- Keeps stopped and blocked failures diagnosable; execution misses require an enforcement mechanism and regression test.
 - Makes only reusable skill changes; it avoids overfitting one chart's values or layout.
 
 ## Files

@@ -37,7 +37,7 @@ The skill resolves the installed script for the active surface: `~/.codex/skills
 
 ## Evaluation gate
 
-`dataviz-eval` is required after every recorded render, and the chart creator cannot review its own work. Hermes first gives a fresh `delegate_task` reviewer only the source and exact export, saves that blind read, and then reveals the user request, audience, medium, and active acceptance checks. The creator's diagnosis, claimed fixes, preferred verdict, and code remain hidden. `Send` releases the candidate to the user. `Revise` applies only the minimum pass set. `Redesign` returns the case to critique or chart selection. `Not evaluable` requires the missing artifact, evidence, or delivery condition before the candidate can be presented as approved.
+`dataviz-eval` is required after every recorded render, and the chart creator cannot review its own work. Hermes first gives a fresh `delegate_task` reviewer only the source and exact export, saves the narrative blind read plus structured readings of measure, time/context, universe/denominator, claim strength, and audience units, and only then reveals the user request, audience, medium, and active acceptance checks. The frozen semantic fields cannot be rewritten after reveal. The creator's diagnosis, claimed fixes, preferred verdict, and code remain hidden. `Send` releases the candidate to the user. `Revise` applies only the minimum pass set. `Redesign` returns the case to critique or chart selection. `Not evaluable` requires the missing artifact, evidence, or delivery condition before the candidate can be presented as approved.
 
 The repair loop is an explicit state machine. It defaults to three autonomous iterations and can also enforce elapsed-time, token, and dollar limits. It rejects unchanged artifacts under unchanged context, blocks when failure codes and gate results repeat without progress, and preserves the best independently evaluated candidate rather than assuming the last one is best. Every stop has a recorded reason and can resume only after its blocker or budget changes. User feedback can still reject a `Send`, and explicit user acceptance remains authoritative.
 
@@ -60,7 +60,7 @@ Acceptance does not automatically mean “add another rule”. The workflow firs
 - **tooling** - image handling, rendering, inspection, or delivery failed;
 - **input data** - the required evidence was absent.
 
-Only missing, ambiguous, or conflicting reusable guidance normally warrants a prose edit. A repeated execution miss instead needs enforcement, observability, or a regression test. A long case is split into distinct failure episodes: each gets one owner, while one case may legitimately change the creator skill, evaluator, and runner for different reasons.
+Only missing, ambiguous, or conflicting reusable guidance normally warrants a prose edit. A repeated execution miss instead needs enforcement, observability, and a regression test; the case manager rejects an execution-miss diagnosis that does not name both controls. Stopped and blocked cases can be diagnosed without pretending the chart was accepted, so failed workflows remain part of the durable history. A long case is split into distinct failure episodes: each gets one owner, while one case may legitimately change the creator skill, evaluator, and runner for different reasons.
 
 ## Hermes installation
 

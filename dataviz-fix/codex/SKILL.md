@@ -161,7 +161,7 @@ python3 "${CASE_MANAGER}" review-request \
   --case "${CASE_ID}"
 ```
 
-Pass only the returned blind-request path to the reviewer. It must inspect the exact artifact with `vision_analyze`, save its blind reads, then run the packet's `blind_submit_command`. That command freezes the blind response and creates the intent reveal; the reveal does not exist beforehand. The same reviewer then opens it and completes the response template. The creator may verify and record the report, but may not author or amend it. Use the delegate task's real identifier as `reviewer`; the case manager rejects the creator identity and any blind response changed after reveal.
+Pass only the returned blind-request path to the reviewer. It must inspect the exact artifact with `vision_analyze`, save its narrative blind reads plus the five structured semantic readings, then run the packet's `blind_submit_command`. That command freezes the blind response and creates the intent reveal; the reveal does not exist beforehand. The same reviewer then opens it and completes the response template without rewriting those frozen fields. The creator may verify and record the report, but may not author or amend it. Use the delegate task's real identifier as `reviewer`; the case manager rejects the creator identity and any blind response changed after reveal.
 
 Persist that independent report before sending:
 
@@ -273,7 +273,7 @@ Do not send progress-only replies such as “I’ll fix it” or “now checking
 
 Treat clear phrases such as “this is right”, “done”, “final”, “happy with this”, or “accept” as acceptance. Then:
 
-Do not edit any skill while the case is active. Finish the chart and obtain acceptance first. User feedback is evidence for the later diagnosis, not permission to patch source files mid-loop.
+Do not edit any skill while the case is active. Finish the chart and obtain acceptance first. User feedback is evidence for the later diagnosis, not permission to patch source files mid-loop. Exception: when the case is `stopped` or `blocked` and the user explicitly rejects the workflow result and asks for a system fix, record a paused-case diagnosis without marking the chart accepted. Do not resume or rewrite that chart unless requested.
 
 1. Record acceptance. If the independent verdict is not `Send`, use `--override-reason` only when the user has explicitly accepted that exact artifact; the case remains visibly `accepted_with_override`.
 
@@ -282,7 +282,7 @@ Do not edit any skill while the case is active. Finish the chart and obtain acce
      --case "${CASE_ID}"
    ```
 
-2. Compare the original, every output, the accepted output, and every user correction. Split a long case into distinct failure episodes; one case may expose separate creator, evaluator, and tooling misses.
+2. Compare the original, every output, the accepted or best stopped output, and every user correction. Split a long case into distinct failure episodes; one case may expose separate creator, evaluator, and tooling misses.
    Include the recorded verdicts, failed gates, failure codes, and required actions. User acceptance remains authoritative even when the evaluator recorded a concern.
 3. Classify the first-output miss:
    - `execution-miss`: an existing rule was clear but not followed;
@@ -303,10 +303,12 @@ Do not edit any skill while the case is active. Finish the chart and obtain acce
      --classification "<classification>" \
      --owner "<skill-name or none>" \
      --lesson "<reusable lesson>" \
+     --enforcement "<structured control; required for execution-miss>" \
+     --regression-test "<test name; required for execution-miss>" \
      --changed-files "<comma-separated paths or none>"
    ```
 
-If the miss is `execution-miss` or `input-data`, usually do not change a skill. Record why. More rules do not fix non-compliance or missing evidence.
+If the miss is `execution-miss`, the case manager rejects a diagnosis without both an enforcement mechanism and regression test. Usually do not add another prose rule. If the miss is `input-data`, record why; more rules do not create missing evidence.
 
 ## Final accepted response
 

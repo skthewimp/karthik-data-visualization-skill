@@ -44,7 +44,7 @@ RELEASE_CHECK_NAMES = (
     "Delivery robustness",
 )
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 DEFAULT_MAX_ITERATIONS = 3
 DEFAULT_MAX_STALLED_EVALUATIONS = 2
 ACTIVE_STATES = (
@@ -226,7 +226,27 @@ def nonempty_text(raw: object, field: str) -> str:
     return raw.strip()
 
 
-def validate_blind_response(raw: object, iteration: dict) -> dict[str, str]:
+def validate_blind_semantics(raw: object) -> dict[str, dict[str, str]]:
+    if not isinstance(raw, dict):
+        raise SystemExit("Blind response 'semantics' must be an object")
+    semantics: dict[str, dict[str, str]] = {}
+    for name in SEMANTIC_DIMENSIONS:
+        item = raw.get(name)
+        if not isinstance(item, dict):
+            raise SystemExit(f"Blind response missing semantics.{name}")
+        semantics[name] = {
+            "reading": nonempty_text(item.get("reading"), f"semantics.{name}.reading"),
+            "uncertainty": nonempty_text(
+                item.get("uncertainty"), f"semantics.{name}.uncertainty"
+            ),
+        }
+    extra = sorted(set(raw) - set(SEMANTIC_DIMENSIONS))
+    if extra:
+        raise SystemExit(f"Unknown blind semantics entries: {', '.join(extra)}")
+    return semantics
+
+
+def validate_blind_response(raw: object, iteration: dict) -> dict:
     if not isinstance(raw, dict):
         raise SystemExit("Blind response must be a JSON object")
     reviewer = nonempty_text(raw.get("reviewer"), "blind_response.reviewer")
@@ -234,10 +254,21 @@ def validate_blind_response(raw: object, iteration: dict) -> dict[str, str]:
         raise SystemExit("Blind response iteration does not match the recorded iteration")
     if raw.get("artifact_sha256") != iteration["artifact"]["sha256"]:
         raise SystemExit("Blind response artifact_sha256 does not match the recorded iteration")
+    semantics = raw.get("semantics")
+    if semantics is None and not iteration.get("semantic_preflight"):
+        # Legacy iterations created before semantic preflight binding remain reviewable.
+        semantics = {
+            name: {
+                "reading": "Not recorded in legacy blind response",
+                "uncertainty": "Unknown because this iteration predates structured blind semantics",
+            }
+            for name in SEMANTIC_DIMENSIONS
+        }
     return {
         "reviewer": reviewer,
         "expert": nonempty_text(raw.get("expert"), "blind_response.expert"),
         "audience": nonempty_text(raw.get("audience"), "blind_response.audience"),
+        "semantics": validate_blind_semantics(semantics),
     }
 
 
@@ -363,6 +394,11 @@ def validate_review_report(
     audience = nonempty_text(blind_reads.get("audience"), "blind_reads.audience")
     if expert != blind_response["expert"] or audience != blind_response["audience"]:
         raise SystemExit("Review report blind reads must match the saved pre-intent blind response")
+    blind_semantics = report.get("blind_semantics")
+    if blind_semantics != blind_response["semantics"]:
+        raise SystemExit(
+            "Review report blind semantics must match the saved pre-intent semantic response"
+        )
     gates = validate_ratings(report.get("gates"), GATE_NAMES, "gates", include_required=True)
     semantic_checks = validate_semantic_checks(report.get("semantic_checks"))
     release_checks = validate_ratings(
@@ -507,6 +543,7 @@ def validate_review_report(
         "scope": scope,
         "tested_size": tested_size,
         "blind_reads": {"expert": expert, "audience": audience},
+        "blind_semantics": blind_response["semantics"],
         "gates": gates,
         "semantic_checks": semantic_checks,
         "release_checks": release_checks,
@@ -718,6 +755,20 @@ def semantic_preflight_at_version(data: dict, version: int) -> dict | None:
     )
 
 
+def semantic_preflight_for_iteration(data: dict, iteration: dict) -> dict | None:
+    number = iteration.get("semantic_preflight")
+    if number is not None:
+        return next(
+            (
+                item
+                for item in data.get("semantic_preflights", [])
+                if item.get("number") == number
+            ),
+            None,
+        )
+    return semantic_preflight_at_version(data, iteration.get("context_version", 1))
+
+
 def require_current_semantic_preflight(data: dict) -> dict:
     preflight = semantic_preflight_at_version(data, data.get("context_version", 1))
     if preflight is None:
@@ -764,6 +815,8 @@ def upgrade_case(data: dict) -> dict:
     data.setdefault("stalled_evaluations", 0)
     data.setdefault("best_candidate", None)
     data.setdefault("stop", None)
+    if "diagnoses" not in data:
+        data["diagnoses"] = [data["diagnosis"]] if data.get("diagnosis") else []
     data.setdefault("request_checks", [])
     data.setdefault("semantic_preflights", [])
     if "transitions" not in data:
@@ -1081,6 +1134,7 @@ def cmd_start(args: argparse.Namespace) -> None:
         "evaluations": [],
         "acceptance": None,
         "diagnosis": None,
+        "diagnoses": [],
         "transitions": [],
     }
     data["context"] = initial_context(data)
@@ -1257,7 +1311,7 @@ def cmd_iterate(args: argparse.Namespace) -> None:
     path = case_dir / "case.json"
     data = load_case(path)
     require_state(data, ("build", "revise", "redesign"), "record an iteration")
-    require_current_semantic_preflight(data)
+    semantic_preflight = require_current_semantic_preflight(data)
     if data["iterations"]:
         latest = data["iterations"][-1]["number"]
         evaluated = any(item["iteration"] == latest for item in data.get("evaluations", []))
@@ -1333,6 +1387,7 @@ def cmd_iterate(args: argparse.Namespace) -> None:
         "feedback_count": len(data["feedback"]),
         "request_check_count": len(data.get("request_checks", [])),
         "context_version": data.get("context_version", 1),
+        "semantic_preflight": semantic_preflight["number"],
     }
     if render_bundle:
         event["render_bundle"] = render_bundle
@@ -1624,7 +1679,8 @@ def cmd_review_request(args: argparse.Namespace) -> None:
             "You are a fresh independent release reviewer, not the chart creator.",
             "Inspect the original and exact delivered artifact; the intent reveal does not exist yet.",
             "Inspect the artifact visually first, then incorporate deterministic_inspection when present; it is bound to the same artifact hash.",
-            "Write reviewer, iteration, artifact_sha256, expert, and audience to blind_response_path.",
+            "Write reviewer, iteration, artifact_sha256, expert, audience, and the five-part semantics object to blind_response_path.",
+            "Before reveal, state the visible reading and uncertainty for measure, time_context, universe_denominator, claim_strength, and audience_units. Use Unknown when the artifact does not establish an answer.",
             "After saving the blind response, run blind_submit_command to freeze it and create reveal_path.",
             "Then open reveal_path and finish the gate review in this same reviewer context.",
             "Do not inspect creator reasoning, claimed fixes, intended verdict, or rendering code.",
@@ -1702,9 +1758,7 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
     }
     carry_actions = open_required_actions(data, iteration)
     acceptance_checks = active_acceptance_checks(data, iteration)
-    semantic_preflight = semantic_preflight_at_version(
-        data, iteration.get("context_version", 1)
-    )
+    semantic_preflight = semantic_preflight_for_iteration(data, iteration)
     if semantic_preflight is None:
         raise SystemExit("Iteration is missing its context-matched semantic preflight")
     reveal = {
@@ -1719,6 +1773,7 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
         "active_user_corrections": [item["text"] for item in acceptance_checks],
         "active_acceptance_checks": acceptance_checks,
         "semantic_preflight": semantic_preflight,
+        "blind_semantics": blind_response["semantics"],
         "carry_forward_required_actions": carry_actions,
         "release_instructions": [
             "Re-run all five semantic dimensions against the artifact and source; the creator preflight is a hypothesis, not evidence.",
@@ -1752,6 +1807,7 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
                 "expert": blind_response["expert"],
                 "audience": blind_response["audience"],
             },
+            "blind_semantics": blind_response["semantics"],
             "gates": rating_template,
             "semantic_checks": semantic_template,
             "release_checks": release_template,
@@ -1803,6 +1859,7 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
         name: detail["value"] or "(unknown)"
         for name, detail in data["context"]["fields"].items()
     }
+    acceptance = data.get("acceptance") or {}
     lines = [
         f"# Dataviz repair case {data['case_id']}",
         "",
@@ -1816,8 +1873,8 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
         f"- Message: {context_values['message']}",
         f"- Medium: {context_values['medium']}",
         f"- Original: `{data['original']['path']}`",
-        f"- Accepted iteration: {data['acceptance']['iteration']}",
-        f"- Accepted artifact: `{data['acceptance']['path']}`",
+        f"- Accepted iteration: {acceptance.get('iteration', '(none)')}",
+        f"- Accepted artifact: `{acceptance.get('path', '(none)')}`",
         f"- Best candidate before acceptance: iteration {data['best_candidate']['iteration'] if data.get('best_candidate') else '(none)'}",
         f"- Limits: `{json.dumps(data['limits'], sort_keys=True)}`",
         f"- Usage: `{json.dumps({name: value for name, value in data['telemetry'].items() if name != 'events'}, sort_keys=True)}`",
@@ -1843,7 +1900,7 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
                     f"   - Check: {check['target']} - {check['current']} -> {check['required']}"
                 )
     else:
-        lines.append("No correction was needed before acceptance.")
+        lines.append("No user correction was recorded.")
     lines.extend(["", "## Iterations", ""])
     for item in data["iterations"]:
         cancellation = f"; cancelled: {item['cancel_reason']}" if item.get("cancelled_at") else ""
@@ -1957,24 +2014,40 @@ def cmd_diagnose(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
     path = case_dir / "case.json"
     data = load_case(path)
-    require_state(data, TERMINAL_STATES, "record a skill diagnosis")
-    data["diagnosis"] = {
+    require_state(data, PAUSED_STATES + TERMINAL_STATES, "record a skill diagnosis")
+    enforcement = (args.enforcement or "").strip()
+    regression_test = (args.regression_test or "").strip()
+    if args.classification == "execution-miss" and (not enforcement or not regression_test):
+        raise SystemExit(
+            "An execution-miss diagnosis requires --enforcement and --regression-test; "
+            "another prose rule is not a control"
+        )
+    event = {
+        "number": len(data.get("diagnoses", [])) + 1,
         "at": now_iso(),
+        "case_state": data["state"],
         "classification": args.classification,
         "owner": args.owner,
         "lesson": args.lesson,
         "changed_files": [item.strip() for item in args.changed_files.split(",") if item.strip()],
+        "enforcement": enforcement or None,
+        "regression_test": regression_test or None,
     }
+    data.setdefault("diagnoses", []).append(event)
+    data["diagnosis"] = event
     data["updated_at"] = now_iso()
     write_json(path, data)
     packet = write_review_packet(case_dir, data)
     with packet.open("a", encoding="utf-8") as handle:
         diagnosis = data["diagnosis"]
+        handle.write(f"- Episode: `{diagnosis['number']}` in case state `{diagnosis['case_state']}`\n")
         handle.write(f"- Classification: `{diagnosis['classification']}`\n")
         handle.write(f"- Owning skill: `{diagnosis['owner']}`\n")
         handle.write(f"- Lesson: {diagnosis['lesson']}\n")
         changed = ", ".join(f"`{item}`" for item in diagnosis["changed_files"]) or "none"
         handle.write(f"- Changed files: {changed}\n")
+        handle.write(f"- Enforcement: {diagnosis['enforcement'] or 'none'}\n")
+        handle.write(f"- Regression test: {diagnosis['regression_test'] or 'none'}\n")
     print(json.dumps({"case_id": data["case_id"], "diagnosis": data["diagnosis"]}))
 
 
@@ -2358,6 +2431,8 @@ def build_parser() -> argparse.ArgumentParser:
     diagnose.add_argument("--owner", required=True)
     diagnose.add_argument("--lesson", required=True)
     diagnose.add_argument("--changed-files", default="")
+    diagnose.add_argument("--enforcement")
+    diagnose.add_argument("--regression-test")
     diagnose.set_defaults(func=cmd_diagnose)
 
     context = sub.add_parser("context", help="append prompt context or update structured context")

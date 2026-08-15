@@ -118,6 +118,16 @@ class CaseManagerTest(unittest.TestCase):
         )
         return json.loads(output.stdout)
 
+    @staticmethod
+    def blind_semantics():
+        return {
+            name: {
+                "reading": f"Blind visible reading for {name}",
+                "uncertainty": f"Blind uncertainty for {name}",
+            }
+            for name in SEMANTIC_DIMENSIONS
+        }
+
     def status(self):
         output = self.run_cli("status", "--session", "test-session")
         return json.loads(output.stdout)
@@ -143,6 +153,7 @@ class CaseManagerTest(unittest.TestCase):
         omit_release_stress_test=False,
         inspection_sha_override=None,
         semantic_result="Pass",
+        tamper_blind_semantics=False,
         ok=True,
     ):
         request_output = self.run_cli("review-request", "--session", "test-session")
@@ -156,6 +167,7 @@ class CaseManagerTest(unittest.TestCase):
             "context_version": iteration.get("context_version", 1),
             "expert": "Blind expert read",
             "audience": "Blind audience read",
+            "semantics": self.blind_semantics(),
         }
         Path(request["blind_response"]).write_text(json.dumps(blind), encoding="utf-8")
         reveal_output = self.run_cli("blind-submit", "--session", "test-session")
@@ -217,6 +229,7 @@ class CaseManagerTest(unittest.TestCase):
             "scope": "Source fidelity at screen size",
             "tested_size": "1200 px wide",
             "blind_reads": {"expert": blind["expert"], "audience": blind["audience"]},
+            "blind_semantics": blind["semantics"],
             "gates": gates,
             "semantic_checks": semantic_checks,
             "release_checks": release_checks,
@@ -240,6 +253,8 @@ class CaseManagerTest(unittest.TestCase):
             "codes": codes,
             "required_actions": actions,
         }
+        if tamper_blind_semantics:
+            report["blind_semantics"]["measure"]["reading"] = "Rewritten after reveal"
         response_path = Path(reveal["response_path"])
         response_path.write_text(json.dumps(report), encoding="utf-8")
         output = self.run_cli(
@@ -754,6 +769,7 @@ class CaseManagerTest(unittest.TestCase):
             "artifact_sha256": iteration["artifact"]["sha256"],
             "expert": "Blind expert read",
             "audience": "Blind audience read",
+            "semantics": self.blind_semantics(),
         }
         Path(request["blind_response"]).write_text(json.dumps(blind), encoding="utf-8")
         reveal_output = self.run_cli("blind-submit", "--session", "test-session")
@@ -782,6 +798,7 @@ class CaseManagerTest(unittest.TestCase):
             "artifact_sha256": iteration["artifact"]["sha256"],
             "expert": "Blind expert read",
             "audience": "Blind audience read",
+            "semantics": self.blind_semantics(),
         }
         Path(request["blind_response"]).write_text(json.dumps(blind), encoding="utf-8")
         reveal_output = self.run_cli("blind-submit", "--session", "test-session")
@@ -859,6 +876,59 @@ class CaseManagerTest(unittest.TestCase):
         self.iterate(self.write_png("candidate.png", b"candidate"))
         result = self.review("Send", semantic_result="Concern", ok=False)
         self.assertIn("Send requires", result.stderr)
+
+    def test_reveal_cannot_rewrite_frozen_blind_semantics(self):
+        self.start()
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        result = self.review("Revise", tamper_blind_semantics=True, ok=False)
+        self.assertIn("blind semantics must match", result.stderr)
+
+    def test_paused_execution_miss_requires_enforcement_and_regression_test(self):
+        self.start()
+        self.run_cli(
+            "stop",
+            "--session",
+            "test-session",
+            "--kind",
+            "user_stop",
+            "--reason",
+            "User rejected the workflow result",
+        )
+        rejected = self.run_cli(
+            "diagnose",
+            "--session",
+            "test-session",
+            "--classification",
+            "execution-miss",
+            "--owner",
+            "dataviz-eval",
+            "--lesson",
+            "A clear rule was not applied",
+            ok=False,
+        )
+        self.assertIn("another prose rule is not a control", rejected.stderr)
+        self.run_cli(
+            "diagnose",
+            "--session",
+            "test-session",
+            "--classification",
+            "execution-miss",
+            "--owner",
+            "dataviz-eval",
+            "--lesson",
+            "A clear rule was not applied",
+            "--enforcement",
+            "Freeze structured semantics before intent reveal",
+            "--regression-test",
+            "test_reveal_cannot_rewrite_frozen_blind_semantics",
+            "--changed-files",
+            "dataviz-fix/scripts/case_manager.py,dataviz-fix/tests/test_case_manager.py",
+        )
+        status = self.status()
+        self.assertEqual(status["state"], "stopped")
+        self.assertIsNone(status["acceptance"])
+        self.assertEqual(status["diagnoses"][0]["classification"], "execution-miss")
+        self.assertIn("Freeze structured", status["diagnoses"][0]["enforcement"])
 
     def test_send_requires_every_active_user_acceptance_check_to_pass(self):
         self.start()
@@ -975,7 +1045,7 @@ class CaseManagerTest(unittest.TestCase):
         case["state"] = "active"
         case_path.write_text(json.dumps(case), encoding="utf-8")
         status = self.status()
-        self.assertEqual(status["schema_version"], 11)
+        self.assertEqual(status["schema_version"], 12)
         self.assertEqual(status["state"], "build")
         self.assertEqual(status["context_version"], 1)
         self.assertEqual(status["limits"]["max_iterations"], 3)

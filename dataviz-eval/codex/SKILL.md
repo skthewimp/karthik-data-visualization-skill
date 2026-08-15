@@ -89,6 +89,8 @@ Without using the stated intent, record:
 
 Focus on relationships the creator can miss. Do not mechanically replay every chart-making rule.
 
+Before intent reveal, also freeze one structured reading and uncertainty statement for each semantic dimension: measure, time/context, universe/denominator, claim strength, and audience units. Use `Unknown` when the artifact does not establish the answer. These fields must be copied unchanged into the final report; post-reveal context cannot rewrite the first interpretation.
+
 ### 4. Run an audience blind read
 
 Adopt the audience's knowledge, time, and viewing conditions. Without using the stated intent, record:
@@ -103,7 +105,7 @@ For every creator-system release gate, use a fresh reviewer so the blind read is
 
 ### 5. Reveal intent and verify evidence
 
-Compare both blind reads with the intended question and insight. In the narrative comparison, use `Match`, `Partial`, `Mismatch`, or `Unknown`. These are not gate-result values: encode them in the report as `Pass`, `Concern`, `Fail`, or `Unknown` respectively.
+Compare both blind reads and the frozen semantic fields with the intended question and insight. In the narrative comparison, use `Match`, `Partial`, `Mismatch`, or `Unknown`. These are not gate-result values: encode them in the report as `Pass`, `Concern`, `Fail`, or `Unknown` respectively.
 
 Then verify what appearance cannot establish:
 
