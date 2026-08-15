@@ -121,11 +121,17 @@ On Hermes, the packaged `dataviz-release-guard` plugin can enforce the repair
 boundary outside the agent prompt. For chart-repair turns it injects a unique
 case session id, then withholds the final chart unless that new case reaches
 `user_review` with an independent `Send` verdict and the delivered file hash
-matches the reviewed artifact. Enable it after installing the package:
+matches the reviewed artifact. After installing the package, add the plugin to
+Hermes' allow-list in `~/.hermes/config.yaml`:
 
-```bash
-hermes plugins enable dataviz-release-guard
+```yaml
+plugins:
+  enabled:
+    - dataviz-release-guard
 ```
+
+Hermes 0.14 discovers Python entry-point plugins at runtime, but its
+`plugins enable` command only searches bundled and user-directory manifests.
 
 ### `dataviz-eval`
 
