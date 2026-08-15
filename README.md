@@ -1,6 +1,43 @@
 # Karthik Data Visualization Skills
 
-Public data visualization skills for Codex, Claude, and Hermes.
+Public data visualization skills for Codex, Claude, and Hermes, with a local MCP layer for exact-artifact rendering and inspection.
+
+## Start here: agents and LLMs
+
+If you have been pointed at this repository and asked to create or repair a chart, do not begin with the MCP implementation. Start with the skill that owns the judgement, then use MCP for the mechanical stages it supports.
+
+**For a new chart:**
+
+1. Read the `SKILL.md` for your client under `dataviz-orchestrator/{codex,claude}/`.
+2. Follow its handoffs through planning, cleaning, chart selection, implementation, annotation, and evaluation. Load only the specialist skills required by the case.
+3. Use `render_chart` and `inspect_rendered_chart` when the chosen renderer is supported. Evaluate the exact exported artifact and repair only the defects that block release.
+
+**For an existing chart:**
+
+1. Read `dataviz-fix/{codex,claude}/SKILL.md` and `dataviz-eval/{codex,claude}/SKILL.md`.
+2. Preserve the original, current, best, and historical artifacts through the packaged case manager.
+3. Inspect and evaluate every rendered version before presenting it as ready to send.
+
+The architecture has one firm boundary:
+
+```text
+skills and agent    question, evidence, chart choice, visual judgement, release decision
+MCP capabilities    deterministic rendering, exact-file hashes, geometry checks, comparison
+```
+
+Installing the skills does not register the MCP server. For the full workflow, complete both parts of [the quick start](#quick-start): install the client-specific skills and register the local stdio server.
+
+### Renderer policy
+
+`render_chart` is currently a **Matplotlib geometry adapter**, not Karthik's visual style. It must not be allowed to make Matplotlib defaults the design language.
+
+- Preserve the renderer already used by the project.
+- For a new Karthik-style static chart with no project precedent, prefer R/ggplot2 when it is available.
+- Do not translate a sound ggplot2 implementation into Matplotlib merely to obtain richer metadata.
+- If Matplotlib is the practical fallback, specify the theme, typography, palette, grid, axes, labels, and spacing deliberately; default Matplotlib aesthetics are a failed visual implementation.
+- A future ggplot2 adapter should implement the same artifact and layout-metadata contract before becoming the preferred MCP renderer. The public MCP boundary should remain backend-neutral.
+
+Today, a ggplot2 export can still be hashed, visually evaluated, and inspected in raster-only mode, but collision and clipping coverage remains explicitly incomplete. See [the renderer boundary](docs/mcp.md#renderer-boundary) for the trade-off.
 
 This repo contains thirteen related skills, coordinated as a context-sensitive visualization workflow:
 
@@ -167,7 +204,45 @@ Use this when writing the R analysis itself - an exploratory scratchpad, an RMar
 
 See: [`docs/skills/karthik-r-analysis-style.md`](docs/skills/karthik-r-analysis-style.md)
 
-## Install locally
+## Quick start
+
+Clone the repository and choose the skill surface for your client:
+
+```bash
+git clone https://github.com/skthewimp/karthik-data-visualization-skill.git
+cd karthik-data-visualization-skill
+
+./sync.sh --no-pull --surface codex   # Codex
+# or
+./sync.sh --no-pull --surface claude  # Claude Code
+```
+
+Install the MCP package into an existing environment or a new local environment:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .
+MCP_PYTHON="$(pwd)/.venv/bin/python"
+```
+
+Register it with Codex:
+
+```bash
+codex mcp add karthik-dataviz -- "$MCP_PYTHON" -m dataviz_mcp
+codex mcp get karthik-dataviz
+```
+
+Or register it with Claude Code:
+
+```bash
+claude mcp add-json --scope user karthik-dataviz \
+  "{\"type\":\"stdio\",\"command\":\"$MCP_PYTHON\",\"args\":[\"-m\",\"dataviz_mcp\"]}"
+claude mcp get karthik-dataviz
+```
+
+Start a new client session after installation so it loads both the skill text and MCP tools. No daemon is required; the client starts the stdio process when needed.
+
+### Skill installation details
 
 ```bash
 ./sync.sh
@@ -224,18 +299,7 @@ To install one surface only:
 
 The Hermes surface installs the Claude-compatible copies under `~/.hermes/skills/data-science/`. It is explicit rather than part of `all`.
 
-On Karthik's Hermes host, use the separate MCP environment and register it in Hermes after the repository has been pulled:
-
-```bash
-ssh server
-cd /home/karthik/apps/karthik-data-visualization-skill
-git pull --ff-only
-~/.hermes/hermes-agent/venv/bin/python -m venv .venv
-.venv/bin/python -m pip install -e .
-./sync.sh --no-pull --surface hermes
-```
-
-The host's system Python lacks `ensurepip`, so its bundled Hermes Python creates the environment. The new environment is still separate: the Hermes agent environment currently uses MCP SDK 1.x, while this server requires MCP SDK 2.x. Do not install this package into the agent environment. The exact `~/.hermes/config.yaml` entry and restart/verification commands are in [`dataviz_mcp/README.md`](dataviz_mcp/README.md#deploy-on-karthiks-hermes-host).
+Hermes also needs an `mcp_servers` entry. Generic and maintainer-host deployment instructions are in [`dataviz_mcp/README.md`](dataviz_mcp/README.md#deploy-on-hermes).
 
 ## Run the local repair tester
 
@@ -252,32 +316,20 @@ Set `DATAVIZ_ENABLE_LOCAL_RUNNER=1` before starting the server to enable one bou
 
 See [`tester/README.md`](tester/README.md) and the [`repair-loop product roadmap`](docs/plans/dataviz-repair-product-roadmap.md).
 
-## Run the local MCP server
+## MCP tools and current coverage
 
 The metadata-first MCP server exposes deterministic chart rendering, exact-artifact geometry inspection, and revision comparison. It leaves analytical and visual judgement in the skills.
 
-```bash
-python3 -m pip install -e .
-python3 -m dataviz_mcp
-```
-
-Register the installed server with Codex or Claude Code using the same virtual-environment interpreter:
-
-```bash
-codex mcp add karthik-dataviz -- \
-  /Users/Karthik/envs/datascience/.venv/bin/python -m dataviz_mcp
-
-claude mcp add-json --scope user karthik-dataviz \
-  '{"type":"stdio","command":"/Users/Karthik/envs/datascience/.venv/bin/python","args":["-m","dataviz_mcp"]}'
-```
+The server exposes three tools: `render_chart`, `inspect_rendered_chart`, and `compare_chart_artifacts`. The first produces a PNG, chart spec, layout metadata, and a hash-bound manifest. The second checks the exact PNG for supported mechanical defects. The third compares two inspected revisions without making a subjective release decision.
 
 See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, version guarantees, inspection coverage, and tested repair sequence. See [`dataviz_mcp/README.md`](dataviz_mcp/README.md) for installation, client registration, tool parameters, the chart-builder contract, and the local security boundary.
 
-## Validation and red-team prompts
+## Trust and limitations
 
-The selector skill includes:
-
-- Local/private `references/` and `scripts/` remain ignored by default. Runtime files explicitly required by public skills, such as `dataviz-fix/scripts/case_manager.py`, are tracked.
+- `render_chart` executes trusted local Python. It is not a sandbox; do not use it on untrusted chart source.
+- Current complete geometry support covers Matplotlib text and line paths. Non-line marks and non-Matplotlib renderers retain explicit unknowns.
+- Mechanical inspection does not replace analytical critique, delivery-size visual review, or user acceptance.
+- Local/private `references/` and `scripts/` remain ignored by default. Public runtime files required by a skill, such as `dataviz-fix/scripts/case_manager.py`, are tracked.
 
 ## Development notes
 

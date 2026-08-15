@@ -1,19 +1,21 @@
 # Dataviz MCP
 
-This local stdio server handles the mechanical part of chart production. It renders trusted Matplotlib code, preserves renderer geometry, inspects the exact PNG, and compares revisions. It does not decide what question to ask, what the chart should say, or whether an annotation makes a defensible causal claim.
+This local stdio server handles the mechanical part of chart production. Its current renderer adapter executes trusted Matplotlib code, preserves renderer geometry, inspects the exact PNG, and compares revisions. It does not decide what question to ask, what the chart should say, which rendering library defines the visual style, or whether an annotation makes a defensible causal claim.
 
 See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation and repair flows, hash/version guarantees, and the reasons for using render metadata.
 
 ## Requirements and installation
 
 - Python 3.10 or newer
-- one local virtual environment
+- a Python virtual environment
 - Codex, Claude Code, or Hermes Agent as the MCP client
 
-Install the repository into the environment used by both clients:
+From the repository root, install the package and retain the absolute interpreter path:
 
 ```bash
-/path/to/venv/bin/python -m pip install -e .
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .
+MCP_PYTHON="$(pwd)/.venv/bin/python"
 ```
 
 On Karthik's machine, the configured interpreter is:
@@ -27,8 +29,7 @@ The editable install means later changes in this checkout are used without reins
 ## Register with Codex
 
 ```bash
-codex mcp add karthik-dataviz -- \
-  /Users/Karthik/envs/datascience/.venv/bin/python -m dataviz_mcp
+codex mcp add karthik-dataviz -- "$MCP_PYTHON" -m dataviz_mcp
 ```
 
 Verify:
@@ -47,7 +48,7 @@ Install the matching skill files, then start a new Codex session:
 
 ```bash
 claude mcp add-json --scope user karthik-dataviz \
-  '{"type":"stdio","command":"/Users/Karthik/envs/datascience/.venv/bin/python","args":["-m","dataviz_mcp"]}'
+  "{\"type\":\"stdio\",\"command\":\"$MCP_PYTHON\",\"args\":[\"-m\",\"dataviz_mcp\"]}"
 ```
 
 Verify:
@@ -64,7 +65,33 @@ Install the matching skill files, then start a new Claude Code session:
 
 No daemon is required. The client starts the Python process when it opens the stdio connection and stops it when the connection closes.
 
-## Deploy on Karthik's Hermes host
+## Deploy on Hermes
+
+On a Hermes host, clone the repository, install the package into an isolated environment, and sync the Claude-compatible skill surface:
+
+```bash
+git clone https://github.com/skthewimp/karthik-data-visualization-skill.git
+cd karthik-data-visualization-skill
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .
+./sync.sh --no-pull --surface hermes
+```
+
+Add the server under the existing `mcp_servers:` key in `~/.hermes/config.yaml`, using the checkout's absolute interpreter path:
+
+```yaml
+  karthik_dataviz:
+    command: /absolute/path/to/karthik-data-visualization-skill/.venv/bin/python
+    args:
+      - -m
+      - dataviz_mcp
+    timeout: 180
+    connect_timeout: 30
+```
+
+Restart the Hermes gateway or client and begin a new session so it reloads both the MCP server and newly synced skill text.
+
+### Karthik's current Hermes host
 
 Hermes runs on the SSH host `server`. Its checkout is `/home/karthik/apps/karthik-data-visualization-skill` and its skills live under `~/.hermes/skills/data-science/`.
 
@@ -81,7 +108,7 @@ git pull --ff-only
 
 The host's system Python lacks `ensurepip`, so the command uses Hermes's bundled Python only to create the new environment. The environments remain separate. The Hermes agent environment at `~/.hermes/hermes-agent/venv` currently uses MCP SDK 1.x; the dataviz server requires MCP SDK 2.x. Installing the package into the agent environment would force an avoidable dependency upgrade.
 
-Add this sibling under the existing `mcp_servers:` key in `~/.hermes/config.yaml`:
+Karthik's deployed config uses:
 
 ```yaml
   karthik_dataviz:
@@ -103,7 +130,18 @@ cd /home/karthik/apps/karthik-data-visualization-skill
 .venv/bin/python -m pytest -q
 ```
 
-Hermes starts the configured stdio process when it loads the MCP server. A new chat or gateway session is also required to load newly synced skill text.
+Hermes starts the configured stdio process when it loads the MCP server.
+
+## Renderer boundary
+
+The MCP API should remain backend-neutral even though the current adapter is Matplotlib-specific. Rendering infrastructure must not become the style system.
+
+- Preserve a project's established renderer.
+- For a new Karthik-style static chart with no project precedent, prefer R/ggplot2 when available.
+- Do not convert a sound ggplot2 chart to Matplotlib just to obtain richer geometry metadata.
+- If Matplotlib is used, apply the rules in `karthik-data-visualization`; an unthemed default chart is not an acceptable MCP result.
+
+The current trade-off is explicit: Matplotlib text and line paths receive deterministic geometry inspection. A ggplot2 PNG can be inspected in raster-only mode and evaluated visually, but collision and clipping checks remain unknown. The next renderer extension should be a ggplot2 adapter that emits the same PNG, spec, layout, and manifest contract. It should not introduce a separate ggplot-only MCP API or move theme judgement into the server.
 
 ## Chart builder contract
 
@@ -212,8 +250,7 @@ The local runner performs this order automatically. Raster-only candidates remai
 Use the same environment as the MCP clients:
 
 ```bash
-MPLCONFIGDIR=/tmp/mpl-cache \
-  /Users/Karthik/envs/datascience/.venv/bin/python -m pytest -q
+MPLCONFIGDIR=/tmp/mpl-cache "$MCP_PYTHON" -m pytest -q
 ```
 
 The suite covers the MCP tools, a real stdio tool listing, repair-loop version binding, the local runner, deterministic geometry fixtures, and the end-to-end coffee annotation repair.

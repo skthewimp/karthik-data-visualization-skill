@@ -54,7 +54,7 @@ A downstream stage may reject or narrow an upstream artifact, but must state the
 - Do not deliver until the exact artifact has been inspected under its intended delivery condition and the applicable evaluation gate passes.
 - Stop when the stated pass line is met; do not keep revising for taste.
 
-When deterministic rendering and artifact inspection are available, render the exact deliverable through the metadata-producing capability and inspect that export before critique, evaluation, or delivery. Do not bypass the metadata-producing renderer and then substitute a raster-only check. If only inspection is available, inspect the export anyway and record the uncovered geometry as unknown. Send reported mechanical defects through the owning implementation or annotation stage before reopening broader design choices.
+Renderer availability must not change the chart design or force a translation into a weaker visual implementation. When the chosen renderer has a metadata-producing capability, render the exact deliverable through it and inspect that export before critique, evaluation, or delivery. Do not bypass supported metadata generation and then substitute a raster-only check. When the chosen renderer lacks metadata support, keep the appropriate renderer, inspect the exact export anyway, record uncovered geometry as unknown, and require independent visual evaluation. Do not translate a sound ggplot2 chart into Matplotlib only to obtain richer metadata. Send reported mechanical defects through the owning implementation or annotation stage before reopening broader design choices.
 
 ### 5. Output package
 

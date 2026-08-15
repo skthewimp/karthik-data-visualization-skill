@@ -9,11 +9,24 @@ This MCP layer addresses that narrow problem. The skills still contain the judge
 | Layer | Owns |
 |---|---|
 | Skills and agent | Question, definitions, denominators, evidence, claim, chart choice, annotation significance and wording, critique, release verdict |
-| MCP capabilities | Matplotlib execution, export bundles, geometry metadata, exact-file hashing, clipping and collision checks, revision comparison |
+| MCP capabilities | Renderer adapters, export bundles, geometry metadata, exact-file hashing, clipping and collision checks, revision comparison |
 
 The MVP deliberately does not include `profile_dataset` or `run_analysis`. There is no reusable profiler or query engine in this repo yet. Adding generic versions would create a second analytical stack instead of exposing existing reliable machinery.
 
 It also does not make a `Send`, `Revise`, or `Redesign` decision. A collision detector cannot decide whether the title states the right claim, whether the comparison set is honest, or whether an event annotation implies causality without evidence.
+
+## Renderer boundary
+
+The MCP contract should be backend-neutral. The current MVP implementation is not: `render_chart` accepts a trusted Python builder and extracts geometry from a Matplotlib figure. That was the shortest reliable route to text boxes and line paths, not a decision that Matplotlib should define Karthik's visual style.
+
+Renderer choice remains with the project and `karthik-data-visualization`:
+
+1. Preserve the renderer already used by the project.
+2. For a new Karthik-style static chart with no project precedent, prefer R/ggplot2 when it is available.
+3. Do not convert a sound ggplot2 chart into Matplotlib only to obtain metadata.
+4. When Matplotlib is the practical fallback, specify every visible design choice rather than accepting library defaults.
+
+Until a ggplot2 adapter reaches metadata parity, the trade-off must stay visible. A ggplot2 PNG can still be hashed and inspected in raster-only mode, but geometry checks remain incomplete and independent visual evaluation carries more weight. The target extension is another adapter behind the same `render_chart` contract, emitting the same PNG, spec, layout metadata, and manifest—not a new judgement layer inside MCP.
 
 ## Why render metadata is primary
 
@@ -50,7 +63,7 @@ intake
 → delivery
 ```
 
-When both capabilities are available, the orchestrator requires the exact deliverable to pass through the metadata-producing renderer and then exact-artifact inspection. It must not bypass metadata generation and substitute a raster-only check. The evaluator uses the matching inspection report as mechanical evidence and still performs the independent visual and analytical read.
+When the chosen renderer is supported, the orchestrator requires the exact deliverable to pass through the metadata-producing adapter and then exact-artifact inspection. It must not bypass available metadata generation and substitute a raster-only check. When the appropriate renderer is not supported, the exact export still receives raster-only inspection, the missing geometry remains unknown, and the evaluator performs the independent visual and analytical read. Metadata availability must not force a weaker visual implementation.
 
 ## Repair sequence and version binding
 

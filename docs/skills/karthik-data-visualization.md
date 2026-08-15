@@ -55,6 +55,12 @@ It rejects:
 - over-decorated infographic styling
 - interactivity as a default
 
+## Renderer preference
+
+Preserve the renderer already established by the project. For a new Karthik-style static chart without project precedent, prefer R/ggplot2 when it is available. The preference comes from the working grammar and the way Karthik's charts are usually built; it does not mean accepting ggplot2's default theme unchanged.
+
+The MCP renderer is infrastructure, not the visual style. Its current Matplotlib adapter exists because Matplotlib exposes reliable text and path geometry. It must not cause an agent to replace a sound ggplot2 implementation with a default-looking Matplotlib chart. When Matplotlib is the practical fallback, every visible choice—type, colour, grid, axes, labels, spacing, and annotation—must be set deliberately and checked in the exact export.
+
 ## Typical use
 
 Use it after the chart form is decided:

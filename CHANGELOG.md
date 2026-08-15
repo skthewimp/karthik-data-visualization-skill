@@ -42,6 +42,8 @@ All notable public changes to this repository are recorded here.
 - Documented the complete Hermes deployment boundary: skill sync plus a separately isolated MCP 2.x stdio runtime, config registration, gateway restart, and verification.
 - Completed the test extra with the local tester's FastAPI dependencies so `pip install -e ".[test]"` can run the repository's configured full suite on a clean host.
 - Deployed the exact pushed commit to Hermes, synced the 13 repo skills, registered the stdio server, restarted the gateway, and verified the full suite plus direct MCP protocol tests on the host.
+- Clarified that the MCP renderer is a backend adapter rather than a style system. Project-native renderers are preserved, new Karthik-style static charts prefer R/ggplot2 when available, and metadata support cannot justify translating a sound chart into default-looking Matplotlib.
+- Reworked the root README into an agent entry point with generation and repair reading paths, generic Codex/Claude/Hermes installation, the two-part skills-plus-MCP setup, current renderer limits, security boundaries, and direct links to deeper contracts.
 
 ## 2026-08-12
 

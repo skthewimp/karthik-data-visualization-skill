@@ -14,6 +14,10 @@
 
 > "commit and push with proper documentation. and also deploy to hermes"
 
+> "should the MCP for render_chart be ggplot based, given that my design aesthetic calls for that?"
+
+> "make sure the readme is proper so that anyone just pointing their LLM at the repo can get full value"
+
 ### Work done
 
 - Audited the full skill stack, repair state machine, local runner, tester artifacts, docs, and 39-test baseline before designing the MCP boundary.
@@ -25,6 +29,8 @@
 - Documented Hermes as two explicit deployment surfaces: synced skills and an isolated MCP 2.x stdio process. The separate environment avoids upgrading the Hermes agent's MCP 1.x dependency.
 - Fixed two deployment issues found on the real host: its system Python lacks `ensurepip`, and the package's test extra omitted the tester's FastAPI dependencies. Hermes's bundled Python now creates a separate environment, and `.[test]` installs the complete suite.
 - Deployed the pushed commit to `server`, synced all 13 repo skills, registered `mcp_servers.karthik_dataviz`, restarted the active gateway, and verified 62 host tests, three direct stdio protocol tests, installed-skill parity, and the packaged case-manager runtime.
+- Separated renderer infrastructure from visual style. The current Matplotlib geometry adapter no longer gets to force backend translation; project-native code is preserved and new Karthik-style static charts prefer R/ggplot2 where available.
+- Turned the root README into a practical entry point for agents and third-party users, including the exact skill reading paths, two-part installation, generic client commands, renderer trade-offs, trust boundary, and current MCP coverage.
 
 ## 2026-08-12 - Scope-safe chart repairs from Hermes feedback
 

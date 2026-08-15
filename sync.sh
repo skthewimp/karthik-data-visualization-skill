@@ -16,7 +16,7 @@ while [[ $# -gt 0 ]]; do
       sync_args+=("$1")
       if [[ "$1" == "--surface" ]]; then
         if [[ $# -lt 2 ]]; then
-          echo "--surface requires all, codex, or claude" >&2
+          echo "--surface requires all, codex, claude, or hermes" >&2
           exit 2
         fi
         sync_args+=("$2")
@@ -26,10 +26,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -h|--help)
       cat <<'EOF'
-Usage: ./sync.sh [--no-pull] [--validate-only] [--surface all|codex|claude]
+Usage: ./sync.sh [--no-pull] [--validate-only] [--surface all|codex|claude|hermes]
 
 Pull latest changes and install the public data visualization skills to
-~/.codex/skills and ~/.claude/skills.
+~/.codex/skills, ~/.claude/skills, or the explicit Hermes skill directory.
 EOF
       exit 0
       ;;

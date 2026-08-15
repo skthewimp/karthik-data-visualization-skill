@@ -60,6 +60,8 @@ Colour must earn its place. Position, length, ordering, direct labels, and annot
 
 When writing or changing chart code:
 
+- Preserve the renderer already used by the project. For a new Karthik-style static chart with no project precedent, prefer R/ggplot2 when it is available. This is an implementation preference, not permission to carry over `theme_gray()` or any other library default without examining the export.
+- Treat rendering and inspection capabilities as mechanical infrastructure, not a style system. Do not translate a sound ggplot2 chart into Matplotlib only because one backend exposes richer metadata. If Matplotlib is the practical fallback, define typography, palette, grid, axes, labels, and spacing deliberately; default Matplotlib aesthetics fail this skill.
 - Keep the visual design deliberate, not library-default.
 - Check that text is legible and non-overlapping at the intended output size. Text placed over a mark is an inside label, not clear space: verify contrast and padding against the mark. Inspect the worst example in each repeated placement pattern because direction, sign, length, or panel side can change where the same labelling rule lands.
 - After changing an axis label, legend, or colour, inspect that exact element in the export. Confirm every required category remains identifiable and correctly bound to its marks. A legend may contain only mappings that appear in the chart, and each key must match the plotted colour plus its relevant line, point, or fill form—not colour alone.
