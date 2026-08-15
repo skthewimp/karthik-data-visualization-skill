@@ -169,6 +169,15 @@ Run a colour audit whenever colour carries meaning:
 
 Fail the relevant gate for legend-to-mark mismatch, essential marks that disappear into their background, colour-only distinctions that fail under common colour-vision deficiencies, or series that collapse into one another at delivery size. Do not require every large decorative fill to satisfy text-level WCAG contrast when labels, boundaries, and other channels make the reading robust.
 
+### Presentation checks (mandatory)
+
+Record these separately from the outcome gates and general release checks:
+
+1. **Colour distinction** - identify the closest pair of competing encoded colours and test it at delivery size, in grayscale, and under common colour-vision deficiencies. A palette name, brand match, or generic statement that colours are consistent cannot support `Pass`. If the chart has no competing encoded colours, state that as the evidence and stress test.
+2. **Copy style** - after the blind read is frozen and intent is revealed, load the applicable installed writing or brand style skill. Inspect every title, subtitle, annotation, caption, and note against it. If no such skill applies, require plain, specific, evidence-bounded copy. Accuracy alone cannot support `Pass` when the language is generic, inflated, or violates the declared voice.
+
+Each check needs `Pass`, `Concern`, `Fail`, or `Unknown`, direct evidence, and a `stress_test` naming the most failure-prone pair or phrase. `Send` requires both checks to pass. Keep style skills out of the pre-intent blind read so they cannot prime the reviewer toward the creator's wording.
+
 For a repair, require preservation of context present in the source. Do not demand a new organisation, period, source, or denominator merely because the original also omitted it, unless the user's brief requires factual defensibility or the omission makes the claim unsafe.
 
 Do not punish an exploratory chart for lacking a dramatic story. If the intended result is "no defensible pattern", evaluate whether that is what the reader understands.
@@ -190,7 +199,7 @@ Accessibility or an explicit target style becomes a gate when it changes compreh
 
 Never average away a fatal error. A beautiful chart with wrong evidence, the wrong question, or unreadable delivery does not pass.
 
-Record evidence for every gate and every release check. `Send` requires every required gate and all release checks to pass. A non-required gate must remain `Unknown`, with the missing intent or evidence named; do not manufacture a pass. A generic statement such as "clean and readable" is not evidence: name the inspected relationship, encoding role, or delivery condition.
+Record evidence for every gate, release check, and presentation check. `Send` requires every required gate, all release checks, and both presentation checks to pass. A non-required gate must remain `Unknown`, with the missing intent or evidence named; do not manufacture a pass. A generic statement such as "clean and readable" is not evidence: name the inspected relationship, encoding role, phrase, or delivery condition.
 
 ### 7. Set the verdict
 
@@ -257,6 +266,12 @@ Audience: question ...; point ...; uncertainty ...; next action ...
 | Spatial economy | Pass / Concern / Fail / Unknown | ... |
 | Encoding semantics | Pass / Concern / Fail / Unknown | ... |
 | Delivery robustness | Pass / Concern / Fail / Unknown | ... |
+
+## Presentation checks
+| Check | Result | Evidence | Stress test |
+|---|---|---|---|
+| Colour distinction | Pass / Concern / Fail / Unknown | ... | ... |
+| Copy style | Pass / Concern / Fail / Unknown | ... | ... |
 
 ## Verdict
 Send / Revise / Redesign / Not evaluable

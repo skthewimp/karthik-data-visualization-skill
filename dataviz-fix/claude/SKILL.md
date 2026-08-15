@@ -1,6 +1,6 @@
 ---
 name: dataviz-fix
-description: Iteratively repair an uploaded or pasted data visualization, preserve revisions and feedback, then improve the owning dataviz skill.
+description: Iteratively repair an uploaded or pasted data visualization, preserve revisions and feedback, then improve the owning dataviz skill from the accepted result.
 ---
 
 # Dataviz Fix
@@ -29,11 +29,12 @@ Use the smallest relevant subset:
 - `dataviz-selector`: keep or change the chart form.
 - `dataviz-eval`: run the required artifact gate after every render and return the minimum pass set.
 - `karthik-data-visualization`: implement and inspect the visual.
+- The applicable installed writing or brand style skill: govern every title, subtitle, annotation, caption, and note. In Karthik's environment, this is `karthik-writing-style`.
 - `chart-annotations`: decide what to mark and how to label it.
 - `dataviz-orchestrator`: use when source data or analysis must be rebuilt.
 - `karthik-analysis-planner` and `karthik-data-cleaning`: use only when definitions, grain, denominators, or data quality affect the repair.
 
-Always load `dataviz-eval` for the rendered-artifact gate. Choose the other companion skills by failure mode.
+Always load `dataviz-eval` for the rendered-artifact gate. Always load an applicable installed writing or brand style skill before drafting reader-facing chart copy. Choose the other companion skills by failure mode. Do not treat prose inside a chart as exempt from the user's writing rules.
 
 For an open-ended repair or redesign, always load `dataviz-critique` and `dataviz-selector`; the source chart's title and form are hypotheses to test, not intent or evidence to preserve. For a narrow literal edit, use only the companion skills needed by the named change.
 
@@ -233,10 +234,18 @@ Do not give the full diagnosis unless asked. Use it to make the chart.
 - An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Reusing an artifact is valid only when no active user check or unresolved evaluator action requires a change.
 - Use exact data when available; never present estimated screenshot values as exact.
 - Save code and outputs inside the active case directory when feasible.
+- Apply the installed writing or brand style skill to every reader-facing phrase. Factual accuracy does not excuse generic AI copy or a voice mismatch.
 
 ### 4. Inspect before sending
 
-This is a render → independent evaluate → revise loop. Invoke `dataviz-eval` on the actual recorded export for expert/audience reads, evidence scope, gates, release checks, verdict, and minimum pass set. Keep the long evaluation internal unless the user asks for it.
+This is a render → independent evaluate → revise loop. Invoke `dataviz-eval` on the actual recorded export for expert/audience reads, evidence scope, gates, release checks, presentation checks, verdict, and minimum pass set. Keep the long evaluation internal unless the user asks for it.
+
+Two presentation checks are mandatory for every new iteration:
+
+- **Colour distinction:** inspect the closest pair of competing encoded colours at delivery size, in grayscale, and under common colour-vision deficiencies. A named palette, brand match, or claim that colours “look distinct” is not evidence. A chart with no competing encoded colours may pass only with that fact recorded.
+- **Copy style:** inspect titles, subtitles, annotations, captions, and notes against the applicable installed writing or brand style skill. If none applies, use plain, specific, evidence-bounded prose. Accurate but generic AI phrasing does not pass.
+
+The independent reviewer records both checks with a result, direct evidence, and a stress test. `Send` requires both to pass.
 
 Before requesting the independent review, use any available deterministic artifact-inspection capability on the exact recorded export and preserve its artifact-bound report with the iteration. Pass known mechanical defects into the review and minimum pass set. On `Revise`, repair them before reopening higher-level design choices and keep unrelated passing regions unchanged; do not treat a collision or clipping report as permission to redesign the chart. If inspection coverage is incomplete, record the missing geometry evidence instead of converting it into a pass.
 

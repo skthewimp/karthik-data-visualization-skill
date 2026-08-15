@@ -43,8 +43,12 @@ RELEASE_CHECK_NAMES = (
     "Encoding semantics",
     "Delivery robustness",
 )
+PRESENTATION_CHECK_NAMES = (
+    "Colour distinction",
+    "Copy style",
+)
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 DEFAULT_MAX_ITERATIONS = 3
 DEFAULT_MAX_STALLED_EVALUATIONS = 2
 ACTIVE_STATES = (
@@ -407,6 +411,18 @@ def validate_review_report(
         "release_checks",
         require_stress_test=True,
     )
+    raw_presentation_checks = report.get("presentation_checks")
+    if iteration.get("presentation_checks_required") or raw_presentation_checks is not None:
+        presentation_checks = validate_ratings(
+            raw_presentation_checks,
+            PRESENTATION_CHECK_NAMES,
+            "presentation_checks",
+            require_stress_test=True,
+        )
+    else:
+        # Iterations recorded before schema 13 remain reviewable. Every new
+        # iteration records presentation_checks_required and cannot bypass them.
+        presentation_checks = {}
 
     raw_carry_checks = report.get("carry_forward_checks", [])
     if not isinstance(raw_carry_checks, list):
@@ -495,7 +511,9 @@ def validate_review_report(
 
     required_results = [item["result"] for item in gates.values() if item["required"]] + [
         item["result"] for item in release_checks.values()
-    ] + [item["result"] for item in semantic_checks.values()] + [
+    ] + [item["result"] for item in presentation_checks.values()] + [
+        item["result"] for item in semantic_checks.values()
+    ] + [
         item["result"] for item in carry_checks
     ] + [
         item["result"] for item in acceptance_results
@@ -520,7 +538,10 @@ def validate_review_report(
         ):
             raise SystemExit("Send requires complete deterministic geometry checks to pass")
         if any(result != "Pass" for result in required_results):
-            raise SystemExit("Send requires every required gate and release check to Pass")
+            raise SystemExit(
+                "Send requires every required gate, semantic check, release check, "
+                "presentation check, carried action, and acceptance check to Pass"
+            )
         if codes or required_actions:
             raise SystemExit("Send cannot include failure codes or required actions")
     elif verdict in ("Revise", "Redesign"):
@@ -547,6 +568,7 @@ def validate_review_report(
         "gates": gates,
         "semantic_checks": semantic_checks,
         "release_checks": release_checks,
+        "presentation_checks": presentation_checks,
         "carry_forward_checks": carry_checks,
         "acceptance_checks": acceptance_results,
         "verdict": verdict,
@@ -951,7 +973,10 @@ def required_results(event: dict) -> list[str]:
     release_results = [
         item["result"] for item in event.get("release_checks", {}).values()
     ]
-    return gate_results + release_results
+    presentation_results = [
+        item["result"] for item in event.get("presentation_checks", {}).values()
+    ]
+    return gate_results + release_results + presentation_results
 
 
 def candidate_rank(event: dict) -> list[int]:
@@ -986,6 +1011,10 @@ def evaluation_signature(event: dict) -> dict:
         "release_checks": {
             name: item.get("result")
             for name, item in event.get("release_checks", {}).items()
+        },
+        "presentation_checks": {
+            name: item.get("result")
+            for name, item in event.get("presentation_checks", {}).items()
         },
     }
 
@@ -1388,6 +1417,7 @@ def cmd_iterate(args: argparse.Namespace) -> None:
         "request_check_count": len(data.get("request_checks", [])),
         "context_version": data.get("context_version", 1),
         "semantic_preflight": semantic_preflight["number"],
+        "presentation_checks_required": True,
     }
     if render_bundle:
         event["render_bundle"] = render_bundle
@@ -1570,6 +1600,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         "gate_required": {name: item["required"] for name, item in report["gates"].items()},
         "gate_evidence": {name: item["evidence"] for name, item in report["gates"].items()},
         "release_checks": report["release_checks"],
+        "presentation_checks": report["presentation_checks"],
         "carry_forward_checks": report["carry_forward_checks"],
         "acceptance_checks": report["acceptance_checks"],
         "codes": report["codes"],
@@ -1747,6 +1778,14 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
         }
         for name in RELEASE_CHECK_NAMES
     }
+    presentation_template = {
+        name: {
+            "result": "<Pass|Concern|Fail|Unknown>",
+            "evidence": "<specific observed evidence>",
+            "stress_test": "<most failure-prone copy or colour relationship inspected>",
+        }
+        for name in PRESENTATION_CHECK_NAMES
+    }
     semantic_template = {
         name: {
             "result": "<Pass|Concern|Fail|Unknown>",
@@ -1788,6 +1827,9 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
             "Treat active user checks as the change contract. A required action must not conflict with a change or preservation check.",
             "For a narrow repair, test changed regions absolutely and untouched regions for preservation and regression. Put unchanged pre-existing defects outside the authorised scope in baseline_concerns; do not turn them into required actions unless they block the requested correction or materially mislead.",
             "A later user correction outranks an older evaluator preference. Do not preserve or restore an element the user explicitly asked to remove.",
+            "After the blind read is frozen, open and apply any installed writing, brand, and visual-style skills relevant to this user or project.",
+            "Colour distinction is a separate release gate: inspect the closest competing encoded colours at delivery size and under grayscale or a common colour-vision deficiency; prose saying the palette is consistent is not evidence.",
+            "Copy style is a separate release gate: inspect titles, subtitles, annotations, and notes against the applicable writing/style skill; generic AI phrasing cannot pass merely because the claim is accurate.",
         ],
         "blind_response_path": str(blind_response_path),
         "blind_response_sha256": sha256(blind_response_path),
@@ -1811,6 +1853,7 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
             "gates": rating_template,
             "semantic_checks": semantic_template,
             "release_checks": release_template,
+            "presentation_checks": presentation_template,
             "carry_forward_checks": [
                 {
                     "id": item["id"],
@@ -1921,6 +1964,10 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
                 f"{name}={detail['result']}"
                 for name, detail in item.get("release_checks", {}).items()
             ) or "(not recorded)"
+            presentation_checks = ", ".join(
+                f"{name}={detail['result']}"
+                for name, detail in item.get("presentation_checks", {}).items()
+            ) or "(not recorded)"
             lines.extend(
                 [
                     f"{item['number']}. Iteration {item['iteration']}: **{item['verdict']}**",
@@ -1930,6 +1977,7 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
                     f"   - Reviewer: {item.get('reviewer', '(legacy self-review)')}",
                     f"   - Tested size: {item.get('tested_size', '(not recorded)')}",
                     f"   - Release checks: {release_checks}",
+                    f"   - Presentation checks: {presentation_checks}",
                     f"   - Required actions: {', '.join(item['required_actions']) if isinstance(item['required_actions'], list) else item['required_actions'] or 'none'}",
                     f"   - Baseline concerns outside scope: {', '.join(item.get('baseline_concerns', [])) or 'none'}",
                     f"   - Context version: {item.get('context_version', 1)}"

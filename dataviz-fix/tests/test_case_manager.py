@@ -35,6 +35,10 @@ RELEASE_CHECKS = (
     "Encoding semantics",
     "Delivery robustness",
 )
+PRESENTATION_CHECKS = (
+    "Colour distinction",
+    "Copy style",
+)
 SEMANTIC_DIMENSIONS = (
     "measure",
     "time_context",
@@ -153,6 +157,9 @@ class CaseManagerTest(unittest.TestCase):
         omit_release_stress_test=False,
         inspection_sha_override=None,
         semantic_result="Pass",
+        presentation_result="Pass",
+        omit_presentation_check=None,
+        omit_presentation_section=False,
         tamper_blind_semantics=False,
         ok=True,
     ):
@@ -198,6 +205,15 @@ class CaseManagerTest(unittest.TestCase):
                 "evidence": f"Direct semantic evidence for {name}",
             }
             for name in SEMANTIC_DIMENSIONS
+        }
+        presentation_checks = {
+            name: {
+                "result": presentation_result,
+                "evidence": f"Evidence for {name}",
+                "stress_test": f"Worst-case copy or colour pair for {name}",
+            }
+            for name in PRESENTATION_CHECKS
+            if name != omit_presentation_check
         }
         if omit_release_stress_test:
             release_checks["Visual integrity"].pop("stress_test")
@@ -253,6 +269,8 @@ class CaseManagerTest(unittest.TestCase):
             "codes": codes,
             "required_actions": actions,
         }
+        if not omit_presentation_section:
+            report["presentation_checks"] = presentation_checks
         if tamper_blind_semantics:
             report["blind_semantics"]["measure"]["reading"] = "Rewritten after reveal"
         response_path = Path(reveal["response_path"])
@@ -580,6 +598,24 @@ class CaseManagerTest(unittest.TestCase):
         rejected = self.review("Revise", omit_release_stress_test=True, ok=False)
         self.assertIn("Visual integrity.stress_test", rejected.stderr)
 
+    def test_review_requires_both_presentation_checks(self):
+        self.start()
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        rejected = self.review(
+            "Revise", omit_presentation_check="Copy style", ok=False
+        )
+        self.assertIn("presentation_checks.Copy style", rejected.stderr)
+
+    def test_iteration_recorded_before_presentation_gate_remains_reviewable(self):
+        started = self.start()
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        case_path = Path(started["case_dir"]) / "case.json"
+        case = json.loads(case_path.read_text(encoding="utf-8"))
+        case["iterations"][-1].pop("presentation_checks_required")
+        case_path.write_text(json.dumps(case), encoding="utf-8")
+        result = self.review("Send", omit_presentation_section=True)
+        self.assertEqual(result["verdict"], "Send")
+
     def test_unresolved_evaluator_action_cannot_disappear(self):
         self.start("--max-iterations", "3")
         self.iterate(self.write_png("candidate-1.png", b"candidate-1"))
@@ -877,6 +913,12 @@ class CaseManagerTest(unittest.TestCase):
         result = self.review("Send", semantic_result="Concern", ok=False)
         self.assertIn("Send requires", result.stderr)
 
+    def test_send_requires_colour_and_copy_presentation_checks_to_pass(self):
+        self.start()
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        result = self.review("Send", presentation_result="Concern", ok=False)
+        self.assertIn("Send requires", result.stderr)
+
     def test_reveal_cannot_rewrite_frozen_blind_semantics(self):
         self.start()
         self.iterate(self.write_png("candidate.png", b"candidate"))
@@ -1045,7 +1087,7 @@ class CaseManagerTest(unittest.TestCase):
         case["state"] = "active"
         case_path.write_text(json.dumps(case), encoding="utf-8")
         status = self.status()
-        self.assertEqual(status["schema_version"], 12)
+        self.assertEqual(status["schema_version"], 13)
         self.assertEqual(status["state"], "build")
         self.assertEqual(status["context_version"], 1)
         self.assertEqual(status["limits"]["max_iterations"], 3)

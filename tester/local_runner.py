@@ -96,6 +96,24 @@ class LocalCodexRunner:
                     completed.append(stages["creator"] + stages["reviewer"])
         return int(median(completed)) if completed else None
 
+    def _skill_path(self, name: str) -> Path:
+        """Resolve a required skill from the checkout or installed runtime."""
+        candidates = [self.repo_root / name / "codex" / "SKILL.md"]
+        codex_home = os.getenv("CODEX_HOME")
+        if codex_home:
+            candidates.append(Path(codex_home).expanduser() / "skills" / name / "SKILL.md")
+        candidates.extend(
+            (
+                Path.home() / ".codex" / "skills" / name / "SKILL.md",
+                Path.home() / ".hermes" / "skills" / name / "SKILL.md",
+                Path.home() / ".claude" / "skills" / name / "SKILL.md",
+            )
+        )
+        for candidate in candidates:
+            if candidate.is_file():
+                return candidate.resolve()
+        raise RuntimeError(f"Required installed skill not found: {name}")
+
     def start(self, case_id: str) -> dict[str, Any]:
         if not self.available:
             raise RuntimeError(
@@ -428,7 +446,9 @@ class LocalCodexRunner:
         context_version: int,
     ) -> str:
         manager = self.repo_root / "dataviz-fix" / "codex" / "scripts" / "case_manager.py"
-        skill = self.repo_root / "dataviz-fix" / "codex" / "SKILL.md"
+        skill = self._skill_path("dataviz-fix")
+        visual_skill = self._skill_path("karthik-data-visualization")
+        writing_skill = self._skill_path("karthik-writing-style")
         revision_instruction = (
             "The first attached image is the source. The second is the latest candidate. "
             "Continue from the latest candidate and its generating code in the case directory. "
@@ -438,7 +458,7 @@ class LocalCodexRunner:
             else "The attached image is the source. Build the first candidate from it."
         )
         semantic_path = case_dir / f"semantic-preflight-v{context_version}.json"
-        return f"""Open and follow {skill}.
+        return f"""Open and follow {skill}, {visual_skill}, and {writing_skill}. The latter two are required inputs, not optional references.
 
 You are the chart creator for case {case_id}, not its reviewer. Build exactly one candidate for iteration {iteration}. Read the current case using:
 
@@ -451,6 +471,8 @@ Inspect the recorded context and acceptance checks. Work only inside {case_dir}.
 Before starting the renderer, audit measure, time/context, universe/denominator, claim strength, and audience units. Write the complete context-version {context_version} report to {semantic_path}, run `DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} semantic-preflight --case {case_id} --report {semantic_path}`, then run `DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} build-check --case {case_id}`. These are the only state-changing case-manager commands you may run. Treat every structured field marked `inferred` as a hypothesis, not user intent. For an open-ended repair, run the critique and chart-selection reasoning before choosing the form. Each preflight `required` value must be an observable delivered state, not a prescribed chart type.
 
 Treat the active change and preservation checks as the edit boundary. Make each literal requested removal, addition, and relocation; do not retain or restore a forbidden element as a fallback. Expand shared edits across every applicable panel, facet, row, or series; do not stop after fixing one repeated instance. Preserve untouched elements unless a dependent adjustment is necessary for the requested change.
+
+Apply the writing skill to every title, subtitle, annotation, note, and other reader-facing phrase. Accurate copy still fails when it uses generic AI phrasing or violates the applicable writing style. Before accepting a palette, identify the closest pair of competing encoded colours and verify that they remain distinct at delivery size, in grayscale, and under common colour-vision deficiencies. A palette name or brand match is not evidence of distinction.
 
 Python, Matplotlib, NumPy, Pillow, and this repo's `dataviz_mcp` package are available with writable cache directories already configured. Use one Python rendering script with a `build_chart()` function. This is a compatibility path, not permission to use Matplotlib defaults: define the theme, typography, palette, grid, axes, labels, and spacing deliberately under `karthik-data-visualization`. For a Matplotlib candidate, call `dataviz_mcp.rendering.render_chart` with output_dir `{case_dir}` and artifact_name `{candidate_path.name}` so the wrapper can preserve render metadata and run complete geometry checks. Tag annotation and series artists with stable gids such as `annotation:event-id` and `series:metric-id`. Use no more than six shell calls; do not install packages, probe alternative renderers, or compile another language. An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Copy an artifact unchanged only when no active correction or unresolved evaluator action requires a change.
 """
@@ -489,12 +511,16 @@ Python, Matplotlib, NumPy, Pillow, and this repo's `dataviz_mcp` package are ava
         self, case_id: str, request_path: Path, case_dir: Path, iteration: int
     ) -> str:
         manager = self.repo_root / "dataviz-fix" / "codex" / "scripts" / "case_manager.py"
-        skill = self.repo_root / "dataviz-eval" / "codex" / "SKILL.md"
+        skill = self._skill_path("dataviz-eval")
+        visual_skill = self._skill_path("karthik-data-visualization")
+        writing_skill = self._skill_path("karthik-writing-style")
         return f"""Open and follow {skill}.
 
 You are a fresh independent reviewer for case {case_id}, iteration {iteration}. You did not create the chart. The first attached image is the source; the second is the exact delivered candidate. When present, the third is a representative delivery-size preview and the fourth is an overlapping four-region detail sheet derived deterministically from that exact candidate. Inspect every supplied view. A clean full view cannot override a collision, mismatch, or ambiguity visible in a delivery or detail view.
 
 Open only the blind request at {request_path}. Do not open case.json, creator files, or any reveal file before freezing the blind read. Follow the request exactly: write the blind response, run `DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} blind-submit --case {case_id}`, then open the generated reveal and complete its response template with artifact-specific evidence. Do not run evaluate; the wrapper will validate and record your response after your process exits.
+
+After the blind response is frozen and intent is revealed, open and follow {visual_skill} and {writing_skill}. Use them for the mandatory presentation checks. For Colour distinction, test the closest competing encoded colours at delivery size, in grayscale, and under common colour-vision deficiencies. For Copy style, inspect every title, subtitle, annotation, and note against the applicable writing skill; factual accuracy alone is not a pass.
 
 Inspect the artifact visually before opening any deterministic inspection named in the blind request. Then incorporate that exact-hash inspection result. A complete failing geometry check cannot be overridden by a clean-looking overview; an incomplete raster-only report is unknown, not a pass.
 

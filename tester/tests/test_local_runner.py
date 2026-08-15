@@ -79,6 +79,27 @@ class FakeCaseManager:
 
 
 class LocalRunnerTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.codex_home = tempfile.TemporaryDirectory()
+        writing_skill = (
+            Path(cls.codex_home.name)
+            / "skills"
+            / "karthik-writing-style"
+            / "SKILL.md"
+        )
+        writing_skill.parent.mkdir(parents=True)
+        writing_skill.write_text("# Test writing skill\n", encoding="utf-8")
+        cls.codex_home_patch = patch.dict(
+            os.environ, {"CODEX_HOME": cls.codex_home.name}
+        )
+        cls.codex_home_patch.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.codex_home_patch.stop()
+        cls.codex_home.cleanup()
+
     def test_provider_keys_are_not_passed_to_chart_subprocesses(self) -> None:
         with patch.dict(
             os.environ,
@@ -97,6 +118,14 @@ class LocalRunnerTests(unittest.TestCase):
         self.assertNotIn("OPENAI_API_KEY", env)
         self.assertNotIn("ANTHROPIC_API_KEY", env)
         self.assertNotIn("GOOGLE_API_KEY", env)
+
+    def test_missing_required_skill_stops_the_runner(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            client = FakeCaseManager(root)
+            runner = LocalCodexRunner(client, root, enabled=True)
+            with self.assertRaisesRegex(RuntimeError, "Required installed skill not found"):
+                runner._skill_path("missing-style-skill")
 
     def test_one_job_runs_one_creator_and_one_reviewer(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -265,6 +294,33 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertIn("active user checks as the change contract", prompt)
             self.assertIn("every applicable panel, facet, row, or series", prompt)
             self.assertIn("baseline_concerns", prompt)
+            self.assertIn("After the blind response is frozen", prompt)
+            self.assertIn("karthik-data-visualization", prompt)
+            self.assertIn("karthik-writing-style", prompt)
+            self.assertIn("closest competing encoded colours", prompt)
+            self.assertLess(
+                prompt.index("blind response is frozen"),
+                prompt.index("karthik-writing-style"),
+            )
+
+    def test_creator_prompt_loads_visual_and_writing_skills(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            client = FakeCaseManager(root)
+            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
+            prompt = runner._creator_prompt(
+                client.case_id,
+                client.case_dir,
+                client.case_dir / "candidate-01.png",
+                1,
+                1,
+            )
+            self.assertIn("dataviz-fix", prompt)
+            self.assertIn("karthik-data-visualization", prompt)
+            self.assertIn("karthik-writing-style", prompt)
+            self.assertIn("required inputs, not optional references", prompt)
+            self.assertIn("every title, subtitle, annotation, note", prompt)
+            self.assertIn("closest pair of competing encoded colours", prompt)
 
     def test_revision_uses_latest_candidate_and_preserves_prior_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
