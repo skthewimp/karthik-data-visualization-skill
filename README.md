@@ -117,6 +117,16 @@ Use this when you want to paste or upload a chart, receive a real regenerated vi
 
 See: [`docs/skills/dataviz-fix.md`](docs/skills/dataviz-fix.md)
 
+On Hermes, the packaged `dataviz-release-guard` plugin can enforce the repair
+boundary outside the agent prompt. For chart-repair turns it injects a unique
+case session id, then withholds the final chart unless that new case reaches
+`user_review` with an independent `Send` verdict and the delivered file hash
+matches the reviewed artifact. Enable it after installing the package:
+
+```bash
+hermes plugins enable dataviz-release-guard
+```
+
 ### `dataviz-eval`
 
 Use this after rendering when you need a `Send`, `Revise`, `Redesign`, or `Not evaluable` verdict based on evidence, intended meaning, blind audience reading, visual reasoning, and the actual delivery medium. It also supports golden-set regression tests for chart-producing agents and skills.

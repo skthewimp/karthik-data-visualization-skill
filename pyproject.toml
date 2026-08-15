@@ -17,6 +17,9 @@ dependencies = [
 [project.scripts]
 karthik-dataviz-mcp = "dataviz_mcp.server:main"
 
+[project.entry-points."hermes_agent.plugins"]
+dataviz-release-guard = "dataviz_mcp.hermes_release_guard"
+
 [project.optional-dependencies]
 test = [
   "fastapi>=0.128,<1",
