@@ -1,5 +1,21 @@
 # Devlog
 
+## 2026-08-15 - Metadata-first MCP rendering and inspection
+
+### User prompts
+
+> "Skills contain judgement, analytical method and policy. MCP should provide reliable capabilities underneath them."
+
+> "I care more about a useful inspection primitive than about fancy MCP completeness."
+
+### Work done
+
+- Audited the full skill stack, repair state machine, local runner, tester artifacts, docs, and 39-test baseline before designing the MCP boundary.
+- Added `render_chart`, `inspect_rendered_chart`, and `compare_chart_artifacts`; deferred profiling and analysis execution because the repo has no reusable implementation to wrap yet.
+- Made render metadata the primary geometry source and the exact PNG the source for dimensions, hashes, and pixel comparison. Raster-only inspection now stays explicitly incomplete.
+- Bound render bundles and inspection reports into case schema 10, including the exact inspection hash required by independent evaluation.
+- Added deterministic defect fixtures and a coffee-price repair regression, inspected both generated PNGs, and installed the editable server in the active datascience environment.
+
 ## 2026-08-12 - Scope-safe chart repairs from Hermes feedback
 
 ### User prompts
@@ -444,3 +460,19 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Start a new Hermes session to load the updated skill text. Step 3/3 done: 1. Committed `b83b929 refactor(skills): clarify ownership boundaries` 2. Pushed `main` to GitHub. 3. Deployed and verified all 13 Hermes skills...
 
 <!-- codex-session:019ff565-7102-71d1-b38d-b03059979603:end -->
+
+<!-- codex-session:01a004f8-6490-7812-9a21-1e1cb2166794:start -->
+## 2026-08-15 15:59 IST | Codex session `01a004f8-649`
+
+### User prompts
+> You are working in my repo: https://github.com/skthewimp/karthik-data-visualization-skill I want you to take over implementation work from here. What I am trying to achieve The repo already has a fairly elaborate skil...
+> i'm using one venv on this c omputer. use that.
+> ok what command do i need to run and how does it work?
+
+### Work done
+- `codex mcp add karthik-dataviz -- /Users/Karthik/envs/datascience/.venv/bin/python -m dataviz_mcp` **Step 7/7 done: MCP MVP and exact-artifact repair loop implemented.** 1. **MCP tools** - `render_chart`: emits PNG, s...
+- ```bash codex mcp add karthik-dataviz -- /Users/Karthik/envs/datascience/.venv/bin/python -m dataviz_mcp ``` Run this once in Terminal, from any directory. 1. **Register the server** The command tells Codex: - server...
+- Touched files: `.gitignore`, `CHANGELOG.md`, `README.md`, `dataviz-eval/claude/SKILL.md`, `dataviz-eval/codex/SKILL.md`, `dataviz-fix/claude/SKILL.md`, `dataviz-fix/claude/scripts/README.md`, `dataviz-fix/claude/scripts/case_manager.py`
+- .gitignore | 1 +
+
+<!-- codex-session:01a004f8-6490-7812-9a21-1e1cb2166794:end -->
