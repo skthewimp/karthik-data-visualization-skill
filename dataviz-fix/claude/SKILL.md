@@ -37,21 +37,21 @@ Always load `dataviz-eval` for the rendered-artifact gate. Choose the other comp
 
 ## Case log
 
-Persist each example so the accepted result can teach the skills. Hermes expands `${HERMES_SKILL_DIR}` to this installed skill directory. Use:
+Persist each example so the accepted result can teach the skills. Resolve these placeholders once and substitute their literal values in every command:
 
-```bash
-python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" <command> ...
-```
+- `CASE_MANAGER`: `"${CODEX_HOME:-$HOME/.codex}/skills/dataviz-fix/scripts/case_manager.py"` in Codex; `"$HOME/.claude/skills/dataviz-fix/scripts/case_manager.py"` in Claude Code; `"${HERMES_SKILL_DIR}/scripts/case_manager.py"` in Hermes.
+- `SKILLS_ROOT`: the matching `skills` directory, or the parent of `${HERMES_SKILL_DIR}`.
+- `CASE_SESSION`: the runtime session id when one exists; otherwise generate one stable UUID for this conversation.
 
-Set `DATAVIZ_FIX_ROOT` to override the default case directory. Always pass `${HERMES_SESSION_ID}` as the session id.
+Set `DATAVIZ_FIX_ROOT` to override the default case directory. After `start`, retain the returned `case_id` as `CASE_ID` and use `--case "${CASE_ID}"` for every later command. Do not rely on shell variables surviving across tool calls.
 
 ### Start a case
 
 On the first chart in a repair conversation:
 
 ```bash
-python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" start \
-  --session "${HERMES_SESSION_ID}" \
+python3 "${CASE_MANAGER}" start \
+  --session "${CASE_SESSION}" \
   --image "/absolute/path/to/input.png" \
   --request "<user request>" \
   --audience "<user-supplied audience, or omit>" \
@@ -60,8 +60,8 @@ python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" start \
   --hypothesis "<hypothesis, or omit>" \
   --message "<intended message, or omit>" \
   --medium "<delivery medium, or omit>" \
-  --creator "main:${HERMES_SESSION_ID}" \
-  --skills-root "/home/karthik/.hermes/skills/data-science"
+  --creator "main:${CASE_SESSION}" \
+  --skills-root "${SKILLS_ROOT}"
 ```
 
 Do this before editing. The command copies the original, snapshots the installed skills, records context version 1, and creates a bounded loop. It defaults to three autonomous iterations. Use `--max-elapsed-minutes`, `--max-tokens`, or `--max-cost-usd` when another hard budget matters.
@@ -69,8 +69,8 @@ Do this before editing. The command copies the original, snapshots the installed
 Turn the request into a change contract before the first build. Record each concrete requested change as an intake check:
 
 ```bash
-python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" check \
-  --session "${HERMES_SESSION_ID}" \
+python3 "${CASE_MANAGER}" check \
+  --case "${CASE_ID}" \
   --kind change \
   --text "<user request verbatim>" \
   --target "<element or relationship>" \
@@ -86,8 +86,8 @@ Expand the check across repeated structures before rendering. If one legend, axi
 Do not put inferred context into user-supplied fields. Record it separately:
 
 ```bash
-python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" context \
-  --session "${HERMES_SESSION_ID}" \
+python3 "${CASE_MANAGER}" context \
+  --case "${CASE_ID}" \
   --source inferred \
   --audience "<inferred audience>" \
   --purpose "<inferred purpose>" \
@@ -99,8 +99,8 @@ Use `context` whenever the user adds or changes the audience, purpose, question,
 Immediately before spending tokens or starting a renderer, run:
 
 ```bash
-python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" build-check \
-  --session "${HERMES_SESSION_ID}"
+python3 "${CASE_MANAGER}" build-check \
+  --case "${CASE_ID}"
 ```
 
 **Repair preflight:** translate any material ambiguity or user correction into an observable check. Use `dataviz-eval` for the semantic and artifact-quality criteria; this skill owns recording the check and carrying it through revisions, not redefining the evaluation standard.
@@ -110,10 +110,18 @@ Do not start the build if this preflight stops the case. Record the completed ar
 After every rendered revision:
 
 ```bash
-python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" iterate \
-  --session "${HERMES_SESSION_ID}" \
+python3 "${CASE_MANAGER}" iterate \
+  --case "${CASE_ID}" \
   --output "/absolute/path/to/revision.png" \
   --summary "<what changed>"
+```
+
+When the renderer emits a matching bundle, add `--bundle-manifest "/absolute/path/to/manifest.json"`. Then run the available deterministic inspection capability on the recorded artifact and attach its report before `review-request`:
+
+```bash
+python3 "${CASE_MANAGER}" inspect \
+  --case "${CASE_ID}" \
+  --report "/absolute/path/to/inspection.json"
 ```
 
 The creator must not grade its own export. After `iterate`, use a fresh leaf reviewer through Hermes `delegate_task` with `file`, `terminal`, and `vision` tools. Give it only:
@@ -125,8 +133,8 @@ The creator must not grade its own export. After `iterate`, use a fresh leaf rev
 Do not pass the creator's diagnosis, intended verdict, claimed fixes, or rendering code. Generate the bounded review packet and response template:
 
 ```bash
-python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" review-request \
-  --session "${HERMES_SESSION_ID}"
+python3 "${CASE_MANAGER}" review-request \
+  --case "${CASE_ID}"
 ```
 
 Pass only the returned blind-request path to the reviewer. It must inspect the exact artifact with `vision_analyze`, save its blind reads, then run the packet's `blind_submit_command`. That command freezes the blind response and creates the intent reveal; the reveal does not exist beforehand. The same reviewer then opens it and completes the response template. The creator may verify and record the report, but may not author or amend it. Use the delegate task's real identifier as `reviewer`; the case manager rejects the creator identity and any blind response changed after reveal.
@@ -134,8 +142,8 @@ Pass only the returned blind-request path to the reviewer. It must inspect the e
 Persist that independent report before sending:
 
 ```bash
-python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" evaluate \
-  --session "${HERMES_SESSION_ID}" \
+python3 "${CASE_MANAGER}" evaluate \
+  --case "${CASE_ID}" \
   --report "/absolute/path/to/independent-review.json"
 ```
 
@@ -144,8 +152,8 @@ The report must identify the reviewer and exact artifact hash; include expert an
 Record provider usage after creator and reviewer calls when the API or runtime exposes it:
 
 ```bash
-python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" usage \
-  --session "${HERMES_SESSION_ID}" \
+python3 "${CASE_MANAGER}" usage \
+  --case "${CASE_ID}" \
   --stage creator \
   --iteration 1 \
   --input-tokens 10000 \
@@ -160,8 +168,8 @@ The case records calls, tokens, cost, and latency. Before another build, it enfo
 Before acting on user feedback:
 
 ```bash
-python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" feedback \
-  --session "${HERMES_SESSION_ID}" \
+python3 "${CASE_MANAGER}" feedback \
+  --case "${CASE_ID}" \
   --text "<user feedback verbatim>" \
   --target "<element or relationship>" \
   --current "<observable current state>" \
@@ -206,7 +214,7 @@ Do not give the full diagnosis unless asked. Use it to make the chart.
 
 This is a render → independent evaluate → revise loop. Invoke `dataviz-eval` on the actual recorded export for expert/audience reads, evidence scope, gates, release checks, verdict, and minimum pass set. Keep the long evaluation internal unless the user asks for it.
 
-Before requesting the independent review, use any available deterministic artifact-inspection capability on the exact recorded export. Preserve its artifact-bound report with the iteration. Repair its concrete mechanical defects first and keep unrelated passing regions unchanged; do not treat a collision or clipping report as permission to redesign the chart. If only raster inspection is possible, record the missing geometry evidence instead of converting it into a pass.
+Before requesting the independent review, use any available deterministic artifact-inspection capability on the exact recorded export and preserve its artifact-bound report with the iteration. Pass known mechanical defects into the review and minimum pass set. On `Revise`, repair them before reopening higher-level design choices and keep unrelated passing regions unchanged; do not treat a collision or clipping report as permission to redesign the chart. If inspection coverage is incomplete, record the missing geometry evidence instead of converting it into a pass.
 
 Every unresolved required action from one evaluation remains active in the next revealed review. Every active, non-superseded user acceptance check is also a first-class release gate with its own id, result, and direct evidence. A later overall gate cannot silently erase either. `Send` is invalid until every carried action and user check explicitly passes.
 
@@ -246,8 +254,8 @@ Do not edit any skill while the case is active. Finish the chart and obtain acce
 1. Record acceptance. If the independent verdict is not `Send`, use `--override-reason` only when the user has explicitly accepted that exact artifact; the case remains visibly `accepted_with_override`.
 
    ```bash
-   python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" accept \
-     --session "${HERMES_SESSION_ID}"
+   python3 "${CASE_MANAGER}" accept \
+     --case "${CASE_ID}"
    ```
 
 2. Compare the original, every output, the accepted output, and every user correction. Split a long case into distinct failure episodes; one case may expose separate creator, evaluator, and tooling misses.
@@ -266,8 +274,8 @@ Do not edit any skill while the case is active. Finish the chart and obtain acce
 8. Record the diagnosis:
 
    ```bash
-   python3 "${HERMES_SKILL_DIR}/scripts/case_manager.py" diagnose \
-     --session "${HERMES_SESSION_ID}" \
+   python3 "${CASE_MANAGER}" diagnose \
+     --case "${CASE_ID}" \
      --classification "<classification>" \
      --owner "<skill-name or none>" \
      --lesson "<reusable lesson>" \

@@ -385,6 +385,24 @@ def validate_review_report(
         item["result"] for item in acceptance_results
     ]
     if verdict == "Send":
+        inspection = iteration.get("inspection")
+        blocking_defects = (
+            inspection.get(
+                "blocking_defect_codes",
+                inspection.get("defect_codes", []),
+            )
+            if inspection
+            else []
+        )
+        if blocking_defects:
+            raise SystemExit(
+                "Send cannot override deterministic inspection defects: "
+                + ", ".join(blocking_defects)
+            )
+        if inspection and inspection.get("checks_complete") and not inspection.get(
+            "passes_geometry_checks"
+        ):
+            raise SystemExit("Send requires complete deterministic geometry checks to pass")
         if any(result != "Pass" for result in required_results):
             raise SystemExit("Send requires every required gate and release check to Pass")
         if codes or required_actions:
@@ -1142,6 +1160,12 @@ def cmd_iterate(args: argparse.Namespace) -> None:
             sidecar_source = Path(item["path"]).expanduser().resolve()
             if not sidecar_source.is_file() or sha256(sidecar_source) != item["sha256"]:
                 raise SystemExit(f"Render bundle {key} hash does not match its file")
+            if key == "layout_metadata":
+                layout_document = read_json(sidecar_source)
+                if layout_document.get("artifact", {}).get("sha256") != source_sha:
+                    raise SystemExit(
+                        "Render bundle layout metadata does not match the iteration artifact hash"
+                    )
             validated_sidecars[key] = (sidecar_source, suffix)
 
     artifact = copy_artifact(source, case_dir / f"iteration-{number:02d}{ext}")
@@ -1207,8 +1231,24 @@ def cmd_inspect(args: argparse.Namespace) -> None:
         raise SystemExit("Inspection report checks_complete must be true or false")
     if not isinstance(report.get("passes_geometry_checks"), bool):
         raise SystemExit("Inspection report passes_geometry_checks must be true or false")
-    if not isinstance(report.get("defects"), list):
+    defects = report.get("defects")
+    if not isinstance(defects, list):
         raise SystemExit("Inspection report defects must be a list")
+    for defect in defects:
+        if not isinstance(defect, dict) or not isinstance(defect.get("code"), str) or not defect[
+            "code"
+        ].strip():
+            raise SystemExit("Each inspection defect requires a non-empty code")
+        if defect.get("severity") not in ("high", "medium", "low"):
+            raise SystemExit("Each inspection defect requires high, medium, or low severity")
+    blocking_defects = [
+        defect for defect in defects if defect["severity"] in ("high", "medium")
+    ]
+    expected_pass = report["checks_complete"] and not blocking_defects
+    if report["passes_geometry_checks"] != expected_pass:
+        raise SystemExit(
+            "Inspection passes_geometry_checks is inconsistent with completeness and defects"
+        )
 
     metadata = report.get("layout_metadata")
     stored_metadata = None
@@ -1218,6 +1258,13 @@ def cmd_inspect(args: argparse.Namespace) -> None:
         source_metadata = Path(metadata["path"]).expanduser().resolve()
         if not source_metadata.is_file() or sha256(source_metadata) != metadata["sha256"]:
             raise SystemExit("Inspection layout metadata hash does not match its file")
+        metadata_document = read_json(source_metadata)
+        if metadata_document.get("artifact", {}).get("sha256") != iteration["artifact"][
+            "sha256"
+        ]:
+            raise SystemExit(
+                "Inspection layout metadata does not match the recorded iteration artifact"
+            )
         bundled = iteration.get("render_bundle", {}).get("layout_metadata")
         if bundled and bundled.get("sha256") == metadata["sha256"]:
             stored_metadata = bundled
@@ -1241,9 +1288,10 @@ def cmd_inspect(args: argparse.Namespace) -> None:
         "passes_geometry_checks": report["passes_geometry_checks"],
         "defect_codes": [
             item.get("code")
-            for item in report["defects"]
+            for item in defects
             if isinstance(item, dict) and item.get("code")
         ],
+        "blocking_defect_codes": [item["code"] for item in blocking_defects],
         "layout_metadata": stored_metadata,
     }
     iteration["inspection"] = inspection

@@ -6,8 +6,19 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from dataviz_mcp.comparison import compare_chart_artifacts
+from dataviz_mcp.inspection import inspect_rendered_chart
+from dataviz_mcp.rendering import render_chart
+
 
 SCRIPT = Path(__file__).resolve().parents[1] / "codex" / "scripts" / "case_manager.py"
+FIXTURES = (
+    Path(__file__).resolve().parents[2]
+    / "dataviz_mcp"
+    / "tests"
+    / "fixtures"
+    / "chart_fixtures.py"
+)
 CORE_GATES = {"Evidence", "Visual reasoning", "Information fit", "Delivery"}
 GATES = (
     "Evidence",
@@ -199,7 +210,15 @@ class CaseManagerTest(unittest.TestCase):
         spec = self.root / "chart-spec.json"
         layout = self.root / "layout-metadata.json"
         spec.write_text('{"renderer":"matplotlib"}', encoding="utf-8")
-        layout.write_text('{"coordinate_system":"pixels"}', encoding="utf-8")
+        layout.write_text(
+            json.dumps(
+                {
+                    "coordinate_system": "pixels",
+                    "artifact": {"sha256": artifact_sha},
+                }
+            ),
+            encoding="utf-8",
+        )
         manifest = self.root / "manifest.json"
         manifest.write_text(
             json.dumps(
@@ -268,6 +287,116 @@ class CaseManagerTest(unittest.TestCase):
         self.assertEqual(
             packet["deterministic_inspection"]["sha256"],
             recorded["inspection"]["sha256"],
+        )
+
+    def test_inspection_rejects_layout_metadata_for_another_artifact(self):
+        self.start()
+        candidate = self.write_png("candidate.png", b"candidate")
+        self.iterate(candidate)
+        iteration = self.status()["iterations"][-1]
+        layout = self.root / "wrong-layout.json"
+        layout.write_text(
+            json.dumps({"artifact": {"sha256": "0" * 64}}),
+            encoding="utf-8",
+        )
+        inspection = self.root / "inspection.json"
+        inspection.write_text(
+            json.dumps(
+                {
+                    "artifact": iteration["artifact"],
+                    "layout_metadata": {
+                        "path": str(layout),
+                        "sha256": hashlib.sha256(layout.read_bytes()).hexdigest(),
+                    },
+                    "checks_complete": True,
+                    "passes_geometry_checks": True,
+                    "defects": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        rejected = self.run_cli(
+            "inspect",
+            "--session",
+            "test-session",
+            "--report",
+            inspection,
+            ok=False,
+        )
+        self.assertIn("does not match the recorded iteration artifact", rejected.stderr)
+
+    def test_send_cannot_override_known_deterministic_defect(self):
+        self.start()
+        bundle = render_chart(
+            str(FIXTURES),
+            str(self.root / "coffee-bad"),
+            build_function="coffee_bad",
+        )
+        self.run_cli(
+            "iterate",
+            "--session",
+            "test-session",
+            "--output",
+            bundle["artifact"]["path"],
+            "--bundle-manifest",
+            bundle["manifest_path"],
+        )
+        inspection = inspect_rendered_chart(
+            bundle["artifact"]["path"], bundle["layout_metadata_path"]
+        )
+        self.run_cli(
+            "inspect",
+            "--session",
+            "test-session",
+            "--report",
+            inspection["inspection_path"],
+        )
+        rejected = self.review("Send", ok=False)
+        self.assertIn("cannot override deterministic inspection defects", rejected.stderr)
+
+    def test_coffee_mcp_repair_crosses_state_machine_pass_line(self):
+        self.start()
+        reports = []
+        for function, verdict, expected_state in (
+            ("coffee_bad", "Revise", "revise"),
+            ("coffee_fixed", "Send", "user_review"),
+        ):
+            bundle = render_chart(
+                str(FIXTURES),
+                str(self.root / function),
+                build_function=function,
+            )
+            self.run_cli(
+                "iterate",
+                "--session",
+                "test-session",
+                "--output",
+                bundle["artifact"]["path"],
+                "--bundle-manifest",
+                bundle["manifest_path"],
+            )
+            inspection = inspect_rendered_chart(
+                bundle["artifact"]["path"], bundle["layout_metadata_path"]
+            )
+            reports.append(inspection)
+            self.run_cli(
+                "inspect",
+                "--session",
+                "test-session",
+                "--report",
+                inspection["inspection_path"],
+            )
+            result = self.review(verdict)
+            self.assertEqual(result["state"], expected_state)
+
+        comparison = compare_chart_artifacts(
+            reports[0]["inspection_path"], reports[1]["inspection_path"]
+        )
+        self.assertTrue(comparison["mechanically_improved"])
+        self.assertEqual(comparison["blocking_defect_count"], {"before": 4, "after": 0})
+        self.assertEqual(
+            self.status()["iterations"][-1]["artifact"]["sha256"],
+            reports[1]["artifact"]["sha256"],
         )
 
     def test_evaluation_rejects_the_wrong_deterministic_inspection_hash(self):

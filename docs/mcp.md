@@ -50,7 +50,7 @@ intake
 → delivery
 ```
 
-The orchestrator now requires exact-artifact inspection after rendering when the capability is available. The evaluator uses a matching inspection report as mechanical evidence. It still performs the independent visual and analytical read.
+When both capabilities are available, the orchestrator requires the exact deliverable to pass through the metadata-producing renderer and then exact-artifact inspection. It must not bypass metadata generation and substitute a raster-only check. The evaluator uses the matching inspection report as mechanical evidence and still performs the independent visual and analytical read.
 
 ## Repair sequence and version binding
 
@@ -69,10 +69,12 @@ render candidate
 The existing `dataviz-fix` state machine remains the owner of original, current, best, and historical artifacts. Case schema 10 adds the render manifest, chart spec, layout metadata, and inspection report to each iteration. It rejects:
 
 - a bundle whose artifact, spec, or metadata hash no longer matches;
+- layout metadata whose internal artifact hash names a different PNG;
 - an inspection report for a different artifact;
-- an evaluation that cites the wrong deterministic inspection hash.
+- an evaluation that cites the wrong deterministic inspection hash;
+- a `Send` verdict while a known high- or medium-severity deterministic defect remains.
 
-The repairer receives named defects and element IDs rather than an invitation to redesign the chart. Mechanical failures are fixed first. Elements that already pass remain preservation constraints, and the loop stops when the pass line is met.
+The independent evaluator receives named defects and element IDs rather than a clean-looking overview alone. A failed check becomes part of the minimum pass set. The repairer fixes those mechanical failures before reopening broader design choices, preserves elements that already pass, and stops when the pass line is met.
 
 ## Mechanical checks
 
@@ -119,7 +121,7 @@ The core suite creates deterministic fixtures for:
 - missing-data line segments, to prevent false bridges across `NaN` gaps;
 - unsupported non-line marks, to verify that incomplete coverage stays explicit.
 
-The end-to-end coffee fixture renders a deliberately bad multi-annotation time series, detects four geometry defects, changes annotation placement only, renders again, and reaches zero defects. The comparison report confirms that the second artifact resolves the failures without introducing a new one.
+The end-to-end coffee fixture renders a deliberately bad multi-annotation time series, detects four geometry defects, and records a `Revise` result in the real case state machine. It then changes annotation placement only, renders and inspects again, reaches zero defects, records `Send`, and moves the case to `user_review`. The comparison report confirms that the second artifact resolves the failures without introducing a new one.
 
 ## Implementation map
 
@@ -135,3 +137,14 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 | `dataviz_mcp/tests/` | Capability, protocol, geometry, and coffee repair tests |
 
 Installation, client registration, tool parameters, and the chart-builder contract are in [`dataviz_mcp/README.md`](../dataviz_mcp/README.md).
+
+## Hermes deployment
+
+Hermes uses the same stdio server contract as Codex and Claude Code. Deployment has two independent parts:
+
+1. `./sync.sh --no-pull --surface hermes` copies the judgement layer into `~/.hermes/skills/data-science/`.
+2. `~/.hermes/config.yaml` registers the mechanical server under `mcp_servers.karthik_dataviz`.
+
+The server uses its own virtual environment on the Hermes host because the agent runtime currently carries MCP SDK 1.x and this package requires MCP SDK 2.x. The checked-out source remains the single implementation; the editable install only gives that source an isolated interpreter and dependency set.
+
+The host-specific commands, config block, service restart, and verification sequence are in [`dataviz_mcp/README.md`](../dataviz_mcp/README.md#deploy-on-karthiks-hermes-host).

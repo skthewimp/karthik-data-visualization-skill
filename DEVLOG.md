@@ -10,14 +10,19 @@
 
 > "properly document all the process and changes, and then commit and push. all in the same repo only"
 
+> "since the skills had changed on origin/main before we wrote the MCP, is there any bugs?"
+
+> "commit and push with proper documentation. and also deploy to hermes"
+
 ### Work done
 
 - Audited the full skill stack, repair state machine, local runner, tester artifacts, docs, and 39-test baseline before designing the MCP boundary.
 - Added `render_chart`, `inspect_rendered_chart`, and `compare_chart_artifacts`; deferred profiling and analysis execution because the repo has no reusable implementation to wrap yet.
 - Made render metadata the primary geometry source and the exact PNG the source for dimensions, hashes, and pixel comparison. Raster-only inspection now stays explicitly incomplete.
-- Bound render bundles and inspection reports into case schema 10, including the exact inspection hash required by independent evaluation.
-- Added deterministic defect fixtures and a coffee-price repair regression, inspected both generated PNGs, and installed the editable server in the active datascience environment.
-- Documented the architecture, tool contracts, bundle lifecycle, client registration, coverage limits, repair integration, and verification process in the same repo.
+- Bound render bundles and inspection reports into case schema 10. Internal metadata, artifact, inspection, and evaluation hashes must agree, and known deterministic defects now block `Send`.
+- Added deterministic defect fixtures and a coffee-price regression through the real case state machine: the bad layout reaches `Revise`, the placement-only repair reaches `Send`, and revision comparison records the improvement.
+- Documented the architecture, generation and repair sequences, tool contracts, bundle lifecycle, portable Codex/Claude/Hermes case paths, client registration, coverage limits, and verification process in the same repo.
+- Documented Hermes as two explicit deployment surfaces: synced skills and an isolated MCP 2.x stdio process. The separate environment avoids upgrading the Hermes agent's MCP 1.x dependency.
 
 ## 2026-08-12 - Scope-safe chart repairs from Hermes feedback
 

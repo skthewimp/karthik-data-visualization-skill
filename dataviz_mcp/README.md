@@ -8,7 +8,7 @@ See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation a
 
 - Python 3.10 or newer
 - one local virtual environment
-- Codex or Claude Code as the MCP client
+- Codex, Claude Code, or Hermes Agent as the MCP client
 
 Install the repository into the environment used by both clients:
 
@@ -46,8 +46,8 @@ Install the matching skill files, then start a new Codex session:
 ## Register with Claude Code
 
 ```bash
-claude mcp add --scope user karthik-dataviz -- \
-  /Users/Karthik/envs/datascience/.venv/bin/python -m dataviz_mcp
+claude mcp add-json --scope user karthik-dataviz \
+  '{"type":"stdio","command":"/Users/Karthik/envs/datascience/.venv/bin/python","args":["-m","dataviz_mcp"]}'
 ```
 
 Verify:
@@ -63,6 +63,47 @@ Install the matching skill files, then start a new Claude Code session:
 ```
 
 No daemon is required. The client starts the Python process when it opens the stdio connection and stops it when the connection closes.
+
+## Deploy on Karthik's Hermes host
+
+Hermes runs on the SSH host `server`. Its checkout is `/home/karthik/apps/karthik-data-visualization-skill` and its skills live under `~/.hermes/skills/data-science/`.
+
+Pull the committed repository, create the server's isolated MCP environment, install the package, and sync the skills:
+
+```bash
+ssh server
+cd /home/karthik/apps/karthik-data-visualization-skill
+git pull --ff-only
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .
+./sync.sh --no-pull --surface hermes
+```
+
+Use a separate environment here. The Hermes agent environment at `~/.hermes/hermes-agent/venv` currently uses MCP SDK 1.x; the dataviz server requires MCP SDK 2.x. Installing the package into the agent environment would force an avoidable dependency upgrade.
+
+Add this sibling under the existing `mcp_servers:` key in `~/.hermes/config.yaml`:
+
+```yaml
+  karthik_dataviz:
+    command: /home/karthik/apps/karthik-data-visualization-skill/.venv/bin/python
+    args:
+      - -m
+      - dataviz_mcp
+    timeout: 180
+    connect_timeout: 30
+```
+
+Restart the gateway and check that both the service and stdio server start cleanly:
+
+```bash
+systemctl --user restart hermes-gateway.service
+systemctl --user is-active hermes-gateway.service
+
+cd /home/karthik/apps/karthik-data-visualization-skill
+.venv/bin/python -m pytest -q
+```
+
+Hermes starts the configured stdio process when it loads the MCP server. A new chat or gateway session is also required to load newly synced skill text.
 
 ## Chart builder contract
 
@@ -162,7 +203,7 @@ python3 dataviz-fix/codex/scripts/case_manager.py inspect \
   --report /path/to/inspection.json
 ```
 
-Record inspection before `review-request`. The blind packet then carries the exact artifact and deterministic inspection hashes. The evaluator must return the same inspection hash.
+Record inspection before `review-request`. The blind packet then carries the exact artifact and deterministic inspection hashes. The evaluator must return the same inspection hash. The case manager rejects `Send` while a known high- or medium-severity deterministic defect remains.
 
 The local runner performs this order automatically. Raster-only candidates remain usable for visual review, but their deterministic geometry result stays incomplete.
 

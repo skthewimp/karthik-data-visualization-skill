@@ -35,6 +35,11 @@ All notable public changes to this repository are recorded here.
 - Updated the local runner to attach inspection evidence before blind review. Metadata-aware builders receive complete geometry checks; raster-only candidates retain explicit unknowns.
 - Added minimal orchestrator, evaluator, and fixer instructions requiring exact-artifact inspection without moving analytical or visual judgement into MCP.
 - Documented the architectural boundary, hash/version flow, tool contracts, Codex and Claude Code setup, supported geometry, honest unknown states, repair sequence, and end-to-end test procedure.
+- Tightened generation and repair after rebasing the MCP work onto the generalized skill stack: Matplotlib output now uses the metadata-producing renderer when available, and the explicit repair sequence records the bundle and inspection before blind review.
+- Added state-machine enforcement so mismatched internal metadata is rejected and a reviewer cannot issue `Send` while known deterministic defects remain. Incomplete coverage can still be assessed visually but is never presented as a deterministic pass.
+- Expanded the coffee regression through the real case state machine: bad geometry reaches `Revise`, the placement-only repair reaches `Send`, and the exact repaired artifact becomes current.
+- Removed the repair skill's Hermes-only runtime assumption. Codex, Claude Code, and Hermes now resolve their own installed case-manager path, retain the returned case id, and use the same versioned workflow.
+- Documented the complete Hermes deployment boundary: skill sync plus a separately isolated MCP 2.x stdio runtime, config registration, gateway restart, and verification.
 
 ## 2026-08-12
 

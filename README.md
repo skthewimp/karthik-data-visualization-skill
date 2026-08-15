@@ -224,6 +224,19 @@ To install one surface only:
 
 The Hermes surface installs the Claude-compatible copies under `~/.hermes/skills/data-science/`. It is explicit rather than part of `all`.
 
+On Karthik's Hermes host, use the separate MCP environment and register it in Hermes after the repository has been pulled:
+
+```bash
+ssh server
+cd /home/karthik/apps/karthik-data-visualization-skill
+git pull --ff-only
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .
+./sync.sh --no-pull --surface hermes
+```
+
+The Hermes agent environment currently uses MCP SDK 1.x, while this server requires MCP SDK 2.x. Do not install this package into the agent environment. The exact `~/.hermes/config.yaml` entry and restart/verification commands are in [`dataviz_mcp/README.md`](dataviz_mcp/README.md#deploy-on-karthiks-hermes-host).
+
 ## Run the local repair tester
 
 The local tester exercises the bounded case state machine before provider APIs are connected. It accepts a pasted or uploaded chart, records versioned context, explicit preservation requirements, and structured feedback, enforces iteration and cost limits, preserves original/current/best artifacts, and exposes the case history. Narrow repairs are treated as edit boundaries rather than invitations to redesign the chart. Candidate charts can be uploaded manually or generated through an opt-in local Codex runner.
@@ -254,8 +267,8 @@ Register the installed server with Codex or Claude Code using the same virtual-e
 codex mcp add karthik-dataviz -- \
   /Users/Karthik/envs/datascience/.venv/bin/python -m dataviz_mcp
 
-claude mcp add --scope user karthik-dataviz -- \
-  /Users/Karthik/envs/datascience/.venv/bin/python -m dataviz_mcp
+claude mcp add-json --scope user karthik-dataviz \
+  '{"type":"stdio","command":"/Users/Karthik/envs/datascience/.venv/bin/python","args":["-m","dataviz_mcp"]}'
 ```
 
 See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, version guarantees, inspection coverage, and tested repair sequence. See [`dataviz_mcp/README.md`](dataviz_mcp/README.md) for installation, client registration, tool parameters, the chart-builder contract, and the local security boundary.
