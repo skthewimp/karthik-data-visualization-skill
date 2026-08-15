@@ -17,6 +17,7 @@ dist/
 
 # OS/cache
 .DS_Store
+.venv/
 __pycache__/
 *.pyc
 *.egg-info/

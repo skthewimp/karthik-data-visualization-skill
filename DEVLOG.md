@@ -24,6 +24,7 @@
 - Documented the architecture, generation and repair sequences, tool contracts, bundle lifecycle, portable Codex/Claude/Hermes case paths, client registration, coverage limits, and verification process in the same repo.
 - Documented Hermes as two explicit deployment surfaces: synced skills and an isolated MCP 2.x stdio process. The separate environment avoids upgrading the Hermes agent's MCP 1.x dependency.
 - Fixed two deployment issues found on the real host: its system Python lacks `ensurepip`, and the package's test extra omitted the tester's FastAPI dependencies. Hermes's bundled Python now creates a separate environment, and `.[test]` installs the complete suite.
+- Deployed the pushed commit to `server`, synced all 13 repo skills, registered `mcp_servers.karthik_dataviz`, restarted the active gateway, and verified 62 host tests, three direct stdio protocol tests, installed-skill parity, and the packaged case-manager runtime.
 
 ## 2026-08-12 - Scope-safe chart repairs from Hermes feedback
 

@@ -41,6 +41,7 @@ All notable public changes to this repository are recorded here.
 - Removed the repair skill's Hermes-only runtime assumption. Codex, Claude Code, and Hermes now resolve their own installed case-manager path, retain the returned case id, and use the same versioned workflow.
 - Documented the complete Hermes deployment boundary: skill sync plus a separately isolated MCP 2.x stdio runtime, config registration, gateway restart, and verification.
 - Completed the test extra with the local tester's FastAPI dependencies so `pip install -e ".[test]"` can run the repository's configured full suite on a clean host.
+- Deployed the exact pushed commit to Hermes, synced the 13 repo skills, registered the stdio server, restarted the gateway, and verified the full suite plus direct MCP protocol tests on the host.
 
 ## 2026-08-12
 
