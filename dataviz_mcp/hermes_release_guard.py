@@ -15,7 +15,9 @@ import os
 import re
 import secrets
 import threading
+import time
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -39,15 +41,25 @@ _ACCEPTANCE_TERM = re.compile(
     re.IGNORECASE,
 )
 _MEDIA_PATH = re.compile(
-    r"(?:MEDIA:\s*)?(/[^\s\"'<>|]+?\.(?:png|jpe?g|svg|pdf))(?=$|[\s),.;])",
+    r"(?:MEDIA:\s*)?(/[^\s\"'<>|]+?\.(?:png|jpe?g|svg|pdf))(?=$|[\s\]),.;])",
     re.IGNORECASE,
 )
+_SKILL_INVOCATION = re.compile(
+    r"\[IMPORTANT:\s*The user has invoked the [\"']([^\"']+)[\"'] skill",
+    re.IGNORECASE,
+)
+_INSTRUCTION_MARKER = (
+    "The user has provided the following instruction alongside the skill invocation:"
+)
+_ABSOLUTE_PATH = re.compile(r"(?<!\w)/(?:[^\s\"'<>|]+/)*[^\s\"'<>|]+")
 
 
 @dataclass(frozen=True)
 class GuardedTurn:
     case_session: str
     request: str
+    started_at: float
+    source_hashes: tuple[str, ...]
 
 
 _turns: dict[str, GuardedTurn] = {}
@@ -55,15 +67,37 @@ _repair_sessions: set[str] = set()
 _lock = threading.Lock()
 
 
+def _intent_text(text: str) -> str:
+    """Discard injected skill manuals and path tokens before intent matching."""
+
+    if _INSTRUCTION_MARKER in text:
+        text = text.rsplit(_INSTRUCTION_MARKER, 1)[1]
+    else:
+        invoked = {
+            match.group(1).strip().lower() for match in _SKILL_INVOCATION.finditer(text)
+        }
+        if "dataviz-fix" in invoked or "data-science/dataviz-fix" in invoked:
+            return "fix chart"
+
+    # Internal reviewer prompts contain paths such as ``.../dataviz-fix/...``.
+    # A path is evidence about an artifact, not a request to repair it.
+    text = _ABSOLUTE_PATH.sub(" ", text)
+    return text
+
+
 def is_chart_repair_request(text: str, *, continuing: bool = False) -> bool:
     """Return whether *text* asks to change a chart rather than discuss one."""
 
-    if not isinstance(text, str) or not text.strip() or _ACCEPTANCE_TERM.search(text):
+    if not isinstance(text, str) or not text.strip():
         return False
-    if _CHART_TERM.search(text) and _REPAIR_TERM.search(text):
+    intent = _intent_text(text).strip()
+    if not intent or _ACCEPTANCE_TERM.search(intent):
+        return False
+    if _CHART_TERM.search(intent) and _REPAIR_TERM.search(intent):
         return True
-    return continuing and bool(_REPAIR_TERM.search(text)) and bool(
-        _CHART_ELEMENT.search(text) or re.search(r"\b(still|again|same)\b", text, re.I)
+    return continuing and bool(_REPAIR_TERM.search(intent)) and bool(
+        _CHART_ELEMENT.search(intent)
+        or re.search(r"\b(still|again|same)\b", intent, re.I)
     )
 
 
@@ -92,6 +126,29 @@ def _response_paths(response_text: str) -> list[Path]:
     return paths
 
 
+def _source_hashes(user_message: str) -> tuple[str, ...]:
+    hashes: list[str] = []
+    for path in _response_paths(user_message):
+        try:
+            if path.is_file():
+                digest = _sha256(path)
+                if digest not in hashes:
+                    hashes.append(digest)
+        except OSError:
+            continue
+    return tuple(hashes)
+
+
+def _created_at_timestamp(data: dict[str, Any]) -> float | None:
+    raw = data.get("created_at")
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
+
+
 def _has_independent_send(data: dict[str, Any], artifact_hash: str) -> bool:
     best = data.get("best_candidate") or {}
     if data.get("state") != "user_review" or best.get("verdict") != "Send":
@@ -118,8 +175,17 @@ def find_released_artifact(
     response_text: str,
     *,
     root: Path | None = None,
+    not_before: float | None = None,
+    source_hashes: tuple[str, ...] = (),
 ) -> Path | None:
-    """Return the exact reviewed image referenced by the response, if any."""
+    """Return the exact reviewed image referenced by the response, if any.
+
+    The exact guard-generated case session is authoritative.  ``not_before``
+    enables a narrow recovery for agents that created a fresh case under a
+    different session id: the case must be new for this turn, owned by a main
+    creator, independently approved, source-bound when a source was attached,
+    and match the delivered artifact hash.  Ambiguous recovery fails closed.
+    """
 
     delivered_paths = _response_paths(response_text)
     if not delivered_paths:
@@ -141,13 +207,15 @@ def find_released_artifact(
     except OSError:
         return None
 
+    loaded_cases: list[dict[str, Any]] = []
     for case_file in case_files:
         try:
             data = json.loads(case_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        if data.get("session_id") != expected_case_session:
-            continue
+        loaded_cases.append(data)
+
+    def released_path(data: dict[str, Any]) -> Path | None:
         artifact_hash = ((data.get("best_candidate") or {}).get("artifact") or {}).get(
             "sha256"
         )
@@ -157,6 +225,38 @@ def find_released_artifact(
             and _has_independent_send(data, artifact_hash)
         ):
             return delivered_hashes[artifact_hash]
+        return None
+
+    for data in loaded_cases:
+        if data.get("session_id") != expected_case_session:
+            continue
+        released = released_path(data)
+        if released is not None:
+            return released
+
+    if not_before is None:
+        return None
+
+    recovery_matches: list[Path] = []
+    expected_sources = set(source_hashes)
+    for data in loaded_cases:
+        if data.get("session_id") == expected_case_session:
+            continue
+        creator = data.get("creator")
+        if not isinstance(creator, str) or not creator.startswith("main:"):
+            continue
+        created_at = _created_at_timestamp(data)
+        if created_at is None or created_at < not_before - 1.0:
+            continue
+        if expected_sources:
+            original_hash = (data.get("original") or {}).get("sha256")
+            if original_hash not in expected_sources:
+                continue
+        released = released_path(data)
+        if released is not None and released not in recovery_matches:
+            recovery_matches.append(released)
+    if len(recovery_matches) == 1:
+        return recovery_matches[0]
     return None
 
 
@@ -179,8 +279,12 @@ def on_pre_llm_call(**kwargs: Any) -> dict[str, str] | None:
         return None
 
     case_session = _case_session_id(session_id)
+    started_at = time.time()
+    source_hashes = _source_hashes(user_message)
     with _lock:
-        _turns[session_id] = GuardedTurn(case_session, user_message)
+        _turns[session_id] = GuardedTurn(
+            case_session, user_message, started_at, source_hashes
+        )
         _repair_sessions.add(session_id)
 
     return {
@@ -205,7 +309,12 @@ def on_transform_llm_output(**kwargs: Any) -> str | None:
         return None
 
     try:
-        released = find_released_artifact(turn.case_session, response_text)
+        released = find_released_artifact(
+            turn.case_session,
+            response_text,
+            not_before=turn.started_at,
+            source_hashes=turn.source_hashes,
+        )
     except Exception:
         released = None
     if released is not None:
@@ -213,7 +322,7 @@ def on_transform_llm_output(**kwargs: Any) -> str | None:
 
     return (
         "Chart withheld by the Hermes dataviz release guard: this repair turn "
-        "did not produce a new session-bound dataviz-fix case in user_review "
+        "did not produce a new turn-bound dataviz-fix case in user_review "
         "with an independent Send verdict and a matching delivered-artifact "
         "hash. No chart was released. Re-run the repair through dataviz-fix."
     )
