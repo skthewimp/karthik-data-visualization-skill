@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Upload a chart and get back a clearer version.">
+    <title>Fix this chart</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main>
+      <header class="site-header">
+        <a class="wordmark" href="https://karthiks.co">karthiks.co</a>
+        <span class="section-name">dataviz repair</span>
+      </header>
+
+      <section class="intro" id="intro">
+        <p class="eyebrow">A small chart repair tool</p>
+        <h1>Upload a chart. Tell me what feels wrong.</h1>
+        <p class="lede">
+          I’ll rebuild it as a clearer chart. You can ask for one more change after that.
+        </p>
+      </section>
+
+      <section class="workbench" aria-labelledby="upload-heading">
+        <form id="repair-form">
+          <div class="field-block">
+            <div class="field-heading">
+              <label id="upload-heading" for="chart">1. Add the chart</label>
+              <span>PNG or JPEG, up to 8 MB</span>
+            </div>
+            <label class="drop-zone" id="drop-zone" for="chart">
+              <input id="chart" name="chart" type="file" accept="image/png,image/jpeg" required>
+              <span class="drop-title">Drop a chart here</span>
+              <span class="drop-subtitle">or choose an image</span>
+              <img id="upload-preview" alt="Chart selected for repair" hidden>
+            </label>
+          </div>
+
+          <div class="field-block">
+            <div class="field-heading">
+              <label for="prompt">2. What should change?</label>
+              <span><span id="prompt-count">0</span>/1,200</span>
+            </div>
+            <textarea
+              id="prompt"
+              name="prompt"
+              maxlength="1200"
+              rows="4"
+              placeholder="For example: The labels are hard to follow. Make the comparison clearer, but keep the title and colours."
+              required
+            ></textarea>
+          </div>
+
+          <button class="primary-button" id="submit-button" type="submit">Repair this chart</button>
+          <p class="form-note">
+            This works from the screenshot alone. Any values recovered from the image may be approximate.
+          </p>
+        </form>
+      </section>
+
+      <section class="status-panel" id="status-panel" aria-live="polite" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <div>
+          <h2 id="status-title">Rebuilding the chart</h2>
+          <p id="status-copy">This usually takes a couple of minutes.</p>
+        </div>
+      </section>
+
+      <section class="results" id="results" hidden>
+        <div class="results-heading">
+          <div>
+            <p class="eyebrow">The repair</p>
+            <h2>Original and new version</h2>
+          </div>
+          <a class="download-button" id="download-link" href="#" download>Download new chart</a>
+        </div>
+
+        <div class="chart-grid">
+          <figure>
+            <figcaption>Original</figcaption>
+            <div class="chart-frame"><img id="original-result" alt="Original chart"></div>
+          </figure>
+          <figure>
+            <figcaption>New version</figcaption>
+            <div class="chart-frame"><img id="repaired-result" alt="Repaired chart"></div>
+          </figure>
+        </div>
+
+        <div class="result-note">
+          <p id="review-note">Values are reconstructed from the screenshot and may be approximate.</p>
+        </div>
+
+        <form class="retry-form" id="retry-form">
+          <label for="feedback">Want one change?</label>
+          <div class="retry-row">
+            <textarea
+              id="feedback"
+              name="feedback"
+              maxlength="1200"
+              rows="2"
+              placeholder="Move the labels closer to the bars and make the source note larger."
+            ></textarea>
+            <button class="secondary-button" id="retry-button" type="submit">Try once more</button>
+          </div>
+          <p id="retry-note">You get one retry for this chart.</p>
+        </form>
+
+        <button class="text-button" id="new-chart-button" type="button">Repair another chart</button>
+      </section>
+
+      <section class="error-panel" id="error-panel" role="alert" hidden>
+        <h2>That repair didn’t finish</h2>
+        <p id="error-copy">Please try again with a different image.</p>
+        <button class="secondary-button" id="error-reset" type="button">Start again</button>
+      </section>
+
+      <footer>
+        <p>Built from my dataviz repair workflow. Images and prompts are kept for about 24 hours.</p>
+        <a href="https://karthiks.co">Karthik Shashidhar</a>
+      </footer>
+    </main>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

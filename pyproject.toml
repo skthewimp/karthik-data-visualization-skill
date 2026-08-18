@@ -24,6 +24,7 @@ dataviz-release-guard = "dataviz_mcp.hermes_release_guard"
 test = [
   "fastapi>=0.128,<1",
   "httpx>=0.28,<1",
+  "openai>=2.24,<3",
   "pytest>=8,<10",
   "python-multipart>=0.0.20,<1",
 ]
@@ -32,4 +33,4 @@ test = [
 include = ["dataviz_mcp*"]
 
 [tool.pytest.ini_options]
-testpaths = ["dataviz-fix/tests", "tester/tests", "dataviz_mcp/tests"]
+testpaths = ["dataviz-fix/tests", "tester/tests", "public_site/tests", "dataviz_mcp/tests"]

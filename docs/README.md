@@ -27,6 +27,7 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`plans/`](plans/) - planning docs for future skill work
 - [`plans/dataviz-repair-product-roadmap.md`](plans/dataviz-repair-product-roadmap.md) - build order for the bounded loop, editable context, local tester, private deployment, and any later BYOK beta
 - [`../tester/README.md`](../tester/README.md) - run and test the local repair-loop case console
+- [`../public_site/README.md`](../public_site/README.md) - run and deploy the image-only public repair site
 
 ## Development workflow
 
