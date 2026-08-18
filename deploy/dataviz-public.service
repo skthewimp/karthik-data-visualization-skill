@@ -16,6 +16,7 @@ ExecStart=/home/karthik/apps/karthik-data-visualization-skill/.venv/bin/python -
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=20
+UMask=0077
 
 NoNewPrivileges=yes
 PrivateTmp=yes
@@ -23,7 +24,6 @@ ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=/home/karthik/.local/share/dataviz-public
 ProtectKernelTunables=yes
-ProtectKernelModules=yes
 ProtectControlGroups=yes
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictRealtime=yes
