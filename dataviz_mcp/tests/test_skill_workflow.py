@@ -20,6 +20,8 @@ def test_generation_uses_metadata_without_forcing_a_weaker_renderer() -> None:
         visualizer = read_skill("karthik-data-visualization", surface)
         assert "prefer R/ggplot2 when it is available" in visualizer
         assert "default Matplotlib aesthetics fail this skill" in visualizer
+        assert "## Repair implementation contract" in visualizer
+        assert "references/ggplot2-repair-patterns.md" in visualizer
 
         evaluator = read_skill("dataviz-eval", surface)
         assert "require its artifact hash to match this export" in evaluator
@@ -42,14 +44,29 @@ def test_repair_skill_is_portable_and_orders_inspection_before_review() -> None:
         assert iterate < inspect < review
         assert "--bundle-manifest" in fixer[iterate:inspect]
         assert "Pass known mechanical defects into the review and minimum pass set" in fixer
+        assert "Always load `dataviz-critique`" in fixer
+        assert "design-contract" in fixer
+        assert "revision-contract" in fixer
+        assert "renderer-selection" in fixer
+        assert "An unexplained Matplotlib selection is invalid" in fixer
+
+        critique = read_skill("dataviz-critique", surface)
+        assert "## Structured repair brief" in critique
+        assert '"highest_consequence_findings"' in critique
+        assert '"required_delivered_outcomes"' in critique
+
+        evaluator = read_skill("dataviz-eval", surface)
+        assert "one contract stack for the exact replacement artifact" in evaluator
+        assert "every panel" in evaluator
+        assert "neighbouring zones" in evaluator
 
 
 def test_public_entrypoint_explains_installation_and_renderer_boundary() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "## Start here: agents and LLMs" in readme
     assert "Installing the skills does not register the MCP server" in readme
-    assert "currently a **Matplotlib geometry adapter**" in readme
-    assert "prefer R/ggplot2 when it is available" in readme
+    assert "chooses ggplot2 first" in readme
+    assert "Use Matplotlib only" in readme
     assert "git clone https://github.com/skthewimp/karthik-data-visualization-skill.git" in readme
 
     sync_help = (ROOT / "sync.sh").read_text(encoding="utf-8")

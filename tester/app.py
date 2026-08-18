@@ -103,6 +103,12 @@ class SemanticPreflightInput(BaseModel):
     audience_units: SemanticDimensionInput
 
 
+class WorkflowReportInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    report: dict
+
+
 class LimitUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -382,6 +388,35 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
             report_path,
         )
         return decorate_case(client.status(case_id))
+
+    def attach_workflow_report(
+        case_id: str, command: str, payload: WorkflowReportInput
+    ) -> dict:
+        case_id = validate_case_id(case_id)
+        case_dir = client.root / "cases" / case_id
+        report_path = case_dir / f"tester-{command}-{uuid4().hex}.json"
+        report_path.write_text(
+            json.dumps(payload.report, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        client.run(command, "--case", case_id, "--report", report_path)
+        return decorate_case(client.status(case_id))
+
+    @app.post("/api/cases/{case_id}/critique")
+    def add_critique(case_id: str, payload: WorkflowReportInput):
+        return attach_workflow_report(case_id, "critique", payload)
+
+    @app.post("/api/cases/{case_id}/design-contract")
+    def add_design_contract(case_id: str, payload: WorkflowReportInput):
+        return attach_workflow_report(case_id, "design-contract", payload)
+
+    @app.post("/api/cases/{case_id}/revision-contract")
+    def add_revision_contract(case_id: str, payload: WorkflowReportInput):
+        return attach_workflow_report(case_id, "revision-contract", payload)
+
+    @app.post("/api/cases/{case_id}/renderer-selection")
+    def add_renderer_selection(case_id: str, payload: WorkflowReportInput):
+        return attach_workflow_report(case_id, "renderer-selection", payload)
 
     @app.post("/api/cases/{case_id}/iterations")
     async def add_iteration(

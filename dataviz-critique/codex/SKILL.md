@@ -7,7 +7,7 @@ description: Critique charts with the question-data-visual triangle, semantic cl
 
 Use this when the user gives a visualization, screenshot, chart spec, code output, dashboard, or slide and asks whether it works or how to improve it.
 
-Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing; then offer a small set of better visualization alternatives, not just criticism.
+Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing. In a `dataviz-fix` case, return a structured repair brief that becomes the creator's first implementation contract, not advisory prose.
 
 ## Inputs to seek or infer
 
@@ -106,13 +106,40 @@ Do not over-focus on minor style while fatal data/question problems remain.
 7. If useful, give a before/after title: current descriptive title → claim-first title.
 8. If context is insufficient, list exact checks needed rather than pretending certainty.
 
+For a repair brief, make the repair/redesign decision explicit. Choose `redesign` when the question, evidence-to-claim relationship, or chart form blocks the intended comparison; otherwise choose `repair`. Set `form_questioned` independently so `dataviz-selector` is invoked whenever the form is implicated. State observable conditions the replacement must satisfy and what must survive unchanged.
+
 ## Redesign alternatives
 
 Offer alternatives only when they address a diagnosed mismatch. Choose the number and kind of alternatives from the question, data, audience, medium, and constraints; do not force a fixed taxonomy or count. A minimal repair may be enough, and a redesign may be inappropriate when the evidence or question is the real limitation.
 
-## Output format
+## Structured repair brief
 
-Use this structure by default:
+For every `dataviz-fix` handoff, return this contract as JSON (or the equivalent structure when no case manager is present):
+
+```json
+{
+  "context_version": 1,
+  "apparent_question": "...",
+  "apparent_claim": "...",
+  "evidence_limitations": ["..."],
+  "findings": {
+    "fatal": [{"id": "c1", "problem": "...", "reader_consequence": "...", "observable_condition": "..."}],
+    "major": [{"id": "c2", "problem": "...", "reader_consequence": "...", "observable_condition": "..."}],
+    "minor": [{"id": "c3", "problem": "...", "reader_consequence": "...", "observable_condition": "..."}]
+  },
+  "highest_consequence_findings": ["c1", "c2", "c3"],
+  "misleading_reader_interpretation": "...",
+  "defensible_interpretation": "...",
+  "intervention": "repair|redesign",
+  "form_questioned": false,
+  "required_delivered_outcomes": ["..."],
+  "preserve": ["..."]
+}
+```
+
+Always identify exactly three highest-consequence findings, while retaining every additional fatal, major, and minor finding in its severity list. `required_delivered_outcomes` must be observable in the replacement artifact. `preserve` must name source context, evidence, wording, mappings, or geometry that should not regress.
+
+For a critique that is not part of repair implementation, use this reader-facing structure:
 
 ```markdown
 ## Quick read
@@ -164,4 +191,3 @@ For quick requests, compress to: verdict, top 3 fixes, and 2 redesign alternativ
 ## Tone
 
 Be direct but useful. Avoid generic praise. Praise only what materially helps interpretation. Do not say "nice visualization" unless the question-data-visual fit is actually strong.
-

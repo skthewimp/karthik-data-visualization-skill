@@ -4,10 +4,12 @@ import math
 from pathlib import Path
 from typing import Any, Iterable
 
+from PIL import ImageColor
+
 from .artifacts import raster_info, read_json, sha256_file, write_json
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def _edges(bbox: dict[str, Any]) -> tuple[float, float, float, float]:
@@ -22,6 +24,65 @@ def _intersection_area(first: dict[str, Any], second: dict[str, Any]) -> float:
     width = min(a_right, b_right) - max(a_left, b_left)
     height = min(a_bottom, b_bottom) - max(a_top, b_top)
     return max(0.0, width) * max(0.0, height)
+
+
+def _meaningful_box_overlap(
+    first: dict[str, Any], second: dict[str, Any], tolerance_px: float = 0.5
+) -> bool:
+    first_left, first_top, first_right, first_bottom = _edges(first)
+    second_left, second_top, second_right, second_bottom = _edges(second)
+    overlap_width = min(first_right, second_right) - max(first_left, second_left)
+    overlap_height = min(first_bottom, second_bottom) - max(first_top, second_top)
+    return overlap_width > tolerance_px and overlap_height > tolerance_px
+
+
+def _union_area(boxes: list[dict[str, Any]]) -> float:
+    if not boxes:
+        return 0.0
+    xs = sorted({edge for box in boxes for edge in (_edges(box)[0], _edges(box)[2])})
+    area = 0.0
+    for left, right in zip(xs, xs[1:]):
+        intervals = sorted(
+            (_edges(box)[1], _edges(box)[3])
+            for box in boxes
+            if _edges(box)[0] < right and _edges(box)[2] > left
+        )
+        if not intervals:
+            continue
+        covered = 0.0
+        start, end = intervals[0]
+        for next_start, next_end in intervals[1:]:
+            if next_start > end:
+                covered += end - start
+                start, end = next_start, next_end
+            else:
+                end = max(end, next_end)
+        covered += end - start
+        area += (right - left) * covered
+    return area
+
+
+def _relative_luminance(colour: str) -> float | None:
+    try:
+        red, green, blue, _ = ImageColor.getcolor(colour, "RGBA")
+    except (ValueError, TypeError):
+        return None
+    channels = []
+    for value in (red, green, blue):
+        scaled = value / 255
+        channels.append(scaled / 12.92 if scaled <= 0.04045 else ((scaled + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+
+def _contrast_ratio(first: str | None, second: str | None) -> float | None:
+    if not first or not second:
+        return None
+    a = _relative_luminance(first)
+    b = _relative_luminance(second)
+    if a is None or b is None:
+        return None
+    lighter, darker = max(a, b), min(a, b)
+    return (lighter + 0.05) / (darker + 0.05)
 
 
 def _contains(container: dict[str, Any], inner: dict[str, Any], tolerance: float = 0.5) -> bool:
@@ -135,6 +196,8 @@ def inspect_rendered_chart(
     output_path: str | None = None,
     series_clearance_px: float = 2.0,
     max_unwrapped_annotation_chars: int = 45,
+    delivery_profile: str | None = None,
+    minimum_text_size_pt: float = 8.0,
 ) -> dict[str, Any]:
     """Inspect the exact raster plus matching deterministic layout metadata."""
     artifact_file = Path(artifact_path).expanduser().resolve()
@@ -145,6 +208,8 @@ def inspect_rendered_chart(
         raise ValueError("series_clearance_px must be zero or greater")
     if max_unwrapped_annotation_chars < 1:
         raise ValueError("max_unwrapped_annotation_chars must be greater than zero")
+    if minimum_text_size_pt <= 0:
+        raise ValueError("minimum_text_size_pt must be greater than zero")
 
     metadata: dict[str, Any] | None = None
     metadata_file: Path | None = None
@@ -173,7 +238,15 @@ def inspect_rendered_chart(
     out_of_bounds_elements: list[dict[str, Any]] = []
     clipped_text: list[dict[str, Any]] = []
     long_unwrapped_annotations: list[dict[str, Any]] = []
+    text_text_collisions: list[dict[str, Any]] = []
+    text_mark_collisions: list[dict[str, Any]] = []
+    legend_collisions: list[dict[str, Any]] = []
+    low_contrast_elements: list[dict[str, Any]] = []
+    undersized_text: list[dict[str, Any]] = []
+    direct_label_coverage: list[dict[str, Any]] = []
     minimum_text_margin_px: float | None = None
+    plot_utilization_ratio: float | None = None
+    occupied_utilization_ratio: float | None = None
 
     if metadata is not None:
         canvas = metadata["canvas"]
@@ -181,8 +254,18 @@ def inspect_rendered_chart(
         elements = metadata.get("elements", [])
         annotations = [item for item in elements if item.get("role") == "annotation"]
         series = [item for item in metadata.get("series", []) if item.get("role") == "series"]
+        marks = metadata.get("marks", [])
+        legends = metadata.get("legends", [])
         margins = [_margin(canvas, item["bbox"]) for item in elements]
         minimum_text_margin_px = round(min(margins), 3) if margins else None
+        canvas_area = float(canvas["width"]) * float(canvas["height"])
+        plot_utilization_ratio = round(
+            _union_area(list(plot_areas.values())) / canvas_area, 6
+        ) if canvas_area else None
+        occupied_boxes = [item["bbox"] for item in elements + marks + series + legends]
+        occupied_utilization_ratio = round(
+            _union_area(occupied_boxes) / canvas_area, 6
+        ) if canvas_area else None
 
         for element in elements:
             bbox = element["bbox"]
@@ -203,6 +286,42 @@ def inspect_rendered_chart(
                         {"bbox": bbox},
                     )
                 )
+            font_size = element.get("font_size_pt")
+            if isinstance(font_size, (int, float)) and font_size < minimum_text_size_pt:
+                record = {
+                    "id": element["id"],
+                    "role": element["role"],
+                    "font_size_pt": font_size,
+                    "minimum_text_size_pt": minimum_text_size_pt,
+                }
+                undersized_text.append(record)
+                defects.append(
+                    _defect(
+                        "DELIVERY_TEXT_TOO_SMALL",
+                        "medium",
+                        [element["id"]],
+                        f"{element['role']} {element['id']} is {font_size} pt at delivery scale",
+                    )
+                )
+            ratio = _contrast_ratio(element.get("colour"), metadata.get("background"))
+            if ratio is not None:
+                target = 3.0 if isinstance(font_size, (int, float)) and font_size >= 14 else 4.5
+                if ratio < target:
+                    record = {
+                        "id": element["id"],
+                        "role": element["role"],
+                        "contrast_ratio": round(ratio, 3),
+                        "target": target,
+                    }
+                    low_contrast_elements.append(record)
+                    defects.append(
+                        _defect(
+                            "LOW_TEXT_CONTRAST",
+                            "medium",
+                            [element["id"]],
+                            f"{element['role']} {element['id']} contrast is {ratio:.2f}:1",
+                        )
+                    )
             axes_id = element.get("axes_id")
             if (
                 element.get("role") in ("annotation", "label")
@@ -247,7 +366,7 @@ def inspect_rendered_chart(
                 )
             for second in annotations[index + 1 :]:
                 area = _intersection_area(first["bbox"], second["bbox"])
-                if area <= 0:
+                if not _meaningful_box_overlap(first["bbox"], second["bbox"]):
                     continue
                 record = {
                     "annotations": [first["id"], second["id"]],
@@ -285,16 +404,133 @@ def inspect_rendered_chart(
                     )
                 )
 
-    unsupported_marks = (
-        metadata.get("coverage", {}).get("unsupported_non_line_mark_count", 0)
-        if metadata
-        else 0
+        hierarchy_roles = {"title", "subtitle", "panel_heading", "footer"}
+        ignored_text_roles = {"legend_text"}
+        for index, first in enumerate(elements):
+            for second in elements[index + 1 :]:
+                if first.get("role") in ignored_text_roles and second.get("role") in ignored_text_roles:
+                    continue
+                area = _intersection_area(first["bbox"], second["bbox"])
+                if not _meaningful_box_overlap(first["bbox"], second["bbox"]):
+                    continue
+                if first.get("role") == "annotation" and second.get("role") == "annotation":
+                    continue
+                roles = {first.get("role"), second.get("role")}
+                code = (
+                    "HIERARCHY_TEXT_COLLISION"
+                    if roles & hierarchy_roles
+                    else "TEXT_TEXT_COLLISION"
+                )
+                record = {
+                    "elements": [first["id"], second["id"]],
+                    "roles": [first.get("role"), second.get("role")],
+                    "intersection_area_px2": round(area, 3),
+                }
+                text_text_collisions.append(record)
+                defects.append(
+                    _defect(
+                        code,
+                        "high",
+                        [first["id"], second["id"]],
+                        f"{first.get('role')} {first['id']} overlaps {second.get('role')} {second['id']}",
+                        {"intersection_area_px2": round(area, 3)},
+                    )
+                )
+
+        collision_text_roles = {"annotation", "label", "figure_text"}
+        for element in elements:
+            if element.get("role") not in collision_text_roles:
+                continue
+            for mark in marks:
+                if element.get("axes_id") and mark.get("axes_id") != element.get("axes_id"):
+                    continue
+                area = _intersection_area(element["bbox"], mark["bbox"])
+                if not _meaningful_box_overlap(element["bbox"], mark["bbox"]):
+                    continue
+                record = {
+                    "text": element["id"],
+                    "mark": mark["id"],
+                    "intersection_area_px2": round(area, 3),
+                }
+                text_mark_collisions.append(record)
+                defects.append(
+                    _defect(
+                        "TEXT_MARK_COLLISION",
+                        "high",
+                        [element["id"], mark["id"]],
+                        f"Text {element['id']} overlaps mark {mark['id']} without an inside-label declaration",
+                        {"intersection_area_px2": round(area, 3)},
+                    )
+                )
+
+        for legend in legends:
+            for element in elements:
+                if element.get("role") == "legend_text":
+                    continue
+                area = _intersection_area(legend["bbox"], element["bbox"])
+                if not _meaningful_box_overlap(legend["bbox"], element["bbox"]):
+                    continue
+                record = {
+                    "legend": legend["id"],
+                    "element": element["id"],
+                    "intersection_area_px2": round(area, 3),
+                }
+                legend_collisions.append(record)
+                defects.append(
+                    _defect(
+                        "LEGEND_TEXT_COLLISION",
+                        "high",
+                        [legend["id"], element["id"]],
+                        f"Legend {legend['id']} overlaps {element.get('role')} {element['id']}",
+                    )
+                )
+
+        contract = metadata.get("inspection_contract", {})
+        expectations = contract.get("direct_labels", []) if isinstance(contract, dict) else []
+        for expectation in expectations:
+            if not isinstance(expectation, dict):
+                continue
+            axes_id = expectation.get("axes_id")
+            role = expectation.get("role", "label")
+            expected = int(expectation.get("expected_count", 0))
+            observed = sum(
+                item.get("role") == role and (axes_id is None or item.get("axes_id") == axes_id)
+                for item in elements
+            )
+            result = {
+                "axes_id": axes_id,
+                "role": role,
+                "expected_count": expected,
+                "observed_count": observed,
+                "complete": observed >= expected,
+            }
+            direct_label_coverage.append(result)
+            if observed < expected:
+                defects.append(
+                    _defect(
+                        "DIRECT_LABELS_INCOMPLETE",
+                        "high",
+                        [],
+                        f"{axes_id or 'shared chart'} has {observed} of {expected} required {role}s",
+                    )
+                )
+    coverage = metadata.get("coverage", {}) if metadata else {}
+    unsupported_marks = coverage.get("unsupported_non_line_mark_count", 0)
+    coverage_limitations = coverage.get("limitations", [])
+    checks_complete = (
+        metadata is not None
+        and unsupported_marks == 0
+        and bool(coverage.get("text_bounds"))
+        and bool(coverage.get("line_series_paths"))
+        and bool(coverage.get("patch_and_common_collection_bounds"))
     )
-    checks_complete = metadata is not None and unsupported_marks == 0
     if unsupported_marks:
         limitations.append(
             f"{unsupported_marks} non-line mark collection(s), patch(es), or image(s) lack collision geometry"
         )
+    limitations.extend(str(item) for item in coverage_limitations)
+    if metadata is not None and not checks_complete and not unsupported_marks and coverage_limitations:
+        limitations.append("Renderer geometry coverage is incomplete for a full mechanical pass")
     blocking = [item for item in defects if item["severity"] in ("high", "medium")]
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -305,6 +541,7 @@ def inspect_rendered_chart(
             else None
         ),
         "inspection_mode": "raster+layout-metadata" if metadata else "raster-only",
+        "delivery_profile": delivery_profile,
         "checks_complete": checks_complete,
         "passes_geometry_checks": checks_complete and not blocking,
         "width": artifact["width"],
@@ -312,10 +549,18 @@ def inspect_rendered_chart(
         "text_clipped": bool(clipped_text or out_of_bounds_elements),
         "annotation_overlaps": annotation_overlaps,
         "label_label_collisions": label_label_collisions,
+        "text_text_collisions": text_text_collisions,
+        "text_mark_collisions": text_mark_collisions,
+        "legend_collisions": legend_collisions,
         "out_of_bounds_elements": out_of_bounds_elements,
         "clipped_text": clipped_text,
         "long_unwrapped_annotations": long_unwrapped_annotations,
+        "undersized_text": undersized_text,
+        "low_contrast_elements": low_contrast_elements,
+        "direct_label_coverage": direct_label_coverage,
         "minimum_text_margin_px": minimum_text_margin_px,
+        "plot_utilization_ratio": plot_utilization_ratio,
+        "occupied_utilization_ratio": occupied_utilization_ratio,
         "defects": defects,
         "limitations": limitations,
     }

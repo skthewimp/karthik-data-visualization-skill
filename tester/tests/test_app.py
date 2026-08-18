@@ -42,6 +42,56 @@ class TesterApiTests(unittest.TestCase):
         return response.json()
 
     def record_semantic_preflight(self, case_id: str) -> dict:
+        case = self.client.get(f"/api/cases/{case_id}").json()
+        if case["state"] == "critique":
+            critique = {
+                "context_version": case["context_version"],
+                "apparent_question": "What comparison does the chart support?",
+                "apparent_claim": "The visible comparison is the apparent claim",
+                "evidence_limitations": ["Source fidelity only"],
+                "findings": {
+                    "fatal": [],
+                    "major": [{"id": "c1", "problem": "Comparison is unclear", "reader_consequence": "Reader effort", "observable_condition": "Comparison is explicit"}],
+                    "minor": [
+                        {"id": "c2", "problem": "Spacing needs review", "reader_consequence": "Crowding", "observable_condition": "Spacing passes"},
+                        {"id": "c3", "problem": "Copy needs review", "reader_consequence": "Weak claim", "observable_condition": "Copy passes"},
+                    ],
+                },
+                "highest_consequence_findings": ["c1", "c2", "c3"],
+                "misleading_reader_interpretation": "An unsupported claim",
+                "defensible_interpretation": "The visible comparison only",
+                "intervention": "repair",
+                "form_questioned": False,
+                "required_delivered_outcomes": ["Comparison is explicit"],
+                "preserve": [],
+            }
+            response = self.client.post(f"/api/cases/{case_id}/critique", json={"report": critique})
+            self.assertEqual(response.status_code, 200, response.text)
+            critique_number = response.json()["critiques"][-1]["number"]
+            design = {
+                "critique_number": critique_number,
+                "requirements": [{"finding_id": "c1", "planned_change": "Clarify comparison", "affected_zones": ["plot"], "observable_outcome": "Comparison is explicit"}],
+                "measure_scope": "Visible measure",
+                "evidence_scope": "Source fidelity",
+                "chart_form": "Existing form",
+                "primary_identification": "Existing labels",
+                "zones": {name: name for name in ("title", "subtitle", "legend", "plot", "annotation", "footer")},
+                "colour_role": "Identity only",
+                "dimensions": {"width": 1200, "height": 675},
+                "value_precision": "exact",
+                "selector_decision": None,
+            }
+            response = self.client.post(f"/api/cases/{case_id}/design-contract", json={"report": design})
+            self.assertEqual(response.status_code, 200, response.text)
+            renderer = {
+                "requested": "matplotlib",
+                "selected": "matplotlib",
+                "ggplot2_supported": True,
+                "reason": "Explicit test renderer",
+                "probe": {"renderers": {"ggplot2": {"available": True}, "matplotlib": {"available": True}}},
+            }
+            response = self.client.post(f"/api/cases/{case_id}/renderer-selection", json={"report": renderer})
+            self.assertEqual(response.status_code, 200, response.text)
         payload = {
             name: {
                 "result": "clear",
@@ -84,7 +134,7 @@ class TesterApiTests(unittest.TestCase):
             max_tokens=500000,
         )
 
-        self.assertEqual(case["state"], "build")
+        self.assertEqual(case["state"], "critique")
         self.assertEqual(case["context_version"], 1)
         self.assertEqual(case["context"]["fields"]["audience"]["value"], "Board members")
         self.assertEqual(case["context"]["fields"]["question"]["source"], "user")

@@ -67,7 +67,7 @@ function renderCase(data) {
 }
 
 function updateRunButton() {
-  const runnable = currentCase && ["build", "revise", "redesign"].includes(currentCase.state);
+  const runnable = currentCase && ["critique", "design", "build", "revise", "redesign"].includes(currentCase.state);
   $("#run-button").disabled = !runnerAvailable || !runnable || Boolean(activeJob);
 }
 

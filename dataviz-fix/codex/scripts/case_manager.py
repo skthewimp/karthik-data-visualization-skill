@@ -48,10 +48,12 @@ PRESENTATION_CHECK_NAMES = (
     "Copy style",
 )
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 DEFAULT_MAX_ITERATIONS = 3
 DEFAULT_MAX_STALLED_EVALUATIONS = 2
 ACTIVE_STATES = (
+    "critique",
+    "design",
     "build",
     "blind_review",
     "context_reveal",
@@ -99,6 +101,9 @@ SEMANTIC_DIMENSIONS = (
     "audience_units",
 )
 SEMANTIC_PREFLIGHT_RESULTS = ("clear", "repair", "unknown")
+CRITIQUE_SEVERITIES = ("fatal", "major", "minor")
+INTERVENTIONS = ("repair", "redesign")
+RENDERERS = ("ggplot2", "matplotlib")
 
 
 def now_iso() -> str:
@@ -345,6 +350,198 @@ def validate_semantic_preflight(raw: object, context_version: int) -> dict:
     return {"context_version": context_version, "dimensions": validated}
 
 
+def text_list(raw: object, field: str, minimum: int = 0) -> list[str]:
+    if not isinstance(raw, list) or any(
+        not isinstance(item, str) or not item.strip() for item in raw
+    ):
+        raise SystemExit(f"{field} must be a list of non-empty strings")
+    values = [item.strip() for item in raw]
+    if len(values) < minimum:
+        raise SystemExit(f"{field} requires at least {minimum} item(s)")
+    return values
+
+
+def validate_critique_report(raw: object, context_version: int) -> dict:
+    """Validate the mandatory dataviz-critique repair brief."""
+    if not isinstance(raw, dict):
+        raise SystemExit("Critique report must be a JSON object")
+    if raw.get("context_version") != context_version:
+        raise SystemExit(f"Critique context_version must be {context_version}")
+    findings_raw = raw.get("findings")
+    if not isinstance(findings_raw, dict):
+        raise SystemExit("Critique report findings must be an object")
+    findings: dict[str, list[dict]] = {}
+    ids: set[str] = set()
+    for severity in CRITIQUE_SEVERITIES:
+        items = findings_raw.get(severity)
+        if not isinstance(items, list):
+            raise SystemExit(f"Critique findings.{severity} must be a list")
+        findings[severity] = []
+        for item in items:
+            if not isinstance(item, dict):
+                raise SystemExit(f"Each {severity} critique finding must be an object")
+            finding_id = nonempty_text(item.get("id"), f"findings.{severity}.id")
+            if finding_id in ids:
+                raise SystemExit(f"Duplicate critique finding id {finding_id}")
+            ids.add(finding_id)
+            findings[severity].append(
+                {
+                    "id": finding_id,
+                    "problem": nonempty_text(item.get("problem"), f"{finding_id}.problem"),
+                    "reader_consequence": nonempty_text(
+                        item.get("reader_consequence"), f"{finding_id}.reader_consequence"
+                    ),
+                    "observable_condition": nonempty_text(
+                        item.get("observable_condition"), f"{finding_id}.observable_condition"
+                    ),
+                }
+            )
+    extra = sorted(set(findings_raw) - set(CRITIQUE_SEVERITIES))
+    if extra:
+        raise SystemExit("Unknown critique finding severities: " + ", ".join(extra))
+    if len(ids) < 3:
+        raise SystemExit("Critique must identify at least three ranked findings")
+    highest = text_list(raw.get("highest_consequence_findings"), "highest_consequence_findings")
+    if len(highest) != 3 or len(set(highest)) != 3:
+        raise SystemExit("highest_consequence_findings must contain exactly three unique ids")
+    unknown = [item for item in highest if item not in ids]
+    if unknown:
+        raise SystemExit("Unknown highest-consequence finding ids: " + ", ".join(unknown))
+    intervention = raw.get("intervention")
+    if intervention not in INTERVENTIONS:
+        raise SystemExit("Critique intervention must be repair or redesign")
+    form_questioned = raw.get("form_questioned")
+    if not isinstance(form_questioned, bool):
+        raise SystemExit("Critique form_questioned must be true or false")
+    return {
+        "context_version": context_version,
+        "apparent_question": nonempty_text(raw.get("apparent_question"), "apparent_question"),
+        "apparent_claim": nonempty_text(raw.get("apparent_claim"), "apparent_claim"),
+        "evidence_limitations": text_list(raw.get("evidence_limitations"), "evidence_limitations"),
+        "findings": findings,
+        "highest_consequence_findings": highest,
+        "misleading_reader_interpretation": nonempty_text(
+            raw.get("misleading_reader_interpretation"), "misleading_reader_interpretation"
+        ),
+        "defensible_interpretation": nonempty_text(
+            raw.get("defensible_interpretation"), "defensible_interpretation"
+        ),
+        "intervention": intervention,
+        "form_questioned": form_questioned,
+        "required_delivered_outcomes": text_list(
+            raw.get("required_delivered_outcomes"), "required_delivered_outcomes", minimum=1
+        ),
+        "preserve": text_list(raw.get("preserve"), "preserve"),
+    }
+
+
+def critique_findings(critique: dict, severities: tuple[str, ...] = ("fatal", "major")) -> list[dict]:
+    return [item for severity in severities for item in critique["findings"][severity]]
+
+
+def validate_design_contract(raw: object, critique: dict) -> dict:
+    if not isinstance(raw, dict):
+        raise SystemExit("Design contract must be a JSON object")
+    if raw.get("critique_number") != critique["number"]:
+        raise SystemExit(f"Design contract critique_number must be {critique['number']}")
+    requirements = raw.get("requirements")
+    if not isinstance(requirements, list):
+        raise SystemExit("Design contract requirements must be a list")
+    mapped: dict[str, dict] = {}
+    for item in requirements:
+        if not isinstance(item, dict):
+            raise SystemExit("Each design requirement must be an object")
+        finding_id = nonempty_text(item.get("finding_id"), "requirements.finding_id")
+        if finding_id in mapped:
+            raise SystemExit(f"Duplicate design mapping for finding {finding_id}")
+        mapped[finding_id] = {
+            "finding_id": finding_id,
+            "planned_change": nonempty_text(item.get("planned_change"), f"{finding_id}.planned_change"),
+            "affected_zones": text_list(item.get("affected_zones"), f"{finding_id}.affected_zones", 1),
+            "observable_outcome": nonempty_text(
+                item.get("observable_outcome"), f"{finding_id}.observable_outcome"
+            ),
+        }
+    required_ids = [item["id"] for item in critique_findings(critique)]
+    missing = [finding_id for finding_id in required_ids if finding_id not in mapped]
+    if missing:
+        raise SystemExit(
+            "Design contract must map every fatal and major critique finding: "
+            + ", ".join(missing)
+        )
+    zones = raw.get("zones")
+    zone_names = ("title", "subtitle", "legend", "plot", "annotation", "footer")
+    if not isinstance(zones, dict) or any(
+        not isinstance(zones.get(name), str) or not zones[name].strip() for name in zone_names
+    ):
+        raise SystemExit("Design contract must define title, subtitle, legend, plot, annotation, and footer zones")
+    selector = raw.get("selector_decision")
+    selector_required = critique["form_questioned"] or critique["intervention"] == "redesign"
+    if selector_required and not isinstance(selector, dict):
+        raise SystemExit("A questioned chart form requires a dataviz-selector decision")
+    if isinstance(selector, dict):
+        selector = {
+            "chart_form": nonempty_text(selector.get("chart_form"), "selector_decision.chart_form"),
+            "reason": nonempty_text(selector.get("reason"), "selector_decision.reason"),
+            "encoding": nonempty_text(selector.get("encoding"), "selector_decision.encoding"),
+            "avoid": nonempty_text(selector.get("avoid"), "selector_decision.avoid"),
+        }
+    value_precision = raw.get("value_precision")
+    if value_precision not in ("exact", "approximate", "mixed"):
+        raise SystemExit("Design contract value_precision must be exact, approximate, or mixed")
+    dimensions = raw.get("dimensions")
+    if not isinstance(dimensions, dict) or not all(
+        isinstance(dimensions.get(name), (int, float)) and dimensions[name] > 0
+        for name in ("width", "height")
+    ):
+        raise SystemExit("Design contract dimensions require positive width and height")
+    return {
+        "critique_number": critique["number"],
+        "requirements": list(mapped.values()),
+        "measure_scope": nonempty_text(raw.get("measure_scope"), "measure_scope"),
+        "evidence_scope": nonempty_text(raw.get("evidence_scope"), "evidence_scope"),
+        "chart_form": nonempty_text(raw.get("chart_form"), "chart_form"),
+        "primary_identification": nonempty_text(
+            raw.get("primary_identification"), "primary_identification"
+        ),
+        "zones": {name: zones[name].strip() for name in zone_names},
+        "colour_role": nonempty_text(raw.get("colour_role"), "colour_role"),
+        "dimensions": {**dimensions},
+        "value_precision": value_precision,
+        "selector_decision": selector,
+    }
+
+
+def validate_renderer_selection(raw: object) -> dict:
+    if not isinstance(raw, dict):
+        raise SystemExit("Renderer selection must be a JSON object")
+    requested = raw.get("requested")
+    selected = raw.get("selected")
+    if requested not in ("auto",) + RENDERERS or selected not in RENDERERS:
+        raise SystemExit("Renderer selection requested/selected values are invalid")
+    probe = raw.get("probe")
+    if not isinstance(probe, dict) or not isinstance(probe.get("renderers"), dict):
+        raise SystemExit("Renderer selection requires the probe_renderers result")
+    ggplot = probe["renderers"].get("ggplot2")
+    if not isinstance(ggplot, dict) or not isinstance(ggplot.get("available"), bool):
+        raise SystemExit("Renderer probe is missing ggplot2 availability")
+    ggplot_supported = raw.get("ggplot2_supported")
+    if not isinstance(ggplot_supported, bool):
+        raise SystemExit("Renderer selection ggplot2_supported must be true or false")
+    reason = (raw.get("reason") or "").strip()
+    if requested == "auto" and ggplot["available"] and ggplot_supported and selected != "ggplot2":
+        raise SystemExit("Auto renderer must select ggplot2 when the probe succeeds and the adapter supports the output")
+    if selected == "matplotlib" and ggplot["available"] and requested != "matplotlib" and not reason:
+        raise SystemExit("Matplotlib fallback requires a recorded ggplot2-unavailable or unsupported reason")
+    return {
+        "requested": requested,
+        "selected": selected,
+        "ggplot2_supported": ggplot_supported,
+        "reason": reason or None,
+        "probe": probe,
+    }
+
+
 def validate_review_report(
     report: dict,
     iteration: dict,
@@ -354,6 +551,7 @@ def validate_review_report(
     blind_response_sha: str,
     carry_forward_actions: list[dict],
     acceptance_checks: list[dict],
+    critique_contract: dict | None,
 ) -> dict:
     if not isinstance(report, dict):
         raise SystemExit("Review report must be a JSON object")
@@ -492,16 +690,84 @@ def validate_review_report(
             + ", ".join(missing_acceptance_ids)
         )
 
+    expected_critique_ids = (
+        [item["id"] for item in critique_findings(critique_contract)]
+        if critique_contract
+        else []
+    )
+    raw_critique_checks = report.get("critique_checks", [])
+    if not isinstance(raw_critique_checks, list):
+        raise SystemExit("Review report critique_checks must be a list")
+    critique_checks: list[dict] = []
+    seen_critique_ids: set[str] = set()
+    for item in raw_critique_checks:
+        if not isinstance(item, dict):
+            raise SystemExit("Each critique_checks item must be an object")
+        finding_id = item.get("id")
+        if finding_id not in expected_critique_ids:
+            raise SystemExit(f"Unknown active critique finding id {finding_id!r}")
+        if finding_id in seen_critique_ids:
+            raise SystemExit(f"Duplicate critique finding id {finding_id!r}")
+        result = item.get("result")
+        if result not in GATE_RESULTS:
+            raise SystemExit(f"Invalid critique-check result {result!r}")
+        critique_checks.append(
+            {
+                "id": finding_id,
+                "result": result,
+                "evidence": nonempty_text(item.get("evidence"), f"critique_checks.{finding_id}.evidence"),
+            }
+        )
+        seen_critique_ids.add(finding_id)
+    missing_critique_ids = [
+        finding_id for finding_id in expected_critique_ids if finding_id not in seen_critique_ids
+    ]
+    if missing_critique_ids:
+        raise SystemExit(
+            "Review report must close every fatal and major critique finding: "
+            + ", ".join(missing_critique_ids)
+        )
+
     raw_codes = report.get("codes", [])
     if not isinstance(raw_codes, list) or any(not isinstance(code, str) or not code.strip() for code in raw_codes):
         raise SystemExit("Review report codes must be a list of non-empty strings")
     codes = list(dict.fromkeys(code.strip() for code in raw_codes))
     raw_actions = report.get("required_actions", [])
-    if not isinstance(raw_actions, list) or any(
-        not isinstance(action, str) or not action.strip() for action in raw_actions
-    ):
-        raise SystemExit("Review report required_actions must be a list of non-empty strings")
-    required_actions = [action.strip() for action in raw_actions]
+    if not isinstance(raw_actions, list):
+        raise SystemExit("Review report required_actions must be a list")
+    required_actions: list[dict] = []
+    for index, action in enumerate(raw_actions, start=1):
+        if not isinstance(action, dict):
+            raise SystemExit("Each required action must be a structured object")
+        action_codes = text_list(action.get("codes"), f"required_actions[{index}].codes", 1)
+        zones = text_list(
+            action.get("affected_zones"),
+            f"required_actions[{index}].affected_zones",
+            1,
+        )
+        required_actions.append(
+            {
+                "target": nonempty_text(action.get("target"), f"required_actions[{index}].target"),
+                "from": nonempty_text(action.get("from"), f"required_actions[{index}].from"),
+                "to": nonempty_text(action.get("to"), f"required_actions[{index}].to"),
+                "why": nonempty_text(action.get("why"), f"required_actions[{index}].why"),
+                "codes": action_codes,
+                "affected_zones": zones,
+            }
+        )
+    unknown_action_codes = sorted(
+        {
+            code
+            for action in required_actions
+            for code in action["codes"]
+            if code not in codes
+        }
+    )
+    if unknown_action_codes:
+        raise SystemExit(
+            "Required-action codes must appear in the evaluation codes list: "
+            + ", ".join(unknown_action_codes)
+        )
     raw_baseline_concerns = report.get("baseline_concerns", [])
     if not isinstance(raw_baseline_concerns, list) or any(
         not isinstance(item, str) or not item.strip() for item in raw_baseline_concerns
@@ -517,6 +783,8 @@ def validate_review_report(
         item["result"] for item in carry_checks
     ] + [
         item["result"] for item in acceptance_results
+    ] + [
+        item["result"] for item in critique_checks
     ]
     if verdict == "Send":
         inspection = iteration.get("inspection")
@@ -571,6 +839,7 @@ def validate_review_report(
         "presentation_checks": presentation_checks,
         "carry_forward_checks": carry_checks,
         "acceptance_checks": acceptance_results,
+        "critique_checks": critique_checks,
         "verdict": verdict,
         "codes": codes,
         "required_actions": required_actions,
@@ -652,7 +921,7 @@ def open_required_actions(data: dict, iteration: dict) -> list[dict]:
 def update_open_required_actions(
     prior_actions: list[dict],
     carry_checks: list[dict],
-    current_actions: list[str],
+    current_actions: list[dict],
     evaluation_number: int,
 ) -> list[dict]:
     """Keep prior actions open until directly passed, then add new actions."""
@@ -660,9 +929,11 @@ def update_open_required_actions(
     open_actions = [
         item for item in prior_actions if result_by_id.get(item["id"]) != "Pass"
     ]
-    existing_text = {item["action"] for item in open_actions}
+    action_key = lambda value: json.dumps(value, sort_keys=True, ensure_ascii=False)
+    existing_text = {action_key(item["action"]) for item in open_actions}
     for index, action in enumerate(current_actions, start=1):
-        if action in existing_text:
+        key = action_key(action)
+        if key in existing_text:
             continue
         open_actions.append(
             {
@@ -671,8 +942,77 @@ def update_open_required_actions(
                 "source_evaluation": evaluation_number,
             }
         )
-        existing_text.add(action)
+        existing_text.add(key)
     return open_actions
+
+
+def active_user_checks_for_next_build(data: dict) -> list[dict]:
+    """Return active checks added after the latest built candidate."""
+    if not data.get("iterations"):
+        return []
+    latest = data["iterations"][-1]
+    checks = active_acceptance_checks(
+        data,
+        {
+            **latest,
+            "request_check_count": len(data.get("request_checks", [])),
+            "feedback_count": len(data.get("feedback", [])),
+        },
+    )
+    built_ids = {
+        item["id"]
+        for item in active_acceptance_checks(data, latest)
+    }
+    return [item for item in checks if item["id"] not in built_ids]
+
+
+def validate_revision_contract(raw: object, data: dict) -> dict:
+    if not isinstance(raw, dict):
+        raise SystemExit("Revision contract must be a JSON object")
+    latest = data["iterations"][-1]
+    prior_actions = open_required_actions(
+        data,
+        {**latest, "number": latest["number"] + 1, "feedback_count": len(data.get("feedback", []))},
+    )
+    user_checks = active_user_checks_for_next_build(data)
+    expected = {item["id"]: "evaluator" for item in prior_actions}
+    expected.update({item["id"]: "user" for item in user_checks})
+    raw_changes = raw.get("changes")
+    if not isinstance(raw_changes, list):
+        raise SystemExit("Revision contract changes must be a list")
+    changes: list[dict] = []
+    seen: set[str] = set()
+    for item in raw_changes:
+        if not isinstance(item, dict):
+            raise SystemExit("Each revision-contract change must be an object")
+        source_id = nonempty_text(item.get("source_id"), "changes.source_id")
+        if source_id not in expected:
+            raise SystemExit(f"Unknown revision source id {source_id}")
+        if source_id in seen:
+            raise SystemExit(f"Duplicate revision mapping for {source_id}")
+        seen.add(source_id)
+        changes.append(
+            {
+                "source_id": source_id,
+                "source_type": expected[source_id],
+                "planned_change": nonempty_text(item.get("planned_change"), f"{source_id}.planned_change"),
+                "affected_zones": text_list(item.get("affected_zones"), f"{source_id}.affected_zones", 1),
+                "observable_outcome": nonempty_text(
+                    item.get("observable_outcome"), f"{source_id}.observable_outcome"
+                ),
+            }
+        )
+    missing = [source_id for source_id in expected if source_id not in seen]
+    if missing:
+        raise SystemExit(
+            "Revision contract must map every open evaluator action and new user check: "
+            + ", ".join(missing)
+        )
+    return {
+        "source_iteration": latest["number"],
+        "source_evaluation": data["evaluations"][-1]["number"] if data.get("evaluations") else None,
+        "changes": changes,
+    }
 
 
 def sha256(path: Path) -> str:
@@ -791,6 +1131,56 @@ def semantic_preflight_for_iteration(data: dict, iteration: dict) -> dict | None
     return semantic_preflight_at_version(data, iteration.get("context_version", 1))
 
 
+def critique_for_iteration(data: dict, iteration: dict) -> dict | None:
+    number = iteration.get("critique")
+    return next(
+        (item for item in data.get("critiques", []) if item.get("number") == number),
+        None,
+    )
+
+
+def current_critique(data: dict) -> dict:
+    critique = next(
+        (
+            item
+            for item in reversed(data.get("critiques", []))
+            if item.get("context_version") == data.get("context_version", 1)
+        ),
+        None,
+    )
+    if critique is None:
+        raise SystemExit("Run dataviz-critique on the source chart and attach its repair brief first")
+    return critique
+
+
+def current_design_contract(data: dict, critique: dict) -> dict:
+    contract = next(
+        (
+            item
+            for item in reversed(data.get("design_contracts", []))
+            if item.get("critique_number") == critique["number"]
+        ),
+        None,
+    )
+    if contract is None:
+        raise SystemExit("Attach a complete design contract for the active critique before building")
+    return contract
+
+
+def current_renderer_selection(data: dict) -> dict:
+    selection = next(
+        (
+            item
+            for item in reversed(data.get("renderer_selections", []))
+            if item.get("context_version") == data.get("context_version", 1)
+        ),
+        None,
+    )
+    if selection is None:
+        raise SystemExit("Record probe_renderers evidence and renderer selection before building")
+    return selection
+
+
 def require_current_semantic_preflight(data: dict) -> dict:
     preflight = semantic_preflight_at_version(data, data.get("context_version", 1))
     if preflight is None:
@@ -841,6 +1231,10 @@ def upgrade_case(data: dict) -> dict:
         data["diagnoses"] = [data["diagnosis"]] if data.get("diagnosis") else []
     data.setdefault("request_checks", [])
     data.setdefault("semantic_preflights", [])
+    data.setdefault("critiques", [])
+    data.setdefault("design_contracts", [])
+    data.setdefault("revision_contracts", [])
+    data.setdefault("renderer_selections", [])
     if "transitions" not in data:
         data["transitions"] = [
             {
@@ -947,6 +1341,19 @@ def stop_case(data: dict, kind: str, reason: str, action: str) -> None:
         "kind": kind,
         "reason": reason,
         "best_candidate": data.get("best_candidate"),
+        "unresolved": {
+            "critique_findings": [
+                item
+                for critique in data.get("critiques", [])[-1:]
+                for item in critique_findings(critique)
+            ],
+            "evaluator_actions": (
+                data.get("evaluations", [])[-1].get("open_required_actions", [])
+                if data.get("evaluations")
+                else []
+            ),
+            "user_checks": active_user_checks_for_next_build(data),
+        },
     }
     transition(data, target, action, reason)
 
@@ -976,7 +1383,20 @@ def required_results(event: dict) -> list[str]:
     presentation_results = [
         item["result"] for item in event.get("presentation_checks", {}).values()
     ]
-    return gate_results + release_results + presentation_results
+    contract_results = [
+        item["result"]
+        for field in (
+            "semantic_checks",
+            "acceptance_checks",
+            "critique_checks",
+        )
+        for item in (
+            event.get(field, {}).values()
+            if isinstance(event.get(field), dict)
+            else event.get(field, [])
+        )
+    ]
+    return gate_results + release_results + presentation_results + contract_results
 
 
 def candidate_rank(event: dict) -> list[int]:
@@ -1004,6 +1424,10 @@ def update_best_candidate(data: dict, event: dict, iteration: dict) -> None:
 
 
 def evaluation_signature(event: dict) -> dict:
+    # Carry-forward checks are bookkeeping for actions already represented by the
+    # evaluator's required action set.  Including their iteration-scoped IDs makes
+    # the second identical evaluation look different merely because the action now
+    # has a carry-forward record, defeating the bounded no-progress guard.
     return {
         "codes": sorted(event.get("codes", [])),
         "gates": event.get("gates", {}),
@@ -1016,6 +1440,22 @@ def evaluation_signature(event: dict) -> dict:
             name: item.get("result")
             for name, item in event.get("presentation_checks", {}).items()
         },
+        "semantic_checks": {
+            name: item.get("result")
+            for name, item in event.get("semantic_checks", {}).items()
+        },
+        "required_actions": sorted(
+            json.dumps(item, sort_keys=True, ensure_ascii=False)
+            for item in event.get("required_actions", [])
+        ),
+        "acceptance_checks": [
+            (item.get("id"), item.get("result"))
+            for item in event.get("acceptance_checks", [])
+        ],
+        "critique_checks": [
+            (item.get("id"), item.get("result"))
+            for item in event.get("critique_checks", [])
+        ],
     }
 
 
@@ -1158,6 +1598,10 @@ def cmd_start(args: argparse.Namespace) -> None:
         "stop": None,
         "request_checks": [],
         "semantic_preflights": [],
+        "critiques": [],
+        "design_contracts": [],
+        "revision_contracts": [],
+        "renderer_selections": [],
         "feedback": [],
         "iterations": [],
         "evaluations": [],
@@ -1187,7 +1631,12 @@ def cmd_start(args: argparse.Namespace) -> None:
             }
         )
     data["context_history"] = [context_snapshot(data["context"], "Case intake")]
-    transition(data, "build", "start", "Case created; ready to build the first candidate")
+    transition(
+        data,
+        "critique",
+        "start",
+        "Case created; dataviz-critique of the original artifact is required",
+    )
     write_json(case_dir / "case.json", data)
     pointer = active_pointer(args.session)
     pointer.parent.mkdir(parents=True, exist_ok=True)
@@ -1200,7 +1649,7 @@ def cmd_check(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
     path = case_dir / "case.json"
     data = load_case(path)
-    require_state(data, ("build",), "record an intake acceptance check")
+    require_state(data, ("critique", "design", "build"), "record an intake acceptance check")
     if data["iterations"]:
         raise SystemExit("Use feedback after the first candidate; intake checks must precede iteration 1")
     number = len(data["request_checks"]) + 1
@@ -1220,6 +1669,91 @@ def cmd_check(args: argparse.Namespace) -> None:
     data["updated_at"] = now_iso()
     write_json(path, data)
     print(json.dumps({"case_id": data["case_id"], "request_check": number, "kind": args.kind}))
+
+
+def cmd_critique(args: argparse.Namespace) -> None:
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, ("critique", "redesign"), "attach a critique repair brief")
+    report_path = Path(args.report).expanduser().resolve()
+    validated = validate_critique_report(read_json(report_path), data["context_version"])
+    event = {
+        "number": len(data["critiques"]) + 1,
+        "at": now_iso(),
+        **validated,
+        "report": {"path": str(report_path), "sha256": sha256(report_path)},
+        "source_artifact_sha256": data["original"]["sha256"],
+    }
+    data["critiques"].append(event)
+    transition(
+        data,
+        "design",
+        "critique",
+        "Structured critique attached; map every fatal and major finding into the design",
+    )
+    write_json(path, data)
+    print(json.dumps({"case_id": data["case_id"], "critique": event["number"], "state": data["state"]}))
+
+
+def cmd_design_contract(args: argparse.Namespace) -> None:
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, ("design",), "attach a design contract")
+    critique = current_critique(data)
+    report_path = Path(args.report).expanduser().resolve()
+    validated = validate_design_contract(read_json(report_path), critique)
+    event = {
+        "number": len(data["design_contracts"]) + 1,
+        "at": now_iso(),
+        **validated,
+        "report": {"path": str(report_path), "sha256": sha256(report_path)},
+    }
+    data["design_contracts"].append(event)
+    transition(data, "build", "design-contract", "Complete implementation contract attached")
+    write_json(path, data)
+    print(json.dumps({"case_id": data["case_id"], "design_contract": event["number"], "state": data["state"]}))
+
+
+def cmd_revision_contract(args: argparse.Namespace) -> None:
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, ("revise",), "attach a revision contract")
+    report_path = Path(args.report).expanduser().resolve()
+    validated = validate_revision_contract(read_json(report_path), data)
+    event = {
+        "number": len(data["revision_contracts"]) + 1,
+        "at": now_iso(),
+        "context_version": data["context_version"],
+        **validated,
+        "report": {"path": str(report_path), "sha256": sha256(report_path)},
+    }
+    data["revision_contracts"].append(event)
+    data["updated_at"] = now_iso()
+    write_json(path, data)
+    print(json.dumps({"case_id": data["case_id"], "revision_contract": event["number"], "state": data["state"]}))
+
+
+def cmd_renderer_selection(args: argparse.Namespace) -> None:
+    case_dir = resolve_case(args)
+    path = case_dir / "case.json"
+    data = load_case(path)
+    require_state(data, ("build", "revise"), "record renderer selection")
+    report_path = Path(args.report).expanduser().resolve()
+    validated = validate_renderer_selection(read_json(report_path))
+    event = {
+        "number": len(data["renderer_selections"]) + 1,
+        "at": now_iso(),
+        "context_version": data["context_version"],
+        **validated,
+        "report": {"path": str(report_path), "sha256": sha256(report_path)},
+    }
+    data["renderer_selections"].append(event)
+    data["updated_at"] = now_iso()
+    write_json(path, data)
+    print(json.dumps({"case_id": data["case_id"], "renderer_selection": event["number"], "selected": event["selected"]}))
 
 
 def cmd_semantic_preflight(args: argparse.Namespace) -> None:
@@ -1339,7 +1873,26 @@ def cmd_iterate(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
     path = case_dir / "case.json"
     data = load_case(path)
-    require_state(data, ("build", "revise", "redesign"), "record an iteration")
+    require_state(data, ("build", "revise"), "record an iteration")
+    build_state = data["state"]
+    critique = current_critique(data)
+    design_contract = current_design_contract(data, critique)
+    renderer_selection = current_renderer_selection(data)
+    revision_contract = None
+    if build_state == "revise":
+        revision_contract = next(
+            (
+                item
+                for item in reversed(data.get("revision_contracts", []))
+                if item.get("source_iteration") == data["iterations"][-1]["number"]
+                and item.get("context_version") == data["context_version"]
+            ),
+            None,
+        )
+        if revision_contract is None:
+            raise SystemExit(
+                "Revise requires a complete revision contract covering every open action and user correction"
+            )
     semantic_preflight = require_current_semantic_preflight(data)
     if data["iterations"]:
         latest = data["iterations"][-1]["number"]
@@ -1376,6 +1929,23 @@ def cmd_iterate(args: argparse.Namespace) -> None:
         validated_manifest = read_json(manifest_source)
         if validated_manifest.get("artifact", {}).get("sha256") != source_sha:
             raise SystemExit("Render bundle manifest does not match the iteration artifact hash")
+        manifest_selection = validated_manifest.get("renderer_selection", {})
+        manifest_renderer = (
+            manifest_selection.get("selected") or validated_manifest.get("renderer")
+        )
+        if manifest_renderer != renderer_selection["selected"]:
+            raise SystemExit(
+                "Render bundle renderer does not match the recorded renderer selection"
+            )
+        if (
+            manifest_renderer == "matplotlib"
+            and renderer_selection["probe"]["renderers"]["ggplot2"]["available"]
+            and renderer_selection["requested"] != "matplotlib"
+            and not renderer_selection.get("reason")
+        ):
+            raise SystemExit(
+                "Matplotlib render is unexplained even though ggplot2 was available"
+            )
         for key, suffix in (
             ("chart_spec", "chart-spec.json"),
             ("layout_metadata", "layout-metadata.json"),
@@ -1417,6 +1987,11 @@ def cmd_iterate(args: argparse.Namespace) -> None:
         "request_check_count": len(data.get("request_checks", [])),
         "context_version": data.get("context_version", 1),
         "semantic_preflight": semantic_preflight["number"],
+        "critique": critique["number"],
+        "design_contract": design_contract["number"],
+        "revision_contract": revision_contract["number"] if revision_contract else None,
+        "renderer_selection": renderer_selection["number"],
+        "renderer": renderer_selection["selected"],
         "presentation_checks_required": True,
     }
     if render_bundle:
@@ -1507,6 +2082,23 @@ def cmd_inspect(args: argparse.Namespace) -> None:
         }
 
     report["artifact"]["path"] = iteration["artifact"]["path"]
+    stored_views: list[dict] = []
+    raw_views = report.get("review_views", [])
+    if not isinstance(raw_views, list):
+        raise SystemExit("Inspection review_views must be a list")
+    for index, view in enumerate(raw_views, start=1):
+        if not isinstance(view, dict) or not view.get("path") or not view.get("sha256"):
+            raise SystemExit("Each inspection review view requires path and sha256")
+        view_source = Path(view["path"]).expanduser().resolve()
+        if not view_source.is_file() or sha256(view_source) != view["sha256"]:
+            raise SystemExit("Inspection review view hash does not match its file")
+        stored_views.append(
+            copy_artifact(
+                view_source,
+                case_dir / f"iteration-{iteration['number']:02d}-review-view-{index:02d}{view_source.suffix}",
+            )
+        )
+    report["review_views"] = stored_views
     stored_report = case_dir / f"inspection-{iteration['number']:02d}.json"
     write_json(stored_report, report)
     inspection = {
@@ -1521,9 +2113,57 @@ def cmd_inspect(args: argparse.Namespace) -> None:
         ],
         "blocking_defect_codes": [item["code"] for item in blocking_defects],
         "layout_metadata": stored_metadata,
+        "review_views": stored_views,
     }
+    previous_inspection = next(
+        (
+            item.get("inspection")
+            for item in reversed(data["iterations"][:-1])
+            if item.get("inspection")
+        ),
+        None,
+    )
+    if previous_inspection:
+        previous_report = read_json(Path(previous_inspection["path"]))
+        signature = lambda item: (
+            item.get("code"),
+            tuple(sorted(str(value) for value in item.get("element_ids", []))),
+        )
+        before = {signature(item): item for item in previous_report.get("defects", [])}
+        after = {signature(item): item for item in report.get("defects", [])}
+        comparison_report = {
+            "schema_version": SCHEMA_VERSION,
+            "before_iteration": iteration["number"] - 1,
+            "after_iteration": iteration["number"],
+            "before_artifact_sha256": previous_report["artifact"]["sha256"],
+            "after_artifact_sha256": report["artifact"]["sha256"],
+            "resolved_defects": [before[key] for key in sorted(set(before) - set(after))],
+            "introduced_defects": [after[key] for key in sorted(set(after) - set(before))],
+            "persistent_defects": [after[key] for key in sorted(set(after) & set(before))],
+        }
+        comparison_path = case_dir / f"comparison-{iteration['number'] - 1:02d}-{iteration['number']:02d}.json"
+        write_json(comparison_path, comparison_report)
+        inspection["comparison"] = {
+            "path": str(comparison_path),
+            "sha256": sha256(comparison_path),
+            "introduced_defect_codes": [
+                item["code"] for item in comparison_report["introduced_defects"]
+            ],
+            "persistent_defect_codes": [
+                item["code"] for item in comparison_report["persistent_defects"]
+            ],
+            "resolved_defect_codes": [
+                item["code"] for item in comparison_report["resolved_defects"]
+            ],
+        }
     iteration["inspection"] = inspection
-    data["updated_at"] = now_iso()
+    transition(
+        data,
+        "blind_review",
+        "inspect",
+        "Exact artifact inspected; independent blind evaluation may begin",
+        iteration,
+    )
     write_json(case_path, data)
     print(
         json.dumps(
@@ -1570,6 +2210,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
     creator = data.get("creator") or f"session:{data['session_id']}"
     carry_actions = open_required_actions(data, iterations[iteration_number])
     acceptance_checks = active_acceptance_checks(data, iterations[iteration_number])
+    critique_contract = critique_for_iteration(data, iterations[iteration_number])
     report = validate_review_report(
         raw_report,
         iterations[iteration_number],
@@ -1579,6 +2220,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         blind_response_sha,
         carry_actions,
         acceptance_checks,
+        critique_contract,
     )
     number = len(data.setdefault("evaluations", [])) + 1
     stored_report = case_dir / f"evaluation-{number:02d}.json"
@@ -1601,8 +2243,10 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         "gate_evidence": {name: item["evidence"] for name, item in report["gates"].items()},
         "release_checks": report["release_checks"],
         "presentation_checks": report["presentation_checks"],
+        "semantic_checks": report["semantic_checks"],
         "carry_forward_checks": report["carry_forward_checks"],
         "acceptance_checks": report["acceptance_checks"],
+        "critique_checks": report["critique_checks"],
         "codes": report["codes"],
         "required_actions": report["required_actions"],
         "baseline_concerns": report["baseline_concerns"],
@@ -1684,6 +2328,8 @@ def cmd_review_request(args: argparse.Namespace) -> None:
     iteration = data["iterations"][-1]
     if any(item["iteration"] == iteration["number"] for item in data.get("evaluations", [])):
         raise SystemExit(f"Iteration {iteration['number']} already has an evaluation")
+    if not iteration.get("inspection"):
+        raise SystemExit("Inspect the exact recorded artifact before requesting independent evaluation")
 
     skill_root = Path(__file__).resolve().parent.parent
     if skill_root.name in ("claude", "codex"):
@@ -1700,6 +2346,8 @@ def cmd_review_request(args: argparse.Namespace) -> None:
         "artifact_sha256": iteration["artifact"]["sha256"],
         "context_version": iteration.get("context_version", 1),
         "deterministic_inspection": iteration.get("inspection"),
+        "required_review_views": iteration.get("inspection", {}).get("review_views", []),
+        "revision_comparison": iteration.get("inspection", {}).get("comparison"),
         "dataviz_eval_skill": str(skill_path),
         "blind_response_path": str(blind_response_path),
         "reveal_path": str(reveal_path),
@@ -1798,6 +2446,15 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
     carry_actions = open_required_actions(data, iteration)
     acceptance_checks = active_acceptance_checks(data, iteration)
     semantic_preflight = semantic_preflight_for_iteration(data, iteration)
+    critique_contract = critique_for_iteration(data, iteration)
+    design_contract = next(
+        (
+            item
+            for item in data.get("design_contracts", [])
+            if item.get("number") == iteration.get("design_contract")
+        ),
+        None,
+    )
     if semantic_preflight is None:
         raise SystemExit("Iteration is missing its context-matched semantic preflight")
     reveal = {
@@ -1812,8 +2469,12 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
         "active_user_corrections": [item["text"] for item in acceptance_checks],
         "active_acceptance_checks": acceptance_checks,
         "semantic_preflight": semantic_preflight,
+        "critique_contract": critique_contract,
+        "design_contract": design_contract,
         "blind_semantics": blind_response["semantics"],
         "carry_forward_required_actions": carry_actions,
+        "required_review_views": iteration.get("inspection", {}).get("review_views", []),
+        "revision_comparison": iteration.get("inspection", {}).get("comparison"),
         "release_instructions": [
             "Re-run all five semantic dimensions against the artifact and source; the creator preflight is a hypothesis, not evidence.",
             "Challenge inferred context against the verbatim user_request and source. Do not grade an unsupported inferred question or message as user intent.",
@@ -1822,6 +2483,9 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
             "Record one carry_forward_check per id; do not infer resolution from an overall gate.",
             "An unresolved prior action prevents Send and remains active for the next iteration.",
             "Inspect every active_acceptance_check directly in the current artifact.",
+            "Inspect every fatal and major critique finding against its observable condition; none can be silently dropped.",
+            "Inspect all panels, every repeated structure, every required_review_view, and the neighbouring layout zones around each proposed pass.",
+            "Use revision_comparison to identify introduced, persistent, and resolved defects; an introduced blocking defect prevents Send.",
             "Record one acceptance_check result per id; user checks are release gates, not prose context.",
             "Send is invalid unless every active, non-superseded user acceptance check passes.",
             "Treat active user checks as the change contract. A required action must not conflict with a change or preservation check.",
@@ -1870,9 +2534,26 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
                 }
                 for item in acceptance_checks
             ],
+            "critique_checks": [
+                {
+                    "id": item["id"],
+                    "result": "<Pass|Concern|Fail|Unknown>",
+                    "evidence": "<direct evidence that the original critique condition is closed or remains open>",
+                }
+                for item in critique_findings(critique_contract)
+            ] if critique_contract else [],
             "verdict": "<Send|Revise|Redesign|Not evaluable>",
             "codes": ["<failure code; empty list only for Send>"],
-            "required_actions": ["<minimum concrete change; empty list only for Send>"],
+            "required_actions": [
+                {
+                    "target": "<element or relationship>",
+                    "from": "<current observed state>",
+                    "to": "<minimum passing state>",
+                    "why": "<reader consequence>",
+                    "codes": ["<failure code>"],
+                    "affected_zones": ["<title|subtitle|legend|plot|annotation|footer|panel>"]
+                }
+            ],
             "baseline_concerns": ["<unchanged pre-existing issue outside authorised scope; empty when none>"],
         },
     }
@@ -1978,7 +2659,7 @@ def write_review_packet(case_dir: Path, data: dict) -> Path:
                     f"   - Tested size: {item.get('tested_size', '(not recorded)')}",
                     f"   - Release checks: {release_checks}",
                     f"   - Presentation checks: {presentation_checks}",
-                    f"   - Required actions: {', '.join(item['required_actions']) if isinstance(item['required_actions'], list) else item['required_actions'] or 'none'}",
+                    f"   - Required actions: {json.dumps(item['required_actions'], ensure_ascii=False) if item.get('required_actions') else 'none'}",
                     f"   - Baseline concerns outside scope: {', '.join(item.get('baseline_concerns', [])) or 'none'}",
                     f"   - Context version: {item.get('context_version', 1)}"
                     + (
@@ -2179,7 +2860,7 @@ def cmd_context(args: argparse.Namespace) -> None:
             "context-update",
         )
     else:
-        target = "revise" if data["iterations"] else "build"
+        target = "critique"
         data["stop"] = None
         transition(
             data,
@@ -2214,7 +2895,27 @@ def cmd_build_check(args: argparse.Namespace) -> None:
     case_dir = resolve_case(args)
     path = case_dir / "case.json"
     data = load_case(path)
-    require_state(data, ("build", "revise", "redesign"), "start a build")
+    require_state(data, ("build", "revise"), "start a build")
+    critique = current_critique(data)
+    design = current_design_contract(data, critique)
+    renderer_selection = current_renderer_selection(data)
+    revision_contract = None
+    if data["state"] == "revise":
+        if not data["iterations"]:
+            raise SystemExit("Revise state requires an existing candidate")
+        revision_contract = next(
+            (
+                item
+                for item in reversed(data.get("revision_contracts", []))
+                if item.get("source_iteration") == data["iterations"][-1]["number"]
+                and item.get("context_version") == data["context_version"]
+            ),
+            None,
+        )
+        if revision_contract is None:
+            raise SystemExit(
+                "Attach a revision contract mapping every open evaluator action and user correction"
+            )
     preflight = require_current_semantic_preflight(data)
     enforce_build_budget(data, path)
     print(
@@ -2224,6 +2925,10 @@ def cmd_build_check(args: argparse.Namespace) -> None:
                 "state": data["state"],
                 "next_iteration": len(data["iterations"]) + 1,
                 "semantic_preflight": preflight["number"],
+                "critique": critique["number"],
+                "design_contract": design["number"],
+                "revision_contract": revision_contract["number"] if revision_contract else None,
+                "renderer_selection": renderer_selection["number"],
                 "budget": budget_status(data),
             }
         )
@@ -2396,6 +3101,34 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--required", required=True)
     check.add_argument("--why")
     check.set_defaults(func=cmd_check)
+
+    critique = sub.add_parser(
+        "critique", help="attach the mandatory structured dataviz-critique repair brief"
+    )
+    add_case_args(critique)
+    critique.add_argument("--report", required=True)
+    critique.set_defaults(func=cmd_critique)
+
+    design_contract = sub.add_parser(
+        "design-contract", help="map every fatal and major critique finding into implementation"
+    )
+    add_case_args(design_contract)
+    design_contract.add_argument("--report", required=True)
+    design_contract.set_defaults(func=cmd_design_contract)
+
+    revision_contract = sub.add_parser(
+        "revision-contract", help="map every open evaluator action and user correction into changes"
+    )
+    add_case_args(revision_contract)
+    revision_contract.add_argument("--report", required=True)
+    revision_contract.set_defaults(func=cmd_revision_contract)
+
+    renderer_selection = sub.add_parser(
+        "renderer-selection", help="record renderer probe and selection evidence"
+    )
+    add_case_args(renderer_selection)
+    renderer_selection.add_argument("--report", required=True)
+    renderer_selection.set_defaults(func=cmd_renderer_selection)
 
     semantic_preflight = sub.add_parser(
         "semantic-preflight",

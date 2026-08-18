@@ -51,6 +51,11 @@ Capture, when available:
 - the audience and what they should understand or do
 - the delivery medium and real display size
 - the active change contract: each requested addition, removal, relocation, and preservation constraint rewritten as an observable before-to-after acceptance check
+- the original structured critique and first/revised design contract
+- every open action from prior evaluations and every active user acceptance check
+- deterministic full, delivery, panel, hierarchy, and dense-placement views plus the revision comparison
+
+Treat these as one contract stack for the exact replacement artifact. Do not evaluate a generic idea of the chart or substitute a new critique. Every fatal/major critique finding, active user check, prior evaluator action, semantic check, and mechanical defect must receive an explicit result; only `Pass` closes it.
 
 Set the evidence scope explicitly:
 
@@ -76,6 +81,8 @@ Do not invent a fixed display width. If the exact size is unknown, use a represe
 Treat the export as the source of truth. Do not approve a browser viewport, plotting window, HTML source, or code path that differs from the delivered media file. For a chat workflow, evaluate the exact PNG, JPEG, SVG, or PDF that will be attached.
 
 When deterministic render inspection is available, require its artifact hash to match this export and record the inspection hash in the evaluation. Use known metadata-backed failures as evidence for the relevant release checks and minimum pass set; they cannot be overridden by a clean-looking overview. An incomplete report leaves uncovered geometry unknown and cannot by itself support a pass, so inspect that coverage visually and state the limitation. Deterministic checks supply mechanical evidence but never decide the analytical or communication verdict.
+
+On the first inspection pass, open the full export, delivery-size view, every panel view, every hierarchy region, and each densest repeated-placement view. Audit repeated structures completely, not by sampling the easiest instance. Inspect neighbouring zones around each proposed correction so a title fix does not create a subtitle or panel-heading collision, a legend fix does not damage plot hierarchy, and a label fix does not create a new mark or margin failure. Use the revision comparison to name introduced, persistent, and resolved defects.
 
 ### 3. Run an expert blind read
 
@@ -199,13 +206,13 @@ Accessibility or an explicit target style becomes a gate when it changes compreh
 
 Never average away a fatal error. A beautiful chart with wrong evidence, the wrong question, or unreadable delivery does not pass.
 
-Record evidence for every gate, release check, and presentation check. `Send` requires every required gate, all release checks, and both presentation checks to pass. A non-required gate must remain `Unknown`, with the missing intent or evidence named; do not manufacture a pass. A generic statement such as "clean and readable" is not evidence: name the inspected relationship, encoding role, phrase, or delivery condition.
+Record evidence for every gate, release check, and presentation check. `Send` requires every fatal/major critique finding, active user check, semantic check, mechanical check, carried evaluator action, required gate, release check, and presentation check to pass. A non-required gate must remain `Unknown`, with the missing intent or evidence named; do not manufacture a pass. A generic statement such as "clean and readable" is not evidence: name the inspected relationship, encoding role, phrase, delivery condition, and artifact-bound view.
 
 ### 7. Set the verdict
 
 - **Send** - all gates required by the declared scope pass; only optional polish remains.
-- **Revise** - the analytical design works, but bounded changes are required.
-- **Redesign** - the question or insight does not land, or the visual form blocks the comparison.
+- **Revise** - the analytical design works, but bounded changes are required. Return the complete minimum pass set; the creator must apply all of it to the latest candidate.
+- **Redesign** - the question, evidence-to-claim relationship, or chart form blocks the comparison. Say whether form is implicated so `dataviz-critique` and, when needed, `dataviz-selector` rerun before rebuilding from underlying evidence.
 - **Not evaluable** - the artifact cannot be inspected, or a required decision depends on evidence or context that is unavailable.
 
 When some checks are possible, report them before `Not evaluable`. Never translate `Unknown` into `Pass`.
@@ -214,7 +221,7 @@ When some checks are possible, report them before `Not evaluable`. Never transla
 
 Rank only consequential issues. Prefer a short set that gets the artifact over the pass line.
 
-Every required action must stay inside the authorized change scope and must not conflict with an active acceptance check. Put useful but out-of-scope observations in `baseline_concerns`, not the minimum pass set. If the requested change cannot pass without a dependent out-of-scope adjustment, name that dependency explicitly; do not silently broaden the redesign.
+Every required action must stay inside the authorized change scope and must not conflict with an active acceptance check. The actions together must be the complete minimum pass set: do not defer a related neighbouring-zone failure to the next evaluation. Put useful but out-of-scope observations in `baseline_concerns`, not the minimum pass set. If the requested change cannot pass without a dependent out-of-scope adjustment, name that dependency explicitly; do not silently broaden the redesign.
 
 Write every required change as an operation:
 
@@ -224,6 +231,7 @@ From: <current state>
 To: <required state>
 Why: <reader consequence>
 Codes: <failure codes>
+Affected zones: <title/subtitle/legend/plot/annotation/footer/panels>
 ```
 
 Fix geometry before shrinking type. Preserve title, subtitle, source, units, time, and mappings when changing forms. Direct labels are useful only when they remain visible, unambiguous, and complete.

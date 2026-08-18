@@ -8,18 +8,22 @@ description: Iteratively repair an uploaded or pasted data visualization, preser
 Own the complete repair-and-learning loop:
 
 ```text
-uploaded chart + optional context
-→ diagnose
-→ rebuild a real chart
-→ run the `dataviz-eval` artifact gate
-→ revise, redesign, pause, or stop within explicit limits
-→ user feedback
-→ revise until accepted
-→ identify why the first result missed
-→ make the narrowest reusable skill change
+source chart
+→ `dataviz-critique` on the original artifact
+→ attach the structured critique and implementation contract
+→ build
+→ render and deterministic inspection
+→ independent `dataviz-eval`
+→ `Revise` from the latest candidate or `Redesign` from the underlying evidence
+→ render, inspect, and independently evaluate again
+→ repeat until `Send`
+→ user review
+→ re-enter implementation for every rejected or corrected result
+→ accepted
+→ record reusable lessons for later repository maintenance
 ```
 
-The user-facing loop matters more than a long critique. Return a chart early, then improve it from concrete feedback.
+Do not skip, merge, or reorder these handoffs. `Send` ends the autonomous evaluation loop; only explicit user acceptance completes the case.
 
 ## Companion skills
 
@@ -34,9 +38,7 @@ Use the smallest relevant subset:
 - `dataviz-orchestrator`: use when source data or analysis must be rebuilt.
 - `karthik-analysis-planner` and `karthik-data-cleaning`: use only when definitions, grain, denominators, or data quality affect the repair.
 
-Always load `dataviz-eval` for the rendered-artifact gate. Always load an applicable installed writing or brand style skill before drafting reader-facing chart copy. Choose the other companion skills by failure mode. Do not treat prose inside a chart as exempt from the user's writing rules.
-
-For an open-ended repair or redesign, always load `dataviz-critique` and `dataviz-selector`; the source chart's title and form are hypotheses to test, not intent or evidence to preserve. For a narrow literal edit, use only the companion skills needed by the named change.
+Always load `dataviz-critique`, `karthik-data-visualization`, and `dataviz-eval`, including for an apparently narrow literal edit. The initial critique is a required implementation contract, not optional advice. Load `dataviz-selector` whenever that critique questions the form and after every `Redesign` verdict. Always load an applicable installed writing or brand style skill before drafting reader-facing chart copy. Do not treat prose inside a chart as exempt from the user's writing rules.
 
 ## Case log
 
@@ -102,6 +104,32 @@ python3 "${CASE_MANAGER}" context \
 
 Use `context` whenever the user adds or changes the audience, purpose, question, hypothesis, message, medium, dimensions, source notes, preservation requirements, accessibility, brand, tooling, or output constraints. `--text` accepts an ordinary free-text prompt. Each material change creates a new context version, cancels an in-flight stale review, and supersedes an old verdict. An identical update creates no new version.
 
+Before any implementation, run `dataviz-critique` on the original artifact and save its structured repair brief. It must state the apparent question and claim, evidence limitations, fatal/major/minor findings, exactly three highest-consequence finding ids, misleading and defensible interpretations, repair/redesign decision, observable delivered outcomes, preservation requirements, and whether the form is questioned. Attach it:
+
+```bash
+python3 "${CASE_MANAGER}" critique \
+  --case "${CASE_ID}" \
+  --report "/absolute/path/to/critique.json"
+```
+
+Create the first implementation contract with `karthik-data-visualization`. Map every fatal and major finding id to a planned change, affected zones, and observable outcome. Also record measure/evidence scope, chart form, primary identification route, title/subtitle/legend/plot/annotation/footer zones, colour role, delivery dimensions/aspect ratio, and exact/approximate value status. If the critique questions the form or chooses redesign, include the `dataviz-selector` decision. Attach it:
+
+```bash
+python3 "${CASE_MANAGER}" design-contract \
+  --case "${CASE_ID}" \
+  --report "/absolute/path/to/design-contract.json"
+```
+
+Probe renderers before building. An explicit user renderer wins; otherwise choose ggplot2 when `Rscript`, `ggplot2`, and `ragg` are available and the adapter supports the requested static output. Record the complete probe, whether ggplot2 supports this source/output, the selected renderer, and any fallback reason:
+
+```bash
+python3 "${CASE_MANAGER}" renderer-selection \
+  --case "${CASE_ID}" \
+  --report "/absolute/path/to/renderer-selection.json"
+```
+
+An unexplained Matplotlib selection is invalid when an `auto` probe reports usable ggplot2 support.
+
 Before the first render under each context version, save a five-part semantic preflight as JSON:
 
 ```json
@@ -128,11 +156,13 @@ python3 "${CASE_MANAGER}" build-check \
   --case "${CASE_ID}"
 ```
 
-**Repair preflight:** for an open-ended repair, run the critique and selection passes first, then carry every fatal or major ambiguity into the semantic preflight and the design. For a narrow correction, translate the named change into an observable check and make sure the semantic preflight prevents regressions elsewhere. Use `dataviz-eval` for the release criteria; this skill owns recording and sequencing, not redefining them.
+**Repair preflight:** carry every fatal and major critique finding into the design contract; translate every named user correction into an observable acceptance check. Use `dataviz-eval` for release criteria; this skill owns recording and sequencing, not redefining them.
 
 Do not start the build if this preflight stops the case. Record the completed artifact with `iterate` after rendering even if that call crossed a budget; the budget controls the next build, not preservation or independent review of work already done.
 
-After every rendered revision:
+For static repairs, call the backend-neutral `render_and_inspect_chart(source_path, output_dir, renderer="auto", delivery_profile, dimensions)` capability when available. It chooses ggplot2 first, renders through `ragg`, and emits the artifact, chart specification, layout metadata, inspection, review views, and manifest. Use Matplotlib only for an explicit requirement or a recorded unavailable/unsupported ggplot2 condition.
+
+After every rendered revision, record the exact artifact and matching bundle:
 
 ```bash
 python3 "${CASE_MANAGER}" iterate \
@@ -148,6 +178,8 @@ python3 "${CASE_MANAGER}" inspect \
   --case "${CASE_ID}" \
   --report "/absolute/path/to/inspection.json"
 ```
+
+Inspection is mandatory, not best effort. The case manager rejects review without an artifact-hash-matched inspection and automatically compares it with the preceding inspected iteration, preserving introduced, persistent, and resolved defects.
 
 The creator must not grade its own export. After `iterate`, use a fresh leaf reviewer through Hermes `delegate_task` with `file`, `terminal`, and `vision` tools. Give it only:
 
@@ -204,6 +236,16 @@ python3 "${CASE_MANAGER}" feedback \
 
 If later feedback clarifies or reverses an earlier check, add `--supersedes "<feedback number>"`. If it overrides a carried evaluator action, add `--supersedes-actions "<action id>"` using the open ids shown by `status`. User corrections outrank reviewer preferences. Do not leave contradictory gates active or silently rewrite history.
 
+Before every `Revise` build, attach a revision contract whose `changes` map every open evaluator action id and every new user-check id to a planned change, affected zones, and observable outcome:
+
+```bash
+python3 "${CASE_MANAGER}" revision-contract \
+  --case "${CASE_ID}" \
+  --report "/absolute/path/to/revision-contract.json"
+```
+
+Apply the evaluator's complete minimum pass set to the latest candidate and its generating code. Do not reopen passing decisions or rebuild from the source during `Revise`. After `Redesign`, rerun `dataviz-critique`, run `dataviz-selector` when the form is implicated, create a new design contract, and rebuild from the underlying evidence rather than the failed candidate.
+
 ## Repair loop
 
 ### 1. Read the input
@@ -215,14 +257,7 @@ If later feedback clarifies or reverses an earlier check, add `--supersedes "<fe
 
 ### 2. Diagnose and choose the intervention
 
-Name internally:
-
-- the apparent claim;
-- the top three fatal/major issues;
-- whether the right intervention is minimal repair, analytical redesign, or a different story lens;
-- which companion skills are needed.
-
-Do not give the full diagnosis unless asked. Use it to make the chart.
+Use the attached critique brief as the first implementation contract. The first implementation must address every fatal and major finding, not only the easiest three. Do not substitute a fresh informal diagnosis after the contract has been recorded.
 
 ### 3. Rebuild a real artifact
 
@@ -264,11 +299,11 @@ This gate covers static rendered deliverables. Keep editable code, slides, or HT
 Follow the verdict:
 
 - `Send`: persist the evaluation, then show the candidate to the user.
-- `Revise`: apply only the minimum pass set, record a new iteration, and evaluate again.
-- `Redesign`: return to `dataviz-critique` or `dataviz-selector`, rebuild, then evaluate again.
+- `Revise`: apply the evaluator's complete minimum pass set to the latest candidate, record a new iteration, and evaluate again.
+- `Redesign`: rerun `dataviz-critique` and, when form is implicated, `dataviz-selector`; attach a new design contract, rebuild from underlying evidence, inspect, and evaluate again.
 - `Not evaluable`: obtain the missing artifact, evidence, or delivery condition when required; never present the candidate as approved.
 
-Obey the recorded state. `Revise` and `Redesign` permit another bounded build. `Send` moves to `user_review`; it is not final until the user accepts it. `Not evaluable` becomes `blocked`. Repeated failure codes with unchanged gate results become `blocked` for no progress. Exhausted iteration, time, token, or cost budgets become `stopped`. In either paused state, show the reason, best candidate, and next action instead of looping silently.
+Obey the recorded state. `Revise` and `Redesign` permit another bounded build. `Send` moves to `user_review`; it is not final until the user accepts it. `Not evaluable` becomes `blocked`. Repeated failure codes with unchanged gate results become `blocked` for no progress. Exhausted iteration, time, token, or cost budgets become `stopped`. In either paused state, preserve and report the best candidate plus every unresolved critique finding, user check, evaluator action, semantic check, and mechanical defect.
 
 Use `stop --kind ... --reason ...` for an explicit user stop, missing context or evidence, or renderer failure. Use `resume --reason ...` only after the blocker changed; exhausted budgets must be extended with `limits` first. A stopped run retains every artifact, transition, feedback item, evaluation, and best candidate.
 

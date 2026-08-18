@@ -100,6 +100,52 @@ def unsupported_bar_marks():
     return fig, {"fixture": "unsupported_bar_marks"}
 
 
+def title_subtitle_collision():
+    fig, ax, x, y = _base()
+    title = fig.suptitle("A title that occupies the hierarchy zone", y=0.95, fontsize=16)
+    title.set_gid("title:main")
+    subtitle = fig.text(
+        0.5,
+        0.95,
+        "A subtitle placed on the same baseline",
+        ha="center",
+        va="center",
+        fontsize=12,
+    )
+    subtitle.set_gid("subtitle:main")
+    return fig, {"fixture": "title_subtitle_collision"}
+
+
+def low_contrast_annotation():
+    fig, ax, x, y = _base()
+    _annotation(ax, "faint", "Faint label", (x[4], y[4]), (0, 55), color="#b8b8b8")
+    return fig, {"fixture": "low_contrast_annotation"}
+
+
+def label_over_bar():
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    bars = ax.bar([1, 2, 3], [2, 4, 3], color="#245b78")
+    bars[1].set_gid("mark:middle-bar")
+    label = ax.text(2, 2, "Accidental overlap", ha="center", va="center")
+    label.set_gid("label:bar-label")
+    return fig, {"fixture": "label_over_bar"}
+
+
+def incomplete_direct_labels():
+    fig, ax, x, y = _base()
+    for index in (2, 7):
+        label = ax.text(x[index], y[index] + 0.4, f"Series {index}")
+        label.set_gid(f"label:series-{index}")
+    return fig, {
+        "fixture": "incomplete_direct_labels",
+        "inspection_contract": {
+            "direct_labels": [
+                {"axes_id": "axes-1", "role": "label", "expected_count": 3}
+            ]
+        },
+    }
+
+
 COFFEE_YEARS = np.arange(2016, 2026)
 COFFEE_PRICES = np.array([1.45, 1.38, 1.24, 1.12, 1.28, 2.31, 2.27, 1.89, 2.72, 3.05])
 

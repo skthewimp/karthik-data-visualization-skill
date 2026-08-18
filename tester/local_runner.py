@@ -12,12 +12,12 @@ from statistics import median
 from typing import Any
 from uuid import uuid4
 
-from dataviz_mcp.artifacts import read_json, sha256_file
+from dataviz_mcp.artifacts import read_json, sha256_file, write_json
 from dataviz_mcp.inspection import inspect_rendered_chart
 from dataviz_mcp.review_views import build_review_views
 
 
-RUNNABLE_STATES = ("build", "revise", "redesign")
+RUNNABLE_STATES = ("critique", "design", "build", "revise", "redesign")
 
 
 def now_iso() -> str:
@@ -244,11 +244,23 @@ class LocalCodexRunner:
                 )
             recorded_artifact = Path(case["iterations"][-1]["artifact"]["path"])
             inspection_path = case_dir / f"runner-{job_id}-inspection-{iteration_number:02d}.json"
-            inspect_rendered_chart(
+            inspection = inspect_rendered_chart(
                 str(recorded_artifact),
                 str(layout_path) if layout_path else None,
                 str(inspection_path),
             )
+            review_views = build_review_views(
+                recorded_artifact,
+                case_dir,
+                f"inspection-{iteration_number:02d}",
+                layout_path,
+            )
+            inspection.pop("inspection_sha256", None)
+            inspection["review_views"] = [
+                {"path": str(view), "sha256": sha256_file(view)}
+                for view in review_views
+            ]
+            write_json(inspection_path, inspection)
             self.client.run(
                 "inspect",
                 "--case",
@@ -447,6 +459,8 @@ class LocalCodexRunner:
     ) -> str:
         manager = self.repo_root / "dataviz-fix" / "codex" / "scripts" / "case_manager.py"
         skill = self._skill_path("dataviz-fix")
+        critique_skill = self._skill_path("dataviz-critique")
+        selector_skill = self._skill_path("dataviz-selector")
         visual_skill = self._skill_path("karthik-data-visualization")
         writing_skill = self._skill_path("karthik-writing-style")
         revision_instruction = (
@@ -458,7 +472,7 @@ class LocalCodexRunner:
             else "The attached image is the source. Build the first candidate from it."
         )
         semantic_path = case_dir / f"semantic-preflight-v{context_version}.json"
-        return f"""Open and follow {skill}, {visual_skill}, and {writing_skill}. The latter two are required inputs, not optional references.
+        return f"""Open and follow {skill}, {critique_skill}, {visual_skill}, and {writing_skill}. Open {selector_skill} whenever the critique or a Redesign verdict questions the chart form. These are required inputs, not optional references.
 
 You are the chart creator for case {case_id}, not its reviewer. Build exactly one candidate for iteration {iteration}. Read the current case using:
 
@@ -468,13 +482,13 @@ DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} status --case {case_id}
 
 Inspect the recorded context and acceptance checks. Work only inside {case_dir}. Do not edit the checked-out repository or any skill. Render exactly one real PNG to {candidate_path} and inspect that exact export. Do not run iterate, review-request, blind-submit, evaluate, accept, or diagnose. The wrapper will record the artifact after your process exits. Stop after the inspected PNG exists at the required path.
 
-Before starting the renderer, audit measure, time/context, universe/denominator, claim strength, and audience units. Write the complete context-version {context_version} report to {semantic_path}, run `DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} semantic-preflight --case {case_id} --report {semantic_path}`, then run `DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} build-check --case {case_id}`. These are the only state-changing case-manager commands you may run. Treat every structured field marked `inferred` as a hypothesis, not user intent. For an open-ended repair, run the critique and chart-selection reasoning before choosing the form. Each preflight `required` value must be an observable delivered state, not a prescribed chart type.
+Before starting the renderer, satisfy the recorded workflow state. On the first build, run the mandatory critique of the original, save the structured repair brief, and attach it with `critique`; then save and attach a complete `design-contract`. After Redesign, repeat both and include the selector decision whenever form is implicated. Before Revise, attach a `revision-contract` mapping every open evaluator action and new user check. Probe renderers with `dataviz_mcp.rendering.probe_renderers`, save and attach `renderer-selection`, then audit measure, time/context, universe/denominator, claim strength, and audience units. Write the complete context-version {context_version} report to {semantic_path}, run `semantic-preflight`, and finally run `build-check`. These workflow commands are the only state-changing case-manager commands you may run. Treat every structured field marked `inferred` as a hypothesis, not user intent. Each required value must be an observable delivered state.
 
 Treat the active change and preservation checks as the edit boundary. Make each literal requested removal, addition, and relocation; do not retain or restore a forbidden element as a fallback. Expand shared edits across every applicable panel, facet, row, or series; do not stop after fixing one repeated instance. Preserve untouched elements unless a dependent adjustment is necessary for the requested change.
 
 Apply the writing skill to every title, subtitle, annotation, note, and other reader-facing phrase. Accurate copy still fails when it uses generic AI phrasing or violates the applicable writing style. Before accepting a palette, identify the closest pair of competing encoded colours and verify that they remain distinct at delivery size, in grayscale, and under common colour-vision deficiencies. A palette name or brand match is not evidence of distinction.
 
-Python, Matplotlib, NumPy, Pillow, and this repo's `dataviz_mcp` package are available with writable cache directories already configured. Use one Python rendering script with a `build_chart()` function. This is a compatibility path, not permission to use Matplotlib defaults: define the theme, typography, palette, grid, axes, labels, and spacing deliberately under `karthik-data-visualization`. For a Matplotlib candidate, call `dataviz_mcp.rendering.render_chart` with output_dir `{case_dir}` and artifact_name `{candidate_path.name}` so the wrapper can preserve render metadata and run complete geometry checks. Tag annotation and series artists with stable gids such as `annotation:event-id` and `series:metric-id`. Use no more than six shell calls; do not install packages, probe alternative renderers, or compile another language. An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Copy an artifact unchanged only when no active correction or unresolved evaluator action requires a change.
+Python, R, Matplotlib, ggplot2, ragg, NumPy, Pillow, and this repo's `dataviz_mcp` package may be available. Use `render_and_inspect_chart(..., renderer="auto")`; it must choose ggplot2 for a supported R builder when the probe succeeds. Use Matplotlib only for an explicit requirement or a recorded unavailable/unsupported ggplot2 reason. In either renderer, define theme, typography, palette, grid, axes, labels, and spacing deliberately. Write the complete bundle into `{case_dir}` with artifact name `{candidate_path.name}`. An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Copy an artifact unchanged only when no active correction or unresolved evaluator action requires a change.
 """
 
     @staticmethod
@@ -498,13 +512,14 @@ Python, Matplotlib, NumPy, Pillow, and this repo's `dataviz_mcp` package are ava
             case_dir,
             f"review-{iteration:02d}",
         )
-        if views:
+        if len(views) >= 3:
             # Retain the historical filenames used by case packets and tests.
             preview_path = case_dir / f"review-delivery-{iteration:02d}.png"
             detail_path = case_dir / f"review-details-{iteration:02d}.png"
-            views[0].replace(preview_path)
-            views[1].replace(detail_path)
+            views[1].replace(preview_path)
+            views[2].replace(detail_path)
             images.extend((preview_path, detail_path))
+            images.extend(views[3:])
         return images
 
     def _reviewer_prompt(

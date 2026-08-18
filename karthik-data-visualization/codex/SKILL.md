@@ -45,6 +45,21 @@ Core operating rules:
 - Keep subtitles focused on the insight or comparison, not the mechanics of how the chart was made.
 - Let complexity come from the data, not decoration.
 
+## Repair implementation contract
+
+Before the first build in a `dataviz-fix` case, write a design contract that records:
+
+- the measure and evidence scope, including what a screenshot can support only approximately;
+- the selected chart form and, when form was questioned, the `dataviz-selector` decision;
+- one primary identification route for each series/category;
+- the intended contents of the title, subtitle, legend, plot, annotation, and footer zones;
+- colour's semantic role: identity, order, direction, emphasis, uncertainty, or none;
+- delivery width, height, units, and aspect ratio;
+- whether displayed values are exact, approximate, or mixed;
+- one implementation requirement for every fatal and major critique finding, naming the affected zones and observable outcome.
+
+Treat this as executable scope. The first render must implement every mapped fatal and major finding. A `Revise` continues from the latest candidate and changes every zone named in the revision contract. A `Redesign` discards the failed form, returns to the underlying evidence, and creates a new critique/design contract.
+
 ## Colour system
 
 Colour must earn its place. Position, length, ordering, direct labels, and annotation should carry the main comparison; colour should clarify identity, order, direction, or emphasis.
@@ -71,3 +86,7 @@ When writing or changing chart code:
 - Consider sparklines or compact tables when many series need shape plus current value.
 - Consider range frames, rug marks, or labeled data points when axes or ticks can carry more information.
 - Include enough source, scale, timeframe, and transformation notes for a stranger to evaluate the evidence.
+
+For new static repair code, use the backend-neutral renderer with `renderer="auto"`. It must select ggplot2 when `Rscript`, `ggplot2`, and `ragg` are available and the adapter supports the output; an explicit user requirement wins. Record why Matplotlib was used whenever auto cannot use ggplot2.
+
+When implementing in ggplot2, make `build_chart()` return either a ggplot or `list(plot = <ggplot>, metadata = <list>)`, and export through `ragg`. Read [references/ggplot2-repair-patterns.md](references/ggplot2-repair-patterns.md) for reusable sorted-bar, diverging-bar, slopegraph, direct-labelled-trend, and multi-panel implementations.

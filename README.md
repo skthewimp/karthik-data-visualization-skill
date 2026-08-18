@@ -10,7 +10,7 @@ If you have been pointed at this repository and asked to create or repair a char
 
 1. Read the `SKILL.md` for your client under `dataviz-orchestrator/{codex,claude}/`.
 2. Follow its handoffs through planning, cleaning, chart selection, implementation, annotation, and evaluation. Load only the specialist skills required by the case.
-3. Use `render_chart` and `inspect_rendered_chart` when the chosen renderer is supported. Evaluate the exact exported artifact and repair only the defects that block release.
+3. Use `probe_renderers` and `render_and_inspect_chart` for static repairs. Evaluate the exact exported artifact and repair every open contract finding before release.
 
 **For an existing chart:**
 
@@ -29,15 +29,13 @@ Installing the skills does not register the MCP server. For the full workflow, c
 
 ### Renderer policy
 
-`render_chart` is currently a **Matplotlib geometry adapter**, not Karthik's visual style. It must not be allowed to make Matplotlib defaults the design language.
+`render_and_inspect_chart` is backend-neutral and chooses ggplot2 first when `Rscript`, `ggplot2`, and `ragg` are available and the adapter supports the requested static output.
 
-- Preserve the renderer already used by the project.
-- For a new Karthik-style static chart with no project precedent, prefer R/ggplot2 when it is available.
-- Do not translate a sound ggplot2 implementation into Matplotlib merely to obtain richer metadata.
+- An explicit user renderer requirement wins.
+- Otherwise use ggplot2 through `ragg` when the availability probe succeeds.
+- Use Matplotlib only when ggplot2 is unavailable or the adapter cannot produce the requested output, and record the reason in the manifest.
 - If Matplotlib is the practical fallback, specify the theme, typography, palette, grid, axes, labels, and spacing deliberately; default Matplotlib aesthetics are a failed visual implementation.
-- A future ggplot2 adapter should implement the same artifact and layout-metadata contract before becoming the preferred MCP renderer. The public MCP boundary should remain backend-neutral.
-
-Today, a ggplot2 export can still be hashed, visually evaluated, and inspected in raster-only mode, but collision and clipping coverage remains explicitly incomplete. See [the renderer boundary](docs/mcp.md#renderer-boundary) for the trade-off.
+- Both adapters emit the same artifact, specification, layout, inspection, review-view, and manifest bundle. Coverage limitations remain explicit in the inspection report.
 
 This repo contains thirteen related skills, coordinated as a context-sensitive visualization workflow:
 
@@ -336,14 +334,14 @@ See [`tester/README.md`](tester/README.md) and the [`repair-loop product roadmap
 
 The metadata-first MCP server exposes deterministic chart rendering, exact-artifact geometry inspection, and revision comparison. It leaves analytical and visual judgement in the skills.
 
-The server exposes three tools: `render_chart`, `inspect_rendered_chart`, and `compare_chart_artifacts`. The first produces a PNG, chart spec, layout metadata, and a hash-bound manifest. The second checks the exact PNG for supported mechanical defects. The third compares two inspected revisions without making a subjective release decision.
+The server exposes five tools: `probe_renderers`, `render_and_inspect_chart`, the backward-compatible Matplotlib-only `render_chart`, `inspect_rendered_chart`, and `compare_chart_artifacts`. The backend-neutral workflow produces a PNG, chart spec, layout metadata, inspection, review views, and a hash-bound manifest. Comparison remains mechanical and does not make a subjective release decision.
 
 See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, version guarantees, inspection coverage, and tested repair sequence. See [`dataviz_mcp/README.md`](dataviz_mcp/README.md) for installation, client registration, tool parameters, the chart-builder contract, and the local security boundary.
 
 ## Trust and limitations
 
-- `render_chart` executes trusted local Python. It is not a sandbox; do not use it on untrusted chart source.
-- Current complete geometry support covers Matplotlib text and line paths. Non-line marks and non-Matplotlib renderers retain explicit unknowns.
+- Rendering executes trusted local Python or R. It is not a sandbox; do not use it on untrusted chart source.
+- Matplotlib geometry covers text, lines, bars, patches, and common collections. The ggplot2 adapter resolves drawn gtable tracks and captures every panel plus rect, point, polygon, polyline, and text grobs; uncommon grobs remain explicit limitations.
 - Mechanical inspection does not replace analytical critique, delivery-size visual review, or user acceptance.
 - Local/private `references/` and `scripts/` remain ignored by default. Public runtime files required by a skill, such as `dataviz-fix/scripts/case_manager.py`, are tracked.
 

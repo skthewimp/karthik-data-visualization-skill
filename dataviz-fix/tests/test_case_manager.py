@@ -95,6 +95,108 @@ class CaseManagerTest(unittest.TestCase):
 
     def record_semantic_preflight(self, result="clear"):
         status = self.status()
+        if status["state"] in ("critique", "redesign"):
+            critique_report = self.root / f"critique-v{status['context_version']}.json"
+            critique_report.write_text(
+                json.dumps(
+                    {
+                        "context_version": status["context_version"],
+                        "apparent_question": "What comparison does the source chart support?",
+                        "apparent_claim": "The visible comparison is the apparent claim.",
+                        "evidence_limitations": ["Only source-fidelity evidence is available"],
+                        "findings": {
+                            "fatal": [],
+                            "major": [
+                                {
+                                    "id": "c1",
+                                    "problem": "The requested repair must remain explicit",
+                                    "reader_consequence": "The requested comparison could remain unclear",
+                                    "observable_condition": "The repaired chart makes the comparison explicit",
+                                }
+                            ],
+                            "minor": [
+                                {
+                                    "id": "c2",
+                                    "problem": "Spacing needs inspection",
+                                    "reader_consequence": "Crowding could slow reading",
+                                    "observable_condition": "Spacing survives delivery size",
+                                },
+                                {
+                                    "id": "c3",
+                                    "problem": "Copy needs inspection",
+                                    "reader_consequence": "Generic copy could weaken the point",
+                                    "observable_condition": "Copy is plain and evidence bounded",
+                                },
+                            ],
+                        },
+                        "highest_consequence_findings": ["c1", "c2", "c3"],
+                        "misleading_reader_interpretation": "The source can be read as an unsupported claim",
+                        "defensible_interpretation": "Only the visible comparison is supported",
+                        "intervention": "repair",
+                        "form_questioned": False,
+                        "required_delivered_outcomes": ["The requested comparison is explicit"],
+                        "preserve": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.run_cli("critique", "--session", "test-session", "--report", critique_report)
+            status = self.status()
+            critique_number = status["critiques"][-1]["number"]
+            design_report = self.root / f"design-v{status['context_version']}.json"
+            design_report.write_text(
+                json.dumps(
+                    {
+                        "critique_number": critique_number,
+                        "requirements": [
+                            {
+                                "finding_id": "c1",
+                                "planned_change": "Make the requested comparison explicit",
+                                "affected_zones": ["plot"],
+                                "observable_outcome": "The comparison is directly readable",
+                            }
+                        ],
+                        "measure_scope": "Source-fidelity measure",
+                        "evidence_scope": "Source chart only",
+                        "chart_form": "Existing chart form",
+                        "primary_identification": "Existing labels",
+                        "zones": {
+                            "title": "Claim",
+                            "subtitle": "Scope",
+                            "legend": "Identity only when needed",
+                            "plot": "Primary comparison",
+                            "annotation": "Evidence-bounded context",
+                            "footer": "Source and caveat",
+                        },
+                        "colour_role": "Identity or emphasis only",
+                        "dimensions": {"width": 1200, "height": 675, "aspect_ratio": "16:9"},
+                        "value_precision": "exact",
+                        "selector_decision": None,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.run_cli("design-contract", "--session", "test-session", "--report", design_report)
+            renderer_report = self.root / f"renderer-v{status['context_version']}.json"
+            renderer_report.write_text(
+                json.dumps(
+                    {
+                        "requested": "matplotlib",
+                        "selected": "matplotlib",
+                        "ggplot2_supported": True,
+                        "reason": "Explicit test renderer",
+                        "probe": {
+                            "renderers": {
+                                "ggplot2": {"available": True, "failure_reasons": []},
+                                "matplotlib": {"available": True},
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.run_cli("renderer-selection", "--session", "test-session", "--report", renderer_report)
+            status = self.status()
         report = self.root / f"semantic-preflight-v{status['context_version']}.json"
         report.write_text(
             json.dumps(
@@ -136,7 +238,38 @@ class CaseManagerTest(unittest.TestCase):
         output = self.run_cli("status", "--session", "test-session")
         return json.loads(output.stdout)
 
+    def ensure_revision_contract(self):
+        status = self.status()
+        if status["state"] == "revise":
+            latest = status["iterations"][-1]
+            open_actions = status["evaluations"][-1].get("open_required_actions", []) if status["evaluations"] else []
+            superseded_actions = {
+                action_id
+                for item in status["feedback"]
+                for action_id in item.get("supersedes_actions", [])
+            }
+            open_actions = [item for item in open_actions if item["id"] not in superseded_actions]
+            built_feedback = latest.get("feedback_count", 0)
+            new_feedback = [
+                {"id": f"f{item['number']}"}
+                for item in status["feedback"][built_feedback:]
+                if not item.get("superseded_by_feedback")
+            ]
+            changes = [
+                {
+                    "source_id": item["id"],
+                    "planned_change": "Apply the complete requested correction",
+                    "affected_zones": ["plot"],
+                    "observable_outcome": "The named action passes direct inspection",
+                }
+                for item in open_actions + new_feedback
+            ]
+            revision = self.root / f"revision-{latest['number']}.json"
+            revision.write_text(json.dumps({"changes": changes}), encoding="utf-8")
+            self.run_cli("revision-contract", "--session", "test-session", "--report", revision)
+
     def iterate(self, path, summary="candidate"):
+        self.ensure_revision_contract()
         output = self.run_cli(
             "iterate",
             "--session",
@@ -147,6 +280,27 @@ class CaseManagerTest(unittest.TestCase):
             summary,
         )
         return json.loads(output.stdout)
+
+    def ensure_inspection(self):
+        current = self.status()
+        iteration = current["iterations"][-1]
+        if iteration.get("inspection"):
+            return
+        inspection = self.root / f"inspection-{iteration['number']}.json"
+        inspection.write_text(
+            json.dumps(
+                {
+                    "artifact": iteration["artifact"],
+                    "layout_metadata": None,
+                    "checks_complete": False,
+                    "passes_geometry_checks": False,
+                    "defects": [],
+                    "review_views": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.run_cli("inspect", "--session", "test-session", "--report", inspection)
 
     def review(
         self,
@@ -163,6 +317,7 @@ class CaseManagerTest(unittest.TestCase):
         tamper_blind_semantics=False,
         ok=True,
     ):
+        self.ensure_inspection()
         request_output = self.run_cli("review-request", "--session", "test-session")
         request = json.loads(request_output.stdout)
         status = self.status()
@@ -223,7 +378,16 @@ class CaseManagerTest(unittest.TestCase):
             gates["Visual reasoning"]["result"] = "Concern"
             release_checks["Spatial economy"]["result"] = "Concern"
             codes = ["R3"]
-            actions = ["Improve the chart geometry"]
+            actions = [
+                {
+                    "target": "Chart geometry",
+                    "from": "The current spacing does not pass",
+                    "to": "All named zones pass at delivery size",
+                    "why": "Readers need immediate traceability",
+                    "codes": ["R3"],
+                    "affected_zones": ["plot"],
+                }
+            ]
         elif verdict == "Not evaluable":
             gates["Evidence"]["result"] = "Unknown"
             codes = ["D2"]
@@ -265,6 +429,15 @@ class CaseManagerTest(unittest.TestCase):
                 }
                 for item in reveal.get("active_acceptance_checks", [])
             ],
+            "critique_checks": [
+                {
+                    "id": item["id"],
+                    "result": "Pass",
+                    "evidence": f"Direct closure evidence for {item['id']}",
+                }
+                for severity in ("fatal", "major")
+                for item in reveal.get("critique_contract", {}).get("findings", {}).get(severity, [])
+            ],
             "verdict": verdict,
             "codes": codes,
             "required_actions": actions,
@@ -305,6 +478,7 @@ class CaseManagerTest(unittest.TestCase):
         manifest.write_text(
             json.dumps(
                 {
+                    "renderer": "matplotlib",
                     "artifact": {"path": str(candidate), "sha256": artifact_sha},
                     "chart_spec": {
                         "path": str(spec),
@@ -448,6 +622,7 @@ class CaseManagerTest(unittest.TestCase):
                 str(self.root / function),
                 build_function=function,
             )
+            self.ensure_revision_contract()
             self.run_cli(
                 "iterate",
                 "--session",
@@ -480,6 +655,9 @@ class CaseManagerTest(unittest.TestCase):
             self.status()["iterations"][-1]["artifact"]["sha256"],
             reports[1]["artifact"]["sha256"],
         )
+        automatic = self.status()["iterations"][-1]["inspection"]["comparison"]
+        self.assertEqual(automatic["introduced_defect_codes"], [])
+        self.assertIn("ANNOTATION_SERIES_COLLISION", automatic["resolved_defect_codes"])
 
     def test_evaluation_rejects_the_wrong_deterministic_inspection_hash(self):
         self.start()
@@ -510,6 +688,7 @@ class CaseManagerTest(unittest.TestCase):
         candidate = self.write_png("candidate.png", b"candidate")
         self.iterate(candidate)
         self.review("Revise")
+        self.ensure_revision_contract()
         result = self.run_cli(
             "iterate",
             "--session",
@@ -740,7 +919,7 @@ class CaseManagerTest(unittest.TestCase):
         )
         payload = json.loads(updated.stdout)
         self.assertEqual(payload["context_version"], 2)
-        self.assertEqual(payload["state"], "revise")
+        self.assertEqual(payload["state"], "critique")
         self.record_semantic_preflight()
         second = self.iterate(candidate, "Same artifact under changed context")
         self.assertEqual(second["iteration"], 2)
@@ -752,6 +931,7 @@ class CaseManagerTest(unittest.TestCase):
         self.start("--max-iterations", "3")
         candidate = self.write_png("candidate.png", b"candidate")
         self.iterate(candidate)
+        self.ensure_inspection()
         self.run_cli("review-request", "--session", "test-session")
         updated = self.run_cli(
             "context",
@@ -760,7 +940,7 @@ class CaseManagerTest(unittest.TestCase):
             "--message",
             "The losses are broader than the gains",
         )
-        self.assertEqual(json.loads(updated.stdout)["state"], "revise")
+        self.assertEqual(json.loads(updated.stdout)["state"], "critique")
         status = self.status()
         self.assertIn("cancelled_at", status["iterations"][0])
         self.assertTrue(Path(status["iterations"][0]["artifact"]["path"]).exists())
@@ -795,6 +975,7 @@ class CaseManagerTest(unittest.TestCase):
             "Readers should not trace across competing rows",
         )
         self.iterate(self.write_png("candidate.png", b"candidate"))
+        self.ensure_inspection()
         request_output = self.run_cli("review-request", "--session", "test-session")
         request = json.loads(request_output.stdout)
         status = self.status()
@@ -824,6 +1005,7 @@ class CaseManagerTest(unittest.TestCase):
     def test_preservation_contract_becomes_an_intake_release_check(self):
         self.start("--preserve", "title, source note, and all plotted values")
         self.iterate(self.write_png("candidate.png", b"candidate"))
+        self.ensure_inspection()
         request_output = self.run_cli("review-request", "--session", "test-session")
         request = json.loads(request_output.stdout)
         status = self.status()
@@ -899,7 +1081,60 @@ class CaseManagerTest(unittest.TestCase):
             self.write_png("candidate.png", b"candidate"),
             ok=False,
         )
-        self.assertIn("five-part semantic preflight", rejected.stderr)
+        self.assertIn("case state is 'critique'", rejected.stderr)
+
+    def test_review_request_requires_exact_artifact_inspection(self):
+        self.start()
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        rejected = self.run_cli(
+            "review-request", "--session", "test-session", ok=False
+        )
+        self.assertIn("Inspect the exact recorded artifact", rejected.stderr)
+
+    def test_auto_renderer_rejects_unexplained_matplotlib_when_ggplot_is_supported(self):
+        self.start()
+        report = self.root / "bad-renderer.json"
+        report.write_text(
+            json.dumps(
+                {
+                    "requested": "auto",
+                    "selected": "matplotlib",
+                    "ggplot2_supported": True,
+                    "reason": "",
+                    "probe": {
+                        "renderers": {
+                            "ggplot2": {"available": True, "failure_reasons": []},
+                            "matplotlib": {"available": True},
+                        }
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        rejected = self.run_cli(
+            "renderer-selection",
+            "--session",
+            "test-session",
+            "--report",
+            report,
+            ok=False,
+        )
+        self.assertIn("Auto renderer must select ggplot2", rejected.stderr)
+
+    def test_redesign_cannot_build_until_new_critique_and_design_contract(self):
+        self.start("--max-iterations", "3")
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        result = self.review("Redesign")
+        self.assertEqual(result["state"], "redesign")
+        rejected = self.run_cli(
+            "iterate",
+            "--session",
+            "test-session",
+            "--output",
+            self.write_png("candidate-2.png", b"candidate-2"),
+            ok=False,
+        )
+        self.assertIn("case state is 'redesign'", rejected.stderr)
 
     def test_structured_intake_context_defaults_to_inferred(self):
         self.start("--audience", "General reader", "--message", "A directional claim")
@@ -1087,7 +1322,7 @@ class CaseManagerTest(unittest.TestCase):
         case["state"] = "active"
         case_path.write_text(json.dumps(case), encoding="utf-8")
         status = self.status()
-        self.assertEqual(status["schema_version"], 13)
+        self.assertEqual(status["schema_version"], 14)
         self.assertEqual(status["state"], "build")
         self.assertEqual(status["context_version"], 1)
         self.assertEqual(status["limits"]["max_iterations"], 3)

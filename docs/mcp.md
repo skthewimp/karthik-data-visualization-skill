@@ -17,31 +17,33 @@ It also does not make a `Send`, `Revise`, or `Redesign` decision. A collision de
 
 ## Renderer boundary
 
-The MCP contract should be backend-neutral. The current MVP implementation is not: `render_chart` accepts a trusted Python builder and extracts geometry from a Matplotlib figure. That was the shortest reliable route to text boxes and line paths, not a decision that Matplotlib should define Karthik's visual style.
+The MCP contract is backend-neutral through `render_and_inspect_chart`. It accepts trusted Python/Matplotlib or R/ggplot2 builders and emits one normalized bundle.
 
 Renderer choice remains with the project and `karthik-data-visualization`:
 
-1. Preserve the renderer already used by the project.
-2. For a new Karthik-style static chart with no project precedent, prefer R/ggplot2 when it is available.
-3. Do not convert a sound ggplot2 chart into Matplotlib only to obtain metadata.
-4. When Matplotlib is the practical fallback, specify every visible design choice rather than accepting library defaults.
+1. An explicit user requirement overrides automatic selection.
+2. Otherwise choose ggplot2 when `Rscript`, `ggplot2`, and `ragg` are available and the adapter supports the requested output.
+3. Use Matplotlib only when the probe fails or ggplot2 cannot produce the requested output, recording the reason in the manifest.
+4. Specify every visible design choice rather than accepting either library's defaults.
 
-Until a ggplot2 adapter reaches metadata parity, the trade-off must stay visible. A ggplot2 PNG can still be hashed and inspected in raster-only mode, but geometry checks remain incomplete and independent visual evaluation carries more weight. The target extension is another adapter behind the same `render_chart` contract, emitting the same PNG, spec, layout metadata, and manifest—not a new judgement layer inside MCP.
+`probe_renderers` returns executable/package availability, versions, supported source/output types, and failure reasons. The ggplot2 adapter uses `build_chart()` returning a ggplot or `list(plot, metadata)`, exports through `ragg`, and captures title, subtitle, legend, panel, text, plot, and footer zones from the drawn gtable/grob tree. Uncovered child geometry remains explicit rather than being converted into a pass.
 
 ## Why render metadata is primary
 
 The renderer already knows where it placed axes, text, annotations, and paths. Recovering all of that from pixels would be less accurate and harder to test.
 
-`render_chart` therefore produces one bundle:
+`render_and_inspect_chart` therefore produces one bundle:
 
 ```text
 chart.png
 chart-spec.json
 layout-metadata.json
 manifest.json
+inspection.json
+review-*.png
 ```
 
-The PNG remains the deliverable and the source of truth for its dimensions and SHA-256 hash. `layout-metadata.json` records the geometry used to inspect it: canvas and plot bounds, text and annotation boxes, line paths, legend bounds, and data-to-pixel transforms. `manifest.json` binds the artifact, spec, and metadata hashes together.
+The PNG remains the deliverable and source of truth. `layout-metadata.json` records normalized geometry. `manifest.json` binds the artifact, spec, metadata, inspection, review views, renderer probe/selection, delivery profile, dimensions, and fallback reason.
 
 `inspect_rendered_chart` rejects metadata whose artifact hash or dimensions do not match the PNG. If no metadata is available, it records the raster hash and dimensions but marks geometry checks incomplete. It does not convert an unknown result into a pass.
 
@@ -79,19 +81,23 @@ render candidate
 → stop when the release line passes
 ```
 
-The existing `dataviz-fix` state machine remains the owner of original, current, best, and historical artifacts. Case schema 10 adds the render manifest, chart spec, layout metadata, and inspection report to each iteration. It rejects:
+The `dataviz-fix` state machine owns original, current, best, and historical artifacts. Case schema 14 requires critique, design, build, inspection, blind evaluation, revision/redesign, and user review records. It rejects:
 
 - a bundle whose artifact, spec, or metadata hash no longer matches;
 - layout metadata whose internal artifact hash names a different PNG;
 - an inspection report for a different artifact;
 - an evaluation that cites the wrong deterministic inspection hash;
+- a first build without critique and a complete design contract;
+- a `Revise` build that omits an open evaluator action or user correction;
+- a `Redesign` build without a fresh critique and chart-selection decision when form is implicated;
+- an unexplained Matplotlib render when auto could use ggplot2;
 - a `Send` verdict while a known high- or medium-severity deterministic defect remains.
 
 The independent evaluator receives named defects and element IDs rather than a clean-looking overview alone. A failed check becomes part of the minimum pass set. The repairer fixes those mechanical failures before reopening broader design choices, preserves elements that already pass, and stops when the pass line is met.
 
 ## Mechanical checks
 
-The first version reports five defect codes:
+Inspection reports the original five codes plus hierarchy, mark, delivery, contrast, and completeness defects, including:
 
 | Code | Meaning | Severity |
 |---|---|---|
@@ -100,14 +106,20 @@ The first version reports five defect codes:
 | `LABEL_LABEL_COLLISION` | Two annotation boxes intersect | High |
 | `ANNOTATION_SERIES_COLLISION` | An annotation box intersects a recorded line path | High |
 | `LONG_UNWRAPPED_ANNOTATION` | Annotation text exceeds the configured character limit without a line break | Medium |
+| `HIERARCHY_TEXT_COLLISION` | Title, subtitle, panel heading, or footer text overlaps another text zone | High |
+| `LEGEND_TEXT_COLLISION` | Legend geometry overlaps neighbouring text | High |
+| `TEXT_MARK_COLLISION` | Text intersects a bar, point, patch, or common collection without inside-label intent | High |
+| `DELIVERY_TEXT_TOO_SMALL` | Text is below the configured delivery-scale size | Medium |
+| `LOW_TEXT_CONTRAST` | Text contrast misses the practical delivery target | Medium |
+| `DIRECT_LABELS_INCOMPLETE` | A declared repeated-panel/direct-label count is incomplete | High |
 
 `passes_geometry_checks` is true only when metadata is present, supported checks are complete, and no high- or medium-severity defect remains.
 
 Current collision coverage is deliberately honest:
 
-- text geometry and Matplotlib line paths are supported;
-- scatter collections, bars and other patches, images, and non-Matplotlib renderers are not yet represented as collision paths;
-- the report sets `checks_complete` to false when unsupported non-line marks are present;
+- Matplotlib text, lines, bars, patches, points, and common collections are supported;
+- ggplot2 drawn gtable tracks, panels, and common rect, point, polygon, polyline, and text grobs are supported while uncommon grobs remain named limitations;
+- the report sets `checks_complete` false for uncovered geometry;
 - raster-only inspection does not attempt OCR or infer hidden geometry from pixels.
 
 ## Revision comparison
@@ -132,7 +144,7 @@ The core suite creates deterministic fixtures for:
 - long unwrapped annotation text;
 - a clean chart;
 - missing-data line segments, to prevent false bridges across `NaN` gaps;
-- unsupported non-line marks, to verify that incomplete coverage stays explicit.
+- uncommon or adapter-unsupported marks, to verify that incomplete coverage stays explicit.
 
 The end-to-end coffee fixture renders a deliberately bad multi-annotation time series, detects four geometry defects, and records a `Revise` result in the real case state machine. It then changes annotation placement only, renders and inspects again, reaches zero defects, records `Send`, and moves the case to `user_review`. The comparison report confirms that the second artifact resolves the failures without introducing a new one.
 
@@ -143,8 +155,8 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 | `dataviz_mcp/rendering.py` | Trusted builder execution and metadata-first render bundle |
 | `dataviz_mcp/inspection.py` | Exact-artifact geometry checks and defect report |
 | `dataviz_mcp/comparison.py` | Hash-validated revision comparison |
-| `dataviz_mcp/server.py` | Three-tool stdio MCP surface |
-| `dataviz_mcp/review_views.py` | Shared deterministic delivery/detail views used by the local runner |
+| `dataviz_mcp/server.py` | Five-tool stdio MCP surface |
+| `dataviz_mcp/review_views.py` | Full, delivery, panel, hierarchy, and dense-placement views |
 | `dataviz-fix/*/scripts/case_manager.py` | Versioned case state and inspection/evaluation binding |
 | `tester/local_runner.py` | One bounded creator, inspection, and blind-review cycle |
 | `dataviz_mcp/tests/` | Capability, protocol, geometry, and coffee repair tests |

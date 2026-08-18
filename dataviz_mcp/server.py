@@ -4,7 +4,11 @@ from typing import Any
 
 from .comparison import compare_chart_artifacts as compare_core
 from .inspection import inspect_rendered_chart as inspect_core
-from .rendering import render_chart as render_core
+from .rendering import (
+    probe_renderers as probe_core,
+    render_and_inspect_chart as render_inspect_core,
+    render_chart as render_core,
+)
 
 
 def create_server() -> Any:
@@ -25,7 +29,12 @@ def create_server() -> Any:
     )
 
     @server.tool()
-    def render_chart(
+    async def probe_renderers() -> dict[str, Any]:
+        """Report renderer availability, versions, supported outputs, and failure reasons."""
+        return probe_core()
+
+    @server.tool()
+    async def render_chart(
         source_path: str,
         output_dir: str,
         artifact_name: str = "chart.png",
@@ -36,12 +45,35 @@ def create_server() -> Any:
         return render_core(source_path, output_dir, artifact_name, build_function, dpi)
 
     @server.tool()
-    def inspect_rendered_chart(
+    async def render_and_inspect_chart(
+        source_path: str,
+        output_dir: str,
+        renderer: str = "auto",
+        delivery_profile: str | None = "chat",
+        dimensions: dict[str, Any] | None = None,
+        artifact_name: str = "chart.png",
+        build_function: str = "build_chart",
+    ) -> dict[str, Any]:
+        """Render backend-neutrally (ggplot2 first for auto), inspect, and build review views."""
+        return render_inspect_core(
+            source_path,
+            output_dir,
+            renderer,
+            delivery_profile,
+            dimensions,
+            artifact_name,
+            build_function,
+        )
+
+    @server.tool()
+    async def inspect_rendered_chart(
         artifact_path: str,
         layout_metadata_path: str | None = None,
         output_path: str | None = None,
         series_clearance_px: float = 2.0,
         max_unwrapped_annotation_chars: int = 45,
+        delivery_profile: str | None = None,
+        minimum_text_size_pt: float = 8.0,
     ) -> dict[str, Any]:
         """Inspect one exact raster using matching renderer geometry when supplied."""
         return inspect_core(
@@ -50,10 +82,12 @@ def create_server() -> Any:
             output_path,
             series_clearance_px,
             max_unwrapped_annotation_chars,
+            delivery_profile,
+            minimum_text_size_pt,
         )
 
     @server.tool()
-    def compare_chart_artifacts(
+    async def compare_chart_artifacts(
         before_inspection_path: str,
         after_inspection_path: str,
         output_path: str | None = None,

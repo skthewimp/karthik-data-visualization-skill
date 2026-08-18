@@ -1,6 +1,6 @@
 # Dataviz MCP
 
-This local stdio server handles the mechanical part of chart production. Its current renderer adapter executes trusted Matplotlib code, preserves renderer geometry, inspects the exact PNG, and compares revisions. It does not decide what question to ask, what the chart should say, which rendering library defines the visual style, or whether an annotation makes a defensible causal claim.
+This local stdio server handles the mechanical part of chart production. It probes ggplot2 and Matplotlib, chooses ggplot2 first for supported static output, executes trusted chart code, preserves renderer geometry, inspects the exact PNG, builds review views, and compares revisions. It does not decide the analytical question, claim, visual style, or release verdict.
 
 See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation and repair flows, hash/version guarantees, and the reasons for using render metadata.
 
@@ -134,18 +134,18 @@ Hermes starts the configured stdio process when it loads the MCP server.
 
 ## Renderer boundary
 
-The MCP API should remain backend-neutral even though the current adapter is Matplotlib-specific. Rendering infrastructure must not become the style system.
+The MCP API is backend-neutral. Rendering infrastructure must not become the style system.
 
-- Preserve a project's established renderer.
-- For a new Karthik-style static chart with no project precedent, prefer R/ggplot2 when available.
-- Do not convert a sound ggplot2 chart to Matplotlib just to obtain richer geometry metadata.
+- An explicit renderer requirement wins.
+- Otherwise `auto` chooses ggplot2 when `Rscript`, `ggplot2`, and `ragg` are available and the adapter supports the source/output.
+- Matplotlib fallback records an unavailable/unsupported reason in the manifest.
 - If Matplotlib is used, apply the rules in `karthik-data-visualization`; an unthemed default chart is not an acceptable MCP result.
 
-The current trade-off is explicit: Matplotlib text and line paths receive deterministic geometry inspection. A ggplot2 PNG can be inspected in raster-only mode and evaluated visually, but collision and clipping checks remain unknown. The next renderer extension should be a ggplot2 adapter that emits the same PNG, spec, layout, and manifest contract. It should not introduce a separate ggplot-only MCP API or move theme judgement into the server.
+Both adapters emit the same artifact, spec, layout, inspection, review-view, and manifest contract. Matplotlib supplies text, line, patch, bar, point, and common-collection geometry. ggplot2 resolves the drawn gtable tracks and captures every panel plus rect, point, polygon, polyline, and text grobs; uncommon grobs remain explicit limitations.
 
 ## Chart builder contract
 
-Create a Python file containing a no-argument builder. By default the function is named `build_chart`. It must return either a Matplotlib `Figure` or `(figure, chart_spec_dict)`.
+For Matplotlib, create a Python file with a no-argument `build_chart()` returning a `Figure` or `(figure, chart_spec_dict)`. For ggplot2, create an R file with `build_chart()` returning a ggplot or `list(plot = <ggplot>, metadata = <list>)`; export is always through `ragg`.
 
 ```python
 import matplotlib.pyplot as plt
@@ -174,6 +174,14 @@ Stable Matplotlib `gid` values make defects narrow and repairable:
 Untagged Matplotlib lines and annotations receive generated IDs, but those IDs are less stable across revisions.
 
 ## Tool contracts
+
+### `probe_renderers`
+
+Returns `Rscript`, ggplot2, ragg, and Matplotlib availability/version details, supported source/output types, and failure reasons. It makes no host changes.
+
+### `render_and_inspect_chart`
+
+Inputs include `source_path`, `output_dir`, `renderer` (`auto`, `ggplot2`, or `matplotlib`), `delivery_profile`, and explicit dimensions. `auto` applies the precedence above. The result contains the artifact, specification, normalized layout, inspection, artifact-bound review views, renderer-selection evidence, and hash-bound manifest.
 
 ### `render_chart`
 
@@ -209,6 +217,8 @@ Inputs:
 | `output_path` | No | Inspection JSON path; defaults beside the PNG |
 | `series_clearance_px` | No | Padding around annotation boxes for line collision checks; defaults to 2 |
 | `max_unwrapped_annotation_chars` | No | Unwrapped annotation limit; defaults to 45 |
+| `delivery_profile` | No | Delivery context recorded with the inspection |
+| `minimum_text_size_pt` | No | Delivery-scale text threshold; defaults to 8 pt |
 
 The report includes artifact hash and dimensions, inspection mode, completeness, pass state, normalized defects, detailed collision and clipping lists, minimum text margin, limitations, and its own SHA-256 hash.
 
@@ -255,13 +265,15 @@ MPLCONFIGDIR=/tmp/mpl-cache "$MCP_PYTHON" -m pytest -q
 
 The suite covers the MCP tools, a real stdio tool listing, repair-loop version binding, the local runner, deterministic geometry fixtures, and the end-to-end coffee annotation repair.
 
+`dataviz_mcp.benchmark` loads Hermes repair cases read-only, de-duplicates case IDs across the historical roots, reports critique/design adoption and cycle counts, and compares a complete matched replay with its baseline. A replay only meets acceptance when every baseline case is present, evaluation cycles fall, and false `Send` events do not increase.
+
 ## Current limits
 
-- Rendering supports trusted local Python and Matplotlib PNG output only.
-- Annotation-to-series collision checks cover recorded line paths. Non-line marks make the report incomplete.
+- Rendering supports trusted local Python/Matplotlib and R/ggplot2 PNG output.
+- ggplot2 hierarchy, panel, and common child-mark geometry are deterministic; text boxes use deterministic font-metric estimates and uncommon grobs remain explicitly uncovered.
 - Raster-only mode verifies identity and dimensions but does not use OCR or computer vision to infer geometry.
 - Mechanical pass/fail does not replace visual critique, analytical evaluation, or user acceptance.
 
 ## Local security boundary
 
-`render_chart` imports and executes the supplied Python file. Use it only with chart source you trust. The server is local-only, uses stdio, has no authentication layer, and does not sandbox arbitrary Python.
+Rendering imports and executes the supplied Python or R file. Use it only with chart source you trust. The server is local-only, uses stdio, has no authentication layer, and does not sandbox arbitrary code.

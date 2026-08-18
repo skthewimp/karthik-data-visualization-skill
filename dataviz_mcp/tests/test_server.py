@@ -14,11 +14,13 @@ from dataviz_mcp.server import create_server
 
 
 @pytest.mark.skipif(importlib.util.find_spec("mcp") is None, reason="MCP SDK not installed")
-def test_stdio_server_exposes_only_the_three_mvp_tools() -> None:
+def test_stdio_server_exposes_renderer_probe_and_backend_neutral_workflow() -> None:
     server = create_server()
     tools = asyncio.run(server.list_tools())
     assert {tool.name for tool in tools} == {
         "render_chart",
+        "render_and_inspect_chart",
+        "probe_renderers",
         "inspect_rendered_chart",
         "compare_chart_artifacts",
     }
@@ -101,6 +103,8 @@ asyncio.run(main())
     assert result.returncode == 0, result.stderr
     assert set(json.loads(result.stdout)) == {
         "render_chart",
+        "render_and_inspect_chart",
+        "probe_renderers",
         "inspect_rendered_chart",
         "compare_chart_artifacts",
     }
