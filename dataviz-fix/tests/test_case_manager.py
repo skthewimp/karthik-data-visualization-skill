@@ -315,6 +315,7 @@ class CaseManagerTest(unittest.TestCase):
         omit_presentation_check=None,
         omit_presentation_section=False,
         tamper_blind_semantics=False,
+        action_override=None,
         ok=True,
     ):
         self.ensure_inspection()
@@ -388,6 +389,8 @@ class CaseManagerTest(unittest.TestCase):
                     "affected_zones": ["plot"],
                 }
             ]
+            if action_override is not None:
+                actions = action_override
         elif verdict == "Not evaluable":
             gates["Evidence"]["result"] = "Unknown"
             codes = ["D2"]
@@ -700,19 +703,77 @@ class CaseManagerTest(unittest.TestCase):
         self.assertIn("unchanged from iteration 1", result.stderr)
         self.assertEqual(self.status()["state"], "revise")
 
-    def test_iteration_budget_stops_and_can_be_extended(self):
-        self.start("--max-iterations", "1")
+    def test_iteration_budget_increase_requires_and_consumes_user_grant(self):
+        started = self.start("--max-iterations", "1")
         self.iterate(self.write_png("candidate.png", b"candidate"))
         result = self.review("Revise")
         self.assertEqual(result["state"], "stopped")
         self.assertEqual(self.status()["stop"]["kind"], "iteration_budget")
-        self.run_cli(
+        premature = self.run_cli(
+            "resume",
+            "--session",
+            "test-session",
+            "--reason",
+            "Invented continuation reason",
+            ok=False,
+        )
+        self.assertIn("user-authorized limit increase", premature.stderr)
+        rejected = self.run_cli(
             "limits",
             "--session",
             "test-session",
             "--max-iterations",
             "2",
+            ok=False,
         )
+        self.assertIn("user authorization grant", rejected.stderr)
+
+        case_path = Path(started["case_dir"]) / "case.json"
+        case = json.loads(case_path.read_text(encoding="utf-8"))
+        case["limit_authorizations"].append(
+            {
+                "id": "grant-from-user-turn",
+                "case_id": case["case_id"],
+                "at": "2026-08-18T10:00:00+00:00",
+                "source": "hermes-user-turn",
+                "source_turn_id": "test-user-turn",
+                "user_message": "Continue for one more iteration",
+                "user_message_sha256": hashlib.sha256(
+                    b"Continue for one more iteration"
+                ).hexdigest(),
+                "authorized_stop_at": case["stop"]["at"],
+                "approved_limits": {"max_iterations": 2},
+                "consumed_at": None,
+                "limit_change_number": None,
+            }
+        )
+        case_path.write_text(json.dumps(case), encoding="utf-8")
+        changed = self.run_cli(
+            "limits",
+            "--session",
+            "test-session",
+            "--max-iterations",
+            "2",
+            "--authorization",
+            "grant-from-user-turn",
+        )
+        change = json.loads(changed.stdout)["limit_change"]
+        self.assertEqual(change["authorization_id"], "grant-from-user-turn")
+        audited = self.status()
+        self.assertEqual(audited["limit_authorizations"][0]["limit_change_number"], 1)
+        self.assertEqual(audited["limit_changes"][0]["increases"], {"max_iterations": 2})
+        self.assertEqual(audited["state"], "stopped")
+        reused = self.run_cli(
+            "limits",
+            "--session",
+            "test-session",
+            "--max-iterations",
+            "3",
+            "--authorization",
+            "grant-from-user-turn",
+            ok=False,
+        )
+        self.assertIn("already been consumed", reused.stderr)
         resumed = self.run_cli(
             "resume",
             "--session",
@@ -721,6 +782,117 @@ class CaseManagerTest(unittest.TestCase):
             "User approved another bounded revision",
         )
         self.assertEqual(json.loads(resumed.stdout)["state"], "revise")
+
+    def test_limits_can_be_viewed_or_tightened_without_authorization(self):
+        self.start("--max-iterations", "4")
+        viewed = json.loads(
+            self.run_cli("limits", "--session", "test-session").stdout
+        )
+        self.assertEqual(viewed["limits"]["max_iterations"], 4)
+        tightened = json.loads(
+            self.run_cli(
+                "limits",
+                "--session",
+                "test-session",
+                "--max-iterations",
+                "2",
+            ).stdout
+        )
+        self.assertEqual(tightened["limits"]["max_iterations"], 2)
+        self.assertIsNone(tightened["limit_change"]["authorization_id"])
+
+    def test_reworded_equivalent_actions_deduplicate_and_stall(self):
+        self.start("--max-iterations", "3", "--max-stalled-evaluations", "1")
+        self.iterate(self.write_png("candidate-1.png", b"candidate-1"))
+        self.review(
+            "Revise",
+            action_override=[
+                {
+                    "target": "Chat delivery width",
+                    "from": "The preview is too wide at delivery size",
+                    "to": "The chart reads in the compact chat viewport",
+                    "why": "Readers should not need to expand the canvas",
+                    "codes": ["R3"],
+                    "affected_zones": ["plot"],
+                }
+            ],
+        )
+        self.iterate(self.write_png("candidate-2.png", b"candidate-2"))
+        result = self.review(
+            "Revise",
+            carry_forward_result="Concern",
+            action_override=[
+                {
+                    "target": "Compact preview size",
+                    "from": "The canvas still exceeds the chat width",
+                    "to": "Scale it for the delivery viewport",
+                    "why": "The chart must work without opening a larger display",
+                    "codes": ["R3"],
+                    "affected_zones": ["plot"],
+                }
+            ],
+        )
+        self.assertEqual(result["state"], "blocked")
+        status = self.status()
+        self.assertEqual(status["stop"]["kind"], "no_progress")
+        self.assertEqual(len(status["evaluations"][-1]["open_required_actions"]), 1)
+        self.assertNotIn(
+            "equivalent_reports",
+            status["evaluations"][0]["open_required_actions"][0],
+        )
+        self.assertEqual(
+            status["evaluations"][-1]["open_required_actions"][0][
+                "equivalent_reports"
+            ][0]["evaluation"],
+            2,
+        )
+        self.assertEqual(status["stalled_evaluations"], 1)
+
+    def test_distinct_actions_remain_distinct(self):
+        self.start("--max-iterations", "3", "--max-stalled-evaluations", "3")
+        self.iterate(self.write_png("candidate-1.png", b"candidate-1"))
+        self.review(
+            "Revise",
+            action_override=[
+                {
+                    "target": "Legend",
+                    "from": "The legend is incomplete",
+                    "to": "Every series is identified",
+                    "why": "Readers must identify each series",
+                    "codes": ["R3"],
+                    "affected_zones": ["legend"],
+                }
+            ],
+        )
+        self.iterate(self.write_png("candidate-2.png", b"candidate-2"))
+        self.review(
+            "Revise",
+            carry_forward_result="Concern",
+            action_override=[
+                {
+                    "target": "Axis ticks",
+                    "from": "The axis labels overlap",
+                    "to": "Every tick label is legible",
+                    "why": "Values must be readable",
+                    "codes": ["R3"],
+                    "affected_zones": ["axis"],
+                }
+            ],
+        )
+        actions = self.status()["evaluations"][-1]["open_required_actions"]
+        self.assertEqual(len(actions), 2)
+        self.assertEqual({item["action"]["affected_zones"][0] for item in actions}, {"legend", "axis"})
+
+    def test_final_evaluation_and_status_do_not_reopen_budget_stop(self):
+        self.start("--max-iterations", "1")
+        self.iterate(self.write_png("candidate.png", b"candidate"))
+        result = self.review("Revise")
+        self.assertEqual(result["state"], "stopped")
+        before = self.status()
+        after = self.status()
+        self.assertEqual(after["state"], "stopped")
+        self.assertEqual(after["stop"]["kind"], "iteration_budget")
+        self.assertEqual(after["transitions"], before["transitions"])
 
     def test_repeated_gate_signature_blocks_for_no_progress(self):
         self.start("--max-iterations", "3", "--max-stalled-evaluations", "1")
@@ -1316,16 +1488,21 @@ class CaseManagerTest(unittest.TestCase):
             "best_candidate",
             "stop",
             "stalled_evaluations",
+            "stall_keys",
+            "limit_authorizations",
+            "limit_changes",
         ):
             case.pop(name, None)
         case["schema_version"] = 4
         case["state"] = "active"
         case_path.write_text(json.dumps(case), encoding="utf-8")
         status = self.status()
-        self.assertEqual(status["schema_version"], 14)
+        self.assertEqual(status["schema_version"], 15)
         self.assertEqual(status["state"], "build")
         self.assertEqual(status["context_version"], 1)
         self.assertEqual(status["limits"]["max_iterations"], 3)
+        self.assertEqual(status["limit_authorizations"], [])
+        self.assertEqual(status["limit_changes"], [])
 
 
 if __name__ == "__main__":

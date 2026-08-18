@@ -136,6 +136,78 @@ def test_hooks_fail_closed_when_agent_skips_case(monkeypatch, tmp_path):
     assert blocked and blocked.startswith("Chart withheld")
 
 
+def test_plain_png_path_in_stopped_report_is_preserved_without_release(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    context = on_pre_llm_call(
+        session_id="hermes-session-stopped-report",
+        user_message="Fix this sales chart",
+    )
+    assert context
+    best = tmp_path / "best-candidate.png"
+    best.write_bytes(b"not approved")
+    response = (
+        "The repair stopped at its iteration budget. The best candidate is "
+        f"{best}, but it still has unresolved delivery concerns."
+    )
+    assert (
+        on_transform_llm_output(
+            session_id="hermes-session-stopped-report",
+            response_text=response,
+        )
+        is None
+    )
+    assert find_released_artifact("missing-case", response, root=tmp_path / "cases") is None
+
+
+def test_real_followup_user_turn_records_case_bound_limit_grant(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    context = on_pre_llm_call(
+        session_id="hermes-session-budget-grant",
+        user_message="Fix this sales chart",
+    )
+    case_session = context["context"].split("--session '", 1)[1].split("'", 1)[0]
+    artifact = tmp_path / "best.png"
+    artifact.write_bytes(b"best stopped candidate")
+    case_dir = _write_case(tmp_path / "dataviz-fix", case_session, artifact)
+    case_file = case_dir / "case.json"
+    data = json.loads(case_file.read_text(encoding="utf-8"))
+    data.update(
+        {
+            "case_id": "case-1",
+            "state": "stopped",
+            "limits": {"max_iterations": 3},
+            "stop": {
+                "kind": "iteration_budget",
+                "at": datetime.now(timezone.utc).isoformat(),
+            },
+            "limit_authorizations": [],
+        }
+    )
+    case_file.write_text(json.dumps(data), encoding="utf-8")
+
+    assert (
+        on_transform_llm_output(
+            session_id="hermes-session-budget-grant",
+            response_text=f"Stopped after three iterations. Best candidate: {artifact}",
+        )
+        is None
+    )
+    followup = on_pre_llm_call(
+        session_id="hermes-session-budget-grant",
+        user_message="Continue for 2 more iterations",
+    )
+    assert followup and "--max-iterations 5" in followup["context"]
+    updated = json.loads(case_file.read_text(encoding="utf-8"))
+    grant = updated["limit_authorizations"][0]
+    assert grant["case_id"] == "case-1"
+    assert grant["source"] == "hermes-user-turn"
+    assert grant["authorized_stop_at"] == updated["stop"].get("at")
+    assert grant["approved_limits"] == {"max_iterations": 5}
+    assert grant["consumed_at"] is None
+
+
 def test_hooks_allow_exact_reviewed_artifact(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     context = on_pre_llm_call(

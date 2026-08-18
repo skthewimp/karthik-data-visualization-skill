@@ -220,7 +220,20 @@ python3 "${CASE_MANAGER}" usage \
   --latency-seconds 45
 ```
 
-The case records calls, tokens, cost, and latency. Before another build, it enforces the configured iteration, time, token, and cost limits. Use `limits` to inspect or extend a budget after the user explicitly approves more work.
+The case records calls, tokens, cost, and latency. Before another build, it enforces the configured iteration, time, token, and cost limits. `limits` with no values only reports the current budget; tightening a limit needs no authorization. Increasing any existing limit requires a single-use, case-bound authorization grant recorded by the runtime from an explicit user turn. A reason string, inferred consent, or a creator-authored note is not authorization. Use the exact grant id and approved values supplied by the runtime, then resume separately:
+
+```bash
+python3 "${CASE_MANAGER}" limits \
+  --case "${CASE_ID}" \
+  --max-iterations 4 \
+  --authorization "<case-bound grant id>"
+
+python3 "${CASE_MANAGER}" resume \
+  --case "${CASE_ID}" \
+  --reason "User explicitly approved the recorded bounded increase"
+```
+
+The grant does not resume the case, cannot be reused, and must exactly match every increased limit. Each approved increase remains in `limit_changes` and links back to its user-turn authorization. Never ask for or manufacture a grant merely to finish a run.
 
 Before acting on user feedback:
 
@@ -303,15 +316,15 @@ Follow the verdict:
 - `Redesign`: rerun `dataviz-critique` and, when form is implicated, `dataviz-selector`; attach a new design contract, rebuild from underlying evidence, inspect, and evaluate again.
 - `Not evaluable`: obtain the missing artifact, evidence, or delivery condition when required; never present the candidate as approved.
 
-Obey the recorded state. `Revise` and `Redesign` permit another bounded build. `Send` moves to `user_review`; it is not final until the user accepts it. `Not evaluable` becomes `blocked`. Repeated failure codes with unchanged gate results become `blocked` for no progress. Exhausted iteration, time, token, or cost budgets become `stopped`. In either paused state, preserve and report the best candidate plus every unresolved critique finding, user check, evaluator action, semantic check, and mechanical defect.
+Obey the recorded state. `Revise` and `Redesign` permit another bounded build. `Send` moves to `user_review`; it is not final until the user accepts it. `Not evaluable` becomes `blocked`. Reworded but semantically equivalent evaluator actions retain one action id, and recurring equivalent failure codes/gate outcomes advance the stall counter until the case blocks for `no_progress`; genuinely distinct actions remain separate. Exhausted iteration, time, token, or cost budgets become `stopped`. In either paused state, preserve and report the best candidate plus every unresolved critique finding, user check, evaluator action, semantic check, and mechanical defect.
 
-Use `stop --kind ... --reason ...` for an explicit user stop, missing context or evidence, or renderer failure. Use `resume --reason ...` only after the blocker changed; exhausted budgets must be extended with `limits` first. A stopped run retains every artifact, transition, feedback item, evaluation, and best candidate.
+Use `stop --kind ... --reason ...` for an explicit user stop, missing context or evidence, or renderer failure. `evaluate` records the final verdict and moves an exhausted run to `stopped` in the same command; use `status` or the stored evaluation to report it without resuming. Use `resume --reason ...` only after the blocker changed. A budget stop requires a user-authorized limit increase recorded after that stop, followed by an explicit resume. A stopped run retains every artifact, transition, feedback item, evaluation, and best candidate.
 
 ### 5. Continue from feedback
 
 Treat each user correction as evidence. Before editing, translate it into one observable check: target, current state, required state. Log it with `feedback`. If the user corrects the principle itself, supersede the earlier check rather than accumulating a contradiction. Record changes to audience, purpose, question, hypothesis, message, medium, or constraints with `context`; when one message contains both, call both commands. Change the smallest relevant part of the latest candidate, render, record the media iteration, and run `dataviz-eval` with that check in the evaluation packet. Inspect the named element directly; do not infer success from a generic chart summary. Do not defend the earlier choice or repeat already accepted decisions.
 
-Do not send progress-only replies such as “I’ll fix it” or “now checking”. Use tools silently until a candidate is ready. Every chart or revision response must include the media attachment in the same response, plus no more than three short lines: what changed, whether values are exact or approximate, and `MEDIA:/absolute/path/to/output.png`. If the user asks where the graph is, return the media line immediately.
+Do not send progress-only replies such as “I’ll fix it” or “now checking”. Use tools silently until a candidate is ready. Every approved chart or revision delivery must include the media attachment in the same response, plus no more than three short lines: what changed, whether values are exact or approximate, and `MEDIA:/absolute/path/to/output.png`. A stopped or blocked diagnostic is not a chart delivery: explain the stop, best candidate, and unresolved findings without `MEDIA:`. It may include a plain absolute artifact path for diagnosis; Hermes will not treat that plain path as a release. If the user asks where an approved graph is, return the media line immediately.
 
 ## Acceptance and skill learning
 

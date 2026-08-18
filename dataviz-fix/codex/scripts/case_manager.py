@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -48,7 +49,7 @@ PRESENTATION_CHECK_NAMES = (
     "Copy style",
 )
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 DEFAULT_MAX_ITERATIONS = 3
 DEFAULT_MAX_STALLED_EVALUATIONS = 2
 ACTIVE_STATES = (
@@ -104,6 +105,34 @@ SEMANTIC_PREFLIGHT_RESULTS = ("clear", "repair", "unknown")
 CRITIQUE_SEVERITIES = ("fatal", "major", "minor")
 INTERVENTIONS = ("repair", "redesign")
 RENDERERS = ("ggplot2", "matplotlib")
+BUDGET_STOP_KINDS = (
+    "iteration_budget",
+    "time_budget",
+    "token_budget",
+    "cost_budget",
+)
+_ACTION_TOPIC_PATTERNS = {
+    "delivery-scale": r"\b(delivery|chat|preview|display|canvas|viewport|width|size|scale|thumbnail|compact)\b",
+    "collision": r"\b(collid|collision|overlap|occlud|touch|crowd|intersect)\w*\b",
+    "label-association": r"\b(direct label|label.{0,20}(mark|bar|point|line|series)|traceab|association|distance)\b",
+    "legend": r"\b(legend|key)\b",
+    "axis": r"\b(axis|axes|tick)\b",
+    "title": r"\btitle\b",
+    "subtitle": r"\bsubtitle\b",
+    "source-note": r"\b(source|footnote|footer|note)\b",
+    "contrast": r"\b(contrast|colour|color|grayscale|vision deficien)\w*\b",
+    "whitespace": r"\b(whitespace|white space|unused space|plot utilization|plot utilisation)\b",
+    "period": r"\b(period|date|year|month|quarter|time frame|timeframe)\b",
+    "measure": r"\b(measure|metric|unit|rate|count|percent|percentage)\b",
+    "universe": r"\b(universe|denominator|population|sample|scope)\b",
+    "claim": r"\b(claim|causal|comparison|baseline)\b",
+}
+_ACTION_STOP_WORDS = {
+    "a", "all", "an", "and", "are", "as", "at", "be", "by", "current",
+    "does", "for", "from", "in", "is", "it", "named", "of", "on", "or",
+    "pass", "reader", "readers", "required", "that", "the", "their", "this",
+    "to", "with",
+}
 
 
 def now_iso() -> str:
@@ -906,7 +935,11 @@ def open_required_actions(data: dict, iteration: dict) -> list[dict]:
     }
     stored = previous.get("open_required_actions")
     if isinstance(stored, list):
-        return [item for item in stored if item["id"] not in superseded_action_ids]
+        return [
+            copy.deepcopy(item)
+            for item in stored
+            if item["id"] not in superseded_action_ids
+        ]
     return [
         {
             "id": f"e{previous['number']}-a{index}",
@@ -916,6 +949,112 @@ def open_required_actions(data: dict, iteration: dict) -> list[dict]:
         for index, action in enumerate(previous.get("required_actions", []), start=1)
         if f"e{previous['number']}-a{index}" not in superseded_action_ids
     ]
+
+
+def _action_parts(action: object) -> tuple[str, tuple[str, ...], tuple[str, ...]]:
+    """Return comparable prose, failure codes, and affected zones for an action."""
+    if isinstance(action, dict):
+        prose = " ".join(
+            str(action.get(name, "")) for name in ("target", "from", "to", "why")
+        )
+        codes = tuple(sorted(str(item).strip().lower() for item in action.get("codes", []) if str(item).strip()))
+        zones = tuple(sorted(str(item).strip().lower() for item in action.get("affected_zones", []) if str(item).strip()))
+        return prose, codes, zones
+    prose = str(action)
+    codes_match = re.search(r"\bCodes?:\s*([^.;]+)", prose, re.IGNORECASE)
+    codes = (
+        tuple(
+            sorted(
+                item.strip().lower()
+                for item in codes_match.group(1).split(",")
+                if item.strip()
+            )
+        )
+        if codes_match
+        else ()
+    )
+    return prose, codes, ()
+
+
+def action_fingerprint(action: object) -> str:
+    """Build a stable semantic fingerprint without using evaluator action ids."""
+    prose, codes, zones = _action_parts(action)
+    normalized = re.sub(r"[^a-z0-9]+", " ", prose.lower()).strip()
+    topics = tuple(
+        name
+        for name, pattern in _ACTION_TOPIC_PATTERNS.items()
+        if re.search(pattern, normalized, re.IGNORECASE)
+    )
+    tokens = tuple(
+        sorted(
+            {
+                token
+                for token in normalized.split()
+                if len(token) > 2 and token not in _ACTION_STOP_WORDS
+            }
+        )
+    )
+    payload = {
+        "codes": codes,
+        "zones": zones,
+        # The first matching topic is intentionally dominant. Supporting-copy
+        # nouns vary as evaluators reword the same delivery or geometry defect.
+        "topics": topics[:1],
+        "tokens": tokens if not topics else (),
+    }
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def actions_equivalent(left: object, right: object) -> bool:
+    """Match reworded action debt while keeping different chart concerns distinct."""
+    if left == right:
+        return True
+    left_prose, left_codes, left_zones = _action_parts(left)
+    right_prose, right_codes, right_zones = _action_parts(right)
+    if left_codes and right_codes and set(left_codes).isdisjoint(right_codes):
+        return False
+    if left_zones and right_zones and set(left_zones).isdisjoint(right_zones):
+        return False
+
+    def topics(prose: str) -> set[str]:
+        return {
+            name
+            for name, pattern in _ACTION_TOPIC_PATTERNS.items()
+            if re.search(pattern, prose, re.IGNORECASE)
+        }
+
+    left_topics = topics(left_prose)
+    right_topics = topics(right_prose)
+    if left_topics or right_topics:
+        semantic_topics = {
+            "delivery-scale",
+            "collision",
+            "label-association",
+            "legend",
+            "axis",
+            "contrast",
+            "whitespace",
+            "period",
+            "measure",
+            "universe",
+            "claim",
+        }
+        shared = left_topics & right_topics & semantic_topics
+        if left_codes and right_codes and set(left_codes) == set(right_codes):
+            return bool(shared)
+        return bool(shared) and left_topics == right_topics
+
+    def tokens(prose: str) -> set[str]:
+        return {
+            token
+            for token in re.sub(r"[^a-z0-9]+", " ", prose.lower()).split()
+            if len(token) > 2 and token not in _ACTION_STOP_WORDS
+        }
+
+    left_tokens = tokens(left_prose)
+    right_tokens = tokens(right_prose)
+    union = left_tokens | right_tokens
+    return bool(union) and len(left_tokens & right_tokens) / len(union) >= 0.5
 
 
 def update_open_required_actions(
@@ -929,20 +1068,27 @@ def update_open_required_actions(
     open_actions = [
         item for item in prior_actions if result_by_id.get(item["id"]) != "Pass"
     ]
-    action_key = lambda value: json.dumps(value, sort_keys=True, ensure_ascii=False)
-    existing_text = {action_key(item["action"]) for item in open_actions}
     for index, action in enumerate(current_actions, start=1):
-        key = action_key(action)
-        if key in existing_text:
+        equivalent = next(
+            (item for item in open_actions if actions_equivalent(item["action"], action)),
+            None,
+        )
+        if equivalent is not None:
+            equivalent.setdefault("equivalent_reports", []).append(
+                {
+                    "evaluation": evaluation_number,
+                    "reported_action": action,
+                }
+            )
             continue
         open_actions.append(
             {
                 "id": f"e{evaluation_number}-a{index}",
                 "action": action,
                 "source_evaluation": evaluation_number,
+                "fingerprint": action_fingerprint(action),
             }
         )
-        existing_text.add(key)
     return open_actions
 
 
@@ -1225,8 +1371,11 @@ def upgrade_case(data: dict) -> dict:
     }.items():
         telemetry.setdefault(name, value)
     data.setdefault("stalled_evaluations", 0)
+    data.setdefault("stall_keys", [])
     data.setdefault("best_candidate", None)
     data.setdefault("stop", None)
+    data.setdefault("limit_authorizations", [])
+    data.setdefault("limit_changes", [])
     if "diagnoses" not in data:
         data["diagnoses"] = [data["diagnosis"]] if data.get("diagnosis") else []
     data.setdefault("request_checks", [])
@@ -1340,6 +1489,7 @@ def stop_case(data: dict, kind: str, reason: str, action: str) -> None:
         "at": now_iso(),
         "kind": kind,
         "reason": reason,
+        "limit_change_count": len(data.get("limit_changes", [])),
         "best_candidate": data.get("best_candidate"),
         "unresolved": {
             "critique_findings": [
@@ -1423,53 +1573,53 @@ def update_best_candidate(data: dict, event: dict, iteration: dict) -> None:
     }
 
 
-def evaluation_signature(event: dict) -> dict:
-    # Carry-forward checks are bookkeeping for actions already represented by the
-    # evaluator's required action set.  Including their iteration-scoped IDs makes
-    # the second identical evaluation look different merely because the action now
-    # has a carry-forward record, defeating the bounded no-progress guard.
-    return {
-        "codes": sorted(event.get("codes", [])),
-        "gates": event.get("gates", {}),
-        "gate_required": event.get("gate_required", {}),
-        "release_checks": {
-            name: item.get("result")
-            for name, item in event.get("release_checks", {}).items()
-        },
-        "presentation_checks": {
-            name: item.get("result")
-            for name, item in event.get("presentation_checks", {}).items()
-        },
-        "semantic_checks": {
-            name: item.get("result")
-            for name, item in event.get("semantic_checks", {}).items()
-        },
-        "required_actions": sorted(
-            json.dumps(item, sort_keys=True, ensure_ascii=False)
-            for item in event.get("required_actions", [])
-        ),
-        "acceptance_checks": [
-            (item.get("id"), item.get("result"))
-            for item in event.get("acceptance_checks", [])
-        ],
-        "critique_checks": [
-            (item.get("id"), item.get("result"))
-            for item in event.get("critique_checks", [])
-        ],
-    }
+def evaluation_failure_keys(event: dict) -> set[str]:
+    """Return stable keys for recurring failures, independent of wording and ids."""
+    codes = tuple(sorted(str(code).strip().lower() for code in event.get("codes", [])))
+    keys = {"action:" + action_fingerprint(action) for action in event.get("required_actions", [])}
+
+    nonpass: list[str] = []
+    for name, result in event.get("gates", {}).items():
+        if event.get("gate_required", {}).get(name, True) and result != "Pass":
+            nonpass.append(f"gate:{name.lower()}={str(result).lower()}")
+    for field in ("release_checks", "presentation_checks", "semantic_checks"):
+        for name, item in event.get(field, {}).items():
+            result = item.get("result") if isinstance(item, dict) else item
+            if result != "Pass":
+                nonpass.append(f"{field}:{name.lower()}={str(result).lower()}")
+    for field in ("acceptance_checks", "critique_checks"):
+        for item in event.get(field, []):
+            if item.get("result") != "Pass":
+                nonpass.append(f"{field}:{item.get('id')}={str(item.get('result')).lower()}")
+    if codes and nonpass:
+        keys.add(
+            "outcome:"
+            + ",".join(codes)
+            + "|"
+            + ",".join(sorted(nonpass))
+        )
+    return keys
 
 
 def update_stall_count(data: dict, event: dict) -> bool:
     previous = data.get("evaluations", [])[-1] if data.get("evaluations") else None
     if previous is None:
         data["stalled_evaluations"] = 0
+        event["stall_keys"] = sorted(evaluation_failure_keys(event))
+        data["stall_keys"] = event["stall_keys"]
         return False
-    stalled = (
+    current_keys = evaluation_failure_keys(event)
+    previous_keys = set(previous.get("stall_keys") or evaluation_failure_keys(previous))
+    recurring = current_keys & previous_keys
+    stalled = bool(
         event["verdict"] in ("Revise", "Redesign")
         and previous.get("verdict") in ("Revise", "Redesign")
-        and evaluation_signature(event) == evaluation_signature(previous)
+        and recurring
     )
     data["stalled_evaluations"] = data.get("stalled_evaluations", 0) + 1 if stalled else 0
+    event["stall_keys"] = sorted(current_keys)
+    event["recurring_stall_keys"] = sorted(recurring)
+    data["stall_keys"] = event["stall_keys"]
     return data["stalled_evaluations"] >= data["limits"]["max_stalled_evaluations"]
 
 
@@ -1594,8 +1744,11 @@ def cmd_start(args: argparse.Namespace) -> None:
             "events": [],
         },
         "stalled_evaluations": 0,
+        "stall_keys": [],
         "best_candidate": None,
         "stop": None,
+        "limit_authorizations": [],
+        "limit_changes": [],
         "request_checks": [],
         "semantic_preflights": [],
         "critiques": [],
@@ -2949,17 +3102,75 @@ def cmd_limits(args: argparse.Namespace) -> None:
         "max_tokens": args.max_tokens,
         "max_cost_usd": args.max_cost_usd,
     }
-    changed = False
-    for name, value in updates.items():
-        if value is not None:
-            data["limits"][name] = value
-            changed = True
-    if not changed:
+    proposed = {
+        name: value
+        for name, value in updates.items()
+        if value is not None and value != data["limits"].get(name)
+    }
+    if not proposed:
         print(json.dumps({"case_id": data["case_id"], "limits": data["limits"], "budget": budget_status(data)}))
         return
+
+    increases = {
+        name: value
+        for name, value in proposed.items()
+        if data["limits"].get(name) is not None and value > data["limits"][name]
+    }
+    authorization = None
+    if increases:
+        if not args.authorization:
+            raise SystemExit(
+                "Increasing an existing stopping limit requires a pre-recorded, "
+                "case-bound user authorization grant; pass --authorization <grant-id>"
+            )
+        authorization = next(
+            (
+                item
+                for item in data.get("limit_authorizations", [])
+                if item.get("id") == args.authorization
+            ),
+            None,
+        )
+        if authorization is None:
+            raise SystemExit("Unknown limit authorization grant for this case")
+        if authorization.get("case_id") != data["case_id"]:
+            raise SystemExit("Limit authorization is not bound to this case")
+        if authorization.get("consumed_at"):
+            raise SystemExit("Limit authorization has already been consumed")
+        stop = data.get("stop") or {}
+        if (
+            data.get("state") == "stopped"
+            and stop.get("kind") in BUDGET_STOP_KINDS
+            and authorization.get("authorized_stop_at") != stop.get("at")
+        ):
+            raise SystemExit(
+                "Limit authorization was not issued for the current budget stop"
+            )
+        approved = authorization.get("approved_limits") or {}
+        if approved != increases:
+            raise SystemExit(
+                "Limit increase does not exactly match the values approved by the user grant"
+            )
+
+    before = dict(data["limits"])
+    for name, value in proposed.items():
+        data["limits"][name] = value
+    change = {
+        "number": len(data.setdefault("limit_changes", [])) + 1,
+        "at": now_iso(),
+        "before": before,
+        "after": dict(data["limits"]),
+        "changed": proposed,
+        "increases": increases,
+        "authorization_id": authorization.get("id") if authorization else None,
+    }
+    data["limit_changes"].append(change)
+    if authorization is not None:
+        authorization["consumed_at"] = change["at"]
+        authorization["limit_change_number"] = change["number"]
     data["updated_at"] = now_iso()
     write_json(path, data)
-    print(json.dumps({"case_id": data["case_id"], "limits": data["limits"], "budget": budget_status(data)}))
+    print(json.dumps({"case_id": data["case_id"], "limits": data["limits"], "budget": budget_status(data), "limit_change": change}))
 
 
 def cmd_usage(args: argparse.Namespace) -> None:
@@ -3021,6 +3232,18 @@ def cmd_resume(args: argparse.Namespace) -> None:
     path = case_dir / "case.json"
     data = load_case(path)
     require_state(data, PAUSED_STATES, "resume a case")
+    stop = data.get("stop") or {}
+    if stop.get("kind") in BUDGET_STOP_KINDS:
+        change_count = stop.get("limit_change_count", 0)
+        approved_after_stop = any(
+            item.get("authorization_id") and item.get("increases")
+            for item in data.get("limit_changes", [])[change_count:]
+        )
+        if not approved_after_stop:
+            raise SystemExit(
+                "A budget-stopped case requires a user-authorized limit increase "
+                "recorded after this stop before it can resume"
+            )
     exhausted = budget_status(data)["exhausted"]
     if exhausted:
         raise SystemExit(
@@ -3038,6 +3261,10 @@ def cmd_resume(args: argparse.Namespace) -> None:
                 "Revise": "revise",
                 "Not evaluable": "revise",
             }.get(latest.get("verdict") if latest else None, "build")
+    if target == "user_review":
+        latest = data.get("evaluations", [])[-1] if data.get("evaluations") else None
+        if latest is None or latest.get("verdict") != "Send":
+            raise SystemExit("Only an independently recorded Send verdict can resume to user_review")
     data["stop"] = None
     transition(data, target, "resume", args.reason)
     write_json(path, data)
@@ -3245,6 +3472,10 @@ def build_parser() -> argparse.ArgumentParser:
     limits.add_argument("--max-elapsed-minutes", type=positive_float)
     limits.add_argument("--max-tokens", type=positive_int)
     limits.add_argument("--max-cost-usd", type=positive_float)
+    limits.add_argument(
+        "--authorization",
+        help="single-use case-bound grant id recorded from an explicit user turn",
+    )
     limits.set_defaults(func=cmd_limits)
 
     usage = sub.add_parser("usage", help="record token, cost, call, and latency telemetry")

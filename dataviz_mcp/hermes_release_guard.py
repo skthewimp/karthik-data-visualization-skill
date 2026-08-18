@@ -40,7 +40,11 @@ _ACCEPTANCE_TERM = re.compile(
     r"^\s*(this\s+is\s+)?(right|good|fine|done|final|accepted?|looks\s+good)\b",
     re.IGNORECASE,
 )
-_MEDIA_PATH = re.compile(
+_EXPLICIT_MEDIA_PATH = re.compile(
+    r"MEDIA:\s*(/[^\s\"'<>|]+?\.(?:png|jpe?g|svg|pdf))(?=$|[\s\]),.;])",
+    re.IGNORECASE,
+)
+_ATTACHMENT_PATH = re.compile(
     r"(?:MEDIA:\s*)?(/[^\s\"'<>|]+?\.(?:png|jpe?g|svg|pdf))(?=$|[\s\]),.;])",
     re.IGNORECASE,
 )
@@ -52,6 +56,18 @@ _INSTRUCTION_MARKER = (
     "The user has provided the following instruction alongside the skill invocation:"
 )
 _ABSOLUTE_PATH = re.compile(r"(?<!\w)/(?:[^\s\"'<>|]+/)*[^\s\"'<>|]+")
+_BUDGET_CONTINUATION = re.compile(
+    r"\b(continue|resume|keep going|try again|another (?:try|attempt|revision|iteration)|"
+    r"more (?:work|attempts?|revisions?|iterations?)|extend (?:the )?budget|"
+    r"increase (?:the )?(?:iteration )?limit)\b",
+    re.IGNORECASE,
+)
+_BUDGET_STOP_KINDS = {
+    "iteration_budget",
+    "time_budget",
+    "token_budget",
+    "cost_budget",
+}
 
 
 @dataclass(frozen=True)
@@ -64,6 +80,7 @@ class GuardedTurn:
 
 _turns: dict[str, GuardedTurn] = {}
 _repair_sessions: set[str] = set()
+_case_paths: dict[str, Path] = {}
 _lock = threading.Lock()
 
 
@@ -117,18 +134,23 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _response_paths(response_text: str) -> list[Path]:
+def _paths(text: str, pattern: re.Pattern[str]) -> list[Path]:
     paths: list[Path] = []
-    for match in _MEDIA_PATH.finditer(response_text or ""):
+    for match in pattern.finditer(text or ""):
         raw = match.group(1)
         if raw not in {str(path) for path in paths}:
             paths.append(Path(raw))
     return paths
 
 
+def _response_paths(response_text: str) -> list[Path]:
+    """Return only explicit MEDIA attachments from an assistant response."""
+    return _paths(response_text, _EXPLICIT_MEDIA_PATH)
+
+
 def _source_hashes(user_message: str) -> tuple[str, ...]:
     hashes: list[str] = []
-    for path in _response_paths(user_message):
+    for path in _paths(user_message, _ATTACHMENT_PATH):
         try:
             if path.is_file():
                 digest = _sha256(path)
@@ -137,6 +159,108 @@ def _source_hashes(user_message: str) -> tuple[str, ...]:
         except OSError:
             continue
     return tuple(hashes)
+
+
+def _turn_case_path(turn: GuardedTurn, *, root: Path | None = None) -> Path | None:
+    """Find the single new case created for a guarded turn, regardless of verdict."""
+    cases = root or case_root()
+    try:
+        case_files = list(cases.glob("*/case.json"))
+    except OSError:
+        return None
+    recovered: list[Path] = []
+    expected_sources = set(turn.source_hashes)
+    for case_file in case_files:
+        try:
+            data = json.loads(case_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if data.get("session_id") == turn.case_session:
+            return case_file
+        creator = data.get("creator")
+        created_at = _created_at_timestamp(data)
+        if (
+            not isinstance(creator, str)
+            or not creator.startswith("main:")
+            or created_at is None
+            or created_at < turn.started_at - 1.0
+        ):
+            continue
+        if expected_sources and (data.get("original") or {}).get("sha256") not in expected_sources:
+            continue
+        recovered.append(case_file)
+    return recovered[0] if len(recovered) == 1 else None
+
+
+def _requested_iteration_limit(message: str, current: int) -> int:
+    absolute = re.search(
+        r"(?:max(?:imum)?\s+)?iterations?\s+(?:to|=)\s*(\d+)", message, re.I
+    )
+    if absolute:
+        return int(absolute.group(1))
+    additional = re.search(
+        r"(\d+)\s+(?:more|additional|extra)\s+(?:iterations?|revisions?|attempts?)",
+        message,
+        re.I,
+    )
+    return current + (int(additional.group(1)) if additional else 1)
+
+
+def _record_user_limit_authorization(
+    case_file: Path, user_message: str, source_turn_id: str
+) -> tuple[str, int] | None:
+    """Record a single-use grant from a real Hermes user turn before model work."""
+    if not _BUDGET_CONTINUATION.search(user_message):
+        return None
+    try:
+        data = json.loads(case_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    stop = data.get("stop") or {}
+    if data.get("state") != "stopped" or stop.get("kind") not in _BUDGET_STOP_KINDS:
+        return None
+    current = int((data.get("limits") or {}).get("max_iterations", 0))
+    requested = _requested_iteration_limit(user_message, current)
+    if requested <= current:
+        return None
+    message_hash = hashlib.sha256(user_message.encode("utf-8")).hexdigest()
+    authorizations = data.setdefault("limit_authorizations", [])
+    existing = next(
+        (
+            item
+            for item in authorizations
+            if item.get("source_turn_id") == source_turn_id
+            and item.get("user_message_sha256") == message_hash
+            and not item.get("consumed_at")
+        ),
+        None,
+    )
+    if existing is not None:
+        return str(existing["id"]), requested
+    grant_id = "limit-grant-" + secrets.token_hex(8)
+    authorizations.append(
+        {
+            "id": grant_id,
+            "case_id": data.get("case_id"),
+            "at": datetime.now().astimezone().isoformat(timespec="seconds"),
+            "source": "hermes-user-turn",
+            "source_turn_id": source_turn_id,
+            "user_message": user_message,
+            "user_message_sha256": message_hash,
+            "authorized_stop_at": stop.get("at"),
+            "approved_limits": {"max_iterations": requested},
+            "consumed_at": None,
+            "limit_change_number": None,
+        }
+    )
+    data["updated_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
+    temporary = case_file.with_suffix(".json.tmp")
+    try:
+        temporary.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(case_file)
+    except OSError:
+        return None
+    return grant_id, requested
 
 
 def _created_at_timestamp(data: dict[str, Any]) -> float | None:
@@ -273,6 +397,34 @@ def on_pre_llm_call(**kwargs: Any) -> dict[str, str] | None:
 
     with _lock:
         continuing = session_id in _repair_sessions
+        prior_case = _case_paths.get(session_id)
+    if prior_case is not None:
+        grant = _record_user_limit_authorization(prior_case, user_message, session_id)
+        if grant is not None:
+            grant_id, requested = grant
+            try:
+                data = json.loads(prior_case.read_text(encoding="utf-8"))
+                case_session = str(data["session_id"])
+                source_hash = str((data.get("original") or {}).get("sha256") or "")
+            except (OSError, KeyError, json.JSONDecodeError):
+                return None
+            with _lock:
+                _turns[session_id] = GuardedTurn(
+                    case_session,
+                    user_message,
+                    time.time(),
+                    (source_hash,) if source_hash else (),
+                )
+                _repair_sessions.add(session_id)
+            return {
+                "context": (
+                    "The user explicitly authorized one bounded budget increase for the "
+                    f"existing stopped dataviz-fix case {data.get('case_id')!r}. "
+                    f"Run limits --case {data.get('case_id')!r} --max-iterations {requested} "
+                    f"--authorization {grant_id!r}, then explicitly run resume. "
+                    "The grant is single-use and does not itself resume the case."
+                )
+            }
     if not is_chart_repair_request(user_message, continuing=continuing):
         with _lock:
             _turns.pop(session_id, None)
@@ -306,6 +458,16 @@ def on_transform_llm_output(**kwargs: Any) -> str | None:
     with _lock:
         turn = _turns.pop(session_id, None)
     if turn is None:
+        return None
+
+    bound_case = _turn_case_path(turn)
+    if bound_case is not None:
+        with _lock:
+            _case_paths[session_id] = bound_case
+
+    # Plain diagnostic paths are not attachment attempts. Preserve the agent's
+    # useful stopped/blocked explanation unless it explicitly emitted MEDIA:.
+    if not _response_paths(response_text):
         return None
 
     try:
