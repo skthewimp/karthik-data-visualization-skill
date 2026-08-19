@@ -22,5 +22,4 @@ __pycache__/
 *.pyc
 *.egg-info/
 .dataviz-tester/
-.dataviz-public/
 tester-outputs/

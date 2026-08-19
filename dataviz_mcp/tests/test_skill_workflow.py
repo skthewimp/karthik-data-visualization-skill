@@ -79,7 +79,8 @@ def test_maintainer_publish_rule_is_persistent_and_third_party_safe() -> None:
 
     assert "completed changes" in agents
     assert "push it to GitHub" in agents
-    assert "Deploy the pushed commit on Hermes" in agents
+    assert "Deploy directly from the current Hermes checkout" in agents
+    assert "Do not SSH back into the same host through an alias" in agents
     assert "Third-party clones and forks must not push" in agents
     assert "Do not force-push" in agents
     assert "An explicit instruction not to commit, push, or deploy overrides" in agents

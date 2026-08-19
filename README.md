@@ -99,7 +99,6 @@ The split is deliberate. The orchestrator routes the work and preserves handoffs
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── tester/                          # Local repair-loop case console
-├── public_site/                     # Image-only public repair website
 ├── dataviz_mcp/                     # Local stdio MCP: render, inspect, compare
 ├── docs/                            # Human docs; subfolder READMEs explain contents
 ├── sync-skills.py                   # Install Codex/Claude or the explicit Hermes surface
@@ -331,16 +330,6 @@ Set `DATAVIZ_ENABLE_LOCAL_RUNNER=1` before starting the server to enable one bou
 
 See [`tester/README.md`](tester/README.md) and the [`repair-loop product roadmap`](docs/plans/dataviz-repair-product-roadmap.md).
 
-## Run the public image-only repair site
-
-The public site accepts one chart image and one ordinary prompt, uses GPT-5.6
-Luna for both hosted reconstruction and a fresh visual review, and returns only
-the original and repaired PNG. A visitor can ask for one additional revision.
-The site does not accept datasets or expose generated code.
-
-See [`public_site/README.md`](public_site/README.md) for the runtime, privacy,
-quota, and `dataviz.karthiks.co` deployment configuration.
-
 ## MCP tools and current coverage
 
 The metadata-first MCP server exposes deterministic chart rendering, exact-artifact geometry inspection, and revision comparison. It leaves analytical and visual judgement in the skills.
@@ -362,7 +351,7 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
 - Source skills live in `<skill>/{codex,claude}/SKILL.md`.
 - `sync-skills.py` discovers every root-level directory containing both surface files.
 - `sync-skills.py --validate-only` checks frontmatter without copying files.
-- Repair-loop changes are covered by `dataviz-fix/tests/`, `tester/tests/`, and `public_site/tests/`.
+- Repair-loop changes are covered by `dataviz-fix/tests/` and `tester/tests/`.
 - No generated `dist/` output is committed.
 - Keep README files in public folders. They are navigation aids for newcomers and should be updated when layout changes.
 
