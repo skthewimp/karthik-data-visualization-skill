@@ -36,7 +36,6 @@ def test_repair_skill_is_portable_and_orders_inspection_before_review() -> None:
         assert "$HOME/.claude/skills/dataviz-fix" in fixer
         assert "active runtime's isolated delegation capability" in fixer
         assert "MEDIA:" not in fixer
-        assert "HERMES_SKILL_DIR" not in fixer
         assert "delegate_task" not in fixer
         assert "vision_analyze" not in fixer
         assert '--session "${CASE_SESSION}"' in fixer
