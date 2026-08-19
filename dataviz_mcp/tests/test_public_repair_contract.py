@@ -1,5 +1,7 @@
 from dataviz_mcp.public_repair_contract import (
     CREATOR_INSTRUCTIONS,
+    DELIVERY_AUDIT_INSTRUCTIONS,
+    DELIVERY_AUDIT_SCHEMA,
     REVIEWER_INSTRUCTIONS,
     REVIEW_SCHEMA,
 )
@@ -8,5 +10,12 @@ from dataviz_mcp.public_repair_contract import (
 def test_public_repair_contract_preserves_the_screenshot_evidence_boundary() -> None:
     assert "Never invent missing values" in CREATOR_INSTRUCTIONS
     assert "Do not use image generation" in CREATOR_INSTRUCTIONS
+    assert "perceptually unchanged chart is a failed repair" in CREATOR_INSTRUCTIONS
     assert "fresh, independent reviewer" in REVIEWER_INSTRUCTIONS
+    assert "material_improvement" in REVIEW_SCHEMA["required"]
+    assert "material_changes" in REVIEW_SCHEMA["required"]
+    assert "delivery" in REVIEW_SCHEMA["required"]
     assert REVIEW_SCHEMA["additionalProperties"] is False
+    assert "axes or ticks intruding into section headings" in DELIVERY_AUDIT_INSTRUCTIONS
+    assert "visual_integrity" in DELIVERY_AUDIT_SCHEMA["required"]
+    assert DELIVERY_AUDIT_SCHEMA["additionalProperties"] is False
