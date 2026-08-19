@@ -53,14 +53,9 @@ Fix obvious mechanical defects before sending. This inspection is a practical se
 
 Send the artifact after the first sound build. Do not wait for an independent review.
 
-If one major visible defect remains, make one more build. The default autonomous limit is:
+If a visible defect remains and another revision has a concrete fix, revise the latest candidate. Stop when the artifact is usable and another pass would be speculative, cosmetic, or unrelated to the request. Do not impose a fixed candidate count or elapsed-time limit.
 
-- two rendered candidates; or
-- ten elapsed minutes;
-
-whichever comes first.
-
-At the limit, send the strongest valid candidate and name the unresolved issue in one sentence. A partially improved chart is more useful than no chart.
+If an external constraint stops the work, send the strongest valid candidate and name the unresolved issue. A partially improved chart is more useful than no chart.
 
 ### 5. Continue from user feedback
 
@@ -96,13 +91,13 @@ Do not require the user-facing repair to wait for contracts, blind-response free
 
 - **MCP failure:** fall back to direct local rendering and disclose the missing deterministic inspection.
 - **Reviewer failure:** deliver the inspected candidate as unreviewed.
-- **Budget reached:** deliver the best candidate with one unresolved-issue line.
+- **External resource constraint:** deliver the best candidate and state the unresolved issue.
 - **Renderer failure with no artifact:** report the concrete error and return any earlier valid candidate.
 - **Missing evidence:** preserve visible source values, avoid invented claims, and label the limitation.
 
 ## Response format
 
-Attach the exact artifact and use no more than three short lines:
+Attach the exact artifact and briefly state:
 
 1. What changed.
 2. Whether values are exact, transcribed, or approximate.

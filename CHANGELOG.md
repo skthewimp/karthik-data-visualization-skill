@@ -11,7 +11,7 @@
 ### Repair reliability
 
 - Replaced the default contract-and-review loop with an output-first repair path: build, inspect once, and deliver the best valid artifact even when MCP or independent review is unavailable.
-- Reduced the optional case manager's default autonomous budget from six candidates to two.
+- Removed default candidate, elapsed-time, and stalled-evaluation caps. Explicit user-supplied budgets remain available for audited runs.
 - Kept structured contracts, blind review, and case logging available for explicitly audited or high-risk work instead of imposing them on every repair.
 - Kept honest status labels: unreviewed or partially inspected artifacts are delivered as such rather than being hidden or falsely approved.
 

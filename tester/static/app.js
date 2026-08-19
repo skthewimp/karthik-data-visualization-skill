@@ -43,7 +43,9 @@ function renderCase(data) {
   $("#case-id").textContent = data.case_id;
   $("#case-state").textContent = data.state.replaceAll("_", " ");
   $("#context-version").textContent = `context v${data.context_version}`;
-  $("#iteration-budget").textContent = `${data.budget_status.iterations_remaining} iterations left`;
+  $("#iteration-budget").textContent = data.budget_status.iterations_remaining === null
+    ? "No iteration cap"
+    : `${data.budget_status.iterations_remaining} iterations left`;
   $("#cost-budget").textContent = `$${Number(data.budget_status.cost_usd).toFixed(3)} used`;
   $("#token-budget").textContent = `${Number(data.budget_status.tokens_used).toLocaleString()} tokens used`;
 
@@ -57,7 +59,7 @@ function renderCase(data) {
     const input = $(`#context-form [name="${name}"]`);
     if (input) input.value = fields[name]?.value || "";
   }
-  $('#limits-form [name="max_iterations"]').value = data.limits.max_iterations;
+  $('#limits-form [name="max_iterations"]').value = data.limits.max_iterations || "";
   $('#limits-form [name="max_cost_usd"]').value = data.limits.max_cost_usd || "";
   $('#limits-form [name="max_tokens"]').value = data.limits.max_tokens || "";
   $("#stop-button").disabled = ["blocked", "stopped", "accepted", "accepted_with_override"].includes(data.state);

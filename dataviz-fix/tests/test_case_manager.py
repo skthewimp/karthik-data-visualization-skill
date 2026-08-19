@@ -1536,7 +1536,7 @@ class CaseManagerTest(unittest.TestCase):
         self.assertEqual(status["schema_version"], 16)
         self.assertEqual(status["state"], "build")
         self.assertEqual(status["context_version"], 1)
-        self.assertEqual(status["limits"]["max_iterations"], 2)
+        self.assertIsNone(status["limits"]["max_iterations"])
         self.assertEqual(status["limit_authorizations"], [])
         self.assertEqual(status["limit_changes"], [])
 

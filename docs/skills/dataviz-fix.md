@@ -8,14 +8,14 @@ The default workflow is output-first:
 2. Build one real PNG, SVG, or PDF.
 3. Inspect the exact export once for clipping, collisions, legibility, missing content, and obvious colour problems.
 4. Return the best valid candidate.
-5. Make one more autonomous build only when a major visible defect remains.
+5. Revise the latest candidate only while another pass has a concrete benefit.
 
-The default limit is two candidates or ten elapsed minutes. Reaching the limit, losing MCP access, or lacking an independent reviewer does not suppress a valid artifact. The agent sends the strongest candidate and states the limitation plainly.
+There is no default candidate count or elapsed-time limit. Stop when the artifact is usable and another pass would be speculative, cosmetic, or unrelated to the request. Losing MCP access or lacking an independent reviewer does not suppress a valid artifact.
 
 `render_and_inspect_chart` is the preferred mechanical path when available. If the MCP tool fails, the agent falls back to a direct local renderer and visual inspection. It must not fabricate metadata or describe incomplete checks as complete.
 
 Independent `dataviz-eval` review is optional. Use it when the user requests it, when a materially misleading claim may survive visual polish, for consequential redesigns, or for system benchmarks. Review informs another revision; it does not block delivery.
 
-The detailed case manager remains available for audit trails, comparison history, benchmarks, and reusable learning records. It is not part of the default user-facing repair path. Its default autonomous iteration budget is two.
+The detailed case manager remains available for audit trails, comparison history, benchmarks, and reusable learning records. It is not part of the default user-facing repair path. It has no iteration limit unless the user supplies one.
 
 User feedback is the main release signal. Continue from the latest candidate, change the smallest relevant part, inspect the named element, and return the changed artifact.

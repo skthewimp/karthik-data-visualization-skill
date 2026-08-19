@@ -50,8 +50,8 @@ PRESENTATION_CHECK_NAMES = (
 )
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
 SCHEMA_VERSION = 16
-DEFAULT_MAX_ITERATIONS = 2
-DEFAULT_MAX_STALLED_EVALUATIONS = 2
+DEFAULT_MAX_ITERATIONS = None
+DEFAULT_MAX_STALLED_EVALUATIONS = None
 ACTIVE_STATES = (
     "critique",
     "design",
@@ -1580,7 +1580,7 @@ def budget_status(data: dict) -> dict:
     limits = data["limits"]
     telemetry = data["telemetry"]
     exhausted: list[str] = []
-    if len(data["iterations"]) >= limits["max_iterations"]:
+    if limits.get("max_iterations") is not None and len(data["iterations"]) >= limits["max_iterations"]:
         exhausted.append("iteration_budget")
     if limits.get("max_elapsed_seconds") is not None and elapsed_seconds(data) >= limits["max_elapsed_seconds"]:
         exhausted.append("time_budget")
@@ -1591,7 +1591,9 @@ def budget_status(data: dict) -> dict:
     return {
         "exhausted": exhausted,
         "iterations_used": len(data["iterations"]),
-        "iterations_remaining": max(0, limits["max_iterations"] - len(data["iterations"])),
+        "iterations_remaining": max(0, limits["max_iterations"] - len(data["iterations"]))
+        if limits.get("max_iterations") is not None
+        else None,
         "elapsed_seconds": round(elapsed_seconds(data), 3),
         "tokens_used": telemetry["total_tokens"],
         "cost_usd": round(telemetry["cost_usd"], 6),
@@ -1735,7 +1737,8 @@ def update_stall_count(data: dict, event: dict) -> bool:
     event["stall_keys"] = sorted(current_keys)
     event["recurring_stall_keys"] = sorted(recurring)
     data["stall_keys"] = event["stall_keys"]
-    return data["stalled_evaluations"] >= data["limits"]["max_stalled_evaluations"]
+    limit = data["limits"].get("max_stalled_evaluations")
+    return limit is not None and data["stalled_evaluations"] >= limit
 
 
 def write_json(path: Path, data: dict) -> None:

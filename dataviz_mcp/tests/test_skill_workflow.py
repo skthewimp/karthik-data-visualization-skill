@@ -28,8 +28,7 @@ def test_repair_skill_delivers_before_optional_review() -> None:
         fixer = read_skill("dataviz-fix", surface)
         assert "A valid rendered candidate must be delivered" in fixer
         assert "Do not load `dataviz-eval` by default" in fixer
-        assert "two rendered candidates" in fixer
-        assert "ten elapsed minutes" in fixer
+        assert "Do not impose a fixed candidate count or elapsed-time limit" in fixer
         assert "If the MCP tool fails, use the local renderer directly" in fixer
 
         critique = read_skill("dataviz-critique", surface)

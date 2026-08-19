@@ -247,11 +247,11 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
         medium: str = Form(default=""),
         dimensions: str = Form(default=""),
         preserve: str = Form(default=""),
-        max_iterations: int = Form(default=6),
+        max_iterations: int | None = Form(default=None),
         max_tokens: int | None = Form(default=None),
         max_cost_usd: float | None = Form(default=None),
     ):
-        if max_iterations < 1:
+        if max_iterations is not None and max_iterations < 1:
             raise HTTPException(status_code=422, detail="max_iterations must be greater than zero")
         if max_cost_usd is not None and max_cost_usd <= 0:
             raise HTTPException(status_code=422, detail="max_cost_usd must be greater than zero")
@@ -269,9 +269,9 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
             f"tester:{session_id}",
             "--context-source",
             "user",
-            "--max-iterations",
-            max_iterations,
         ]
+        if max_iterations is not None:
+            args.extend(("--max-iterations", max_iterations))
         for option, value in (
             ("--request", request),
             ("--audience", audience),
