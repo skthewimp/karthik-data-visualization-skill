@@ -14,6 +14,9 @@
 - Made source inventory, preservation mapping, delivery-size layout planning, and an independent pre-build plan audit mandatory before the first candidate can be recorded.
 - Added provider-neutral planner and plan-auditor contracts for the public repair runner, plus plan-compliance and regression fields for independent candidate review.
 - Updated critique, construction, evaluation, and repair skills on both Codex and Claude surfaces so incomplete plans are revised before chart code runs.
+- Made bounded repair output mandatory when a valid rendered candidate exists: a stopped
+  loop delivers its strongest independently evaluated artifact as clearly labelled
+  `best available` without falsifying its review verdict.
 
 ### Workflow and skill generalization
 

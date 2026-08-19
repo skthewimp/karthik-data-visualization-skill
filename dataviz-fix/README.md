@@ -13,7 +13,8 @@ The skill keeps the original chart, each rendered revision, the user's correctio
 - Uses explicit states and configurable iteration, time, token, and cost limits; unchanged artifacts and stalled evaluations cannot create endless cycles.
 - Runs a deterministic build preflight before spending another model call, while preserving a completed artifact when one call crosses its estimate.
 - Requires a context-versioned semantic preflight and an independent result for measure, time/context, universe/denominator, claim strength, and audience units.
-- Preserves the strongest independently evaluated candidate when a case blocks or stops.
+- Delivers the strongest independently evaluated candidate when a case blocks or stops,
+  labels it as best available rather than approved, and preserves its real verdict.
 - Stores a case packet with original, revisions, independent review reports, feedback, and skill-version hashes.
 - Separates execution misses from missing, ambiguous, or conflicting skill rules.
 - Keeps stopped and blocked failures diagnosable; execution misses require an enforcement mechanism and regression test.
