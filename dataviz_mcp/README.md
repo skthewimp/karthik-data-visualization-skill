@@ -93,12 +93,11 @@ Restart the Hermes gateway or client and begin a new session so it reloads both 
 
 ### Karthik's current Hermes host
 
-Hermes runs on the SSH host `server`. Its checkout is `/home/karthik/apps/karthik-data-visualization-skill` and its skills live under `~/.hermes/skills/data-science/`.
+The checkout on the current host is `/home/karthik/apps/karthik-data-visualization-skill` and its skills live under `~/.hermes/skills/data-science/`.
 
-Pull the committed repository, create the server's isolated MCP environment, install the package, and sync the skills:
+From that host, pull the committed repository, create the isolated MCP environment, install the package, and sync the skills:
 
 ```bash
-ssh server
 cd /home/karthik/apps/karthik-data-visualization-skill
 git pull --ff-only
 ~/.hermes/hermes-agent/venv/bin/python -m venv .venv
