@@ -14,7 +14,9 @@ There is no default candidate count or elapsed-time limit. Stop when the artifac
 
 `render_and_inspect_chart` is the preferred mechanical path when available. If the MCP tool fails, the agent falls back to a direct local renderer and visual inspection. It must not fabricate metadata or describe incomplete checks as complete.
 
-Independent `dataviz-eval` review is optional. Use it when the user requests it, when a materially misleading claim may survive visual polish, for consequential redesigns, or for system benchmarks. Review informs another revision; it does not block delivery.
+Independent `dataviz-eval` review is optional. It is a formal audit with a fresh reviewer, blind reads, structured gates, and a `Send`, `Revise`, `Redesign`, or `Not evaluable` verdict. That strictness is useful for high-consequence claims and benchmarks, but harmful as a default repair step: it can block `Send`, add model calls, and create revision loops after a usable artifact already exists.
+
+Use it only when the user requests independent evaluation, when a materially misleading claim may survive visual polish, for consequential redesigns, or for system benchmarks. Its verdict may inform another revision, but it must not suppress the current valid artifact.
 
 The detailed case manager remains available for audit trails, comparison history, benchmarks, and reusable learning records. It is not part of the default user-facing repair path. It has no iteration limit unless the user supplies one.
 

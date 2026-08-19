@@ -14,6 +14,7 @@
 - Removed default candidate, elapsed-time, and stalled-evaluation caps. Explicit user-supplied budgets remain available for audited runs.
 - Aligned the packaged public repair contract with the skill: the default stage is now creator-only, while planning and independent review are explicitly optional.
 - Narrowed the default test suite to core MCP behaviour and marked the case manager and local tester as explicitly audited tools rather than the normal repair route.
+- Documented that `dataviz-eval` is a formal optional audit whose strict gates can block `Send` and create unnecessary loops when inserted into ordinary repair.
 - Kept structured contracts, blind review, and case logging available for explicitly audited or high-risk work instead of imposing them on every repair.
 - Kept honest status labels: unreviewed or partially inspected artifacts are delivered as such rather than being hidden or falsely approved.
 

@@ -117,7 +117,7 @@ See: [`docs/skills/dataviz-fix.md`](docs/skills/dataviz-fix.md)
 
 ### `dataviz-eval`
 
-Use this after rendering when you need a `Send`, `Revise`, `Redesign`, or `Not evaluable` verdict based on evidence, intended meaning, blind audience reading, visual reasoning, and the actual delivery medium. It also supports golden-set regression tests for chart-producing agents and skills.
+Use this after rendering only when you need a formal independent `Send`, `Revise`, `Redesign`, or `Not evaluable` verdict. It adds blind review and strict release gates, so inserting it into every `dataviz-fix` run can block `Send`, add model calls, and create unnecessary revision loops. Normal repairs should build, inspect, and deliver without it. It also supports golden-set regression tests for chart-producing agents and skills.
 
 See: [`docs/skills/dataviz-eval.md`](docs/skills/dataviz-eval.md)
 

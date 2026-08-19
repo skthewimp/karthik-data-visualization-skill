@@ -9,6 +9,12 @@ It has two modes:
 
 The live evaluation uses separate expert and audience blind reads before revealing the intended question and insight. It then checks evidence, question recovery, insight recovery, visual reasoning, information fit, and the actual export at its intended size. Fatal failures are gates; they are not averaged into a cosmetic score.
 
+## Why it is optional
+
+This is a formal audit, not a default `dataviz-fix` stage. Its blind review and strict gates can block `Send`, add model calls, and create repeated revisions. That is appropriate when the user requests an independent verdict, a consequential claim needs scrutiny, or a creator system is being benchmarked. It is unnecessary for an ordinary repair that can be built, inspected, delivered, and improved from user feedback.
+
+Do not auto-load `dataviz-eval` during normal repair. When it is used, its verdict may guide the next revision, but it must not suppress the strongest valid artifact already produced.
+
 ## Files
 
 - [`codex/SKILL.md`](codex/SKILL.md) - Codex version.
@@ -21,7 +27,7 @@ The live evaluation uses separate expert and audience blind reads before reveali
 - Use `dataviz-selector` to choose a visual form before plotting.
 - Use `karthik-data-visualization` to create and style the chart.
 - Use `dataviz-critique` for open-ended diagnosis and alternatives.
-- Use `dataviz-eval` to set and measure the pass line.
+- Use `dataviz-eval` only when a formal independent pass line is needed.
 - Use `dataviz-fix` to execute revisions and preserve the feedback trail.
 
 ## Edit rule

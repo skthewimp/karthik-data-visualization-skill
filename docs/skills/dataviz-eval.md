@@ -9,6 +9,14 @@ The old version was a useful final visual check, but it was too narrow. It mostl
 
 The rebuilt skill evaluates the complete path from evidence and intent to what the audience actually understands.
 
+## Why this skill is optional
+
+`dataviz-eval` is a formal audit, not a routine step in chart repair. It adds a fresh reviewer, blind expert and audience reads, structured evidence checks, and strict release gates. Inside an audited workflow, those gates are allowed to block `Send` until the stated conditions pass.
+
+That behaviour becomes a problem when evaluation is inserted into every `dataviz-fix` run. A normal repair can already build a valid artifact, inspect the exact export, and improve it from user feedback. Adding `dataviz-eval` by default introduces extra model calls and can turn concerns, unknowns, or optional context into repeated revision cycles. It can delay or suppress a useful output without improving the requested edit.
+
+Use it when the user explicitly asks for independent evaluation, when a materially misleading claim may survive visual polish, for a consequential redesign, or when benchmarking a chart-producing system. Do not auto-load it for ordinary repairs. Even when it is used, its verdict informs the next revision; it does not withhold the strongest valid artifact from the user.
+
 ## Live artifact gate
 
 The evaluator first inspects the actual deliverable at its real viewing size. A browser preview or plotting window is not enough. Telegram thumbnails, slide distance, exported dimensions, and PDF rendering can introduce failures that do not exist in the editor.
@@ -91,5 +99,5 @@ This version combines Karthik's chart principles and the observed repair history
 - `dataviz-selector` chooses the visual form.
 - `karthik-data-visualization` creates and styles the chart.
 - `dataviz-critique` diagnoses and proposes alternatives.
-- `dataviz-eval` measures the current artifact and sets the pass line.
+- `dataviz-eval` optionally measures the current artifact and sets a formal pass line.
 - `dataviz-fix` performs the changes and records the iterative feedback.
