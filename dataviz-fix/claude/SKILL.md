@@ -15,12 +15,14 @@ Label limitations honestly. Do not relabel an unreviewed candidate as approved, 
 
 ## Default workflow
 
-### 1. Read the source
+### 1. Read and critique the source once
 
 - Inspect the actual image or artifact.
 - Identify the user’s requested change, visible data, units, labels, and obvious evidence limits.
 - For a literal edit, preserve everything outside that edit unless a dependent adjustment is necessary.
-- For an open-ended repair, make a short internal diagnosis and choose the smallest useful redesign.
+- For an open-ended repair, choose the smallest useful redesign.
+
+Before coding, run one concise internal critique. Name the comparison, the three highest-impact visible problems, and the primary identification route for each category or series. Explicitly check typography hierarchy and redundant scaffolding: axis text, ticks, legends, repeated direct labels, and time labels must each do a distinct reading job. This is thinking inside the creator stage, not a separate agent, user-facing report, structured contract, or approval gate.
 
 Load `dataviz-critique`, `karthik-data-visualization`, and the applicable writing or brand skill. Load `dataviz-selector` only when the chart form is genuinely in question. Do not load `dataviz-eval` by default.
 
@@ -35,23 +37,26 @@ Do not create a structured critique, design contract, semantic preflight, plan a
 
 Use the project’s existing renderer when one exists. For a new static chart, prefer ggplot2 when available, but do not delay the output to satisfy a renderer preference.
 
-### 3. Inspect once before delivery
+### 3. Critique the first export once
 
-Inspect the exact exported artifact at its delivery size. Check:
+Inspect the exact exported artifact at its delivery size. Start with the pre-build critique, then check:
 
 - clipping and collisions;
-- text legibility;
+- typography hierarchy, not only text legibility;
 - label-to-mark association;
+- duplicated identification or scale scaffolding;
 - missing categories, periods, or units;
 - obvious colour or contrast failures.
 
+Axis, tick, source, and note text should be readable but subordinate to the data and direct labels. If direct labels already identify every mark or time point, retain an axis, tick set, legend, or repeated year label only when it adds comparison, estimation, orientation, or context. Do not keep duplicate scaffolding merely because the renderer produced it.
+
 Use `render_and_inspect_chart` when available. If the MCP tool fails, use the local renderer directly and visually inspect the result. State that deterministic inspection was unavailable. Never invent layout metadata or claim that incomplete checks are complete.
 
-Fix obvious mechanical defects before sending. This inspection is a practical self-check, not a release bureaucracy.
+Consolidate every consequential issue found in this critique into one focused revision of the latest candidate, then reinspect only the changed regions and their neighbours. Do not start an independent review, a new critique stage, or a recursive review loop. This is a practical self-check, not release bureaucracy.
 
 ### 4. Deliver the best candidate
 
-Send the artifact after the first sound build. Do not wait for an independent review.
+Send the artifact after the bounded creator critique and focused revision. Do not wait for an independent review.
 
 If a visible defect remains and another revision has a concrete fix, revise the latest candidate. Stop when the artifact is usable and another pass would be speculative, cosmetic, or unrelated to the request. Do not impose a fixed candidate count or elapsed-time limit.
 

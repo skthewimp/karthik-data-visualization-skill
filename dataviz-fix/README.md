@@ -2,13 +2,14 @@
 
 Use this skill when the task is not merely to critique a chart, but to repair it and return a real artifact.
 
-The default path builds a candidate, inspects it, and delivers it. It revises only while another pass has a concrete benefit. User feedback drives later revisions.
+The default path runs one concise creator critique, builds a candidate, critiques the actual export once, makes one focused revision pass, and delivers it. The critique is internal thinking, not a separate agent or approval gate. User feedback drives later revisions.
 
 ## What it does
 
 - Rebuilds an uploaded or pasted visualization as a real PNG, SVG, or PDF.
 - Iterates from short user feedback without restarting the chart each time.
-- Inspects the exact export once for obvious mechanical defects.
+- Checks typography hierarchy and redundant axes, ticks, legends, direct labels, and time labels in the exact export.
+- Consolidates consequential findings into one focused revision pass without starting a recursive review loop.
 - Stops when the artifact is usable and another pass would be speculative, cosmetic, or unrelated to the request.
 - Does not impose a fixed candidate count or elapsed-time limit.
 - Falls back to direct rendering and visual inspection when MCP inspection is unavailable.

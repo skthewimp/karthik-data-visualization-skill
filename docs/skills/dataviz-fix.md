@@ -5,12 +5,14 @@ Use `dataviz-fix` when an existing visualization needs to be repaired and return
 The default workflow is output-first:
 
 1. Inspect the source and requested change.
-2. Build one real PNG, SVG, or PDF.
-3. Inspect the exact export once for clipping, collisions, legibility, missing content, and obvious colour problems.
-4. Return the best valid candidate.
-5. Revise the latest candidate only while another pass has a concrete benefit.
+2. Run one concise internal critique: comparison, three highest-impact problems, and primary label system.
+3. Build one real PNG, SVG, or PDF.
+4. Critique the exact export once for geometry, typography hierarchy, label relationships, and redundant scaffolding.
+5. Consolidate the findings into one focused revision pass and return the best valid candidate.
 
-There is no default candidate count or elapsed-time limit. Stop when the artifact is usable and another pass would be speculative, cosmetic, or unrelated to the request. Losing MCP access or lacking an independent reviewer does not suppress a valid artifact.
+The critique remains inside the creator stage. It does not call a fresh reviewer, create a structured contract, or recurse through approval gates. There is no default candidate count or elapsed-time limit for local rendering corrections. Stop when the artifact is usable and another pass would be speculative, cosmetic, or unrelated to the request. Losing MCP access or lacking an independent reviewer does not suppress a valid artifact.
+
+Typography is judged by hierarchy at delivery size, not only minimum legibility. Axis, tick, source, and note text should not compete with data labels or the chart title. Each axis, tick set, legend, direct label, and repeated year label must add a distinct reading task such as comparison, estimation, orientation, or context; duplicate scaffolding should be removed.
 
 `render_and_inspect_chart` is the preferred mechanical path when available. If the MCP tool fails, the agent falls back to a direct local renderer and visual inspection. It must not fabricate metadata or describe incomplete checks as complete.
 

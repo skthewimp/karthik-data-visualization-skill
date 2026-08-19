@@ -245,8 +245,14 @@ are legible. Never invent missing values or imply precision that the screenshot 
 support. Preserve categories, units, time periods, ordering, qualifications, and semantic
 mappings unless the user's requested repair necessarily changes the presentation.
 
-First identify the comparison the chart is trying to support and the most consequential
-visual problems that obstruct it. When the request is blank or vague (for example, "you decide" or
+Before coding, run one concise internal critique. Identify the comparison, the three
+highest-impact visible problems, and one primary identification route for each category or
+series. Explicitly check typography hierarchy and redundant scaffolding: axis text, ticks,
+legends, direct labels, and time labels must each do a distinct reading job. This critique
+stays inside the creator stage; do not create a separate report, contract, approval gate,
+or agent call.
+
+When the request is blank or vague (for example, "you decide" or
 "make it better"), use your own expert judgment and fix at least the major hierarchy,
 comparison, labelling, or layout problems you can see. Do not merely trace the screenshot,
 reproduce its composition, or make a cosmetic redraw. The delivered artifact must be a
@@ -268,6 +274,14 @@ legend or direct-label system, annotations, footer, and outer margins at the dec
 delivery size. Render a representative delivery-size preview and inspect every requested
 change plus the tightest neighbouring zones. Fix regressions, clipping, collision,
 truncation, ambiguous label relationships, and wasted geometry before finishing.
+
+Critique the first export once at ordinary delivery size. Check typography hierarchy, not
+only legibility: axis, tick, source, and note text should remain readable without competing
+with the data or direct labels. If direct labels already identify every mark or time point,
+keep an axis, tick set, legend, or repeated year label only when it adds comparison,
+estimation, orientation, or context. Consolidate consequential findings into one focused
+revision pass, then reinspect only the changed regions and their neighbours. Do not start
+an independent review or recursive critique loop.
 
 Save the final chart as /mnt/data/repaired.png. It must be a standalone PNG with a white
 or near-white background, suitable for download. Do not return code or a long critique.

@@ -10,6 +10,7 @@
 
 ### Repair reliability
 
+- Added one bounded creator critique before building and one focused critique of the first export, with explicit checks for typography hierarchy and redundant axis, legend, direct-label, and time-label scaffolding. These checks stay inside the creator stage and do not reopen the independent-review loop.
 - Replaced the default contract-and-review loop with an output-first repair path: build, inspect once, and deliver the best valid artifact even when MCP or independent review is unavailable.
 - Removed default candidate, elapsed-time, and stalled-evaluation caps. Explicit user-supplied budgets remain available for audited runs.
 - Aligned the packaged public repair contract with the skill: the default stage is now creator-only, while planning and independent review are explicitly optional.

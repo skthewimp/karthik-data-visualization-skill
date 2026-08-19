@@ -39,7 +39,7 @@ Installing the skills does not register the MCP server. For the full workflow, c
 
 This repo contains thirteen related skills, coordinated as a context-sensitive visualization workflow:
 
-1. **`dataviz-fix`** - output-first repair rules: rebuild a pasted chart, inspect the exact export once, return the best valid artifact, and improve it from user feedback.
+1. **`dataviz-fix`** - output-first repair rules: run one concise creator critique, rebuild a pasted chart, critique the exact export once, make a focused revision, and improve it from user feedback.
 2. **`dataviz-eval`** - artifact and creator-system evaluation rules for separate blind review, scoped send/revise/redesign decisions, failure analysis, and regression benchmarks.
 3. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 4. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
