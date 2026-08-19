@@ -10,7 +10,7 @@ Own the **sequence and handoffs**, not the substantive rules of every stage. Use
 ## Workflow
 
 ```text
-intake → question/evidence contract → data preparation → facts → visual selection → implementation → independent evaluation → revise or deliver
+intake → question/evidence contract → data preparation → facts → visual selection → implementation → inspect → deliver or revise
 ```
 
 ### 1. Intake and context
@@ -26,10 +26,11 @@ Record the dataset or existing artifact, question or purpose, audience, medium, 
 - Implement style, labels, layout, and export: `karthik-data-visualization`.
 - Choose and place on-chart annotations: `chart-annotations`.
 - Write accompanying prose: `chart-explainer`.
-- Review an existing or rendered visual: `dataviz-critique` or `dataviz-eval`.
+- Review an existing or rendered visual: `dataviz-critique`. Use `dataviz-eval` only for an explicit audit, high-risk decision, or benchmark.
 - Run a stateful repair case with feedback and acceptance: `dataviz-fix`.
 
 Do not duplicate those skills' detailed rules here.
+When `dataviz-fix` owns the task, follow its output-first limits and do not add orchestration gates.
 
 ### 3. Required handoffs
 
@@ -41,7 +42,7 @@ Pass forward the smallest useful artifact at each boundary:
 4. **Facts table** — computed values, comparisons, uncertainty, and candidate claims.
 5. **Chart specification** — selected form, encodings, semantic mappings, context layers, and delivery condition.
 6. **Rendered artifact** — exact file delivered, plus reproducible code.
-7. **Evaluation report** — blind reads, evidence scope, required gates, release checks, verdict, and minimum pass set.
+7. **Optional evaluation report** — only for an explicit audited or benchmark workflow.
 
 A downstream stage may reject or narrow an upstream artifact, but must state the reason and return a concrete handoff.
 
@@ -51,10 +52,10 @@ A downstream stage may reject or narrow an upstream artifact, but must state the
 - If a transformation changes the analytical meaning, return to the analysis contract.
 - If the visual form cannot support the comparison, return to `dataviz-selector`.
 - If the rendered artifact fails, send only the concrete issues to the implementation or repair stage.
-- Do not deliver until the exact artifact has been inspected under its intended delivery condition and the applicable evaluation gate passes.
+- Inspect the exact artifact once under its intended delivery condition, then deliver the best valid output. An unavailable optional evaluator must not suppress it.
 - Stop when the stated pass line is met; do not keep revising for taste.
 
-Renderer availability must not change the chart design or force a translation into a weaker visual implementation. When the chosen renderer has a metadata-producing capability, render the exact deliverable through it and inspect that export before critique, evaluation, or delivery. Do not bypass supported metadata generation and then substitute a raster-only check. When the chosen renderer lacks metadata support, keep the appropriate renderer, inspect the exact export anyway, record uncovered geometry as unknown, and require independent visual evaluation. Do not translate a sound ggplot2 chart into Matplotlib only to obtain richer metadata. Send reported mechanical defects through the owning implementation or annotation stage before reopening broader design choices.
+Renderer availability must not change the chart design or force a translation into a weaker visual implementation. When the chosen renderer has a metadata-producing capability, render the exact deliverable through it and inspect that export before delivery. When it does not, keep the appropriate renderer, inspect the exact export visually, and record uncovered geometry as unknown. Do not translate a sound ggplot2 chart into Matplotlib only to obtain richer metadata. Send reported mechanical defects through the owning implementation or annotation stage before reopening broader design choices.
 
 ### 5. Output package
 

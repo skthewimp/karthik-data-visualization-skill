@@ -169,9 +169,9 @@ Inputs:
 
 Both referenced PNGs are re-hashed before comparison. The result lists resolved, introduced, and persistent defects; blocking counts; dimensions; pixel difference; and whether the revision is mechanically improved. It does not make a substantive release decision.
 
-## Repair-loop integration
+## Optional audited repair integration
 
-The existing case manager preserves the bundle and inspection beside an iteration:
+The default repair path can call `render_and_inspect_chart` without opening a case. When an audit trail or benchmark is requested, the case manager preserves the bundle and inspection beside an iteration:
 
 ```bash
 python3 dataviz-fix/codex/scripts/case_manager.py iterate \

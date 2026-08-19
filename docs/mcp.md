@@ -60,14 +60,15 @@ intake
 → chart spec
 → render bundle
 → deterministic inspection of the exact PNG
-→ independent evaluation
-→ narrow repair when required
 → delivery
+→ narrow repair from user feedback when required
 ```
 
-When the chosen renderer is supported, the orchestrator requires the exact deliverable to pass through the metadata-producing adapter and then exact-artifact inspection. It must not bypass available metadata generation and substitute a raster-only check. When the appropriate renderer is not supported, the exact export still receives raster-only inspection, the missing geometry remains unknown, and the evaluator performs the independent visual and analytical read. Metadata availability must not force a weaker visual implementation.
+When the chosen renderer is supported, pass the exact deliverable through the metadata-producing adapter and then exact-artifact inspection. When the appropriate renderer is not supported, inspect the exact export visually and keep missing geometry marked unknown. Use independent evaluation only for an explicit audit, high-risk decision, or benchmark. Metadata availability must not force a weaker visual implementation or suppress a valid artifact.
 
-## Repair sequence and version binding
+## Optional audited repair sequence
+
+The default `dataviz-fix` path renders one candidate, inspects it once, and delivers it. It does not require a case record or independent evaluation. Use the sequence below only when the user requests an audit trail, a high-risk review, or a benchmark.
 
 ```text
 render candidate
@@ -81,7 +82,7 @@ render candidate
 → stop when the release line passes
 ```
 
-The `dataviz-fix` state machine owns original, current, best, and historical artifacts. Case schema 14 requires critique, design, build, inspection, blind evaluation, revision/redesign, and user review records. It rejects:
+When used, the `dataviz-fix` state machine owns original, current, best, and historical artifacts. Case schema 14 requires critique, design, build, inspection, blind evaluation, revision/redesign, and user review records. It rejects:
 
 - a bundle whose artifact, spec, or metadata hash no longer matches;
 - layout metadata whose internal artifact hash names a different PNG;

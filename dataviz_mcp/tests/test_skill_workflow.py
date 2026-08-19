@@ -8,69 +8,37 @@ def read_skill(name: str, surface: str) -> str:
     return (ROOT / name / surface / "SKILL.md").read_text(encoding="utf-8")
 
 
-def test_generation_uses_metadata_without_forcing_a_weaker_renderer() -> None:
+def test_generation_inspects_without_blocking_delivery() -> None:
     for surface in ("codex", "claude"):
         orchestrator = read_skill("dataviz-orchestrator", surface)
         assert "When the chosen renderer has a metadata-producing capability" in orchestrator
-        assert "Do not bypass supported metadata generation" in orchestrator
         assert "Do not translate a sound ggplot2 chart into Matplotlib" in orchestrator
         assert "record uncovered geometry as unknown" in orchestrator
-        assert "matching render/inspection records" in orchestrator
+        assert "An unavailable optional evaluator must not suppress it" in orchestrator
 
         visualizer = read_skill("karthik-data-visualization", surface)
         assert "prefer R/ggplot2 when it is available" in visualizer
         assert "default Matplotlib aesthetics fail this skill" in visualizer
-        assert "## Repair implementation contract" in visualizer
+        assert "## Optional audited repair contract" in visualizer
         assert "references/ggplot2-repair-patterns.md" in visualizer
 
-        evaluator = read_skill("dataviz-eval", surface)
-        assert "require its artifact hash to match this export" in evaluator
-        assert "cannot be overridden by a clean-looking overview" in evaluator
-        assert "cannot by itself support a pass" in evaluator
 
-
-def test_repair_skill_is_portable_and_orders_inspection_before_review() -> None:
+def test_repair_skill_delivers_before_optional_review() -> None:
     for surface in ("codex", "claude"):
         fixer = read_skill("dataviz-fix", surface)
-        assert "${CODEX_HOME:-$HOME/.codex}" in fixer
-        assert "$HOME/.claude/skills/dataviz-fix" in fixer
-        assert "active runtime's isolated delegation capability" in fixer
-        assert "MEDIA:" not in fixer
-        assert "delegate_task" not in fixer
-        assert "vision_analyze" not in fixer
-        assert '--session "${CASE_SESSION}"' in fixer
-        assert '--case "${CASE_ID}"' in fixer
-
-        iterate = fixer.index('python3 "${CASE_MANAGER}" iterate')
-        inspect = fixer.index('python3 "${CASE_MANAGER}" inspect')
-        review = fixer.index('python3 "${CASE_MANAGER}" review-request')
-        assert iterate < inspect < review
-        assert "--bundle-manifest" in fixer[iterate:inspect]
-        assert "Pass known mechanical defects into the review and minimum pass set" in fixer
-        assert "Always load `dataviz-critique`" in fixer
-        assert "design-contract" in fixer
-        assert "revision-contract" in fixer
-        assert "renderer-selection" in fixer
-        assert "An unexplained Matplotlib selection is invalid" in fixer
-        assert "independent pre-build plan audit" in fixer
+        assert "A valid rendered candidate must be delivered" in fixer
+        assert "Do not load `dataviz-eval` by default" in fixer
+        assert "two rendered candidates" in fixer
+        assert "ten elapsed minutes" in fixer
+        assert "If the MCP tool fails, use the local renderer directly" in fixer
 
         critique = read_skill("dataviz-critique", surface)
-        assert "## Structured repair brief" in critique
-        assert '"highest_consequence_findings"' in critique
-        assert '"required_delivered_outcomes"' in critique
-        assert '"source_inventory"' in critique
-        assert '"layout_risks"' in critique
+        assert "## Optional structured repair brief" in critique
+        assert "only when the user explicitly requests an audited workflow" in critique
 
         visualizer = read_skill("karthik-data-visualization", surface)
-        assert "one preservation mapping for every required source item" in visualizer
-        assert "a layout plan for the declared delivery size" in visualizer
-        assert "independent plan audit" in visualizer
-
-        evaluator = read_skill("dataviz-eval", surface)
-        assert "one contract stack for the exact replacement artifact" in evaluator
-        assert "every panel" in evaluator
-        assert "neighbouring zones" in evaluator
-        assert "Audit the pre-build plan itself against the source" in evaluator
+        assert "Do not write a design contract in the default output-first" in visualizer
+        assert "do not delay chart code for a contract or plan audit" in visualizer
 
 
 def test_public_entrypoint_explains_installation_and_renderer_boundary() -> None:

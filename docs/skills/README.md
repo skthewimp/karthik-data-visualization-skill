@@ -2,7 +2,7 @@
 
 Human-facing guides for the public skills.
 
-- [`dataviz-fix.md`](dataviz-fix.md) - explains the iterative chart-repair, feedback-capture, and skill-learning workflow.
+- [`dataviz-fix.md`](dataviz-fix.md) - explains the output-first chart-repair and feedback workflow.
 - [`dataviz-eval.md`](dataviz-eval.md) - explains the artifact gate, blind reader checks, failure taxonomy, and creator-system benchmark.
 - [`dataviz-selector.md`](dataviz-selector.md) - explains when to use the chart-selection skill and what output to expect.
 - [`karthik-data-visualization.md`](karthik-data-visualization.md) - explains Karthik's chart style and review principles.

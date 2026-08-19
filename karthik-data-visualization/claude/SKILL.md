@@ -45,9 +45,9 @@ Core operating rules:
 - Keep subtitles focused on the insight or comparison, not the mechanics of how the chart was made.
 - Let complexity come from the data, not decoration.
 
-## Repair implementation contract
+## Optional audited repair contract
 
-Before the first build in a `dataviz-fix` case, write a design contract that records:
+Do not write a design contract in the default output-first `dataviz-fix` path. Build the chart and inspect the export. When the user explicitly requests an audited repair workflow, write a design contract that records:
 
 - the measure and evidence scope, including what a screenshot can support only approximately;
 - the selected chart form and, when form was questioned, the `dataviz-selector` decision;
@@ -60,7 +60,7 @@ Before the first build in a `dataviz-fix` case, write a design contract that rec
 - one preservation mapping for every required source item and semantic mapping in the critique inventory, stating how it will be carried forward and what observable state proves it did not regress;
 - a layout plan for the declared delivery size that names the longest text, densest regions, likely title/subtitle/legend/annotation/footer collisions, their mitigation, and the representative preview check.
 
-Treat this as executable scope. Submit it to an independent plan audit against the source, covering inventory, diagnosis, preservation, and layout. Do not begin chart code until that audit passes, every fatal/major finding and required source item is mapped, and predictable geometry risks have a mitigation. The first render must implement every mapped fatal and major finding and preserve the complete mapped inventory. A `Revise` continues from the latest candidate and changes every zone named in the revision contract. A `Redesign` discards the failed form, returns to the underlying evidence, and creates a new critique/design contract.
+In audited mode, treat this as executable scope. Submit it to an independent plan audit only when that audit was part of the requested workflow. In the default path, do not delay chart code for a contract or plan audit. A revision continues from the latest candidate and changes the smallest relevant region; a redesign returns to the underlying evidence.
 
 ## Colour system
 

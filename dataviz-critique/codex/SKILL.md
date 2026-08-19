@@ -7,7 +7,7 @@ description: Critique charts with the question-data-visual triangle, semantic cl
 
 Use this when the user gives a visualization, screenshot, chart spec, code output, dashboard, or slide and asks whether it works or how to improve it.
 
-Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing. In a `dataviz-fix` case, return a structured repair brief that becomes the creator's first implementation contract, not advisory prose.
+Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing. In the default `dataviz-fix` path, keep this diagnosis concise and move directly to a repaired artifact. Return a structured repair brief only when the user explicitly requests an audited workflow.
 
 ## Inputs to seek or infer
 
@@ -108,15 +108,15 @@ Do not over-focus on minor style while fatal data/question problems remain.
 7. If useful, give a before/after title: current descriptive title → claim-first title.
 8. If context is insufficient, list exact checks needed rather than pretending certainty.
 
-For a repair brief, make the repair/redesign decision explicit. Choose `redesign` when the question, evidence-to-claim relationship, or chart form blocks the intended comparison; otherwise choose `repair`. Set `form_questioned` independently so `dataviz-selector` is invoked whenever the form is implicated. State observable conditions the replacement must satisfy and what must survive unchanged.
+For an audited repair brief, make the repair/redesign decision explicit. Choose `redesign` when the question, evidence-to-claim relationship, or chart form blocks the intended comparison; otherwise choose `repair`. Set `form_questioned` independently so `dataviz-selector` is invoked whenever the form is implicated. State observable conditions the replacement must satisfy and what must survive unchanged.
 
 ## Redesign alternatives
 
 Offer alternatives only when they address a diagnosed mismatch. Choose the number and kind of alternatives from the question, data, audience, medium, and constraints; do not force a fixed taxonomy or count. A minimal repair may be enough, and a redesign may be inappropriate when the evidence or question is the real limitation.
 
-## Structured repair brief
+## Optional structured repair brief
 
-For every `dataviz-fix` handoff, return this contract as JSON (or the equivalent structure when no case manager is present):
+When an audited `dataviz-fix` workflow is explicitly selected, return this contract as JSON:
 
 ```json
 {

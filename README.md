@@ -9,7 +9,7 @@ If you have been pointed at this repository and asked to create or repair a char
 **For a new chart:**
 
 1. Read the `SKILL.md` for your client under `dataviz-orchestrator/{codex,claude}/`.
-2. Follow its handoffs through planning, cleaning, chart selection, implementation, annotation, and evaluation. Load only the specialist skills required by the case.
+2. Follow only the handoffs the task needs. Do not add evaluation or case logging to a normal repair.
 3. Use `render_and_inspect_chart` for static repairs when available. Inspect the exact export once, then return the best valid artifact; MCP or review failures must not suppress it.
 
 **For an existing chart:**
@@ -59,7 +59,7 @@ The split is deliberate. The orchestrator routes the work and preserves handoffs
 
 ```text
 .
-├── dataviz-fix/                     # Iterative chart repair, feedback capture, and skill learning
+├── dataviz-fix/                     # Output-first chart repair and feedback
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── dataviz-eval/                    # Artifact gate and chart-creator benchmark
