@@ -509,3 +509,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Step 3/4 done: all 80 tests pass; skill-bundle validation and `git diff --check` pass. Next: publish this generic workflow fix and deploy the exact commit to the client runtime.
 
 <!-- codex-session:01a005d3-ca03-7a21-930e-1d5d62205760:end -->
+
+<!-- codex-session:01a019ea-68e4-7180-849a-ffb68e689458:start -->
+## 2026-08-19 17:36 IST | Codex session `01a019ea-68e`
+
+### User prompts
+> ok now it produces an output quickly, but turns out it's not precise enough. like look at this output chart. font on axis labels is way too big. i don't knwo if we need "years" there> we have direct labels and still a...
+> wait - did you hardcode this "years" thing? if so, remove. this is th reason why we got such a complicated skill today.
+> simiarly look for other hardcoded examples and overfitting in the skill and mcp
+
+### Work done
+- Rerun the same chart; the repair stack no longer carries case-specific design defaults. Step 4/4 done: - Removed fixed issue and redesign-option counts. - Removed forced structural redesigns. - Removed Matplotlib-only...
+- Rerun the other conversation; neither requirement remains. Step 3/3 done: - Dimensions are optional; profile defaults work. - No mandatory “exact, approximate, or mixed” statement. - Internal safeguards still prevent...
+
+<!-- codex-session:01a019ea-68e4-7180-849a-ffb68e689458:end -->
