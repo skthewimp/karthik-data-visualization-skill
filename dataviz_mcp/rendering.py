@@ -745,9 +745,9 @@ def _render_ggplot2(
     if not probe["renderers"]["ggplot2"]["available"]:
         reasons = "; ".join(probe["renderers"]["ggplot2"]["failure_reasons"])
         raise RuntimeError(f"ggplot2 renderer is unavailable: {reasons}")
-    width = int(dimensions.get("width_px", 1200))
-    height = int(dimensions.get("height_px", 675))
-    dpi = int(dimensions.get("dpi", 144))
+    width = int(dimensions["width_px"])
+    height = int(dimensions["height_px"])
+    dpi = int(dimensions["dpi"])
     if min(width, height, dpi) <= 0:
         raise ValueError("width_px, height_px, and dpi must be greater than zero")
     artifact_path = destination / artifact_name
@@ -935,13 +935,24 @@ def _delivery_dimensions(
     delivery_profile: str | None, dimensions: dict[str, Any] | None
 ) -> dict[str, Any]:
     profiles = {
-        "chat": {"width_px": 1200, "height_px": 675, "dpi": 144},
-        "slide": {"width_px": 1600, "height_px": 900, "dpi": 160},
-        "document": {"width_px": 1800, "height_px": 1200, "dpi": 180},
+        "chat": {"dpi": 144},
+        "slide": {"dpi": 160},
+        "document": {"dpi": 180},
     }
-    values = dict(profiles.get(delivery_profile or "chat", profiles["chat"]))
+    if delivery_profile is not None and delivery_profile not in profiles:
+        raise ValueError("delivery_profile must be chat, slide, document, or null")
+    values = dict(profiles.get(delivery_profile, {}))
     if dimensions:
         values.update(dimensions)
+    missing = [name for name in ("width_px", "height_px") if name not in values]
+    if missing:
+        raise ValueError(
+            "Choose width_px and height_px from the chart content and delivery conditions; "
+            "delivery profiles do not choose an aspect ratio"
+        )
+    values.setdefault("dpi", 144)
+    if any(float(values[name]) <= 0 for name in ("width_px", "height_px", "dpi")):
+        raise ValueError("width_px, height_px, and dpi must be greater than zero")
     return values
 
 
@@ -949,7 +960,7 @@ def render_and_inspect_chart(
     source_path: str,
     output_dir: str,
     renderer: str = "auto",
-    delivery_profile: str | None = "chat",
+    delivery_profile: str | None = None,
     dimensions: dict[str, Any] | None = None,
     artifact_name: str = "chart.png",
     build_function: str = "build_chart",

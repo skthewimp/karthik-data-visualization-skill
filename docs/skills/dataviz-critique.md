@@ -38,7 +38,7 @@ The skill applies Karthik's stricter visualization standards:
 - **Clarity first** — a visual must stand alone. Missing axes, unclear units, ambiguous chart types, unexplained shading, and mystery colours are serious failures.
 - **Intentional design** — every colour, shade, line, label, sort order, and annotation must earn its place.
 - **Fundamentals before polish** — check denominators, dimensions, sample sizes, uncertainty, and whether the comparison is meaningful before talking about aesthetics.
-- **Narrative with evidence** — a chart should communicate a defensible point, not merely display numbers.
+- **Purpose with evidence** — a chart should communicate its analytical job and defensible result, including an honest null or exploratory outcome.
 - **No tool worship** — do not excuse dashboard clutter, BI defaults, or AI-generated prettiness if the visual is hard to interpret.
 - **Repeatable fixes** — prefer fixes that survive new data and reruns, not one-off cosmetic hacks.
 
@@ -64,61 +64,14 @@ A full critique should contain:
    - **Fatal**: changes the conclusion or makes the chart uninterpretable.
    - **Major**: materially slows or misleads interpretation.
    - **Minor**: readability or polish.
-4. **Recommended alternatives** — two or three redesign options when useful.
+4. **Recommended alternatives** — only options that solve a diagnosed mismatch.
 5. **Implementation notes** — title, annotation, caveats, and checks.
 
-For quick requests, the skill can compress this to verdict, top three fixes, and two redesign alternatives.
+For quick requests, the skill can compress this to the verdict and smallest consequential fix set. Alternatives are optional.
 
 ## Redesign alternatives
 
-The redesign section is the main extension beyond ordinary critique. The skill should not list random chart types. Each alternative must correspond to a different analytical purpose, audience need, or intervention level.
-
-Default alternatives:
-
-### Option A — Minimal repair
-
-Keep the current chart form if it is basically defensible. Fix execution:
-
-- title and subtitle;
-- axis labels and units;
-- scale and baseline;
-- ordering;
-- colour meaning and accessibility;
-- direct labels instead of legends;
-- annotation and caveats.
-
-Use when the chart type is right but the execution is weak.
-
-### Option B — Better analytical redesign
-
-Change the visual form to answer the stated question more clearly.
-
-Examples:
-
-- pie or donut → sorted horizontal bars;
-- spaghetti lines → small multiples or highlighted focal series;
-- stacked bars for small differences → grouped bars, dot plot, or slopegraph;
-- map used for ranking → ranked bars, with map only as spatial context;
-- dashboard metric grid → one interpreted chart plus concise scorecard.
-
-Use when the current encoding is wrong for the comparison.
-
-### Option C — Different story lens
-
-Reframe the analysis when the original question is weak, incomplete, or less useful than another defensible view.
-
-Common reframes:
-
-- totals → rates or per-capita values;
-- averages → distributions;
-- snapshot → trend;
-- levels → change;
-- ranking → decomposition;
-- category comparison → cohort or segment comparison;
-- geography → comparison first, map second;
-- dashboard → action-oriented narrative.
-
-Use when a different question would reveal the real story better.
+The redesign section is the main extension beyond ordinary critique. Do not list random chart types or fill a standard option taxonomy. Each alternative must correspond to a diagnosed mismatch and a distinct analytical purpose, audience need, or intervention level. A single repair may be enough; several alternatives are useful only when the evidence supports genuinely different decisions.
 
 ## Example output skeleton
 
@@ -135,31 +88,16 @@ Use when a different question would reveal the real story better.
 - Main mismatch: ...
 
 ## Issues to fix
-1. **Fatal** — ... Fix: ...
-2. **Major** — ... Fix: ...
-3. **Minor** — ... Fix: ...
+- **<severity>** — ... Fix: ...
 
 ## Recommended alternatives
 
-### Option A — Minimal repair
-- Best when: ...
-- Chart: ...
-- Encoding: ...
-- What it fixes: ...
-- Tradeoff: ...
+Repeat only when useful:
 
-### Option B — Better analytical redesign
+### <Purpose>
 - Best when: ...
-- Chart: ...
 - Encoding: ...
-- What it fixes/reveals: ...
-- Tradeoff: ...
-
-### Option C — Different story lens
-- Best when: ...
-- Chart: ...
-- Encoding: ...
-- What it reveals: ...
+- What it fixes or reveals: ...
 - Tradeoff: ...
 ```
 

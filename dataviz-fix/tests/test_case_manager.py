@@ -121,22 +121,9 @@ class CaseManagerTest(unittest.TestCase):
                                     "observable_condition": "The repaired chart makes the comparison explicit",
                                 }
                             ],
-                            "minor": [
-                                {
-                                    "id": "c2",
-                                    "problem": "Spacing needs inspection",
-                                    "reader_consequence": "Crowding could slow reading",
-                                    "observable_condition": "Spacing survives delivery size",
-                                },
-                                {
-                                    "id": "c3",
-                                    "problem": "Copy needs inspection",
-                                    "reader_consequence": "Generic copy could weaken the point",
-                                    "observable_condition": "Copy is plain and evidence bounded",
-                                },
-                            ],
+                            "minor": [],
                         },
-                        "highest_consequence_findings": ["c1", "c2", "c3"],
+                        "highest_consequence_findings": ["c1"],
                         "misleading_reader_interpretation": "The source can be read as an unsupported claim",
                         "defensible_interpretation": "Only the visible comparison is supported",
                         "intervention": "repair",

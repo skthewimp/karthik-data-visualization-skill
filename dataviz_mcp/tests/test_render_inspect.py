@@ -160,10 +160,21 @@ def test_auto_renderer_records_ggplot_fallback_for_python_source(tmp_path: Path)
         str(tmp_path / "python"),
         renderer="auto",
         build_function="clean_chart",
-        dimensions={"dpi": 100},
+        dimensions={"width_px": 900, "height_px": 700, "dpi": 100},
     )
     assert bundle["renderer"] == "matplotlib"
     assert ".py source" in bundle["renderer_selection"]["fallback_reason"]
+
+
+def test_backend_neutral_renderer_requires_caller_chosen_aspect_ratio(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="delivery profiles do not choose an aspect ratio"):
+        render_and_inspect_chart(
+            str(FIXTURES),
+            str(tmp_path / "missing-dimensions"),
+            renderer="auto",
+            build_function="clean_chart",
+            delivery_profile="chat",
+        )
 
 
 def test_raster_only_inspection_is_honestly_incomplete(tmp_path: Path) -> None:

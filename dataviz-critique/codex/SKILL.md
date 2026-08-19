@@ -17,7 +17,7 @@ Prefer not to block. If context is missing, critique from what is visible and ma
 - Question: what decision, claim, or curiosity the chart is meant to answer.
 - Data: fields, grain, units, source, transformations, missingness, uncertainty.
 - Audience: expert/general/manager; expected data literacy; viewing medium.
-- Intended message: the one sentence the viewer should leave with.
+- Intended question, takeaway, decision, or honest null result.
 
 ## First pass: say what it is
 
@@ -58,7 +58,7 @@ Use these standards aggressively:
 - **Clarity first**: the chart must stand on its own. Missing axis labels, unclear units, ambiguous chart type, unexplained shading, or mystery encodings are major failures.
 - **Intentional design**: every colour, annotation, shade, line, sort order, and layout choice must earn its place. Defaults are not a defence.
 - **Fundamentals before polish**: check dimensional consistency, denominators, statistical meaning, uncertainty, and whether comparisons make analytical sense.
-- **Narrative with evidence**: a good chart communicates a point of view, not just numbers. If there is no claim, propose one; if the claim outruns the data, pull it back.
+- **Purpose with evidence**: a good chart communicates its analytical job and defensible result. An honest null or exploratory outcome is valid; do not invent a claim to create drama.
 - **No tool worship**: do not excuse dashboard clutter, BI defaults, AI-generated aesthetics, or flashy chart types if they add friction.
 - **Repeatable improvement**: recommend changes that can survive new data and reruns, not one-off cosmetic hacks.
 
@@ -99,14 +99,13 @@ Do not over-focus on minor style while fatal data/question problems remain.
 
 ## Improvement workflow
 
-1. Restate the intended claim in one sentence. If absent, propose the strongest defensible claim.
-2. Name the top 3 problems by severity, not by order seen.
-3. For each problem, explain impact: what would a viewer misunderstand or miss?
-4. Give concrete fixes: data change, chart-type change, encoding change, annotation/copy change, or layout change.
-5. Propose 2-3 visualization alternatives when the user wants redesign, the current chart is weak, or multiple defensible story angles exist.
-6. For each alternative, explain the analytical purpose, chart form, encoding, what it fixes/reveals, and its tradeoff.
-7. If useful, give a before/after title: current descriptive title → claim-first title.
-8. If context is insufficient, list exact checks needed rather than pretending certainty.
+1. State the intended question, takeaway, or null result briefly. Do not manufacture a claim when the evidence is exploratory or inconclusive.
+2. Rank the consequential problems by severity and reader impact. Include as many as the decision needs and no quota fillers.
+3. For each problem, explain what a viewer would misunderstand or miss.
+4. Give a concrete data, form, encoding, copy, or layout operation.
+5. Offer alternatives only when they answer a diagnosed mismatch; choose their number and kind from the evidence, audience, medium, and constraints.
+6. For each useful alternative, explain its analytical purpose, encoding, benefit, and tradeoff.
+7. If context is insufficient, list the checks needed rather than pretending certainty.
 
 For an audited repair brief, make the repair/redesign decision explicit. Choose `redesign` when the question, evidence-to-claim relationship, or chart form blocks the intended comparison; otherwise choose `repair`. Set `form_questioned` independently so `dataviz-selector` is invoked whenever the form is implicated. State observable conditions the replacement must satisfy and what must survive unchanged.
 
@@ -132,11 +131,11 @@ When an audited `dataviz-fix` workflow is explicitly selected, return this contr
   },
   "layout_risks": ["longest labels, dense regions, neighbouring zones, repeated placements, and outer-edge risks"],
   "findings": {
-    "fatal": [{"id": "c1", "problem": "...", "reader_consequence": "...", "observable_condition": "..."}],
-    "major": [{"id": "c2", "problem": "...", "reader_consequence": "...", "observable_condition": "..."}],
-    "minor": [{"id": "c3", "problem": "...", "reader_consequence": "...", "observable_condition": "..."}]
+    "fatal": [],
+    "major": [{"id": "c1", "problem": "...", "reader_consequence": "...", "observable_condition": "..."}],
+    "minor": []
   },
-  "highest_consequence_findings": ["c1", "c2", "c3"],
+  "highest_consequence_findings": ["c1"],
   "misleading_reader_interpretation": "...",
   "defensible_interpretation": "...",
   "intervention": "repair|redesign",
@@ -146,7 +145,7 @@ When an audited `dataviz-fix` workflow is explicitly selected, return this contr
 }
 ```
 
-Always identify exactly three highest-consequence findings, while retaining every additional fatal, major, and minor finding in its severity list. `required_delivered_outcomes` must be observable in the replacement artifact. `preserve` must name source context, evidence, wording, mappings, or geometry that should not regress.
+Rank the findings that actually determine the intervention; do not require or invent a fixed number. Retain every additional fatal, major, and minor finding in its severity list. `required_delivered_outcomes` must be observable in the replacement artifact. `preserve` must name source context, evidence, wording, mappings, or geometry that should not regress.
 
 `source_inventory.required_content` and `semantic_mappings` are not optional summaries. Enumerate the source elements whose omission, shortening, reassignment, or relabelling could change the reading. `layout_risks` must anticipate the most failure-prone geometry before implementation, including long text and adjacent zones.
 
@@ -171,25 +170,12 @@ For a critique that is not part of repair implementation, use this reader-facing
 
 ## Recommended alternatives
 
-### Option A — Minimal repair
-- Best when: ...
-- Chart: ...
-- Encoding: ...
-- What it fixes: ...
-- Tradeoff: ...
+Repeat this block only for alternatives that solve a diagnosed mismatch:
 
-### Option B — Better analytical redesign
+### <Purpose>
 - Best when: ...
-- Chart: ...
 - Encoding: ...
-- What it fixes/reveals: ...
-- Tradeoff: ...
-
-### Option C — Different story lens
-- Best when: ...
-- Chart: ...
-- Encoding: ...
-- What it reveals: ...
+- What it fixes or reveals: ...
 - Tradeoff: ...
 
 ## Implementation notes
@@ -197,7 +183,7 @@ For a critique that is not part of repair implementation, use this reader-facing
 - Caveats/checks: ...
 ```
 
-For quick requests, compress to: verdict, top 3 fixes, and 2 redesign alternatives.
+For quick requests, return the verdict and the smallest consequential fix set. Add alternatives only when redesign is useful.
 
 ## Tone
 

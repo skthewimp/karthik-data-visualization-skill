@@ -5,7 +5,7 @@ Use `dataviz-fix` when an existing visualization needs to be repaired and return
 The default workflow is output-first:
 
 1. Inspect the source and requested change.
-2. Run one concise internal critique: comparison, three highest-impact problems, and primary label system.
+2. Run one concise internal critique: comparison, consequential problems, and identification system. Do not fill a fixed issue quota.
 3. Build one real PNG, SVG, or PDF.
 4. Critique the exact export once for geometry, typography hierarchy, label relationships, and redundant scaffolding.
 5. Consolidate the findings into one focused revision pass and return the best valid candidate.
@@ -14,7 +14,7 @@ The critique remains inside the creator stage. It does not call a fresh reviewer
 
 Typography is judged by hierarchy at delivery size, not only minimum legibility. Secondary text should not compete with data or primary labels. Every identification or scale element must add a distinct reading task such as comparison, estimation, orientation, or context; duplicate scaffolding should be removed.
 
-`render_and_inspect_chart` is the preferred mechanical path when available. If the MCP tool fails, the agent falls back to a direct local renderer and visual inspection. It must not fabricate metadata or describe incomplete checks as complete.
+`render_and_inspect_chart` is the preferred mechanical path when available. The caller supplies dimensions chosen from the comparison, label geometry, and delivery conditions rather than inheriting an aspect ratio from a renderer profile. If the MCP tool fails, the agent falls back to a direct local renderer and visual inspection. It must not fabricate metadata or describe incomplete checks as complete.
 
 Independent `dataviz-eval` review is optional. It is a formal audit with a fresh reviewer, blind reads, structured gates, and a `Send`, `Revise`, `Redesign`, or `Not evaluable` verdict. That strictness is useful for high-consequence claims and benchmarks, but harmful as a default repair step: it can block `Send`, add model calls, and create revision loops after a usable artifact already exists.
 

@@ -19,6 +19,8 @@ The skill encodes Karthik's preferred chart style:
 - small multiples over crowded overlays
 - annotations that explain, not decorate
 
+Titles may state a claim, question, measure, or null result. The evidence decides; the skill does not manufacture a claim to make a chart sound decisive.
+
 Direct labels are not universal. Choose them when the chart's density and geometry allow every important mark or series to be named legibly and unambiguously at delivery size; otherwise use a categorical axis, legend, grouping, or small multiples.
 
 Give each category or series one primary identification route. When a direct label carries the identity that an axis or legend would carry, remove the redundant scaffolding. Keep quantitative scales, baselines, and references when they add information. In every system, the intended label-mark bond must be perceptually stronger than competing nearby relationships. Judge distance to the visible mark, not merely to a shared row, plot edge, or baseline; alignment alone does not bridge blank space. If direct labels would collide or drift away, change the identification system rather than forcing them.

@@ -423,11 +423,15 @@ def validate_critique_report(raw: object, context_version: int) -> dict:
     extra = sorted(set(findings_raw) - set(CRITIQUE_SEVERITIES))
     if extra:
         raise SystemExit("Unknown critique finding severities: " + ", ".join(extra))
-    if len(ids) < 3:
-        raise SystemExit("Critique must identify at least three ranked findings")
-    highest = text_list(raw.get("highest_consequence_findings"), "highest_consequence_findings")
-    if len(highest) != 3 or len(set(highest)) != 3:
-        raise SystemExit("highest_consequence_findings must contain exactly three unique ids")
+    if not ids:
+        raise SystemExit("Critique must identify at least one consequential finding")
+    highest = text_list(
+        raw.get("highest_consequence_findings"),
+        "highest_consequence_findings",
+        minimum=1,
+    )
+    if len(set(highest)) != len(highest):
+        raise SystemExit("highest_consequence_findings must contain unique ids")
     unknown = [item for item in highest if item not in ids]
     if unknown:
         raise SystemExit("Unknown highest-consequence finding ids: " + ", ".join(unknown))

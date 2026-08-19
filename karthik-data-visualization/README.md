@@ -1,12 +1,12 @@
 # karthik-data-visualization
 
-Use this skill after the chart form is chosen, or when reviewing a chart's visual execution. It captures Karthik's chart style: direct, sparse, honest, and designed around the claim rather than decoration.
+Use this skill after the chart form is chosen, or when reviewing a chart's visual execution. It captures Karthik's chart style: direct, sparse, honest, and designed around the analytical job rather than decoration.
 
 The skill is about the finished visual. It covers typography, colour, labels, annotation, axes, gridlines, density, export choices, and rendered-output inspection.
 
 ## What it does
 
-- Uses claim-first titles and direct labels wherever possible.
+- Uses evidence-bounded titles and direct labels when the chart geometry supports them.
 - Keeps grey for context and colour for the story.
 - Removes chartjunk, decorative palettes, unnecessary legends, and weak gridlines.
 - Keeps secondary type subordinate and removes identification or scale elements that only repeat information.

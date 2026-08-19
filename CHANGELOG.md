@@ -10,6 +10,7 @@
 
 ### Repair reliability
 
+- Removed repair-stack overfitting: fixed critique and redesign quotas, forced structural changes, chart-family-specific audit zones, a Matplotlib-only creator prompt, and delivery profiles that silently imposed one canvas shape. Critique depth, renderer, chart regions, change class, and output dimensions now follow the evidence and delivery conditions.
 - Added one bounded creator critique before building and one focused critique of the first export, with general checks for typography hierarchy and redundant identification or scale elements. These checks stay inside the creator stage and do not reopen the independent-review loop.
 - Replaced the default contract-and-review loop with an output-first repair path: build, inspect once, and deliver the best valid artifact even when MCP or independent review is unavailable.
 - Removed default candidate, elapsed-time, and stalled-evaluation caps. Explicit user-supplied budgets remain available for audited runs.

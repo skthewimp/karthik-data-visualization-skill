@@ -49,12 +49,12 @@ def create_server() -> Any:
         source_path: str,
         output_dir: str,
         renderer: str = "auto",
-        delivery_profile: str | None = "chat",
+        delivery_profile: str | None = None,
         dimensions: dict[str, Any] | None = None,
         artifact_name: str = "chart.png",
         build_function: str = "build_chart",
     ) -> dict[str, Any]:
-        """Render backend-neutrally (ggplot2 first for auto), inspect, and build review views."""
+        """Render and inspect with caller-chosen dimensions; profiles set DPI, not aspect ratio."""
         return render_inspect_core(
             source_path,
             output_dir,

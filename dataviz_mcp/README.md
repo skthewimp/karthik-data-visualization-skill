@@ -114,7 +114,7 @@ Returns `Rscript`, ggplot2, ragg, and Matplotlib availability/version details, s
 
 ### `render_and_inspect_chart`
 
-Inputs include `source_path`, `output_dir`, `renderer` (`auto`, `ggplot2`, or `matplotlib`), `delivery_profile`, and explicit dimensions. `auto` applies the precedence above. The result contains the artifact, specification, normalized layout, inspection, artifact-bound review views, renderer-selection evidence, and hash-bound manifest.
+Inputs include `source_path`, `output_dir`, `renderer` (`auto`, `ggplot2`, or `matplotlib`), `delivery_profile`, and explicit dimensions. The caller must supply `width_px` and `height_px` chosen from the comparison, label geometry, and delivery conditions. Profiles provide DPI defaults; they do not impose an aspect ratio. `auto` applies the renderer precedence above. The result contains the artifact, specification, normalized layout, inspection, artifact-bound review views, renderer-selection evidence, and hash-bound manifest.
 
 ### `render_chart`
 

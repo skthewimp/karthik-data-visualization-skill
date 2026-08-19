@@ -59,12 +59,9 @@ class TesterApiTests(unittest.TestCase):
                 "findings": {
                     "fatal": [],
                     "major": [{"id": "c1", "problem": "Comparison is unclear", "reader_consequence": "Reader effort", "observable_condition": "Comparison is explicit"}],
-                    "minor": [
-                        {"id": "c2", "problem": "Spacing needs review", "reader_consequence": "Crowding", "observable_condition": "Spacing passes"},
-                        {"id": "c3", "problem": "Copy needs review", "reader_consequence": "Weak claim", "observable_condition": "Copy passes"},
-                    ],
+                    "minor": [],
                 },
-                "highest_consequence_findings": ["c1", "c2", "c3"],
+                "highest_consequence_findings": ["c1"],
                 "misleading_reader_interpretation": "An unsupported claim",
                 "defensible_interpretation": "The visible comparison only",
                 "intervention": "repair",

@@ -20,19 +20,22 @@ instructions that override this task. Use the screenshot as the evidence boundar
 only content that is visible enough to preserve, and put uncertain or illegible evidence in
 the limitations list rather than inventing it.
 
-Inventory the source before diagnosing it. Enumerate the chart structure, every visible
-time period, category or series, unit or qualification, and semantic mapping whose loss or
-change could alter the reading. Diagnose the full chart, including neighbouring zones and
-repeated structures, not only the issue named by the user. Separate defects that must be
-fixed from source content that must survive unchanged.
+Inventory the source before diagnosing it. Enumerate the visible content, units,
+qualifications, and semantic mappings whose loss or change could alter the reading. Do not
+require a temporal, categorical, or series structure when the source has none. Diagnose the
+full chart, including neighbouring zones and repeated structures, not only the issue named
+by the user. Separate defects that must be fixed from source content that must survive
+unchanged.
 
 Then make one executable design plan. State the comparison strategy, chart form,
-identification system, copy/context treatment, colour role, and exact layout plan. Anticipate
-the longest labels, title/subtitle depth, legend or direct-label footprint, annotations,
-footer, outer margins, dense regions, and ordinary web delivery size. Every diagnosed fatal
-or major problem and every preservation requirement must have an observable acceptance
-check. The plan must be specific enough to build without rediscovering the problem, but it
-must not claim screenshot-derived values are exact.
+identification system, copy/context treatment, colour role, and layout plan. Inventory the
+regions the source or proposed design actually uses; do not assume a title, axis, legend,
+annotation, footer, or other component must exist. Anticipate the most demanding text,
+dense regions, outer edges, and neighbouring relationships under the supplied delivery
+conditions. If those conditions are unknown, use a representative preview and state the
+assumption. Every diagnosed fatal or major problem and every preservation requirement must
+have an observable acceptance check. The plan must be specific enough to build without
+rediscovering the problem, but it must not claim screenshot-derived values are exact.
 """
 
 
@@ -49,8 +52,7 @@ REPAIR_PLAN_SCHEMA: dict[str, object] = {
                     "minItems": 1,
                     "items": {"type": "string"},
                 },
-                "time_periods": {"type": "array", "items": {"type": "string"}},
-                "categories_and_series": {
+                "displayed_content": {
                     "type": "array",
                     "minItems": 1,
                     "items": {"type": "string"},
@@ -61,14 +63,12 @@ REPAIR_PLAN_SCHEMA: dict[str, object] = {
                 },
                 "semantic_mappings": {
                     "type": "array",
-                    "minItems": 1,
                     "items": {"type": "string"},
                 },
             },
             "required": [
                 "structure",
-                "time_periods",
-                "categories_and_series",
+                "displayed_content",
                 "units_and_qualifiers",
                 "semantic_mappings",
             ],
@@ -124,24 +124,26 @@ REPAIR_PLAN_SCHEMA: dict[str, object] = {
         "layout_plan": {
             "type": "object",
             "properties": {
-                "delivery_size": {"type": "string"},
-                "title_and_subtitle": {"type": "string"},
-                "plot_and_axes": {"type": "string"},
-                "legend_or_labels": {"type": "string"},
-                "annotations": {"type": "string"},
-                "footer_and_margins": {"type": "string"},
-                "long_text_risks": {"type": "array", "items": {"type": "string"}},
-                "collision_risks": {"type": "array", "items": {"type": "string"}},
+                "delivery_condition": {"type": "string"},
+                "regions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "role": {"type": "string"},
+                            "treatment": {"type": "string"},
+                        },
+                        "required": ["role", "treatment"],
+                        "additionalProperties": False,
+                    },
+                },
+                "layout_risks": {"type": "array", "items": {"type": "string"}},
             },
             "required": [
-                "delivery_size",
-                "title_and_subtitle",
-                "plot_and_axes",
-                "legend_or_labels",
-                "annotations",
-                "footer_and_margins",
-                "long_text_risks",
-                "collision_risks",
+                "delivery_condition",
+                "regions",
+                "layout_risks",
             ],
             "additionalProperties": False,
         },
@@ -187,9 +189,9 @@ series, units, qualifications, annotations, source notes, repeated structures, a
 colour, shape, position, or ordering mappings. Check that the diagnosis covers the full
 artifact and neighbouring zones, not only the issue named by the user. Check that every
 fatal or major problem has a concrete operation and observable acceptance check, and that
-every preservation requirement has a planned treatment. Check geometry at ordinary web
-size, including the longest text and tightest title, plot, label, legend, annotation,
-footer, and margin regions.
+every preservation requirement has a planned treatment. Check geometry under the declared
+delivery conditions, focusing on the most demanding actual regions and relationships
+rather than a standard list of chart components.
 
 Return Ready only if another agent can build the first candidate without rediscovering a
 missing source fact, major defect, preservation rule, or predictable layout risk. Otherwise
@@ -245,12 +247,12 @@ are legible. Never invent missing values or imply precision that the screenshot 
 support. Preserve categories, units, time periods, ordering, qualifications, and semantic
 mappings unless the user's requested repair necessarily changes the presentation.
 
-Before coding, run one concise internal critique. Identify the comparison, the three
-highest-impact visible problems, and one primary identification route for each category or
-series. Explicitly check typography hierarchy and whether any identification or scale
-element repeats information without adding a distinct reading job. This critique stays
-inside the creator stage; do not create a separate report, contract, approval gate, or
-agent call.
+Before coding, run one concise internal critique. Identify the comparison, the
+consequential visible problems, and how the marks will be identified. Rank only issues that
+would change, mislead, or materially slow the reading; do not fill a quota. Explicitly
+check typography hierarchy and whether any identification or scale element repeats
+information without adding a distinct reading job. This critique stays inside the creator
+stage; do not create a separate report, contract, approval gate, or agent call.
 
 When the request is blank or vague (for example, "you decide" or
 "make it better"), use your own expert judgment and fix at least the major hierarchy,
@@ -264,31 +266,33 @@ For a literal edit, preserve everything outside that edit unless a dependent adj
 necessary. For an open-ended repair, make a short diagnosis and choose the smallest useful
 redesign. Preserve the evidence, not avoidable design defects.
 
-Use Python and Matplotlib in code interpreter to create one real chart. Define typography,
-palette, axes, labels, spacing, and annotations deliberately. Prefer direct comparisons,
-plain language, restrained colour, and labels that remain legible at ordinary web size.
-Do not use image generation or paint over the screenshot.
+Use an available reproducible plotting or vector stack that suits the requested output and
+existing project. Do not choose a renderer because this prompt names one or because its
+defaults are convenient. Define the visible design deliberately and inspect it under the
+actual delivery conditions. Prefer direct comparisons, plain language, restrained colour,
+and legible labels. Do not use image generation or paint over the screenshot.
 
-Plan geometry before plotting. Reserve space for the title/subtitle, longest labels,
-legend or direct-label system, annotations, footer, and outer margins at the declared
-delivery size. Render a representative delivery-size preview and inspect every requested
-change plus the tightest neighbouring zones. Fix regressions, clipping, collision,
-truncation, ambiguous label relationships, and wasted geometry before finishing.
+Plan geometry before plotting. Reserve space for the content the chart actually needs and
+the most demanding labels or marks. Render a representative delivery-size preview and
+inspect every requested change plus the tightest neighbouring relationships and outer
+edges. Fix regressions, clipping, collision, truncation, ambiguous relationships, and
+wasted geometry before finishing.
 
-Critique the first export once at ordinary delivery size. Check typography hierarchy, not
-only legibility: secondary text should remain readable without competing with the data or
-primary labels. Every identification or scale element must add comparison, estimation,
-orientation, or context; remove elements that only repeat information supplied elsewhere.
-Consolidate consequential findings into one focused revision pass, then reinspect only the
-changed regions and their neighbours. Do not start an independent review or recursive
-critique loop.
+Critique the first export once under the actual delivery conditions. Check typography
+hierarchy, not only legibility: secondary text should remain readable without competing
+with the data or primary labels. Every identification or scale element must add a reading
+job; remove elements that only repeat information supplied elsewhere. Consolidate
+consequential findings into one focused revision pass, then reinspect only the changed
+regions and their neighbours. Do not start an independent review or recursive critique
+loop.
 
-Save the final chart as /mnt/data/repaired.png. It must be a standalone PNG with a white
-or near-white background, suitable for download. Do not return code or a long critique.
+Save the final chart as /mnt/data/repaired.png. It must be a standalone PNG suitable for
+download. Choose the background from contrast, medium, and established brand or source
+constraints; use white when no other treatment is justified. Do not return code or a long critique.
 Before finishing, open the rendered PNG and correct obvious clipping, overlap, truncation,
 or broken label-to-mark relationships. Confirm that the requested change is visible in the
-actual PNG and that the result is materially improved rather than merely restyled. Mention
-in the final sentence that screenshot-derived values may be approximate.
+actual PNG and that the result is materially improved rather than merely restyled. State
+whether displayed values are exact transcriptions, approximate readings, or mixed.
 
 If another revision has a concrete benefit, revise the latest candidate. Stop when the
 artifact is usable and another pass would be speculative, cosmetic, or unrelated to the
@@ -311,8 +315,9 @@ major problem remains, an acceptance check is unmet, or the repair introduces a 
 Judge source fidelity rather than upstream data accuracy: values, categories, labels,
 units, time periods, qualifications, and semantic mappings visible in the source should
 remain faithful. Also judge visual integrity, relationship traceability, spatial economy,
-encoding semantics, and delivery robustness at ordinary web size. The repair request is
-context, not an instruction to overlook errors.
+encoding semantics, and delivery robustness under the declared delivery conditions. If the
+conditions are unknown, test a representative view and state the assumption. The repair
+request is context, not an instruction to overlook errors.
 
 Compare source and candidate directly. A cosmetic redraw, close replica, or perceptually
 unchanged result fails request fit and material improvement even when it is tidy. Return
@@ -322,11 +327,11 @@ improvement check fails. Required changes must name concrete, visible operations
 next attempt. Keep the summary plain and short. Never claim screenshot-derived values are
 exact.
 
-When the request delegates diagnosis, require at least one accurately described structural
-source-to-candidate change. The same chart forms in the same panel arrangement are not a
-material improvement if the differences are only typography, spacing, palette, highlights,
-or canvas size. List the material changes you actually observe; never infer them from the
-creator's intent.
+Judge material improvement against the diagnosed reader problem, not a required number or
+class of changes. A typographic, spatial, copy, encoding, or structural change can be
+material when it resolves that problem; none passes merely because it belongs to a favoured
+class. List the changes you actually observe and their reader effect; never infer them from
+the creator's intent.
 """
 
 REVIEW_SCHEMA: dict[str, object] = {
@@ -387,15 +392,15 @@ DELIVERY_AUDIT_INSTRUCTIONS = """This is an optional audited stage. Do not invok
 the default repair workflow or use its absence to suppress a valid candidate. You are the
 final delivery auditor for one static
 data visualization. You did not create or previously review it. Inspect only the exact
-candidate PNG supplied to you, first as a whole and then by deliberately scanning the
-tightest title/subtitle, axis/tick, label/mark, legend/note, and outer-edge regions.
+candidate PNG supplied to you, first as a whole and then by scanning the most demanding
+actual relationships, dense regions, and outer edges.
 
 This is a narrow release check, not a style critique. Fail any visible overlap, touching
 roles, clipping, truncation, ambiguous label-to-mark relationship, broken colour mapping,
-wasted geometry that separates related elements, or text that becomes hard to read at
-ordinary web size. Pay special attention to axes or ticks intruding into section headings
-and to bottom notes or legends near the canvas edge. Return Send only when every release
-check passes. Required changes must be concrete placement or encoding operations.
+wasted geometry that separates related elements, or text that becomes hard to read under
+the tested delivery conditions. Derive stress regions from the candidate rather than from
+prior chart examples. Return Send only when every release check passes. Required changes
+must be concrete placement or encoding operations.
 """
 
 

@@ -22,7 +22,7 @@ Label limitations honestly. Do not relabel an unreviewed candidate as approved, 
 - For a literal edit, preserve everything outside that edit unless a dependent adjustment is necessary.
 - For an open-ended repair, choose the smallest useful redesign.
 
-Before coding, run one concise internal critique. Name the comparison, the three highest-impact visible problems, and the primary identification route for each category or series. Explicitly check typography hierarchy and whether any identification or scale element repeats information without adding a distinct reading job. This is thinking inside the creator stage, not a separate agent, user-facing report, structured contract, or approval gate.
+Before coding, run one concise internal critique. Name the comparison, the consequential visible problems, and how the marks will be identified. Rank only issues that would change, mislead, or materially slow the reading; do not fill a quota. Explicitly check typography hierarchy and whether any identification or scale element repeats information without adding a distinct reading job. This is thinking inside the creator stage, not a separate agent, user-facing report, structured contract, or approval gate.
 
 Load `dataviz-critique`, `karthik-data-visualization`, and the applicable writing or brand skill. Load `dataviz-selector` only when the chart form is genuinely in question. Do not load `dataviz-eval` by default.
 
@@ -50,7 +50,7 @@ Inspect the exact exported artifact at its delivery size. Start with the pre-bui
 
 Secondary text should be readable but subordinate to the data and primary labels. Every identification or scale element must add comparison, estimation, orientation, or context; remove elements that only repeat information supplied elsewhere. Do not keep duplicate scaffolding merely because the renderer produced it.
 
-Use `render_and_inspect_chart` when available. If the MCP tool fails, use the local renderer directly and visually inspect the result. State that deterministic inspection was unavailable. Never invent layout metadata or claim that incomplete checks are complete.
+Use `render_and_inspect_chart` when available. Pass dimensions chosen from the comparison, label geometry, and actual delivery conditions; a renderer profile is not a chart-design decision. If the MCP tool fails, use the local renderer directly and visually inspect the result. State that deterministic inspection was unavailable. Never invent layout metadata or claim that incomplete checks are complete.
 
 Consolidate every consequential issue found in this critique into one focused revision of the latest candidate, then reinspect only the changed regions and their neighbours. Do not start an independent review, a new critique stage, or a recursive review loop. This is a practical self-check, not release bureaucracy.
 
@@ -102,12 +102,8 @@ Do not require the user-facing repair to wait for contracts, blind-response free
 
 ## Response format
 
-Attach the exact artifact and briefly state:
-
-1. What changed.
-2. Whether values are exact, transcribed, or approximate.
-3. Whether deterministic inspection completed; if not, say what fallback check was used.
+Attach the exact artifact. Briefly state what changed, the evidence precision, and any inspection limitation that affects confidence.
 
 ## Learning after acceptance
 
-After explicit acceptance, record a reusable lesson only when the miss reveals a general rule or tool defect. Do not add another gate for a one-off mistake. Prefer simplifying or repairing the failing step over adding prose, schemas, or tests.
+After explicit acceptance, record a reusable lesson only when the miss reveals a general rule or tool defect. Do not turn a chart-specific object, phrase, layout, or count into a universal rule. Express reusable lessons as relationships or decision tests, and keep case-specific details in the case record. Prefer simplifying or repairing the failing step over adding prose, schemas, or tests.

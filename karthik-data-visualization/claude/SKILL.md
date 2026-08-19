@@ -14,7 +14,7 @@ Workflow:
 **Semantic preflight:** before selecting a form, identify the measure's dimensional meaning, the displayed universe and denominator, the relevant time/context boundaries, the strength of any claim, and whether the units are interpretable for the audience. Make these semantics unmistakable through the most appropriate combination of wording, scale, labels, annotations, chart form, and context. A chart that is numerically faithful but invites a materially different interpretation is not repaired.
 
 1. Clarify the analytical job: what comparison matters, what the viewer should learn, and what evidence supports it. Separate what is directly supported by the supplied data from what is only inferred from a screenshot.
-2. Choose the structure: line/point for time, range plot for intervals, small multiples for category comparison, table/sparkline for dense metric scans, bar/table for part-to-whole. Do not invent a more detailed structure than the evidence supports.
+2. Choose the structure from the comparison, evidence, density, audience, and medium. Use `dataviz-selector` when the form is not already settled. Do not infer a chart form from one field type or invent more detail than the evidence supports.
 3. Build from data outward: data first, direct labels second, annotations third, grids/axes last.
 4. Check graphical integrity: scales, baselines, proportional encoding, missing context, and any visual effect that exaggerates or understates the data effect.
 5. Apply the eraser test: remove any ink that does not carry data, labels, or necessary context.
@@ -44,6 +44,7 @@ Core operating rules:
 - Show comparison and context explicitly; a chart should answer "compared to what?"
 - Use color sparingly: gray for context, color for emphasis or true encoding.
 - Keep subtitles focused on the insight or comparison, not the mechanics of how the chart was made.
+- Let the evidence determine whether the title states a claim, a question, a measure, or a null result. Do not manufacture a claim merely to make the chart sound decisive.
 - Let complexity come from the data, not decoration.
 
 ## Optional audited repair contract
@@ -82,7 +83,7 @@ When writing or changing chart code:
 - Treat rendering and inspection capabilities as mechanical infrastructure, not a style system. Do not translate a sound ggplot2 chart into Matplotlib only because one backend exposes richer metadata. If Matplotlib is the practical fallback, define typography, palette, grid, axes, labels, and spacing deliberately; default Matplotlib aesthetics fail this skill.
 - Keep the visual design deliberate, not library-default.
 - Check that text is legible and non-overlapping at the intended output size. Text placed over a mark is an inside label, not clear space: verify contrast and padding against the mark. Inspect the worst example in each repeated placement pattern because direction, sign, length, or panel side can change where the same labelling rule lands.
-- After changing an axis label, legend, or colour, inspect that exact element in the export. Confirm every required category remains identifiable and correctly bound to its marks. A legend may contain only mappings that appear in the chart, and each key must match the plotted colour plus its relevant line, point, or fill form—not colour alone.
+- After changing any identification, scale, or encoding element, inspect that exact relationship in the export. Confirm every required item remains identifiable and correctly bound to its marks. Any key must represent only mappings that appear in the chart and must match the relevant visual channels, not colour alone.
 - Make the chart stand alone without caveats doing all the work.
 - Save public chart outputs with stable, descriptive filenames when the project expects exported artifacts.
 - Prefer small multiples to crowded multi-series panels when comparison across groups is the task.
