@@ -29,4 +29,4 @@ test = [
 include = ["dataviz_mcp*"]
 
 [tool.pytest.ini_options]
-testpaths = ["dataviz-fix/tests", "tester/tests", "dataviz_mcp/tests"]
+testpaths = ["dataviz_mcp/tests"]

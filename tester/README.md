@@ -1,6 +1,6 @@
 # Local dataviz repair tester
 
-This is the first UI layer over the bounded `dataviz-fix` case manager. It supports chart paste/upload, structured context, ordinary context prompts, an explicit preservation contract, budgets, feedback acceptance checks, artifact comparison, and loop history.
+This is an optional audited development harness over the `dataviz-fix` case manager. It is not the default chart-repair path. It supports chart paste/upload, structured context, ordinary context prompts, an explicit preservation contract, optional budgets, feedback acceptance checks, artifact comparison, and loop history.
 
 Manual mode does **not** call a model. The health endpoint reports `provider_runner: false` so the case console cannot be mistaken for the complete repair product. Candidate charts can still be uploaded manually.
 

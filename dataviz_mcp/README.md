@@ -196,7 +196,7 @@ Use the same environment as the MCP clients:
 MPLCONFIGDIR=/tmp/mpl-cache "$MCP_PYTHON" -m pytest -q
 ```
 
-The suite covers the MCP tools, a real stdio tool listing, repair-loop version binding, the local runner, deterministic geometry fixtures, and the end-to-end coffee annotation repair.
+The default suite covers MCP tools, a real stdio tool listing, deterministic geometry fixtures, and the end-to-end coffee annotation repair. Run `pytest -q dataviz-fix/tests tester/tests` only when changing the optional audited case manager or local tester.
 
 `dataviz_mcp.benchmark` loads caller-supplied repair-case roots read-only, de-duplicates case IDs, reports critique/design adoption and cycle counts, and compares a complete matched replay with its baseline. A replay only meets acceptance when every baseline case is present, evaluation cycles fall, and false `Send` events do not increase.
 

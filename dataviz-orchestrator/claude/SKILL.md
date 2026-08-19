@@ -15,7 +15,7 @@ intake → question/evidence contract → data preparation → facts → visual 
 
 ### 1. Intake and context
 
-Record the dataset or existing artifact, question or purpose, audience, medium, source constraints, and requested output. Distinguish user-supplied context from assumptions. If required context is unavailable, proceed with an explicit assumption or stop at the affected stage.
+Record the dataset or existing artifact, question or purpose, audience, medium, source constraints, and requested output. Distinguish user-supplied context from assumptions. If context is unavailable, proceed with an explicit assumption and state what the evidence cannot support; do not suppress an otherwise valid artifact.
 
 ### 2. Route the work
 

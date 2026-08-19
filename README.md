@@ -296,7 +296,7 @@ To install one surface only:
 
 ## Run the local repair tester
 
-The local tester exercises the bounded case state machine before provider APIs are connected. It accepts a pasted or uploaded chart, records versioned context, explicit preservation requirements, and structured feedback, enforces iteration and cost limits, preserves original/current/best artifacts, and exposes the case history. Narrow repairs are treated as edit boundaries rather than invitations to redesign the chart. Candidate charts can be uploaded manually or generated through an opt-in local Codex runner.
+The local tester is an optional audited development harness, not the default chart-repair path. It accepts a pasted or uploaded chart, records versioned context, explicit preservation requirements, structured feedback, optional budgets, and case history. Candidate charts can be uploaded manually or generated through an opt-in local Codex runner.
 
 ```bash
 python3 -m pip install -r tester/requirements.txt
@@ -322,7 +322,7 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
 - Rendering executes trusted local Python or R. It is not a sandbox; do not use it on untrusted chart source.
 - Matplotlib geometry covers text, lines, bars, patches, and common collections. The ggplot2 adapter resolves drawn gtable tracks and captures every panel plus rect, point, polygon, polyline, and text grobs; uncommon grobs remain explicit limitations.
 - Mechanical inspection does not replace analytical critique, delivery-size visual review, or user acceptance.
-- Local/private `references/` and `scripts/` remain ignored by default. Public runtime files required by a skill, such as `dataviz-fix/scripts/case_manager.py`, are tracked.
+- Local/private `references/` and `scripts/` remain ignored by default. The optional audited `dataviz-fix/scripts/case_manager.py` runtime is tracked but is not invoked by the default skill path.
 
 ## Development notes
 
@@ -330,7 +330,7 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
 - Source skills live in `<skill>/{codex,claude}/SKILL.md`.
 - `sync-skills.py` discovers every root-level directory containing both surface files.
 - `sync-skills.py --validate-only` checks frontmatter without copying files.
-- Repair-loop changes are covered by `dataviz-fix/tests/` and `tester/tests/`.
+- `pytest -q` runs the core MCP suite. Run `pytest -q dataviz-fix/tests tester/tests` only when changing the optional audited case manager or tester.
 - No generated `dist/` output is committed.
 - Keep README files in public folders. They are navigation aids for newcomers and should be updated when layout changes.
 
