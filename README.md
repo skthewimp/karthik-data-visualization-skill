@@ -217,8 +217,6 @@ cd karthik-data-visualization-skill
 
 Install the MCP package into an existing environment or a new local environment:
 
-Use a dedicated environment. Do not install this package into a host application's environment when that application pins a different MCP SDK version.
-
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -e .

@@ -2,7 +2,7 @@
 
 ## Maintainer publish rule
 
-Karthik has asked that completed changes in his maintained checkout of this repository be published and deployed without waiting for a separate instruction.
+Karthik has asked that completed changes in his maintained checkout of this repository be published without waiting for a separate instruction.
 
 Apply this rule only when all of the following are true:
 
