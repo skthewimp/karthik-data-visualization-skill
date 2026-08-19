@@ -57,8 +57,10 @@ Before the first build in a `dataviz-fix` case, write a design contract that rec
 - delivery width, height, units, and aspect ratio;
 - whether displayed values are exact, approximate, or mixed;
 - one implementation requirement for every fatal and major critique finding, naming the affected zones and observable outcome.
+- one preservation mapping for every required source item and semantic mapping in the critique inventory, stating how it will be carried forward and what observable state proves it did not regress;
+- a layout plan for the declared delivery size that names the longest text, densest regions, likely title/subtitle/legend/annotation/footer collisions, their mitigation, and the representative preview check.
 
-Treat this as executable scope. The first render must implement every mapped fatal and major finding. A `Revise` continues from the latest candidate and changes every zone named in the revision contract. A `Redesign` discards the failed form, returns to the underlying evidence, and creates a new critique/design contract.
+Treat this as executable scope. Submit it to an independent plan audit against the source, covering inventory, diagnosis, preservation, and layout. Do not begin chart code until that audit passes, every fatal/major finding and required source item is mapped, and predictable geometry risks have a mitigation. The first render must implement every mapped fatal and major finding and preserve the complete mapped inventory. A `Revise` continues from the latest candidate and changes every zone named in the revision contract. A `Redesign` discards the failed form, returns to the underlying evidence, and creates a new critique/design contract.
 
 ## Colour system
 

@@ -247,7 +247,7 @@ def create_app(root: Path | None = None, runner_enabled: bool | None = None) -> 
         medium: str = Form(default=""),
         dimensions: str = Form(default=""),
         preserve: str = Form(default=""),
-        max_iterations: int = Form(default=3),
+        max_iterations: int = Form(default=6),
         max_tokens: int | None = Form(default=None),
         max_cost_usd: float | None = Form(default=None),
     ):

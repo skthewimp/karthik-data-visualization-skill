@@ -49,6 +49,13 @@ class TesterApiTests(unittest.TestCase):
                 "apparent_question": "What comparison does the chart support?",
                 "apparent_claim": "The visible comparison is the apparent claim",
                 "evidence_limitations": ["Source fidelity only"],
+                "source_inventory": {
+                    "structure": ["One source chart"],
+                    "required_content": ["Visible labels and values"],
+                    "semantic_mappings": ["Existing label-to-mark mappings"],
+                    "uncertainties": [],
+                },
+                "layout_risks": ["Crowded labels at delivery size"],
                 "findings": {
                     "fatal": [],
                     "major": [{"id": "c1", "problem": "Comparison is unclear", "reader_consequence": "Reader effort", "observable_condition": "Comparison is explicit"}],
@@ -80,6 +87,35 @@ class TesterApiTests(unittest.TestCase):
                 "dimensions": {"width": 1200, "height": 675},
                 "value_precision": "exact",
                 "selector_decision": None,
+                "preservation_plan": [
+                    {
+                        "source_item": "Visible labels and values",
+                        "planned_treatment": "Carry them into the repair",
+                        "observable_outcome": "All remain identifiable",
+                    },
+                    {
+                        "source_item": "Existing label-to-mark mappings",
+                        "planned_treatment": "Preserve identities",
+                        "observable_outcome": "Labels remain bound to the correct marks",
+                    },
+                ],
+                "layout_plan": {
+                    "delivery_size": "1200 by 675 pixels",
+                    "longest_text": "Measure the longest label",
+                    "dense_regions": "Inspect title, plot, and footer",
+                    "collision_risks": ["Labels could collide at delivery size"],
+                    "mitigation": "Reserve space before plotting",
+                    "preview_check": "Inspect the complete delivery-size export",
+                },
+                "plan_audit": {
+                    "verdict": "Ready",
+                    "summary": "The plan covers the source and predictable risks",
+                    "inventory_coverage": "Pass",
+                    "diagnosis_coverage": "Pass",
+                    "preservation_coverage": "Pass",
+                    "layout_coverage": "Pass",
+                    "required_plan_changes": [],
+                },
             }
             response = self.client.post(f"/api/cases/{case_id}/design-contract", json={"report": design})
             self.assertEqual(response.status_code, 200, response.text)

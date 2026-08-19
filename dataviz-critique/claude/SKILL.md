@@ -31,6 +31,8 @@ Before critique, identify:
 4. Likely audience interpretation.
 5. Any assumptions due to missing context.
 
+For a repair handoff, also freeze a source inventory before proposing changes: chart/panel structure; every visible period, category, series, unit, qualification, source note, and annotation that can change the reading; semantic colour/shape/order mappings; repeated instances; and anything too uncertain to reproduce. Diagnose the full artifact and neighbouring zones, not only the defect named by the user. The inventory is the preservation boundary for the first build.
+
 If the chart is impossible to interpret, say so directly and explain why.
 
 ## Trifecta checkup
@@ -122,6 +124,13 @@ For every `dataviz-fix` handoff, return this contract as JSON (or the equivalent
   "apparent_question": "...",
   "apparent_claim": "...",
   "evidence_limitations": ["..."],
+  "source_inventory": {
+    "structure": ["..."],
+    "required_content": ["every visible period, category, unit, qualification, source note, and annotation that must survive"],
+    "semantic_mappings": ["..."],
+    "uncertainties": ["..."]
+  },
+  "layout_risks": ["longest labels, dense regions, neighbouring zones, repeated placements, and outer-edge risks"],
   "findings": {
     "fatal": [{"id": "c1", "problem": "...", "reader_consequence": "...", "observable_condition": "..."}],
     "major": [{"id": "c2", "problem": "...", "reader_consequence": "...", "observable_condition": "..."}],
@@ -138,6 +147,8 @@ For every `dataviz-fix` handoff, return this contract as JSON (or the equivalent
 ```
 
 Always identify exactly three highest-consequence findings, while retaining every additional fatal, major, and minor finding in its severity list. `required_delivered_outcomes` must be observable in the replacement artifact. `preserve` must name source context, evidence, wording, mappings, or geometry that should not regress.
+
+`source_inventory.required_content` and `semantic_mappings` are not optional summaries. Enumerate the source elements whose omission, shortening, reassignment, or relabelling could change the reading. `layout_risks` must anticipate the most failure-prone geometry before implementation, including long text and adjacent zones.
 
 For a critique that is not part of repair implementation, use this reader-facing structure:
 

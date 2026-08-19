@@ -49,8 +49,8 @@ PRESENTATION_CHECK_NAMES = (
     "Copy style",
 )
 DELIVERABLE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".pdf")
-SCHEMA_VERSION = 15
-DEFAULT_MAX_ITERATIONS = 3
+SCHEMA_VERSION = 16
+DEFAULT_MAX_ITERATIONS = 6
 DEFAULT_MAX_STALLED_EVALUATIONS = 2
 ACTIVE_STATES = (
     "critique",
@@ -442,6 +442,32 @@ def validate_critique_report(raw: object, context_version: int) -> dict:
     form_questioned = raw.get("form_questioned")
     if not isinstance(form_questioned, bool):
         raise SystemExit("Critique form_questioned must be true or false")
+    source_inventory = raw.get("source_inventory")
+    if not isinstance(source_inventory, dict):
+        raise SystemExit("Critique source_inventory must be an object")
+    inventory = {
+        "structure": text_list(
+            source_inventory.get("structure"), "source_inventory.structure", minimum=1
+        ),
+        "required_content": text_list(
+            source_inventory.get("required_content"),
+            "source_inventory.required_content",
+            minimum=1,
+        ),
+        "semantic_mappings": text_list(
+            source_inventory.get("semantic_mappings"),
+            "source_inventory.semantic_mappings",
+            minimum=1,
+        ),
+        "uncertainties": text_list(
+            source_inventory.get("uncertainties"), "source_inventory.uncertainties"
+        ),
+    }
+    extra_inventory = sorted(set(source_inventory) - set(inventory))
+    if extra_inventory:
+        raise SystemExit(
+            "Unknown source_inventory fields: " + ", ".join(extra_inventory)
+        )
     return {
         "context_version": context_version,
         "apparent_question": nonempty_text(raw.get("apparent_question"), "apparent_question"),
@@ -457,6 +483,8 @@ def validate_critique_report(raw: object, context_version: int) -> dict:
         ),
         "intervention": intervention,
         "form_questioned": form_questioned,
+        "source_inventory": inventory,
+        "layout_risks": text_list(raw.get("layout_risks"), "layout_risks", minimum=1),
         "required_delivered_outcomes": text_list(
             raw.get("required_delivered_outcomes"), "required_delivered_outcomes", minimum=1
         ),
@@ -524,6 +552,92 @@ def validate_design_contract(raw: object, critique: dict) -> dict:
         for name in ("width", "height")
     ):
         raise SystemExit("Design contract dimensions require positive width and height")
+    preservation_plan_raw = raw.get("preservation_plan")
+    if not isinstance(preservation_plan_raw, list):
+        raise SystemExit("Design contract preservation_plan must be a list")
+    preservation_plan: list[dict] = []
+    mapped_source_items: set[str] = set()
+    for item in preservation_plan_raw:
+        if not isinstance(item, dict):
+            raise SystemExit("Each preservation_plan item must be an object")
+        source_item = nonempty_text(item.get("source_item"), "preservation_plan.source_item")
+        if source_item in mapped_source_items:
+            raise SystemExit(f"Duplicate preservation mapping for {source_item!r}")
+        mapped_source_items.add(source_item)
+        preservation_plan.append(
+            {
+                "source_item": source_item,
+                "planned_treatment": nonempty_text(
+                    item.get("planned_treatment"), f"{source_item}.planned_treatment"
+                ),
+                "observable_outcome": nonempty_text(
+                    item.get("observable_outcome"), f"{source_item}.observable_outcome"
+                ),
+            }
+        )
+    required_source_items = list(
+        dict.fromkeys(
+            critique["source_inventory"]["required_content"]
+            + critique["source_inventory"]["semantic_mappings"]
+        )
+    )
+    missing_source_items = [
+        item for item in required_source_items if item not in mapped_source_items
+    ]
+    if missing_source_items:
+        raise SystemExit(
+            "Design contract must map every required source item and semantic mapping: "
+            + ", ".join(missing_source_items)
+        )
+    layout_plan = raw.get("layout_plan")
+    layout_fields = (
+        "delivery_size",
+        "longest_text",
+        "dense_regions",
+        "mitigation",
+        "preview_check",
+    )
+    if not isinstance(layout_plan, dict) or any(
+        not isinstance(layout_plan.get(name), str) or not layout_plan[name].strip()
+        for name in layout_fields
+    ):
+        raise SystemExit(
+            "Design contract layout_plan must define delivery_size, longest_text, "
+            "dense_regions, mitigation, and preview_check"
+        )
+    collision_risks = text_list(
+        layout_plan.get("collision_risks"), "layout_plan.collision_risks", minimum=1
+    )
+    plan_audit_raw = raw.get("plan_audit")
+    audit_fields = (
+        "inventory_coverage",
+        "diagnosis_coverage",
+        "preservation_coverage",
+        "layout_coverage",
+    )
+    if not isinstance(plan_audit_raw, dict):
+        raise SystemExit("Design contract plan_audit must be an object")
+    verdict = nonempty_text(plan_audit_raw.get("verdict"), "plan_audit.verdict")
+    if verdict != "Ready" or any(plan_audit_raw.get(name) != "Pass" for name in audit_fields):
+        raise SystemExit(
+            "Design contract plan_audit must be independently Ready with Pass coverage "
+            "for inventory, diagnosis, preservation, and layout"
+        )
+    required_plan_changes = text_list(
+        plan_audit_raw.get("required_plan_changes"),
+        "plan_audit.required_plan_changes",
+    )
+    if required_plan_changes:
+        raise SystemExit(
+            "Resolve every required_plan_change and rerun the independent plan audit "
+            "before attaching the design contract"
+        )
+    plan_audit = {
+        "verdict": verdict,
+        "summary": nonempty_text(plan_audit_raw.get("summary"), "plan_audit.summary"),
+        **{name: plan_audit_raw[name] for name in audit_fields},
+        "required_plan_changes": required_plan_changes,
+    }
     return {
         "critique_number": critique["number"],
         "requirements": list(mapped.values()),
@@ -538,6 +652,12 @@ def validate_design_contract(raw: object, critique: dict) -> dict:
         "dimensions": {**dimensions},
         "value_precision": value_precision,
         "selector_decision": selector,
+        "preservation_plan": preservation_plan,
+        "layout_plan": {
+            **{name: layout_plan[name].strip() for name in layout_fields},
+            "collision_risks": collision_risks,
+        },
+        "plan_audit": plan_audit,
     }
 
 

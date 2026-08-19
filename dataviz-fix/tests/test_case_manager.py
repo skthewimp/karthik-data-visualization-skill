@@ -104,6 +104,13 @@ class CaseManagerTest(unittest.TestCase):
                         "apparent_question": "What comparison does the source chart support?",
                         "apparent_claim": "The visible comparison is the apparent claim.",
                         "evidence_limitations": ["Only source-fidelity evidence is available"],
+                        "source_inventory": {
+                            "structure": ["One source chart"],
+                            "required_content": ["Visible periods, categories, labels, and units"],
+                            "semantic_mappings": ["Existing label-to-mark mappings"],
+                            "uncertainties": [],
+                        },
+                        "layout_risks": ["Long labels and neighbouring zones at delivery size"],
                         "findings": {
                             "fatal": [],
                             "major": [
@@ -172,6 +179,35 @@ class CaseManagerTest(unittest.TestCase):
                         "dimensions": {"width": 1200, "height": 675, "aspect_ratio": "16:9"},
                         "value_precision": "exact",
                         "selector_decision": None,
+                        "preservation_plan": [
+                            {
+                                "source_item": "Visible periods, categories, labels, and units",
+                                "planned_treatment": "Carry all legible source content into the repair",
+                                "observable_outcome": "Every legible source item remains identifiable",
+                            },
+                            {
+                                "source_item": "Existing label-to-mark mappings",
+                                "planned_treatment": "Preserve each identity while changing the presentation",
+                                "observable_outcome": "Each label still identifies the correct mark",
+                            },
+                        ],
+                        "layout_plan": {
+                            "delivery_size": "1200 by 675 pixels",
+                            "longest_text": "Measure the longest visible label before plotting",
+                            "dense_regions": "Inspect title, plot edges, and footer",
+                            "collision_risks": ["Long labels could collide with marks or margins"],
+                            "mitigation": "Reserve label and footer space before plotting",
+                            "preview_check": "Inspect the complete 1200 by 675 export",
+                        },
+                        "plan_audit": {
+                            "verdict": "Ready",
+                            "summary": "The plan covers the source and predictable risks",
+                            "inventory_coverage": "Pass",
+                            "diagnosis_coverage": "Pass",
+                            "preservation_coverage": "Pass",
+                            "layout_coverage": "Pass",
+                            "required_plan_changes": [],
+                        },
                     }
                 ),
                 encoding="utf-8",
@@ -1497,10 +1533,10 @@ class CaseManagerTest(unittest.TestCase):
         case["state"] = "active"
         case_path.write_text(json.dumps(case), encoding="utf-8")
         status = self.status()
-        self.assertEqual(status["schema_version"], 15)
+        self.assertEqual(status["schema_version"], 16)
         self.assertEqual(status["state"], "build")
         self.assertEqual(status["context_version"], 1)
-        self.assertEqual(status["limits"]["max_iterations"], 3)
+        self.assertEqual(status["limits"]["max_iterations"], 6)
         self.assertEqual(status["limit_authorizations"], [])
         self.assertEqual(status["limit_changes"], [])
 

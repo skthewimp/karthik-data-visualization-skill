@@ -52,10 +52,13 @@ Capture, when available:
 - the delivery medium and real display size
 - the active change contract: each requested addition, removal, relocation, and preservation constraint rewritten as an observable before-to-after acceptance check
 - the original structured critique and first/revised design contract
+- the frozen source inventory, preservation mappings, and pre-build layout-risk plan
 - every open action from prior evaluations and every active user acceptance check
 - deterministic full, delivery, panel, hierarchy, and dense-placement views plus the revision comparison
 
 Treat these as one contract stack for the exact replacement artifact. Do not evaluate a generic idea of the chart or substitute a new critique. Every fatal/major critique finding, active user check, prior evaluator action, semantic check, and mechanical defect must receive an explicit result; only `Pass` closes it.
+
+Audit the pre-build plan itself against the source before judging the candidate. If the source inventory omitted a visible period, category, qualification, mapping, repeated instance, or neighbouring-zone risk that could change the reading, fail plan compliance and add the missing item to the complete minimum pass set. Then verify every inventoried required item and semantic mapping in the candidate. A creator cannot pass by faithfully executing an incomplete plan.
 
 Set the evidence scope explicitly:
 
@@ -83,6 +86,8 @@ Treat the export as the source of truth. Do not approve a browser viewport, plot
 When deterministic render inspection is available, require its artifact hash to match this export and record the inspection hash in the evaluation. Use known metadata-backed failures as evidence for the relevant release checks and minimum pass set; they cannot be overridden by a clean-looking overview. An incomplete report leaves uncovered geometry unknown and cannot by itself support a pass, so inspect that coverage visually and state the limitation. Deterministic checks supply mechanical evidence but never decide the analytical or communication verdict.
 
 On the first inspection pass, open the full export, delivery-size view, every panel view, every hierarchy region, and each densest repeated-placement view. Audit repeated structures completely, not by sampling the easiest instance. Inspect neighbouring zones around each proposed correction so a title fix does not create a subtitle or panel-heading collision, a legend fix does not damage plot hierarchy, and a label fix does not create a new mark or margin failure. Use the revision comparison to name introduced, persistent, and resolved defects.
+
+Start with the risks named before the build—longest text, densest region, legend/direct-label footprint, annotations, footer, margins, and adjacent zones—but do not stop there. The plan is a hypothesis; discover and record any consequential source or delivery problem it missed.
 
 ### 3. Run an expert blind read
 

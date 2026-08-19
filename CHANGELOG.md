@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Repair reliability
+
+- Raised the default autonomous repair budget from three to six iterations while preserving configurable limits and no-progress stops.
+- Made source inventory, preservation mapping, delivery-size layout planning, and an independent pre-build plan audit mandatory before the first candidate can be recorded.
+- Added provider-neutral planner and plan-auditor contracts for the public repair runner, plus plan-compliance and regression fields for independent candidate review.
+- Updated critique, construction, evaluation, and repair skills on both Codex and Claude surfaces so incomplete plans are revised before chart code runs.
+
 ### Workflow and skill generalization
 
 - Reworked the visualization skill family around explicit ownership and handoffs: planning → cleaning → question generation → selection → construction → annotation → explanation → critique/repair → independent evaluation.

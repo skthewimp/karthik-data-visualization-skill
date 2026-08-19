@@ -49,16 +49,25 @@ def test_repair_skill_is_portable_and_orders_inspection_before_review() -> None:
         assert "revision-contract" in fixer
         assert "renderer-selection" in fixer
         assert "An unexplained Matplotlib selection is invalid" in fixer
+        assert "independent pre-build plan audit" in fixer
 
         critique = read_skill("dataviz-critique", surface)
         assert "## Structured repair brief" in critique
         assert '"highest_consequence_findings"' in critique
         assert '"required_delivered_outcomes"' in critique
+        assert '"source_inventory"' in critique
+        assert '"layout_risks"' in critique
+
+        visualizer = read_skill("karthik-data-visualization", surface)
+        assert "one preservation mapping for every required source item" in visualizer
+        assert "a layout plan for the declared delivery size" in visualizer
+        assert "independent plan audit" in visualizer
 
         evaluator = read_skill("dataviz-eval", surface)
         assert "one contract stack for the exact replacement artifact" in evaluator
         assert "every panel" in evaluator
         assert "neighbouring zones" in evaluator
+        assert "Audit the pre-build plan itself against the source" in evaluator
 
 
 def test_public_entrypoint_explains_installation_and_renderer_boundary() -> None:

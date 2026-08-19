@@ -72,7 +72,7 @@ python3 "${CASE_MANAGER}" start \
 
 Pass `--context-source user` only when every structured intake field in that command was explicitly supplied by the user. The default is `inferred`. Do not upgrade a paraphrase of the source title or the creator's proposed story to user intent.
 
-Do this before editing. The command copies the original, snapshots the installed skills, records context version 1, and creates a bounded loop. It defaults to three autonomous iterations. Use `--max-elapsed-minutes`, `--max-tokens`, or `--max-cost-usd` when another hard budget matters.
+Do this before editing. The command copies the original, snapshots the installed skills, records context version 1, and creates a bounded loop. It defaults to six autonomous iterations and still stops earlier when repeated evaluations show no progress. Use `--max-elapsed-minutes`, `--max-tokens`, or `--max-cost-usd` when another hard budget matters.
 
 Turn the request into a change contract before the first build. Record each concrete requested change as an intake check:
 
@@ -104,7 +104,7 @@ python3 "${CASE_MANAGER}" context \
 
 Use `context` whenever the user adds or changes the audience, purpose, question, hypothesis, message, medium, dimensions, source notes, preservation requirements, accessibility, brand, tooling, or output constraints. `--text` accepts an ordinary free-text prompt. Each material change creates a new context version, cancels an in-flight stale review, and supersedes an old verdict. An identical update creates no new version.
 
-Before any implementation, run `dataviz-critique` on the original artifact and save its structured repair brief. It must state the apparent question and claim, evidence limitations, fatal/major/minor findings, exactly three highest-consequence finding ids, misleading and defensible interpretations, repair/redesign decision, observable delivered outcomes, preservation requirements, and whether the form is questioned. Attach it:
+Before any implementation, run `dataviz-critique` on the original artifact and save its structured repair brief. It must state the apparent question and claim, evidence limitations, fatal/major/minor findings, exactly three highest-consequence finding ids, misleading and defensible interpretations, repair/redesign decision, observable delivered outcomes, preservation requirements, and whether the form is questioned. It must also inventory the source structure, every visible period/category/unit/qualification that must survive, every semantic mapping, any uncertainty, and the layout risks most likely to create a regression. Attach it:
 
 ```bash
 python3 "${CASE_MANAGER}" critique \
@@ -112,7 +112,7 @@ python3 "${CASE_MANAGER}" critique \
   --report "/absolute/path/to/critique.json"
 ```
 
-Create the first implementation contract with `karthik-data-visualization`. Map every fatal and major finding id to a planned change, affected zones, and observable outcome. Also record measure/evidence scope, chart form, primary identification route, title/subtitle/legend/plot/annotation/footer zones, colour role, delivery dimensions/aspect ratio, and exact/approximate value status. If the critique questions the form or chooses redesign, include the `dataviz-selector` decision. Attach it:
+Create the first implementation contract with `karthik-data-visualization`. Map every fatal and major finding id to a planned change, affected zones, and observable outcome. Map every required source item and semantic mapping to its planned treatment and no-regression outcome. Also record measure/evidence scope, chart form, primary identification route, title/subtitle/legend/plot/annotation/footer zones, colour role, delivery dimensions/aspect ratio, exact/approximate value status, and a layout plan covering delivery size, longest text, dense regions, collision risks, mitigation, and the preview check. If the critique questions the form or chooses redesign, include the `dataviz-selector` decision. Attach it:
 
 ```bash
 python3 "${CASE_MANAGER}" design-contract \
@@ -156,7 +156,7 @@ python3 "${CASE_MANAGER}" build-check \
   --case "${CASE_ID}"
 ```
 
-**Repair preflight:** carry every fatal and major critique finding into the design contract; translate every named user correction into an observable acceptance check. Use `dataviz-eval` for release criteria; this skill owns recording and sequencing, not redefining them.
+**Repair preflight:** carry every fatal and major critique finding into the design contract; translate every named user correction into an observable acceptance check; and map every required source item and semantic mapping into the preservation plan. Before any chart code, run an independent pre-build plan audit against the source. That audit must check inventory, diagnosis, preservation, and layout coverage and return a complete revision list when anything is missing. Do not build until the audit passes, and do not build while an inventoried period, category, qualification, mapping, or layout risk has no planned treatment and observable check. Use `dataviz-eval` for release criteria; this skill owns recording and sequencing, not redefining them.
 
 Do not start the build if this preflight stops the case. Record the completed artifact with `iterate` after rendering even if that call crossed a budget; the budget controls the next build, not preservation or independent review of work already done.
 
@@ -264,6 +264,7 @@ Apply the evaluator's complete minimum pass set to the latest candidate and its 
 ### 1. Read the input
 
 - Inspect the actual image, not only OCR or an image description.
+- Inventory the full source before diagnosing: structure, every visible period/category/series, units and qualifications, semantic mappings, repeated elements, and uncertain evidence. The first build may not simplify by silently dropping an inventoried item.
 - Infer the intended comparison, audience, and medium when visible.
 - Use source data/code when supplied. If it is absent, recover only legible values and mark them approximate.
 - Preserve exact wording, units, order, and semantic mappings unless the redesign deliberately changes them.
@@ -271,6 +272,8 @@ Apply the evaluator's complete minimum pass set to the latest candidate and its 
 ### 2. Diagnose and choose the intervention
 
 Use the attached critique brief as the first implementation contract. The first implementation must address every fatal and major finding, not only the easiest three. Do not substitute a fresh informal diagnosis after the contract has been recorded.
+
+Before code, reconcile the source inventory, preservation plan, layout plan, and acceptance checks as one executable build plan. Reserve geometry for the longest text and most crowded neighbouring zones at delivery size; do not discover predictable label, legend, title, or margin collisions only after review.
 
 ### 3. Rebuild a real artifact
 
