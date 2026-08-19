@@ -22,7 +22,7 @@ Label limitations honestly. Do not relabel an unreviewed candidate as approved, 
 - For a literal edit, preserve everything outside that edit unless a dependent adjustment is necessary.
 - For an open-ended repair, choose the smallest useful redesign.
 
-Before coding, run one concise internal critique. Name the comparison, the three highest-impact visible problems, and the primary identification route for each category or series. Explicitly check typography hierarchy and redundant scaffolding: axis text, ticks, legends, repeated direct labels, and time labels must each do a distinct reading job. This is thinking inside the creator stage, not a separate agent, user-facing report, structured contract, or approval gate.
+Before coding, run one concise internal critique. Name the comparison, the three highest-impact visible problems, and the primary identification route for each category or series. Explicitly check typography hierarchy and whether any identification or scale element repeats information without adding a distinct reading job. This is thinking inside the creator stage, not a separate agent, user-facing report, structured contract, or approval gate.
 
 Load `dataviz-critique`, `karthik-data-visualization`, and the applicable writing or brand skill. Load `dataviz-selector` only when the chart form is genuinely in question. Do not load `dataviz-eval` by default.
 
@@ -48,7 +48,7 @@ Inspect the exact exported artifact at its delivery size. Start with the pre-bui
 - missing categories, periods, or units;
 - obvious colour or contrast failures.
 
-Axis, tick, source, and note text should be readable but subordinate to the data and direct labels. If direct labels already identify every mark or time point, retain an axis, tick set, legend, or repeated year label only when it adds comparison, estimation, orientation, or context. Do not keep duplicate scaffolding merely because the renderer produced it.
+Secondary text should be readable but subordinate to the data and primary labels. Every identification or scale element must add comparison, estimation, orientation, or context; remove elements that only repeat information supplied elsewhere. Do not keep duplicate scaffolding merely because the renderer produced it.
 
 Use `render_and_inspect_chart` when available. If the MCP tool fails, use the local renderer directly and visually inspect the result. State that deterministic inspection was unavailable. Never invent layout metadata or claim that incomplete checks are complete.
 

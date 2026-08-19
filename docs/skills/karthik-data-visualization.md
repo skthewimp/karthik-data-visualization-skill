@@ -23,7 +23,7 @@ Direct labels are not universal. Choose them when the chart's density and geomet
 
 Give each category or series one primary identification route. When a direct label carries the identity that an axis or legend would carry, remove the redundant scaffolding. Keep quantitative scales, baselines, and references when they add information. In every system, the intended label-mark bond must be perceptually stronger than competing nearby relationships. Judge distance to the visible mark, not merely to a shared row, plot edge, or baseline; alignment alone does not bridge blank space. If direct labels would collide or drift away, change the identification system rather than forcing them.
 
-Set typography by hierarchy at delivery size rather than by a fixed point-size recipe. Direct labels and data values may lead within the plot; axis titles, ticks, sources, and notes should remain readable without competing with them or the title. Keep years or other time ticks when they locate unlabeled observations, establish intervals, or support comparison. When direct labels already identify every relevant time point, remove repeated axis labels or retain only the few references needed for orientation.
+Set typography by hierarchy at delivery size rather than by a fixed point-size recipe. Direct labels and data values may lead within the plot; secondary text should remain readable without competing with them or the title.
 
 When one removed legend served several panels, replace its lookup in every panel that uses the mapping unless one shared replacement keeps every panel immediately interpretable. Count the expected labels panel by panel; completing the easiest panel is not enough.
 

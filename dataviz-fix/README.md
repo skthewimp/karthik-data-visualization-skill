@@ -8,7 +8,7 @@ The default path runs one concise creator critique, builds a candidate, critique
 
 - Rebuilds an uploaded or pasted visualization as a real PNG, SVG, or PDF.
 - Iterates from short user feedback without restarting the chart each time.
-- Checks typography hierarchy and redundant axes, ticks, legends, direct labels, and time labels in the exact export.
+- Checks typography hierarchy and redundant identification or scale elements in the exact export.
 - Consolidates consequential findings into one focused revision pass without starting a recursive review loop.
 - Stops when the artifact is usable and another pass would be speculative, cosmetic, or unrelated to the request.
 - Does not impose a fixed candidate count or elapsed-time limit.

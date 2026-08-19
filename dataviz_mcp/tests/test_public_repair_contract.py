@@ -17,9 +17,10 @@ def test_public_repair_contract_is_output_first_by_default() -> None:
     assert "Do not use image generation" in CREATOR_INSTRUCTIONS
     assert "Do not impose a fixed candidate count or elapsed-time limit" in CREATOR_INSTRUCTIONS
     assert "run one concise internal critique" in CREATOR_INSTRUCTIONS
-    assert "typography hierarchy and redundant scaffolding" in CREATOR_INSTRUCTIONS
-    assert "one focused\nrevision pass" in CREATOR_INSTRUCTIONS
-    assert "Do not start\nan independent review or recursive critique loop" in CREATOR_INSTRUCTIONS
+    assert "typography hierarchy and whether any identification or scale" in CREATOR_INSTRUCTIONS
+    assert "one focused revision pass" in CREATOR_INSTRUCTIONS
+    assert "Do not start an independent review or recursive" in CREATOR_INSTRUCTIONS
+    assert "critique loop" in CREATOR_INSTRUCTIONS
     assert "optional audited stage" in PLANNER_INSTRUCTIONS
     assert "optional audited stage" in PLAN_AUDITOR_INSTRUCTIONS
     assert "optional audited stage" in REVIEWER_INSTRUCTIONS
