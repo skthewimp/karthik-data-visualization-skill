@@ -56,8 +56,6 @@ Do not write a design contract in the default output-first `dataviz-fix` path. B
 - one primary identification route for each series/category;
 - the intended contents of the title, subtitle, legend, plot, annotation, and footer zones;
 - colour's semantic role: identity, order, direction, emphasis, uncertainty, or none;
-- delivery width, height, units, and aspect ratio;
-- whether displayed values are exact, approximate, or mixed;
 - one implementation requirement for every fatal and major critique finding, naming the affected zones and observable outcome.
 - one preservation mapping for every required source item and semantic mapping in the critique inventory, stating how it will be carried forward and what observable state proves it did not regress;
 - a layout plan for the declared delivery size that names the longest text, densest regions, likely title/subtitle/legend/annotation/footer collisions, their mitigation, and the representative preview check.

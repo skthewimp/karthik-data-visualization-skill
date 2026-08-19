@@ -64,7 +64,7 @@ intake
 → narrow repair from user feedback when required
 ```
 
-When the chosen renderer is supported, pass explicit width and height selected from the comparison, label geometry, and delivery conditions, then inspect the exact deliverable through the metadata-producing adapter. Delivery profiles provide DPI defaults, not aspect-ratio decisions. When the appropriate renderer is not supported, inspect the exact export visually and keep missing geometry marked unknown. Use independent evaluation only for an explicit audit, high-risk decision, or benchmark. Metadata availability must not force a weaker visual implementation or suppress a valid artifact.
+When the chosen renderer is supported, pass the exact deliverable through the metadata-producing adapter and then exact-artifact inspection. When the appropriate renderer is not supported, inspect the exact export visually and keep missing geometry marked unknown. Use independent evaluation only for an explicit audit, high-risk decision, or benchmark. Metadata availability must not force a weaker visual implementation or suppress a valid artifact.
 
 ## Optional audited repair sequence
 

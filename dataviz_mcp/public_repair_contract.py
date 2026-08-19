@@ -291,8 +291,7 @@ download. Choose the background from contrast, medium, and established brand or 
 constraints; use white when no other treatment is justified. Do not return code or a long critique.
 Before finishing, open the rendered PNG and correct obvious clipping, overlap, truncation,
 or broken label-to-mark relationships. Confirm that the requested change is visible in the
-actual PNG and that the result is materially improved rather than merely restyled. State
-whether displayed values are exact transcriptions, approximate readings, or mixed.
+actual PNG and that the result is materially improved rather than merely restyled.
 
 If another revision has a concrete benefit, revise the latest candidate. Stop when the
 artifact is usable and another pass would be speculative, cosmetic, or unrelated to the

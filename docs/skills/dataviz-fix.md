@@ -14,7 +14,7 @@ The critique remains inside the creator stage. It does not call a fresh reviewer
 
 Typography is judged by hierarchy at delivery size, not only minimum legibility. Secondary text should not compete with data or primary labels. Every identification or scale element must add a distinct reading task such as comparison, estimation, orientation, or context; duplicate scaffolding should be removed.
 
-`render_and_inspect_chart` is the preferred mechanical path when available. The caller supplies dimensions chosen from the comparison, label geometry, and delivery conditions rather than inheriting an aspect ratio from a renderer profile. If the MCP tool fails, the agent falls back to a direct local renderer and visual inspection. It must not fabricate metadata or describe incomplete checks as complete.
+`render_and_inspect_chart` is the preferred mechanical path when available. If the MCP tool fails, the agent falls back to a direct local renderer and visual inspection. It must not fabricate metadata or describe incomplete checks as complete.
 
 Independent `dataviz-eval` review is optional. It is a formal audit with a fresh reviewer, blind reads, structured gates, and a `Send`, `Revise`, `Redesign`, or `Not evaluable` verdict. That strictness is useful for high-consequence claims and benchmarks, but harmful as a default repair step: it can block `Send`, add model calls, and create revision loops after a usable artifact already exists.
 

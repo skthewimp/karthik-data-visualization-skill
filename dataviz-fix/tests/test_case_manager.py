@@ -163,8 +163,6 @@ class CaseManagerTest(unittest.TestCase):
                             "footer": "Source and caveat",
                         },
                         "colour_role": "Identity or emphasis only",
-                        "dimensions": {"width": 1200, "height": 675, "aspect_ratio": "16:9"},
-                        "value_precision": "exact",
                         "selector_decision": None,
                         "preservation_plan": [
                             {

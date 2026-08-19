@@ -81,8 +81,6 @@ class TesterApiTests(unittest.TestCase):
                 "primary_identification": "Existing labels",
                 "zones": {name: name for name in ("title", "subtitle", "legend", "plot", "annotation", "footer")},
                 "colour_role": "Identity only",
-                "dimensions": {"width": 1200, "height": 675},
-                "value_precision": "exact",
                 "selector_decision": None,
                 "preservation_plan": [
                     {

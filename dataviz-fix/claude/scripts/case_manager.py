@@ -542,15 +542,6 @@ def validate_design_contract(raw: object, critique: dict) -> dict:
             "encoding": nonempty_text(selector.get("encoding"), "selector_decision.encoding"),
             "avoid": nonempty_text(selector.get("avoid"), "selector_decision.avoid"),
         }
-    value_precision = raw.get("value_precision")
-    if value_precision not in ("exact", "approximate", "mixed"):
-        raise SystemExit("Design contract value_precision must be exact, approximate, or mixed")
-    dimensions = raw.get("dimensions")
-    if not isinstance(dimensions, dict) or not all(
-        isinstance(dimensions.get(name), (int, float)) and dimensions[name] > 0
-        for name in ("width", "height")
-    ):
-        raise SystemExit("Design contract dimensions require positive width and height")
     preservation_plan_raw = raw.get("preservation_plan")
     if not isinstance(preservation_plan_raw, list):
         raise SystemExit("Design contract preservation_plan must be a list")
@@ -648,8 +639,6 @@ def validate_design_contract(raw: object, critique: dict) -> dict:
         ),
         "zones": {name: zones[name].strip() for name in zone_names},
         "colour_role": nonempty_text(raw.get("colour_role"), "colour_role"),
-        "dimensions": {**dimensions},
-        "value_precision": value_precision,
         "selector_decision": selector,
         "preservation_plan": preservation_plan,
         "layout_plan": {
