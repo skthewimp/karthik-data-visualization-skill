@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Platform separation
+
+- Removed the client-specific release-guard plugin, installation surface, state paths, identity defaults, attachment syntax, deployment instructions, and host checks from this repository.
+- Kept the reusable independent-review workflow, case state machine, Codex and Claude skill surfaces, and MCP server client-neutral.
+- Moved the client adapter and host deployment workflow to the client repository that owns them.
+
 ### Repair reliability
 
 - Raised the default autonomous repair budget from three to six iterations while preserving configurable limits and no-progress stops.
@@ -15,12 +21,11 @@
 - Generalized chart-selection, annotation, explanation, and critique guidance so recommendations depend on the analytical question, evidence, audience, medium, density, accessibility, and delivery constraints.
 - Removed example-specific and overfitted defaults, including fixed chart-type blacklists, mandatory annotation counts, fixed explanation lengths, named-domain assumptions, and universal legend or interaction rules.
 - Added semantic checks for measure meaning, time boundaries, universe and denominator, units, claim strength, and likely reader interpretation.
-- Kept Codex and Claude skill surfaces synchronized and installed the validated copies for Hermes.
+- Kept Codex and Claude skill surfaces synchronized.
 
 ### Verification
 
 - `./sync.sh --no-pull --validate-only`
-- `./sync.sh --no-pull --surface hermes`
 - `./sync.sh --no-pull --surface claude`
 - `./sync.sh --no-pull --surface codex`
 - `git diff --check`
@@ -45,13 +50,11 @@ All notable public changes to this repository are recorded here.
 - Tightened generation and repair after rebasing the MCP work onto the generalized skill stack: Matplotlib output now uses the metadata-producing renderer when available, and the explicit repair sequence records the bundle and inspection before blind review.
 - Added state-machine enforcement so mismatched internal metadata is rejected and a reviewer cannot issue `Send` while known deterministic defects remain. Incomplete coverage can still be assessed visually but is never presented as a deterministic pass.
 - Expanded the coffee regression through the real case state machine: bad geometry reaches `Revise`, the placement-only repair reaches `Send`, and the exact repaired artifact becomes current.
-- Removed the repair skill's Hermes-only runtime assumption. Codex, Claude Code, and Hermes now resolve their own installed case-manager path, retain the returned case id, and use the same versioned workflow.
-- Documented the complete Hermes deployment boundary: skill sync plus a separately isolated MCP 2.x stdio runtime, config registration, gateway restart, and verification.
+- Removed a client-only runtime assumption. Codex and Claude Code now resolve their own installed case-manager path, retain the returned case id, and use the same versioned workflow.
 - Completed the test extra with the local tester's FastAPI dependencies so `pip install -e ".[test]"` can run the repository's configured full suite on a clean host.
-- Deployed the exact pushed commit to Hermes, synced the 13 repo skills, registered the stdio server, restarted the gateway, and verified the full suite plus direct MCP protocol tests on the host.
 - Clarified that the MCP renderer is a backend adapter rather than a style system. Project-native renderers are preserved, new Karthik-style static charts prefer R/ggplot2 when available, and metadata support cannot justify translating a sound chart into default-looking Matplotlib.
-- Reworked the root README into an agent entry point with generation and repair reading paths, generic Codex/Claude/Hermes installation, the two-part skills-plus-MCP setup, current renderer limits, security boundaries, and direct links to deeper contracts.
-- Added repo-local Codex and Claude instructions for Karthik's default validate → commit → push → Hermes deployment workflow, with explicit safeguards for third-party clones, unrelated changes, test failures, and remote divergence.
+- Reworked the root README into an agent entry point with generation and repair reading paths, Codex/Claude installation, the two-part skills-plus-MCP setup, current renderer limits, security boundaries, and direct links to deeper contracts.
+- Added repo-local Codex and Claude instructions for Karthik's default validate → commit → push workflow, with explicit safeguards for third-party clones, unrelated changes, test failures, and remote divergence.
 
 ## 2026-08-12
 
@@ -74,7 +77,7 @@ All notable public changes to this repository are recorded here.
 - Added an opt-in local Codex runner that performs one ephemeral creator pass and one separate blind reviewer pass per click against the checked-out skills. It cannot start an open-ended autonomous loop.
 - Added measured cycle-token estimates and preflight budget checks. Completed artifacts and reviews are still preserved when one provider call crosses its estimate.
 - Added regression tests for loop termination, duplicate artifacts, changed context, reviewer sequencing, budgets, telemetry state, file validation, artifact delivery, and the tester API.
-- Added the staged roadmap for local testing, private Hermes deployment, and a possible public bring-your-own-key beta.
+- Added the staged roadmap for local testing, private deployment, and a possible public bring-your-own-key beta.
 
 ### Changed
 
@@ -87,25 +90,24 @@ All notable public changes to this repository are recorded here.
 
 ### Added
 
-- Added `dataviz-fix` as a public Codex/Claude/Hermes skill for repairing pasted charts through repeated user feedback, preserving every revision, and routing reusable lessons back to the owning skill.
+- Added `dataviz-fix` as a public Codex/Claude skill for repairing pasted charts through repeated user feedback, preserving every revision, and routing reusable lessons back to the owning skill.
 - Added `case_manager.py` to keep the original chart, revisions, feedback, accepted artifact, skill hashes, and post-acceptance diagnosis together as one case packet.
-- Added `dataviz-eval` as a public Codex/Claude/Hermes skill for deciding whether a rendered chart is ready to send or needs another inspect→revise cycle. It captures the repeated failure modes we kept seeing in chart repair: clipping, overlap, whitespace imbalance, export-vs-viewport mismatches, and thumbnail/chat legibility.
+- Added `dataviz-eval` as a public Codex/Claude skill for deciding whether a rendered chart is ready to send or needs another inspect→revise cycle. It captures the repeated failure modes we kept seeing in chart repair: clipping, overlap, whitespace imbalance, export-vs-viewport mismatches, and thumbnail/chat legibility.
 - Added human-facing docs for `dataviz-eval` and surfaced it in the documentation index.
 
 ### Changed
 
 - Rebuilt `dataviz-eval` from a render-readiness checklist into a full artifact and creator-system evaluation framework. It now uses expert and audience blind reads, hard gates for evidence and intended meaning, `Send / Revise / Redesign / Not evaluable` verdicts, concrete chart-spec operations, a reusable failure taxonomy, and golden-set regression guidance.
-- Added Hermes repair-session calibration cases and documented the framework's debt to Vikram Nayak's Fifth Elephant 2026 talk, *Measuring “good” when your agent's output is subjective*.
+- Added repair-session calibration cases and documented the framework's debt to Vikram Nayak's Fifth Elephant 2026 talk, *Measuring “good” when your agent's output is subjective*.
 - Integrated the rebuilt evaluator into the full `dataviz-fix` pipeline. Every rendered iteration now receives a recorded evaluation scope, six gate results, verdict, failure codes, and minimum pass set before it is sent or revised.
-- Tightened the repair pipeline after the first live Hermes run: media attachments are now mandatory, HTML cannot masquerade as the delivered artifact, every iteration must be evaluated, requested edits receive literal element checks, legend-to-mark colour mappings are verified, and skills cannot be edited before chart acceptance.
+- Tightened the repair pipeline after the first live run: media attachments are now mandatory, HTML cannot masquerade as the delivered artifact, every iteration must be evaluated, requested edits receive literal element checks, legend-to-mark colour mappings are verified, and skills cannot be edited before chart acceptance.
 - Added stacked-form and colour rules from the same live case, then generalized them: precise component patterns require aligned baselines, direct labels support lookup rather than visual comparison, and every essential colour must remain perceptually distinct from its background and neighbouring encodings.
 - Expanded the colour rules into a Tufte-compatible system: colour must have an analytical role, scale types must match the data, focal saturation must follow information hierarchy, mappings must remain stable, key distinctions need a second channel, and practical WCAG targets guide text and small-mark contrast without mechanically constraining large fills.
-- Fixed `dataviz-fix` packaging so the referenced `case_manager.py` runtime ships in fresh clones and Hermes installs. Validation now rejects missing or git-ignored referenced scripts.
+- Fixed `dataviz-fix` packaging so the referenced `case_manager.py` runtime ships in fresh clones and client installs. Validation now rejects missing or git-ignored referenced scripts.
 - Updated root and skill-documentation indexes for the full thirteen-skill set.
 - Updated `dataviz-fix` so the inspection step is explicit about the inspect→revise→render loop, and so the companion-skill list now includes `dataviz-eval` as the dedicated evaluation gate.
 - Updated `karthik-data-visualization` and `dataviz-selector` to carry the latest non-overlap, geometry-first, and thumbnail-first guidance that came out of the repair loop.
-- Updated `sync-skills.py` to recognise Hermes installs from the Claude surface as well as Codex/Claude source files.
-- Separated chart creation from release review after a live repair loop self-approved three visibly broken exports. Hermes now sends each recorded artifact to a fresh `delegate_task` reviewer, and `case_manager.py` accepts only a structured report tied to the artifact hash.
+- Separated chart creation from release review after a live repair loop self-approved three visibly broken exports. The workflow now sends each recorded artifact to a fresh independent reviewer, and `case_manager.py` accepts only a structured report tied to the artifact hash.
 - Added five general release checks—visual integrity, relationship traceability, spatial economy, encoding semantics, and delivery robustness. These are chart-agnostic outcomes, not hard-coded layouts, palettes, margin thresholds, or fixes for one example.
 - Changed the colour default from “always create one focal item” to neutral equal-status marks unless the question, evidence, or user establishes a focal item.
 

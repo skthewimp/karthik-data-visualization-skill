@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from dataviz_mcp.benchmark import (
     REGRESSION_FAMILIES,
     benchmark_case_records,
@@ -47,17 +45,3 @@ def test_benchmark_comparison_requires_complete_replay_and_no_false_pass_increas
     assert comparison["false_passes_not_increased"] is True
     assert comparison["acceptance_met"] is True
     assert compare_benchmark_runs(baseline, replay[:1])["acceptance_met"] is False
-
-
-@pytest.mark.skipif(
-    not Path("/home/karthik/.hermes/dataviz-fix/cases").is_dir(),
-    reason="Hermes benchmark corpus is not present",
-)
-def test_all_available_hermes_cases_form_the_local_benchmark_corpus() -> None:
-    cases = load_case_corpus(
-        "/home/karthik/.hermes/dataviz-fix",
-        "/home/karthik/.hermes/dataviz-fix-cases",
-    )
-    report = benchmark_case_records(cases)
-    assert report["cases"] >= 27
-    assert len(report["source_paths"]) == report["cases"]

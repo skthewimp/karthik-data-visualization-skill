@@ -771,7 +771,7 @@ class CaseManagerTest(unittest.TestCase):
                 "id": "grant-from-user-turn",
                 "case_id": case["case_id"],
                 "at": "2026-08-18T10:00:00+00:00",
-                "source": "hermes-user-turn",
+                "source": "runtime-user-turn",
                 "source_turn_id": "test-user-turn",
                 "user_message": "Continue for one more iteration",
                 "user_message_sha256": hashlib.sha256(

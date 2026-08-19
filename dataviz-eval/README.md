@@ -12,7 +12,7 @@ The live evaluation uses separate expert and audience blind reads before reveali
 ## Files
 
 - [`codex/SKILL.md`](codex/SKILL.md) - Codex version.
-- [`claude/SKILL.md`](claude/SKILL.md) - Claude/Hermes-compatible version.
+- [`claude/SKILL.md`](claude/SKILL.md) - Claude version.
 - [`codex/references/evaluation-framework.md`](codex/references/evaluation-framework.md) and [`claude/references/evaluation-framework.md`](claude/references/evaluation-framework.md) - gate anchors, failure codes, benchmark method, and calibration cases.
 - [`codex/README.md`](codex/README.md) and [`claude/README.md`](claude/README.md) - surface-specific notes.
 

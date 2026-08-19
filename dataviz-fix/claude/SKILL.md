@@ -44,8 +44,8 @@ Always load `dataviz-critique`, `karthik-data-visualization`, and `dataviz-eval`
 
 Persist each example so the accepted result can teach the skills. Resolve these placeholders once and substitute their literal values in every command:
 
-- `CASE_MANAGER`: `"${CODEX_HOME:-$HOME/.codex}/skills/dataviz-fix/scripts/case_manager.py"` in Codex; `"$HOME/.claude/skills/dataviz-fix/scripts/case_manager.py"` in Claude Code; `"${HERMES_SKILL_DIR}/scripts/case_manager.py"` in Hermes.
-- `SKILLS_ROOT`: the matching `skills` directory, or the parent of `${HERMES_SKILL_DIR}`.
+- `CASE_MANAGER`: `"${CODEX_HOME:-$HOME/.codex}/skills/dataviz-fix/scripts/case_manager.py"` in Codex or `"$HOME/.claude/skills/dataviz-fix/scripts/case_manager.py"` in Claude Code.
+- `SKILLS_ROOT`: the matching installed `skills` directory.
 - `CASE_SESSION`: the runtime session id when one exists; otherwise generate one stable UUID for this conversation.
 
 Set `DATAVIZ_FIX_ROOT` to override the default case directory. After `start`, retain the returned `case_id` as `CASE_ID` and use `--case "${CASE_ID}"` for every later command. Do not rely on shell variables surviving across tool calls.
@@ -74,7 +74,12 @@ Pass `--context-source user` only when every structured intake field in that com
 
 Do this before editing. The command copies the original, snapshots the installed skills, records context version 1, and creates a bounded loop. It defaults to six autonomous iterations and still stops earlier when repeated evaluations show no progress. Use `--max-elapsed-minutes`, `--max-tokens`, or `--max-cost-usd` when another hard budget matters.
 
-Turn the request into a change contract before the first build. Record each concrete requested change as an intake check:
+The repair request is optional. When the user supplies only a chart, pass an empty request,
+do not ask them to diagnose it, and immediately run `dataviz-critique` on the original
+artifact. The critique becomes the repair brief. Add intake checks only for changes the user
+actually requested; do not invent a user instruction from the critique.
+
+When a request exists, turn it into a change contract before the first build. Record each concrete requested change as an intake check:
 
 ```bash
 python3 "${CASE_MANAGER}" check \
@@ -181,7 +186,7 @@ python3 "${CASE_MANAGER}" inspect \
 
 Inspection is mandatory, not best effort. The case manager rejects review without an artifact-hash-matched inspection and automatically compares it with the preceding inspected iteration, preserving introduced, persistent, and resolved defects.
 
-The creator must not grade its own export. After `iterate`, use a fresh leaf reviewer through Hermes `delegate_task` with `file`, `terminal`, and `vision` tools. Give it only:
+The creator must not grade its own export. After `iterate`, use a fresh independent reviewer through the active runtime's isolated delegation capability. The reviewer must be a separate context with artifact-reading, command-running, and visual-inspection capabilities. Give it only:
 
 - the recorded artifact and original/source paths;
 - the installed `dataviz-eval` skill path;
@@ -194,7 +199,7 @@ python3 "${CASE_MANAGER}" review-request \
   --case "${CASE_ID}"
 ```
 
-Pass only the returned blind-request path to the reviewer. It must inspect the exact artifact with `vision_analyze`, save its narrative blind reads plus the five structured semantic readings, then run the packet's `blind_submit_command`. That command freezes the blind response and creates the intent reveal; the reveal does not exist beforehand. The same reviewer then opens it and completes the response template without rewriting those frozen fields. The creator may verify and record the report, but may not author or amend it. Use the delegate task's real identifier as `reviewer`; the case manager rejects the creator identity and any blind response changed after reveal.
+Pass only the returned blind-request path to the reviewer. It must visually inspect the exact artifact, save its narrative blind reads plus the five structured semantic readings, then run the packet's `blind_submit_command`. That command freezes the blind response and creates the intent reveal; the reveal does not exist beforehand. The same reviewer then opens it and completes the response template without rewriting those frozen fields. The creator may verify and record the report, but may not author or amend it. Use the delegated reviewer's real identifier as `reviewer`; the case manager rejects the creator identity and any blind response changed after reveal. If the runtime cannot provide an independent reviewer, stop and report that the release gate is unavailable.
 
 Persist that independent report before sending:
 
@@ -327,7 +332,7 @@ Use `stop --kind ... --reason ...` for an explicit user stop, missing context or
 
 Treat each user correction as evidence. Before editing, translate it into one observable check: target, current state, required state. Log it with `feedback`. If the user corrects the principle itself, supersede the earlier check rather than accumulating a contradiction. Record changes to audience, purpose, question, hypothesis, message, medium, or constraints with `context`; when one message contains both, call both commands. Change the smallest relevant part of the latest candidate, render, record the media iteration, and run `dataviz-eval` with that check in the evaluation packet. Inspect the named element directly; do not infer success from a generic chart summary. Do not defend the earlier choice or repeat already accepted decisions.
 
-Do not send progress-only replies such as “I’ll fix it” or “now checking”. Use tools silently until a candidate is ready. Every approved chart or revision delivery must include the media attachment in the same response, plus no more than three short lines: what changed, whether values are exact or approximate, and `MEDIA:/absolute/path/to/output.png`. A stopped or blocked diagnostic is not a chart delivery: explain the stop, best candidate, and unresolved findings without `MEDIA:`. It may include a plain absolute artifact path for diagnosis; Hermes will not treat that plain path as a release. If the user asks where an approved graph is, return the media line immediately.
+Do not send progress-only replies such as “I’ll fix it” or “now checking”. Use tools until a candidate is ready. Every approved chart or revision delivery must attach the exact reviewed artifact using the active client's supported attachment mechanism, plus no more than three short lines: what changed and whether values are exact or approximate. A stopped or blocked diagnostic is not a chart delivery: explain the stop, best candidate, and unresolved findings without attaching it as an approved result. If the user asks where an approved graph is, attach it immediately.
 
 ## Acceptance and skill learning
 
@@ -374,7 +379,7 @@ If the miss is `execution-miss`, the case manager rejects a diagnosis without bo
 
 Return:
 
-- `MEDIA:` for the accepted media artifact;
+- the accepted media artifact through the active client's supported attachment mechanism;
 - accepted chart path;
 - case/review-packet path;
 - miss classification and owning skill;

@@ -304,7 +304,7 @@ After a change, rerun the golden set. A fix is not an improvement if it solves o
 
 ## Calibration cases
 
-These cases come from Karthik's Hermes repair sessions. They are not templates; they establish what counts as consequential.
+These cases come from Karthik's observed repair sessions. They are not templates; they establish what counts as consequential.
 
 ### Pie to horizontal bars: pass after one repair
 
@@ -328,4 +328,4 @@ The first repair was marked `Send`, but FY20 appeared as a floating label inside
 
 ## Provenance
 
-This framework combines Karthik Shashidhar's chart principles and observed Hermes repair failures with ideas from Vikram Nayak's Fifth Elephant 2026 talk, *Measuring “good” when your agent's output is subjective*. The talk supplied the creator/expert/audience separation, blind-read method, failure-mode synthesis, and benchmark discipline. The wording and rubric here are adapted for this skill rather than copied from the slides.
+This framework combines Karthik Shashidhar's chart principles and observed repair failures with ideas from Vikram Nayak's Fifth Elephant 2026 talk, *Measuring “good” when your agent's output is subjective*. The talk supplied the creator/expert/audience separation, blind-read method, failure-mode synthesis, and benchmark discipline. The wording and rubric here are adapted for this skill rather than copied from the slides.

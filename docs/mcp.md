@@ -162,14 +162,3 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 | `dataviz_mcp/tests/` | Capability, protocol, geometry, and coffee repair tests |
 
 Installation, client registration, tool parameters, and the chart-builder contract are in [`dataviz_mcp/README.md`](../dataviz_mcp/README.md).
-
-## Hermes deployment
-
-Hermes uses the same stdio server contract as Codex and Claude Code. Deployment has two independent parts:
-
-1. `./sync.sh --no-pull --surface hermes` copies the judgement layer into `~/.hermes/skills/data-science/`.
-2. `~/.hermes/config.yaml` registers the mechanical server under `mcp_servers.karthik_dataviz`.
-
-The server uses its own virtual environment on the Hermes host because the agent runtime currently carries MCP SDK 1.x and this package requires MCP SDK 2.x. The host's system Python lacks `ensurepip`, so Hermes's bundled Python creates the separate environment without receiving the package itself. The checked-out source remains the single implementation; the editable install only gives that source an isolated interpreter and dependency set.
-
-The host-specific commands, config block, service restart, and verification sequence are in [`dataviz_mcp/README.md`](../dataviz_mcp/README.md#deploy-on-karthiks-hermes-host).

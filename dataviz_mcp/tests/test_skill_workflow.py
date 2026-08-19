@@ -34,7 +34,11 @@ def test_repair_skill_is_portable_and_orders_inspection_before_review() -> None:
         fixer = read_skill("dataviz-fix", surface)
         assert "${CODEX_HOME:-$HOME/.codex}" in fixer
         assert "$HOME/.claude/skills/dataviz-fix" in fixer
-        assert "${HERMES_SKILL_DIR}/scripts/case_manager.py" in fixer
+        assert "active runtime's isolated delegation capability" in fixer
+        assert "MEDIA:" not in fixer
+        assert "HERMES_SKILL_DIR" not in fixer
+        assert "delegate_task" not in fixer
+        assert "vision_analyze" not in fixer
         assert '--session "${CASE_SESSION}"' in fixer
         assert '--case "${CASE_ID}"' in fixer
 
@@ -79,7 +83,7 @@ def test_public_entrypoint_explains_installation_and_renderer_boundary() -> None
     assert "git clone https://github.com/skthewimp/karthik-data-visualization-skill.git" in readme
 
     sync_help = (ROOT / "sync.sh").read_text(encoding="utf-8")
-    assert "--surface all|codex|claude|hermes" in sync_help
+    assert "--surface all|codex|claude" in sync_help
 
 
 def test_maintainer_publish_rule_is_persistent_and_third_party_safe() -> None:
@@ -88,9 +92,7 @@ def test_maintainer_publish_rule_is_persistent_and_third_party_safe() -> None:
 
     assert "completed changes" in agents
     assert "push it to GitHub" in agents
-    assert "Deploy directly from the current Hermes checkout" in agents
-    assert "Do not SSH back into the same host through an alias" in agents
     assert "Third-party clones and forks must not push" in agents
     assert "Do not force-push" in agents
-    assert "An explicit instruction not to commit, push, or deploy overrides" in agents
+    assert "An explicit instruction not to commit or push overrides" in agents
     assert "Read and follow [`AGENTS.md`](AGENTS.md)" in claude

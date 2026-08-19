@@ -1,6 +1,6 @@
 # Karthik Data Visualization Skills
 
-Public data visualization skills for Codex, Claude, and Hermes, with a local MCP layer for exact-artifact rendering and inspection.
+Public data visualization skills for Codex and Claude, with a local MCP layer for exact-artifact rendering and inspection.
 
 ## Start here: agents and LLMs
 
@@ -101,7 +101,7 @@ The split is deliberate. The orchestrator routes the work and preserves handoffs
 ├── tester/                          # Local repair-loop case console
 ├── dataviz_mcp/                     # Local stdio MCP: render, inspect, compare
 ├── docs/                            # Human docs; subfolder READMEs explain contents
-├── sync-skills.py                   # Install Codex/Claude or the explicit Hermes surface
+├── sync-skills.py                   # Install Codex or Claude skill surfaces
 └── sync.sh                          # Pull + install wrapper
 ```
 
@@ -114,22 +114,6 @@ Each skill owns its Codex and Claude versions directly. Every public folder has 
 Use this when you want to paste or upload a chart, receive a real regenerated visual, iterate with short feedback until it is right, and turn the accepted result into a narrow reusable improvement to the skill stack.
 
 See: [`docs/skills/dataviz-fix.md`](docs/skills/dataviz-fix.md)
-
-On Hermes, the packaged `dataviz-release-guard` plugin can enforce the repair
-boundary outside the agent prompt. For chart-repair turns it injects a unique
-case session id, then withholds the final chart unless that new case reaches
-`user_review` with an independent `Send` verdict and the delivered file hash
-matches the reviewed artifact. After installing the package, add the plugin to
-Hermes' allow-list in `~/.hermes/config.yaml`:
-
-```yaml
-plugins:
-  enabled:
-    - dataviz-release-guard
-```
-
-Hermes 0.14 discovers Python entry-point plugins at runtime, but its
-`plugins enable` command only searches bundled and user-directory manifests.
 
 ### `dataviz-eval`
 
@@ -308,12 +292,7 @@ To install one surface only:
 ```bash
 ./sync.sh --no-pull --surface codex
 ./sync.sh --no-pull --surface claude
-./sync.sh --no-pull --surface hermes
 ```
-
-The Hermes surface installs the Claude-compatible copies under `~/.hermes/skills/data-science/`. It is explicit rather than part of `all`.
-
-Hermes also needs an `mcp_servers` entry. Generic and maintainer-host deployment instructions are in [`dataviz_mcp/README.md`](dataviz_mcp/README.md#deploy-on-hermes).
 
 ## Run the local repair tester
 
@@ -347,7 +326,7 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
 
 ## Development notes
 
-- [`AGENTS.md`](AGENTS.md) contains the maintainer-only publish and Hermes deployment rule. Its remote-host actions do not apply to third-party clones or forks.
+- [`AGENTS.md`](AGENTS.md) contains the maintainer-only validation and publish rule. It does not apply to third-party clones or forks.
 - Source skills live in `<skill>/{codex,claude}/SKILL.md`.
 - `sync-skills.py` discovers every root-level directory containing both surface files.
 - `sync-skills.py --validate-only` checks frontmatter without copying files.

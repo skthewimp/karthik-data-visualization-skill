@@ -8,7 +8,7 @@ See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation a
 
 - Python 3.10 or newer
 - a Python virtual environment
-- Codex, Claude Code, or Hermes Agent as the MCP client
+- Codex, Claude Code, or another MCP-compatible client
 
 From the repository root, install the package and retain the absolute interpreter path:
 
@@ -64,72 +64,6 @@ Install the matching skill files, then start a new Claude Code session:
 ```
 
 No daemon is required. The client starts the Python process when it opens the stdio connection and stops it when the connection closes.
-
-## Deploy on Hermes
-
-On a Hermes host, clone the repository, install the package into an isolated environment, and sync the Claude-compatible skill surface:
-
-```bash
-git clone https://github.com/skthewimp/karthik-data-visualization-skill.git
-cd karthik-data-visualization-skill
-python3 -m venv .venv
-.venv/bin/python -m pip install -e .
-./sync.sh --no-pull --surface hermes
-```
-
-Add the server under the existing `mcp_servers:` key in `~/.hermes/config.yaml`, using the checkout's absolute interpreter path:
-
-```yaml
-  karthik_dataviz:
-    command: /absolute/path/to/karthik-data-visualization-skill/.venv/bin/python
-    args:
-      - -m
-      - dataviz_mcp
-    timeout: 180
-    connect_timeout: 30
-```
-
-Restart the Hermes gateway or client and begin a new session so it reloads both the MCP server and newly synced skill text.
-
-### Karthik's current Hermes host
-
-The checkout on the current host is `/home/karthik/apps/karthik-data-visualization-skill` and its skills live under `~/.hermes/skills/data-science/`.
-
-From that host, pull the committed repository, create the isolated MCP environment, install the package, and sync the skills:
-
-```bash
-cd /home/karthik/apps/karthik-data-visualization-skill
-git pull --ff-only
-~/.hermes/hermes-agent/venv/bin/python -m venv .venv
-.venv/bin/python -m pip install -e ".[test]"
-./sync.sh --no-pull --surface hermes
-```
-
-The host's system Python lacks `ensurepip`, so the command uses Hermes's bundled Python only to create the new environment. The environments remain separate. The Hermes agent environment at `~/.hermes/hermes-agent/venv` currently uses MCP SDK 1.x; the dataviz server requires MCP SDK 2.x. Installing the package into the agent environment would force an avoidable dependency upgrade.
-
-Karthik's deployed config uses:
-
-```yaml
-  karthik_dataviz:
-    command: /home/karthik/apps/karthik-data-visualization-skill/.venv/bin/python
-    args:
-      - -m
-      - dataviz_mcp
-    timeout: 180
-    connect_timeout: 30
-```
-
-Restart the gateway and check that both the service and stdio server start cleanly:
-
-```bash
-systemctl --user restart hermes-gateway.service
-systemctl --user is-active hermes-gateway.service
-
-cd /home/karthik/apps/karthik-data-visualization-skill
-.venv/bin/python -m pytest -q
-```
-
-Hermes starts the configured stdio process when it loads the MCP server.
 
 ## Renderer boundary
 
@@ -264,7 +198,7 @@ MPLCONFIGDIR=/tmp/mpl-cache "$MCP_PYTHON" -m pytest -q
 
 The suite covers the MCP tools, a real stdio tool listing, repair-loop version binding, the local runner, deterministic geometry fixtures, and the end-to-end coffee annotation repair.
 
-`dataviz_mcp.benchmark` loads Hermes repair cases read-only, de-duplicates case IDs across the historical roots, reports critique/design adoption and cycle counts, and compares a complete matched replay with its baseline. A replay only meets acceptance when every baseline case is present, evaluation cycles fall, and false `Send` events do not increase.
+`dataviz_mcp.benchmark` loads caller-supplied repair-case roots read-only, de-duplicates case IDs, reports critique/design adoption and cycle counts, and compares a complete matched replay with its baseline. A replay only meets acceptance when every baseline case is present, evaluation cycles fall, and false `Send` events do not increase.
 
 ## Current limits
 

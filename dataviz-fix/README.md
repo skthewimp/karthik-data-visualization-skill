@@ -22,7 +22,7 @@ The skill keeps the original chart, each rendered revision, the user's correctio
 ## Files
 
 - [`codex/SKILL.md`](codex/SKILL.md) - Codex version.
-- [`claude/SKILL.md`](claude/SKILL.md) - Claude/Hermes-compatible version.
+- [`claude/SKILL.md`](claude/SKILL.md) - Claude version.
 - [`codex/scripts/case_manager.py`](codex/scripts/case_manager.py) and [`claude/scripts/case_manager.py`](claude/scripts/case_manager.py) - deterministic case logger.
 - [`tests/test_case_manager.py`](tests/test_case_manager.py) - state, budget, context, and termination regression tests.
 
@@ -32,4 +32,4 @@ The skill keeps the original chart, each rendered revision, the user's correctio
 
 ## Edit rule
 
-Mirror behavioural and script changes across the Codex and Claude surfaces. The Claude surface is also the Hermes install source.
+Mirror behavioural and script changes across the Codex and Claude surfaces.

@@ -1,6 +1,6 @@
 # Dataviz repair loop and tester roadmap
 
-The current Hermes workflow can repair a chart, evaluate it, take feedback, and revise it. The next problem is making that loop predictable enough to use repeatedly and safe enough to expose through a web app.
+The current workflow can repair a chart, evaluate it, take feedback, and revise it. The next problem is making that loop predictable enough to use repeatedly and safe enough to expose through a web app.
 
 Three things need to be built together. A bounded loop without good context will stop safely but make poor charts. Better context without loop control can still waste tokens indefinitely. A web app without either will simply make the failure easier for more people to reproduce.
 
@@ -106,7 +106,7 @@ Deployment stages:
 2. Versioned context intake and mid-loop updates.
 3. Telemetry and cost accounting.
 4. Local tester UI.
-5. Private Hermes deployment.
+5. Private deployment.
 6. Public BYOK beta, if the private version behaves well.
 
 Do not start with the public app. The loop and context contract are the product; the web interface is how people reach them.

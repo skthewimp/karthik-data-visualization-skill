@@ -80,11 +80,11 @@ The evaluation framework includes a compact failure taxonomy for intent, evidenc
 
 A skill should change only when several cases reveal a reusable missing rule, an ambiguous instruction, a tooling assumption, or a missing input. One chart preference stays in the case record.
 
-The calibration examples come from Karthik's Hermes repair sessions. They include thumbnail illegibility, redundant colour encodings, redesigns that lost source and time context, and a slopegraph that worked in the viewport but repeatedly failed in the exported PNG.
+The calibration examples come from Karthik's observed repair sessions. They include thumbnail illegibility, redundant colour encodings, redesigns that lost source and time context, and a slopegraph that worked in the viewport but repeatedly failed in the exported PNG.
 
 ## Where the framework came from
 
-This version combines Karthik's chart principles and the Hermes repair history with ideas from Vikram Nayak's Fifth Elephant 2026 talk, *Measuring “good” when your agent's output is subjective*. The talk's most useful contribution was the separation between creator, expert reviewer, and audience reviewer, followed by explicit failure synthesis and benchmark design.
+This version combines Karthik's chart principles and the observed repair history with ideas from Vikram Nayak's Fifth Elephant 2026 talk, *Measuring “good” when your agent's output is subjective*. The talk's most useful contribution was the separation between creator, expert reviewer, and audience reviewer, followed by explicit failure synthesis and benchmark design.
 
 ## Relationship to other skills
 

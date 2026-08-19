@@ -171,11 +171,6 @@ def root_dir() -> Path:
     override = os.getenv("DATAVIZ_FIX_ROOT")
     if override:
         return Path(override).expanduser().resolve()
-    hermes_home = os.getenv("HERMES_HOME")
-    if hermes_home:
-        return Path(hermes_home).expanduser().resolve() / "dataviz-fix"
-    if (Path.home() / ".hermes").is_dir():
-        return Path.home() / ".hermes" / "dataviz-fix"
     return Path.home() / ".local" / "share" / "dataviz-fix"
 
 
@@ -1833,7 +1828,7 @@ def cmd_start(args: argparse.Namespace) -> None:
         "schema_version": SCHEMA_VERSION,
         "case_id": case_id,
         "session_id": args.session,
-        "creator": args.creator or os.getenv("HERMES_AGENT_ID") or f"session:{args.session}",
+        "creator": args.creator or f"session:{args.session}",
         "state": "intake",
         "created_at": now_iso(),
         "updated_at": now_iso(),
@@ -3425,7 +3420,7 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--tooling", default="")
     start.add_argument("--output-constraints", default="")
     start.add_argument("--skills-root")
-    start.add_argument("--creator", help="stable creator identity; defaults to the Hermes agent or session")
+    start.add_argument("--creator", help="stable creator identity; defaults to the session")
     start.add_argument("--max-iterations", type=positive_int, default=DEFAULT_MAX_ITERATIONS)
     start.add_argument(
         "--max-stalled-evaluations",

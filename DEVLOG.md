@@ -12,13 +12,13 @@
 
 > "since the skills had changed on origin/main before we wrote the MCP, is there any bugs?"
 
-> "commit and push with proper documentation. and also deploy to hermes"
+> "commit and push with proper documentation, then deploy to the client runtime"
 
 > "should the MCP for render_chart be ggplot based, given that my design aesthetic calls for that?"
 
 > "make sure the readme is proper so that anyone just pointing their LLM at the repo can get full value"
 
-> "henceforth in this folder, whenever we make some changes, automatically commit and push to github, and deploy on hermes. put that into memory"
+> "henceforth in this folder, whenever we make some changes, automatically commit and push to github, and deploy to the client runtime. put that into memory"
 
 ### Work done
 
@@ -27,23 +27,23 @@
 - Made render metadata the primary geometry source and the exact PNG the source for dimensions, hashes, and pixel comparison. Raster-only inspection now stays explicitly incomplete.
 - Bound render bundles and inspection reports into case schema 10. Internal metadata, artifact, inspection, and evaluation hashes must agree, and known deterministic defects now block `Send`.
 - Added deterministic defect fixtures and a coffee-price regression through the real case state machine: the bad layout reaches `Revise`, the placement-only repair reaches `Send`, and revision comparison records the improvement.
-- Documented the architecture, generation and repair sequences, tool contracts, bundle lifecycle, portable Codex/Claude/Hermes case paths, client registration, coverage limits, and verification process in the same repo.
-- Documented Hermes as two explicit deployment surfaces: synced skills and an isolated MCP 2.x stdio process. The separate environment avoids upgrading the Hermes agent's MCP 1.x dependency.
-- Fixed two deployment issues found on the real host: its system Python lacks `ensurepip`, and the package's test extra omitted the tester's FastAPI dependencies. Hermes's bundled Python now creates a separate environment, and `.[test]` installs the complete suite.
+- Documented the architecture, generation and repair sequences, tool contracts, bundle lifecycle, portable Codex/Claude case paths, client registration, coverage limits, and verification process in the same repo.
+- Documented the former client deployment as two explicit surfaces: synced skills and an isolated MCP 2.x stdio process.
+- Fixed two deployment issues found on the real host: its system Python lacks `ensurepip`, and the package's test extra omitted the tester's FastAPI dependencies. A bundled Python created the separate environment, and `.[test]` installed the complete suite.
 - Deployed the pushed commit to `server`, synced all 13 repo skills, registered `mcp_servers.karthik_dataviz`, restarted the active gateway, and verified 62 host tests, three direct stdio protocol tests, installed-skill parity, and the packaged case-manager runtime.
 - Separated renderer infrastructure from visual style. The current Matplotlib geometry adapter no longer gets to force backend translation; project-native code is preserved and new Karthik-style static charts prefer R/ggplot2 where available.
 - Turned the root README into a practical entry point for agents and third-party users, including the exact skill reading paths, two-part installation, generic client commands, renderer trade-offs, trust boundary, and current MCP coverage.
-- Added tracked `AGENTS.md` and `CLAUDE.md` repository instructions so completed maintainer changes default to validation, commit, push, and exact-commit Hermes deployment. The rule is scoped away from third-party clones and stops on ambiguous worktrees, failed tests, or unsafe remote state.
+- Added tracked `AGENTS.md` and `CLAUDE.md` repository instructions so completed maintainer changes default to validation, commit, push, and exact-commit client deployment. The rule is scoped away from third-party clones and stops on ambiguous worktrees, failed tests, or unsafe remote state.
 
-## 2026-08-12 - Scope-safe chart repairs from Hermes feedback
+## 2026-08-12 - Scope-safe chart repairs from live feedback
 
 ### User prompts
 
-> "go through all the hermes conversations about different dataviz etc. and see what possibly needs fixing in these skills, this is based on my feedback to mistakes etc. for testing use local files ... not hermes."
+> "go through the data-visualization conversations and see what possibly needs fixing in these skills, based on my feedback to mistakes; use local files for testing"
 
 ### Work done
 
-- Reviewed ten Hermes dataviz-repair cases and separated chart-design mistakes already covered by the skills from a remaining loop defect: narrow requests and preservation requirements were prose, not release checks.
+- Reviewed ten live dataviz-repair cases and separated chart-design mistakes already covered by the skills from a remaining loop defect: narrow requests and preservation requirements were prose, not release checks.
 - Added structured intake checks for additions, removals, relocations, and preservation. Later user feedback can now supersede a conflicting evaluator action without deleting the audit trail.
 - Made the requested edit boundary authoritative in the fixer, evaluator, local runner, and tester. Untouched regions are regression checks; pre-existing out-of-scope defects are recorded as baseline concerns rather than added to the required work.
 - Forward-tested the change on the local Zerodha VIX chart. The first cycle preserved the chart and removed the legend but found one label collision; the second moved only that label and received `Send`. Karthik then caught a missed requirement: the direct band labels belonged on both panels, not only the close-up. A third cycle added all three labels to the decade panel without changing anything else and received `Send`.
@@ -80,22 +80,22 @@
 
 ### User prompts
 
-> "now let's fix the dataviz-eval skill. it was an adhoc thing built by hermes. need to build it up properly based on my principles and all the conversations on dataviz i'd had with hermes. also check out the 'measuring good' PDF"
+> "now let's fix the dataviz-eval skill. it was an ad hoc draft. build it properly from my principles and prior dataviz conversations, and check the 'measuring good' PDF"
 
 ### What changed
 
-- Reconstructed the evaluation principles from four Hermes repair cases, 28 chart iterations, and the associated user feedback.
+- Reconstructed the evaluation principles from four repair cases, 28 chart iterations, and the associated user feedback.
 - Used Vikram Nayak's Fifth Elephant 2026 talk to separate creator, expert reviewer, and audience reviewer roles and add an offline benchmark method.
 - Rebuilt `dataviz-eval` around blind reads, six hard gates, four verdicts, a minimum pass set, and chart-spec operations instead of vague feedback.
 - Added a failure taxonomy, gate anchors, representative golden-set guidance, inter-rater calibration, regression reporting, and rules for when a repeated failure should change a skill.
-- Forward-tested the skill on four raw Hermes artifacts. It caught a mistranscribed data row, lost provenance, thumbnail failures, and a broken slopegraph export; a second pass also learned to scope repair checks to source fidelity and not fail an accepted chart on an invented Telegram width.
+- Forward-tested the skill on four raw repair artifacts. It caught a mistranscribed data row, lost provenance, thumbnail failures, and a broken slopegraph export; a second pass also learned to scope repair checks to source fidelity and not fail an accepted chart on an invented Telegram width.
 - Made `dataviz-eval` a required gate inside `dataviz-fix` rather than an optional companion mention. Added deterministic evaluation records to every case packet and explicit routing for `Send`, `Revise`, `Redesign`, and `Not evaluable`.
 - Audited the first live full-pipeline run. The evaluator falsely passed a floating FY20 label and a legend/mark colour mismatch, only the first of four iterations was evaluated, HTML was logged instead of the attached screenshot, skill files were changed mid-loop, and several replies omitted the chart. Added deterministic guards and literal edit checks for each failure.
 - Added the missed visual diagnosis from that run: totals on stacked bars did not make the intermediate components readable, yellow against white was unacceptable, and distinct legend colours were useless when the plotted segments used a different mapping. Routed these rules to selector, implementation, and evaluation rather than the repair umbrella.
 - Replaced the narrow yellow-on-white fix with a full colour system that keeps Tufte's hierarchy intact: focal colour plus grey context, data-type-aware scales, stable semantics, restrained saturation, colour-independent decoding, practical contrast targets, and export checks in grayscale, compressed, and colour-vision-deficiency views.
-- Updated both Codex and Claude/Hermes surfaces, human docs, changelog, and packaging rules for the new runtime reference.
+- Updated both Codex and Claude surfaces, human docs, changelog, and packaging rules for the new runtime reference.
 - Audited a later live run where the creator loaded `dataviz-eval` but gave all three of its own exports six `Pass` ratings. The final image still contained colliding text, uncertain label-to-mark pairing, large relationship-breaking gaps, and an unexplained focal colour.
-- Replaced self-review with a fresh Hermes `delegate_task` reviewer and a structured, artifact-hashed report. `case_manager.py` now rejects `Send` unless all six gates and five evidence-backed release checks pass.
+- Replaced self-review with a fresh independent reviewer and a structured, artifact-hashed report. `case_manager.py` now rejects `Send` unless all six gates and five evidence-backed release checks pass.
 - Kept the repair generic: the reusable rules concern visual integrity, relationship traceability, spatial economy, encoding semantics, and delivery robustness. The failed sector chart remains a regression artifact; no sector name, chart type, colour, canvas size, or fixed threshold entered the skills.
 
 ## 2026-08-10 - Dataviz eval gate and documentation pass
@@ -472,11 +472,11 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 ### User prompts
 > ok we need to audit all the skills again. using hte local zerodha images for testing. now in the last few iterations, the fixes seemm to be way too specific to the specific cases and feedback and not generic enough. s...
 > ok can you clean up the stuff, putting things in the most important skill? so there is no overlap or contraciction?
-> yeah just push and commit and deploy to hermes
+> yeah just push, commit, and deploy to the client runtime
 
 ### Work done
 - Review `git diff --stat`; the ownership cleanup is complete. Step 4/4 done: 1. Consolidated responsibilities across all 13 skills. - `dataviz-selector`: form and encoding choice. - `karthik-data-visualization`: visual...
-- Start a new Hermes session to load the updated skill text. Step 3/3 done: 1. Committed `b83b929 refactor(skills): clarify ownership boundaries` 2. Pushed `main` to GitHub. 3. Deployed and verified all 13 Hermes skills...
+- Start a new client session to load the updated skill text. Step 3/3 done: 1. Committed `b83b929 refactor(skills): clarify ownership boundaries` 2. Pushed `main` to GitHub. 3. Deployed and verified all 13 skills...
 
 <!-- codex-session:019ff565-7102-71d1-b38d-b03059979603:end -->
 
@@ -500,12 +500,12 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 ## 2026-08-15 19:59 IST | Codex session `01a005d3-ca0`
 
 ### User prompts
-> check the latest dataviz-fix on hermes. i'm not happy with this at all. seems like it has done nothing. the person who had sent me the chart had sent me this feedback about the origial chart. Issues with the top chart...
+> check the latest dataviz-fix in the client runtime. i'm not happy with this at all. seems like it has done nothing. the person who had sent me the chart had sent me this feedback about the original chart. Issues with the top chart...
 > so oinly the skills got changed? how do we make sure this doesn't happen? so many times i've got this "agent ignored existing rules". look into history you can see
 > how do i trust you this time, when you've told me several times b efore that you've fixed it? like even the previous iteration didnt work. exact same (poor) result happened.
 
 ### Work done
 - Step 2/4 done: 53 workflow tests pass, including hard failure when the writing skill is missing and rejection when either presentation gate is absent or non-pass. Next: run the full repository validation.
-- Step 3/4 done: all 80 tests pass; skill-bundle validation and `git diff --check` pass. Next: publish this generic workflow fix and deploy the exact commit to Hermes.
+- Step 3/4 done: all 80 tests pass; skill-bundle validation and `git diff --check` pass. Next: publish this generic workflow fix and deploy the exact commit to the client runtime.
 
 <!-- codex-session:01a005d3-ca03-7a21-930e-1d5d62205760:end -->

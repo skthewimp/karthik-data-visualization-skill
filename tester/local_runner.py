@@ -105,7 +105,6 @@ class LocalCodexRunner:
         candidates.extend(
             (
                 Path.home() / ".codex" / "skills" / name / "SKILL.md",
-                Path.home() / ".hermes" / "skills" / name / "SKILL.md",
                 Path.home() / ".claude" / "skills" / name / "SKILL.md",
             )
         )

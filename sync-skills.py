@@ -105,11 +105,6 @@ def install(skills: list[Path], surfaces: tuple[str, ...] = DEFAULT_INSTALL_SURF
             copy_tree(skill / "codex", home / ".codex" / "skills" / skill.name)
         if "claude" in surfaces:
             copy_tree(skill / "claude", home / ".claude" / "skills" / skill.name)
-        if "hermes" in surfaces:
-            copy_tree(
-                skill / "claude",
-                home / ".hermes" / "skills" / "data-science" / skill.name,
-            )
 
 
 def main() -> int:
@@ -117,7 +112,7 @@ def main() -> int:
     parser.add_argument("--validate-only", action="store_true", help="validate skill metadata without installing")
     parser.add_argument(
         "--surface",
-        choices=("all", "codex", "claude", "hermes"),
+        choices=("all", "codex", "claude"),
         default="all",
         help="which surface to install after validation",
     )
@@ -129,8 +124,6 @@ def main() -> int:
         print("validated " + ", ".join(skill.name for skill in skills))
         return 0
 
-    # Keep `all` backward compatible: it installs the two local coding-agent
-    # surfaces. Hermes is server-oriented and must be requested explicitly.
     surfaces = DEFAULT_INSTALL_SURFACES if args.surface == "all" else (args.surface,)
     install(skills, surfaces)
     print(f"installed {args.surface}: " + ", ".join(skill.name for skill in skills))

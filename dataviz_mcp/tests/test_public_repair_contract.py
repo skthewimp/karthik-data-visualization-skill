@@ -13,6 +13,8 @@ from dataviz_mcp.public_repair_contract import (
 
 def test_public_repair_contract_preserves_the_screenshot_evidence_boundary() -> None:
     assert "Inventory the source before diagnosing it" in PLANNER_INSTRUCTIONS
+    assert "If the request is blank" in PLANNER_INSTRUCTIONS
+    assert "Never ask for a prompt or clarification" in PLANNER_INSTRUCTIONS
     assert "source_inventory" in REPAIR_PLAN_SCHEMA["required"]
     assert "layout_plan" in REPAIR_PLAN_SCHEMA["required"]
     assert "acceptance_checks" in REPAIR_PLAN_SCHEMA["required"]
@@ -26,6 +28,7 @@ def test_public_repair_contract_preserves_the_screenshot_evidence_boundary() -> 
     assert "Never invent missing values" in CREATOR_INSTRUCTIONS
     assert "Do not use image generation" in CREATOR_INSTRUCTIONS
     assert "perceptually unchanged chart is a failed repair" in CREATOR_INSTRUCTIONS
+    assert "request is blank or vague" in CREATOR_INSTRUCTIONS
     assert "fresh, independent reviewer" in REVIEWER_INSTRUCTIONS
     assert "material_improvement" in REVIEW_SCHEMA["required"]
     assert "material_changes" in REVIEW_SCHEMA["required"]

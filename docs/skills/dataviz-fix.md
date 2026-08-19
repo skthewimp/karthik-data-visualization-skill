@@ -13,7 +13,7 @@ This is the repository's **repair and learning-loop** skill. The other skills ch
 5. Repeat until the chart is right, then say “accept”, “final”, or an equivalent clear phrase.
 6. The agent classifies why the first output missed and changes the owning skill only when the lesson generalizes.
 
-Hermes is the first chat interface because Telegram and WhatsApp already support pasted images, session continuity, and returned chart files. The repository also includes a local tester for side-by-side artifacts, editable context, budgets, and one bounded creator/reviewer cycle. A private deployed tester, provider selection, and bring-your-own API keys remain later stages.
+The repository includes a local tester for side-by-side artifacts, editable context, budgets, and one bounded creator/reviewer cycle. A private deployed tester, provider selection, and bring-your-own API keys remain later stages.
 
 ## Case packet
 
@@ -33,11 +33,11 @@ Each run is stored under the configured dataviz-fix root and contains:
 
 The bundled `case_manager.py` script creates and updates these files without overwriting prior artifacts.
 
-The skill resolves the installed script for the active surface: `~/.codex/skills` for Codex, `~/.claude/skills` for Claude Code, or `${HERMES_SKILL_DIR}` for Hermes. It uses the runtime session id when available, otherwise creates one stable id, then addresses the returned case directly by `case_id`. Codex and Claude Code do not depend on Hermes-only environment variables.
+The skill resolves the installed script for the active surface: `~/.codex/skills` for Codex or `~/.claude/skills` for Claude Code. It uses the runtime session id when one is available, otherwise creates one stable id, then addresses the returned case directly by `case_id`.
 
 ## Evaluation gate
 
-`dataviz-eval` is required after every recorded render, and the chart creator cannot review its own work. Hermes first gives a fresh `delegate_task` reviewer only the source and exact export, saves the narrative blind read plus structured readings of measure, time/context, universe/denominator, claim strength, and audience units, and only then reveals the user request, audience, medium, and active acceptance checks. The frozen semantic fields cannot be rewritten after reveal. The creator's diagnosis, claimed fixes, preferred verdict, and code remain hidden. `Send` releases the candidate to the user. `Revise` applies only the minimum pass set. `Redesign` returns the case to critique or chart selection. `Not evaluable` requires the missing artifact, evidence, or delivery condition before the candidate can be presented as approved.
+`dataviz-eval` is required after every recorded render, and the chart creator cannot review its own work. A fresh delegated reviewer receives only the source and exact export, saves the narrative blind read plus structured readings of measure, time/context, universe/denominator, claim strength, and audience units, and only then sees the user request, audience, medium, and active acceptance checks. The frozen semantic fields cannot be rewritten after reveal. The creator's diagnosis, claimed fixes, preferred verdict, and code remain hidden. `Send` releases the candidate to the user. `Revise` applies only the minimum pass set. `Redesign` returns the case to critique or chart selection. `Not evaluable` requires the missing artifact, evidence, or delivery condition before the candidate can be presented as approved.
 
 The repair loop is an explicit state machine. It defaults to six autonomous iterations and can also enforce elapsed-time, token, and dollar limits. It rejects unchanged artifacts under unchanged context, blocks when failure codes and gate results repeat without progress, and preserves the best independently evaluated candidate rather than assuming the last one is best. Every stop has a recorded reason and can resume only after its blocker or budget changes. User feedback can still reject a `Send`, and explicit user acceptance remains authoritative.
 
@@ -61,15 +61,3 @@ Acceptance does not automatically mean “add another rule”. The workflow firs
 - **input data** - the required evidence was absent.
 
 Only missing, ambiguous, or conflicting reusable guidance normally warrants a prose edit. A repeated execution miss instead needs enforcement, observability, and a regression test; the case manager rejects an execution-miss diagnosis that does not name both controls. Stopped and blocked cases can be diagnosed without pretending the chart was accepted, so failed workflows remain part of the durable history. A long case is split into distinct failure episodes: each gets one owner, while one case may legitimately change the creator skill, evaluator, and runner for different reasons.
-
-## Hermes installation
-
-On a Hermes host with this repository checked out:
-
-```bash
-./sync.sh --no-pull --surface hermes
-```
-
-This installs the Claude-compatible skill directories under `~/.hermes/skills/data-science/`. The default `all` install remains Codex plus Claude so local users do not get a new Hermes directory unexpectedly.
-
-This installs the skill layer only. An MCP-backed generation and repair workflow also requires the `karthik_dataviz` stdio server in Hermes. Follow the host-specific package, config, restart, and verification steps in [`dataviz_mcp/README.md`](../../dataviz_mcp/README.md#deploy-on-karthiks-hermes-host).

@@ -20,7 +20,7 @@ REGRESSION_FAMILIES = (
 
 
 def load_case_corpus(*roots: str | Path) -> list[dict[str, Any]]:
-    """Load every Hermes repair case read-only, de-duplicated by case id."""
+    """Load repair cases read-only, de-duplicated by case id."""
     cases: dict[str, dict[str, Any]] = {}
     for root_value in roots:
         root = Path(root_value).expanduser().resolve()

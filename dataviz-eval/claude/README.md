@@ -1,7 +1,7 @@
 # dataviz-eval / claude
 
-Claude and Hermes surface for artifact readiness decisions and chart-creator benchmarks.
+Claude surface for artifact readiness decisions and chart-creator benchmarks.
 
-Install targets: `~/.claude/skills/dataviz-eval/` and the Hermes data-science skills directory.
+Install target: `~/.claude/skills/dataviz-eval/`.
 
-`SKILL.md` contains the operating protocol. `references/evaluation-framework.md` contains the gate anchors, failure taxonomy, benchmark design, and Hermes calibration cases. Keep both aligned with the Codex surface.
+`SKILL.md` contains the operating protocol. `references/evaluation-framework.md` contains the gate anchors, failure taxonomy, benchmark design, and calibration cases. Keep both aligned with the Codex surface.
