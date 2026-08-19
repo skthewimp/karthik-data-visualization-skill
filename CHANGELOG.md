@@ -10,13 +10,10 @@
 
 ### Repair reliability
 
-- Raised the default autonomous repair budget from three to six iterations while preserving configurable limits and no-progress stops.
-- Made source inventory, preservation mapping, delivery-size layout planning, and an independent pre-build plan audit mandatory before the first candidate can be recorded.
-- Added provider-neutral planner and plan-auditor contracts for the public repair runner, plus plan-compliance and regression fields for independent candidate review.
-- Updated critique, construction, evaluation, and repair skills on both Codex and Claude surfaces so incomplete plans are revised before chart code runs.
-- Made bounded repair output mandatory when a valid rendered candidate exists: a stopped
-  loop delivers its strongest independently evaluated artifact as clearly labelled
-  `best available` without falsifying its review verdict.
+- Replaced the default contract-and-review loop with an output-first repair path: build, inspect once, and deliver the best valid artifact even when MCP or independent review is unavailable.
+- Reduced the optional case manager's default autonomous budget from six candidates to two.
+- Kept structured contracts, blind review, and case logging available for explicitly audited or high-risk work instead of imposing them on every repair.
+- Kept honest status labels: unreviewed or partially inspected artifacts are delivered as such rather than being hidden or falsely approved.
 
 ### Workflow and skill generalization
 

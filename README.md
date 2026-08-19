@@ -10,13 +10,13 @@ If you have been pointed at this repository and asked to create or repair a char
 
 1. Read the `SKILL.md` for your client under `dataviz-orchestrator/{codex,claude}/`.
 2. Follow its handoffs through planning, cleaning, chart selection, implementation, annotation, and evaluation. Load only the specialist skills required by the case.
-3. Use `probe_renderers` and `render_and_inspect_chart` for static repairs. Evaluate the exact exported artifact and repair every open contract finding before release.
+3. Use `render_and_inspect_chart` for static repairs when available. Inspect the exact export once, then return the best valid artifact; MCP or review failures must not suppress it.
 
 **For an existing chart:**
 
-1. Read `dataviz-fix/{codex,claude}/SKILL.md` and `dataviz-eval/{codex,claude}/SKILL.md`.
-2. Preserve the original, current, best, and historical artifacts through the packaged case manager.
-3. Inspect and evaluate every rendered version before presenting it as ready to send.
+1. Read `dataviz-fix/{codex,claude}/SKILL.md`.
+2. Build and inspect one real artifact.
+3. Return the best valid version; use `dataviz-eval` or the case manager only when an audited workflow is needed.
 
 The architecture has one firm boundary:
 
@@ -39,7 +39,7 @@ Installing the skills does not register the MCP server. For the full workflow, c
 
 This repo contains thirteen related skills, coordinated as a context-sensitive visualization workflow:
 
-1. **`dataviz-fix`** - iterative repair and learning-loop rules: rebuild a pasted chart, require an independent artifact-hashed review, preserve revisions and feedback, then route reusable lessons to the owning skill.
+1. **`dataviz-fix`** - output-first repair rules: rebuild a pasted chart, inspect the exact export once, return the best valid artifact, and improve it from user feedback.
 2. **`dataviz-eval`** - artifact and creator-system evaluation rules for separate blind review, scoped send/revise/redesign decisions, failure analysis, and regression benchmarks.
 3. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 4. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
@@ -216,6 +216,8 @@ cd karthik-data-visualization-skill
 ```
 
 Install the MCP package into an existing environment or a new local environment:
+
+Use a dedicated environment. Do not install this package into a host application's environment when that application pins a different MCP SDK version.
 
 ```bash
 python3 -m venv .venv
