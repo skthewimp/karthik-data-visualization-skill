@@ -2,6 +2,8 @@ import hashlib
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from dataviz_mcp.public_repair_contract import (
     CREATOR_INSTRUCTIONS,
     DEFAULT_INDEPENDENT_REVIEW,
@@ -18,6 +20,7 @@ from dataviz_mcp.public_repair_contract import (
     _discover_repository_skill_paths,
     _repository_skill_bundle,
     _skill_body,
+    build_public_creator_instructions,
 )
 
 
@@ -78,6 +81,15 @@ def test_repository_bundle_discovers_changes_without_an_allowlist(tmp_path: Path
     assert "Alpha body" in text
     assert "New body" in text
     assert revision is None
+    with pytest.raises(RuntimeError, match="repository revision is unavailable"):
+        build_public_creator_instructions(tmp_path)
+
+
+def test_public_creator_fails_when_canonical_skills_are_unavailable(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(RuntimeError, match="Canonical Codex skill sources"):
+        build_public_creator_instructions(tmp_path)
 
 
 def test_audited_plan_schema_does_not_require_one_chart_family() -> None:

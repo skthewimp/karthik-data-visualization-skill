@@ -16,8 +16,8 @@ applies only the discovered guidance relevant to chart repair.
 The public site installs this repository in editable mode and restarts whenever the
 checkout advances, so any core commit is available after the automatic restart. The
 contract exposes its repository revision, discovered source paths, and SHA-256
-fingerprint. A packaged fallback remains for non-repository installations; the public
-website rejects that fallback so production cannot silently run stale instructions.
+fingerprint. There is no embedded instruction fallback: a package without the canonical
+repository skill sources fails at import instead of silently running stale instructions.
 
 ## Requirements and installation
 
