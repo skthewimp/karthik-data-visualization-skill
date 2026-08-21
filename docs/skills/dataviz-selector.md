@@ -57,6 +57,7 @@ If implementing: <short code/design note>
 - Add context only when it helps: event markers, thresholds, ribbons, counterfactuals, direct labels, facets, or short annotations.
 - Choose colour by analytical role: focal-plus-grey for emphasis, qualitative hues for identity, sequential scales for magnitude, and diverging scales only around a meaningful midpoint.
 - Match the visual channel to the job the data does: give the reader's main comparison the most accurate channel. Position on a common scale and length read magnitude and trends best; hue carries identity; area, angle, and colour intensity are for rough proportion, emphasis, or spotting regions - not for values a reader must compare. When the main quantity sits on a weak channel, move it to a stronger one.
+- Keep the graphic proportional to the data (graphical integrity / lie factor): the visual effect should be as big as the effect in the data, no bigger. A common untruncated baseline for length, no area or volume for a one-dimensional quantity, no dimension the data lacks (3D, perspective). Bars-start-at-zero is one instance. The selector already leans Tufte elsewhere - comparison-first ("compared to what?"), the simplest form that exposes it, small multiples, showing the observations over a bare summary.
 - For S-curves and other shaped time series, mark visible knee-bends/inflections, local maxima/minima, and temporary peaks/troughs when they change the story.
 - If the dataset does not support the user's question, say so and chart the evidence that exists.
 

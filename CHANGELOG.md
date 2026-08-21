@@ -13,6 +13,10 @@
 - Both new skills ship both surfaces (`codex` and `claude`, byte-identical). Rewrote `docs/design/dataviz-fix-repair-flow.md` for the new flow and added `docs/skills/dataviz-brief.md` and `docs/skills/dataviz-extract.md`; updated the skill docs, folder READMEs, and root README.
 - De-overfit pass on the behavior files: removed the literal `a16z` / "ten models" / "model mix" references from `dataviz-brief`, `dataviz-extract`, and `dataviz-critique`, generalising them to N-series / multi-category language, and added non-stack examples (dual-axis, map-for-ranking, over-fine pie) so "preserving the message is not preserving the form" reads as a general principle rather than a stacked-bar rule. The a16z case history stays in DEVLOG and the design note, where it belongs.
 
+### Graphical integrity in selection
+
+- Generalised the lone "bars start at zero" rule in `dataviz-selector` into a graphical-integrity principle (Tufte's lie factor): the size of the visual effect should match the size of the effect in the data - a common untruncated baseline for length, no area or volume for a one-dimensional quantity, no dimension the data lacks (3D, perspective). Bars-at-zero is named as one instance. The selector already carried most Tufte selection principles (comparison-first, simplest form, small multiples, showing the observations); this closes the integrity gap.
+
 ### Perceptual grouping (Gestalt) principles
 
 - Added a "grouping and emphasis" principle to `karthik-data-visualization` naming the Gestalt laws as design tools: proximity/common region (group), similarity (same-kind signal; never link unrelated series), connectedness (a line or directly placed label binds more strongly than a shared colour - the real reason direct labels beat legends), enclosure (a quiet alternative to arrows), and figure-ground (one focal element against muted context). Plus a preattentive rule: exactly one channel should make the most important thing pop without search. Two of these (proximity, figure-ground) were already applied in practice; the addition organises them as tools and folds in the missing three (similarity, connectedness, enclosure).
