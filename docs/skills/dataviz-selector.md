@@ -56,6 +56,7 @@ If implementing: <short code/design note>
 - Use the simplest chart that exposes that comparison.
 - Add context only when it helps: event markers, thresholds, ribbons, counterfactuals, direct labels, facets, or short annotations.
 - Choose colour by analytical role: focal-plus-grey for emphasis, qualitative hues for identity, sequential scales for magnitude, and diverging scales only around a meaningful midpoint.
+- Match the visual channel to the job the data does: give the reader's main comparison the most accurate channel. Position on a common scale and length read magnitude and trends best; hue carries identity; area, angle, and colour intensity are for rough proportion, emphasis, or spotting regions - not for values a reader must compare. When the main quantity sits on a weak channel, move it to a stronger one.
 - For S-curves and other shaped time series, mark visible knee-bends/inflections, local maxima/minima, and temporary peaks/troughs when they change the story.
 - If the dataset does not support the user's question, say so and chart the evidence that exists.
 
@@ -88,7 +89,7 @@ If the user asks for one of these, the skill should say it is not recommended an
 | Swing scenarios | Seat curves by swing, faceted by state |
 | Survey polarisation | Faceted response histograms |
 | Share substitution | 100% stacked bars/area only if broad mix is the story; use small multiples, grouped bars, lines, dots, or a table when intermediate or top components need precise comparison |
-| Many series × time, compare trajectories | Small multiples or direct-labelled lines (reduce to top-N + explicit "other" if crowded). Not a heatmap: colour lightness is a weak channel for magnitude and rate, so trajectories become unreadable, and a log colour scale hides change further. Reserve heatmaps for presence/timing/gap/block patterns across many cells that position cannot lay out. |
+| Many series × time, compare trajectories | Small multiples or direct-labelled lines (reduce to top-N + explicit "other" if crowded). Put the trajectory on position, not on colour. |
 | Risk | Downside distributions, scenarios, utility curves |
 | Root cause | Waterfall if reconciled; otherwise ranked driver bars or action table |
 | Management scan | Scorecard first, diagnostic chart second |

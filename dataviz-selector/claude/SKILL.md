@@ -35,7 +35,6 @@ When this skill is invoked inside a chart repair (`dataviz-fix`), it runs on the
 - Slowing growth: show the level and the comparison that establishes slowing; use a derivative or projection only when it answers the stated question and is interpretable to the audience.
 - Forecast/anomaly: actual line, forecast/dashed line, uncertainty ribbon, highlighted anomaly/intervention window.
 - Many comparable series: small multiples or cluster prototypes; avoid spaghetti.
-- Category-by-time matrices (heatmaps): a heatmap puts magnitude on colour lightness, a weak channel for reading values, rates, or trajectories - and a log colour scale hides change further. Reserve it for spotting presence, timing, gaps, or block patterns across many cells that position cannot lay out. When the message is how each series moves or how large it is, put magnitude back on position: small multiples, direct-labelled lines, or a ranked view (reduce to top-N plus an explicit "other" if the count is unwieldy).
 - If the chart will be consumed in chat or at thumbnail size, prefer forms that support direct labels and strong contrast; avoid designs that depend on faint colour differences or tiny legends.
 - Choose colour by data role: focal-plus-grey for emphasis, qualitative hues for nominal identity, a perceptually ordered sequential scale for magnitude, and a diverging scale only around a meaningful midpoint. If colour is doing work that position or direct labels could do better, remove it.
 - For slopegraphs, place endpoint labels where they remain paired and legible, then choose the aspect ratio from row density, label geometry, and delivery medium rather than a fixed orientation.
@@ -63,7 +62,15 @@ If implementing: <short code/design note>
 ## Hard guardrails
 
 - One chart, one main job.
-- Encode magnitude on the strongest channel the layout allows: position and length before angle, area, or colour lightness/saturation. Colour lightness answers "where are the hot and cold cells", never "how much" or "which way is it moving"; if position or length can carry the value, they should. This is why a heatmap is a poor default for a value or trajectory comparison.
+- Match the visual channel to the job the data does, and give the reader's most important comparison the most accurate channel. Roughly, from most to least accurate for reading values: position on a common scale, then length, then angle/slope, then area, then colour and density. Apply it to what the chart is actually asking the reader to do:
+  - Magnitude or quantity to compare: position on a common scale or length (dots, bars, lines) - not area (bubble), angle (pie), or colour intensity.
+  - Change or trajectory over time: position (lines, slopes) - not colour shifts across cells.
+  - Rank or order: position, or an ordered sequential scale.
+  - Category or identity: hue - a qualitative palette, not lightness (which implies order that is not there).
+  - Relationship between two measures: x-y position (scatter).
+  - Part-to-whole: length from an aligned baseline.
+
+  When the chart's main quantity sits on a weak channel - a value the reader must read off colour, a trend read off shading, a size compared by area - move it to a stronger one. Reserve the weak channels for what they are good at: colour and density for emphasis, grouping, or spotting hot/cold regions across many cells; area and angle for rough proportion, not precise reading.
 Treat commonly problematic forms as risk conditions, not universal prohibitions. Recommend the simplest form that preserves the intended comparison in the actual medium. A form that is often misleading may still be appropriate when its purpose, encoding, audience, and limitations are explicit; reject it when it obscures magnitude, comparison, uncertainty, or interpretation.
 - Bars start at zero; scatters need not.
 - Do not extend regression/counterfactual lines beyond defensible range without marking them as projections.
