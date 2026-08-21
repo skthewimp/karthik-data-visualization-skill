@@ -601,3 +601,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Rerun the other conversation; neither requirement remains. Step 3/3 done: - Dimensions are optional; profile defaults work. - No mandatory “exact, approximate, or mixed” statement. - Internal safeguards still prevent...
 
 <!-- codex-session:01a019ea-68e4-7180-849a-ffb68e689458:end -->
+
+<!-- claude-session:f7d7de41-ee72-45fb-aa79-99daa5f3782d:start -->
+## 2026-08-21 09:41 IST | Claude session `f7d7de41-ee7`
+
+### User prompts
+> made a bunch of recent changes to this set of skills. basically it had become too slow and so we did away wiht the loop involving the dataviz-eval skill. now it seems to have regressed in ome cases. can you see if the...
+> actually wait. before this, can we summarise what the critique skill says, and if it has changed materially in the recent times? (look at old gits etc)
+> before that, can you give me a flowchart on how dataviz-fix works?
+
+### Work done
+- Yes — and I think your reordering is not just a better critique, it's the structural fix we've been circling. Let me think it through. ## What's actually wrong with the current order Critique is doing three jobs at on...
+- Reran and no fix — agreed, prose guardrails have hit their ceiling. Here's a self-contained handoff prompt for a fresh session. On MCPs: **no new MCP needed.** The reorder is pure skill-flow logic. Rendering/inspectio...
+
+<!-- claude-session:f7d7de41-ee72-45fb-aa79-99daa5f3782d:end -->
