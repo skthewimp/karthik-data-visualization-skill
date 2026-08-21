@@ -1,5 +1,17 @@
 # Devlog
 
+## 2026-08-21 - "Can't name it" is not "not key": sealing the identity crack
+
+### Context
+
+A hosted repair (dataviz.karthiks.co) again collapsed the many-series stacked chart to a single total column - but through a door the previous guardrails did not name. All prior anti-drop rules blocked reasons about *value* recovery: "values approximate", "read from a screenshot", "unreadable precision", "crowded legend". This run's stated WHY was about *identity*: "the stack contains more distinct colours than the visible legend identifies, preventing reliable category-to-colour recovery", so "model-level trajectories were not reconstructed because the legend does not identify all plotted colours". The model converted "I can't reliably name every category" into "the categories aren't key" and dropped the mix - the whole point of the chart.
+
+Two layers were in play. The output shape (assess source -> recommend -> build -> limitations, under `mode: automatic_critique` with a repair_brief that says "run a complete expert dataviz critique of the source") is the old critique-first flow, not the repo's forward-design flow - that orchestration lives in the hosted app, not this repo, and needs a redeploy/app-side change to pick up the brief-first flow. Independent of that, the skills themselves had one unsealed crack.
+
+### Fix
+
+Generalised the "difficulty of recovery is never grounds to drop a message" rule in `dataviz-brief` and `dataviz-critique` (both surfaces) so it explicitly covers a category's *identity*, not only its *value*: an unmappable colour or a legend that names fewer categories than the chart encodes is a form weakness, not a licence to delete the dimension. Remedy stated inline: keep the categories, name the ones the source identifies, mark the rest generically - imperfect labels still carry a composition/comparison message. `dataviz-extract` now asks for one member per visually distinct series, naming what it can and labelling the rest generically, and forbids shrinking the category count to only the named series. Kept general (no "models"/a16z wording) so it does not overfit the triggering case.
+
 ## 2026-08-21 - A well-formatted table is a visualization too
 
 ### Context

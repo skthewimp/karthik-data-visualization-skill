@@ -15,7 +15,7 @@ The **full period-by-category table**: a value for every period and every catego
 
 Produce, explicitly:
 
-1. **The category members**, listed by name. If the source shows ten series, name all ten.
+1. **The category members**, one per visually distinct series - listed by name where the source identifies them. If the chart encodes more distinct series than the legend names, still list every distinct series: name the ones you can and label the rest generically (an unlabelled series is still a row). Never shrink the category count to only the ones you could name - a missing label is not a missing category.
 2. **The periods or x-positions**, listed.
 3. **A value for every (period × category) cell.** No gaps. If a cell cannot be read, estimate it - but it must exist.
 4. **Units and any transformation** visible on the source (counts, %, index, log axis, share-of-total, cumulative), so the rebuild does not silently change the measure.
