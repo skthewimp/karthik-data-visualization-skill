@@ -42,7 +42,7 @@ In parallel with step 1, run `dataviz-extract` on the image to recover the full 
 
 ### 3. Select - choose the form cold
 
-Run `dataviz-selector` on the intent (step 1) and data (step 2). Run it **cold**: the source chart's form is not an input and gets no vote. Select the simplest form that makes the key messages easiest to see and hardest to misread, for the stated audience and medium. For "many series over time, compare trajectories" this is small multiples or direct-labelled lines, because that is what the data shape and message want - the source stack is not in the room. There is no "unless the source form is clearly correct" escape hatch in the redesign path; the form is chosen from the brief, not inherited.
+Run `dataviz-selector` on the intent (step 1) and data (step 2). Run it **cold**: the source chart's form is not an input and gets no vote. Select the simplest form that makes the key messages easiest to see and hardest to misread, for the stated audience and medium. For "many series over time, compare trajectories" this is small multiples or direct-labelled lines, because that is what the data shape and message want - the source stack is not in the room. There is no "unless the source form is clearly correct" escape hatch in the redesign path; the form is chosen from the brief, not inherited. A **table is a valid cold verdict**: when the intent is exact lookup or the values are not commensurable on one scale, a well-formatted table can be the right repair of a chart - selecting it is a redesign, not a refusal to chart.
 
 ### 4. Build
 
@@ -52,6 +52,8 @@ Construct the chart(s) with `karthik-data-visualization` for implementation and 
 - Compose the headline and subhead here. There is no dedicated skill: `chart-annotations` decides the claim the title asserts, `karthik-data-visualization` sets title/subtitle style, and the installed writing or brand-style skill, if available, sets the voice. Load a writing/brand skill only if it exists in this environment; if none is installed, apply the prompt's stated preferences and skip.
 
 Honour every prompt constraint - requested chart type, annotations, wording, preferences - even while redesigning everything the prompt left open. Produce one PNG, SVG, or PDF from reproducible R, Python, JavaScript, or editable vector code. Reuse the project's renderer when one exists; otherwise prefer ggplot2 when available, but do not delay output for a renderer preference.
+
+**If the cold verdict is a table:** build it with `karthik-table-style` instead of `karthik-data-visualization` - decimal-aligned figures, precision keyed to variance, content-sized columns, minimal rules, and only claim-carrying emphasis. Produce the delivered table with `gt` (or markdown/HTML where R is unavailable), and produce the inspected raster by rendering a `grid`/`tableGrob` through the same `render_and_inspect_chart` ragg path the charts use, so the table is gated on the same footing. The checker in step 5 then reads alignment, decimal alignment, wrap/overflow collisions, and font size rather than axis and baseline.
 
 For a `bounded-edit`: skip the cold selection, apply the named edit to the source form, and re-render - staying anchored is the point.
 
