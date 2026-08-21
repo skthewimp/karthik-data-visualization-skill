@@ -101,6 +101,17 @@ form* (small multiples, direct-labelled lines, top-N plus an explicit "other", a
 view), never for deletion. Source illegibility triggers a redesign of the form; it does not
 authorise removing the information.
 
+The correction to that guardrail then overshot the other way: the next run *kept* all ten
+categories but re-rendered the same stacked bar - cleaner canvas, legend moved, colours
+retained - which is the form whose whole problem is that no reader can follow one model through
+a ten-deep stack. Preserving the data got conflated with preserving the chart type. Third
+guardrail: preserving the message is not preserving the form. The data must survive; the
+encoding must not, and often should not. When the source form is the reason a key message is
+hard to read, changing the form *is* the repair - a many-series stack whose message is
+per-series comparison becomes small multiples or direct-labelled lines. A tidier version of the
+same illegible form is not a repair, and a many-series stack is never "clearly correct" enough
+to skip `dataviz-selector` when the message is per-series comparison or trajectory.
+
 A consequence of this split: the eval subagent is given the rendered artifact and a brief
 (prompt, inferred style, inferred headings, intended message) but **not the source image**.
 It judges "does this chart do its job, per the brief", not "does it faithfully match the

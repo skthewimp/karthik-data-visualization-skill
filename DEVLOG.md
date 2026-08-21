@@ -6,6 +6,19 @@ The public website updater was correctly fast-forwarding and reinstalling this r
 
 `dataviz_mcp.public_repair_contract` now discovers every top-level `<skill>/codex/SKILL.md` directly from the current checkout. There is no list of individual skill names: new, renamed, removed, and revised skill entrypoints change the assembled bundle automatically. A runtime adapter translates relevant guidance into the website's existing one-creator execution boundary: it does not attempt unavailable skill or subagent calls, does not let unrelated skills expand the task, and still requires an inspected `/mnt/data/repaired.png`. The bundle publishes the core Git revision, discovered paths, and content fingerprint. Tests exercise discovery against synthetic additions rather than merely checking a maintained list. The old embedded handwritten fallback has been removed; without canonical repository skill sources, import fails closed.
 
+## 2026-08-21 - Preserving the message is not preserving the form
+
+### Context
+
+After the creator-binding fix deployed and the drop guardrails went live, the hosted repair stopped collapsing the a16z chart to a total - it kept all ten model categories. But it re-rendered the *same stacked bar*: cleaner canvas, legend moved above the plot, "Others" muted, colours retained. That is the form Karthik flagged in the very first message of this thread - a ten-deep stack where you cannot follow any single model's trajectory. The previous guardrail ("the form declares its messages", "preserve the dimension") had been read as "keep the stacked chart type." Preserving the *data* got conflated with preserving the *encoding*.
+
+### Fix
+
+- **Third guardrail: preserving the message is not preserving the form.** The data must survive; the encoding must not, and often should not. Re-rendering the same chart type is not preservation when that form was what made the message hard to read. A many-series stack whose message is per-series comparison or trajectory becomes small multiples, direct-labelled lines, or a ranked/indexed view - not a tidier stack.
+- **Tightened the `dataviz-selector` trigger** in `dataviz-fix`: a many-series stacked bar/area is never "clearly correct" enough to skip selection when the message is per-series comparison; expect a form change, not a re-render.
+
+Note the arc across the three same-day edits: drop-the-categories → keep-but-justify-the-drop → keep-but-keep-the-bad-form. Each patch fixed the last symptom. The general principle underneath (preserve the message, choose the form that makes it legible) is not overfit to this chart, but the three-step chase is a reminder that the real lever may be biasing reconstruction toward a form change whenever the source form is the diagnosed weakness, rather than patching the judgment prose again.
+
 ## 2026-08-21 - "Hard to read" is not "not key": guardrails on the drop judgment
 
 ### Context

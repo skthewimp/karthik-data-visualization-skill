@@ -38,7 +38,7 @@ Do not build a design contract, semantic-preflight JSON, plan audit, case record
 
 Rebuild from the critique, the prompt, the inferred data, and the inferred headings and style. Load:
 
-- `dataviz-selector` by default, unless the source form is clearly correct and the prompt does not question it.
+- `dataviz-selector` by default, unless the source form is clearly correct and the prompt does not question it. A many-series stacked bar or area is *not* clearly correct when the key message is per-series comparison or trajectory - run the selector and expect a form change (small multiples, direct-labelled lines, a ranked or indexed view), not a re-render of the stack. Preserving the categories means keeping the data, not keeping the chart type: a cleaner version of the same illegible form is not a repair.
 - `karthik-data-visualization` for implementation and Karthik-style defaults.
 - `chart-annotations` whenever the chart plausibly has a point worth marking. Whether any mark is warranted is a judgment the skill itself makes: it decides what, if anything, clears the bar, ranks the candidates, words the label, and places it - or leaves the chart unmarked and puts the finding in the title. Do not annotate by default, and do not skip the skill's judgment either; invoke it and let it decide.
 
