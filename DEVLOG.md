@@ -677,3 +677,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed `bd0be77`. Tree clean, in sync. **Direct answer:** most of Tufte was *already* in the selector — it just wasn't labelled as such: | Tufte selection principle | Was it there? | |---|---| | "Compared to what?" (c...
 
 <!-- claude-session:2660d710-f0c6-4bac-b8a3-f1a28c1b8712:end -->
+
+<!-- claude-session:863824a3-d75b-406c-be51-f49a9cc4a003:start -->
+## 2026-08-21 21:01 IST | Claude session `863824a3-d75`
+
+### User prompts
+> one thing we've missed out in this suite of skills - a well formatted table can also be a good visualisation. rihgt now this doesn't do tables. if given a badly formatted table, we get a visualisation. some grpahs tha...
+> commit and push. and go on with phase 2.
+> the tablegrob thing is a problem. need the table to be of hte appropriate size in teh canvas
+
+### Work done
+- Mirroring, noting in CHANGELOG, validating, syncing, committing.
+- Done, pushed (`a6373d6`). Precision principle is now **bidirectional**: it's significant digits, not decimal places. It rounds to the left of the decimal - ending large numbers in zeros (tens/hundreds/thousands) when...
+- Touched files: `Rplots.pdf`
+
+<!-- claude-session:863824a3-d75b-406c-be51-f49a9cc4a003:end -->
