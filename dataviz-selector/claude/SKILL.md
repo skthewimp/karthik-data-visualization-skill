@@ -13,7 +13,7 @@ For non-trivial chart selection, use the workflow and guardrails below; private 
 
 ## Cold selection in a repair
 
-When this skill is invoked inside a chart repair (`dataviz-fix`), it runs on the intent (from `dataviz-brief`) and the extracted data - not on the source chart. Run it **cold**: the source chart's form is not an input and gets **no vote**. Choose the form the messages and data want, as if drawing the chart for the first time. There is no "the source form is clearly correct, so keep it" shortcut: a many-series stacked bar or area whose message is per-series comparison or trajectory is not correct enough to inherit - it becomes small multiples, direct-labelled lines, or a ranked/indexed view. Preserving the categories means keeping the data, not the chart type; a tidier version of the same illegible form is not a selection.
+When this skill is invoked inside a chart repair (`dataviz-fix`), it runs on the intent (from `dataviz-brief`) and the extracted data - not on the source chart. Run it **cold**: the source chart's form is not an input and gets **no vote**. Choose the form the messages and data want, as if drawing the chart for the first time. There is no "the source form is clearly correct, so keep it" shortcut: a many-series stacked bar or area whose message is per-series comparison or trajectory is not correct enough to inherit - it becomes small multiples, direct-labelled lines, or a ranked/indexed view. Preserving the categories means keeping the data, not the chart type; a tidier version of the same illegible form is not a selection. A table is a legitimate cold verdict: if the intent and data want exact lookup or non-commensurable values, choosing a well-formatted table over the source chart is a selection, not a refusal to chart.
 
 ## Workflow
 
@@ -26,7 +26,16 @@ When this skill is invoked inside a chart repair (`dataviz-fix`), it runs on the
 5. Choose the simplest chart that exposes that comparison.
 - Add only necessary context: direct labels, event line/band, threshold, uncertainty ribbon, counterfactual, facet, or annotation. Detailed annotation selection belongs to `chart-annotations`.
 7. Say what to avoid: misleading axis, overplotting, unnecessary regression, crowded legend, map-for-ranking, stacked bars for precise comparisons, etc.
-8. If generating code, then also apply `karthik-data-visualization` styling before final output.
+8. If generating code, then also apply `karthik-data-visualization` styling before final output. If the verdict is a table, apply `karthik-table-style` instead.
+
+## Table or chart?
+
+A well-formatted table is a visualization, not the absence of one; treat it as a real candidate every time, not a fallback. Ask what the reader's main task is:
+
+- **Table** when the task is reading exact values; when the rows are few and the reader looks numbers up by name; when the columns are not commensurable on one scale (mixed units or unrelated metrics) so no shared axis is honest; when the artifact is a reference or monitoring surface consulted cell by cell; or when the "chart" would just be a bar-chart of a handful of numbers read precisely. A table with decimal-aligned figures, sized columns, and scarce emphasis often out-reads that bar chart.
+- **Chart** when the message is a shape, trend, comparison, or distribution the eye should grab pre-attentively - when position, length, or slope carries the claim faster than the reader could scan a grid of numbers.
+
+When both could work, decide by the dominant task: precise lookup and heterogeneous values lean table; one pre-attentive comparison leans chart. A table is chosen for exact lookup or non-commensurable values, never as a dumping ground for data a chart could show as a shape. When the verdict is a table, hand off to `karthik-table-style` for its craft.
 
 ## Fast chooser
 
