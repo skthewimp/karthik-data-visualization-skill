@@ -41,6 +41,14 @@ precision than the data supports, is not finished.
 
 ## Craft principles
 
+- **Order for the reader's task.** Sort rows and columns by the value being
+  compared, not alphabetically or by source order, unless lookup by name is the
+  task. Time runs across columns; rankings run top to bottom. Ordering is more
+  load-bearing than any formatting: a badly ordered table cannot be rescued by
+  alignment.
+- **Make the header row distinct.** The header must read as a different layer
+  from the body - weight plus a single rule beneath it, not merely alignment.
+  This is the most common table failure; do not rely on position alone.
 - **Emphasis is scarce ink.** Bold or shade only the cells that carry the claim
   - a total, a winner, an outlier, the row the reader came for. Emphasising
   everything emphasises nothing. Keep one focal element as figure against a
@@ -60,6 +68,13 @@ precision than the data supports, is not finished.
 - **Rules and whitespace.** No full gridlines, no vertical rules. Use a few
   horizontal rules - header, group boundaries, total - and whitespace to group
   rows. Whitespace groups and separates; it is not filler.
+- **Group related rows and set totals apart.** Cluster rows that belong together
+  with a little whitespace, keep the column structure identical across groups,
+  and give a total or summary row a distinct weight or rule so it is not read as
+  just another row.
+- **Put the main comparison down a column.** The eye compares down a column far
+  more accurately than across a row, so orient the table so the comparison the
+  reader came for runs vertically; prefer more rows than columns (portrait).
 - **Tabular (lining) figures.** Use mono-width digits so columns align
   vertically; pair with a clean text font. Proportional figures break decimal
   alignment.
@@ -83,6 +98,16 @@ spotting hot and cold regions across many cells, not for values the reader must
 read precisely. A perceptually ordered sequential scale for magnitude, a
 diverging scale only around a meaningful midpoint. If the shading does not change
 what the reader can see, remove it.
+
+## Inline micro-visualization
+
+A table can embed a visualization in a cell - an in-cell bar, a sparkline, a
+small dot plot. This is the strongest form of "a table is a visualization": it
+keeps the exact number for lookup while putting magnitude or trend on a strong
+channel (length, position) that shading cannot match. Prefer an in-cell bar or
+sparkline over heat shading when the reader needs to *compare* magnitudes or see
+a *shape*, not just spot hot cells. Keep it subordinate - one micro-visual
+column, aligned to a common scale, not a cell-by-cell zoo of glyphs.
 
 ## Rendering
 
