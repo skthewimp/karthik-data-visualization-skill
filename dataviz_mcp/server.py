@@ -53,8 +53,13 @@ def create_server() -> Any:
         dimensions: dict[str, Any] | None = None,
         artifact_name: str = "chart.png",
         build_function: str = "build_chart",
+        content: str = "chart",
     ) -> dict[str, Any]:
-        """Render backend-neutrally (ggplot2 first for auto), inspect, and build review views."""
+        """Render backend-neutrally (ggplot2 first for auto), inspect, and build review views.
+
+        Set content="table" to render a gtable (tableGrob / gt::as_gtable) from an .R
+        source through the grid/ragg path and gate it like a chart.
+        """
         return render_inspect_core(
             source_path,
             output_dir,
@@ -63,6 +68,7 @@ def create_server() -> Any:
             dimensions,
             artifact_name,
             build_function,
+            content=content,
         )
 
     @server.tool()

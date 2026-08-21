@@ -466,7 +466,7 @@ def probe_renderers() -> dict[str, Any]:
         "available": False,
         "rscript": rscript,
         "r_version": None,
-        "packages": {"ggplot2": None, "ragg": None},
+        "packages": {"ggplot2": None, "ragg": None, "gridExtra": None},
         "supported_output_types": [],
         "supported_source_types": [".r"],
         "failure_reasons": [],
@@ -476,7 +476,7 @@ def probe_renderers() -> dict[str, Any]:
     else:
         expression = (
             'cat("R\\t", paste(R.version$major, R.version$minor, sep="."), "\\n", sep=""); '
-            'for (p in c("ggplot2", "ragg")) {'
+            'for (p in c("ggplot2", "ragg", "gridExtra")) {'
             ' if (requireNamespace(p, quietly=TRUE)) '
             'cat(p, "\\t", as.character(packageVersion(p)), "\\n", sep="") '
             'else cat(p, "\\tMISSING\\n", sep="") }'
@@ -510,14 +510,30 @@ def probe_renderers() -> dict[str, Any]:
                         ggplot_probe["failure_reasons"].append(
                             f"R package {package} is not installed"
                         )
+                gridextra_version = values.get("gridExtra")
+                if gridextra_version and gridextra_version != "MISSING":
+                    ggplot_probe["packages"]["gridExtra"] = gridextra_version
     ggplot_probe["available"] = not ggplot_probe["failure_reasons"]
     if ggplot_probe["available"]:
         ggplot_probe["supported_output_types"] = ["png"]
+    table_reasons = list(ggplot_probe["failure_reasons"])
+    if ggplot_probe["packages"].get("gridExtra") is None:
+        table_reasons.append(
+            "R package gridExtra is not installed (recommended for tableGrob tables)"
+        )
+    table_rendering = {
+        "available": ggplot_probe["available"],
+        "backend": "grid/gtable via ragg",
+        "recommends": "gridExtra::tableGrob or gt::as_gtable",
+        "content": "table",
+        "failure_reasons": table_reasons,
+    }
     return {
         "schema_version": SCHEMA_VERSION,
         "probed_at": _now_iso(),
         "renderer_precedence": ["explicit user requirement", "ggplot2", "matplotlib"],
         "renderers": {"ggplot2": ggplot_probe, "matplotlib": matplotlib_probe},
+        "table_rendering": table_rendering,
     }
 
 
@@ -531,6 +547,8 @@ width_px <- as.integer(args[[5]])
 height_px <- as.integer(args[[6]])
 dpi <- as.numeric(args[[7]])
 build_function <- args[[8]]
+content_kind <- if (length(args) >= 9) args[[9]] else "chart"
+is_table_content <- identical(content_kind, "table")
 
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(ragg))
@@ -539,18 +557,24 @@ source(source_path, local=.GlobalEnv)
 builder <- get(build_function, mode="function", inherits=TRUE)
 built <- builder()
 if (inherits(built, "ggplot")) {
-  chart <- built
   metadata <- list()
+  gt <- ggplotGrob(built)
 } else if (is.list(built) && inherits(built$plot, "ggplot")) {
-  chart <- built$plot
   metadata <- built$metadata
   if (is.null(metadata)) metadata <- list()
+  gt <- ggplotGrob(built$plot)
+} else if (inherits(built, "gtable")) {
+  metadata <- list()
+  gt <- built
+} else if (is.list(built) && inherits(built$table, "gtable")) {
+  metadata <- built$metadata
+  if (is.null(metadata)) metadata <- list()
+  gt <- built$table
 } else {
-  stop("build_chart() must return a ggplot or list(plot=<ggplot>, metadata=<list>)")
+  stop("build must return a ggplot, a gtable (tableGrob/gt::as_gtable), or list(plot=/table=, metadata=)")
 }
 
 ragg::agg_png(artifact_path, width=width_px, height=height_px, units="px", res=dpi)
-gt <- ggplotGrob(chart)
 grid.newpage()
 grid.draw(gt)
 grid.force()
@@ -560,7 +584,7 @@ resolve_tracks <- function(track_units, total_px) {
   fixed <- convertUnit(track_units, "in", valueOnly=TRUE) * dpi
   null <- types == "null"
   weights <- rep(0, length(track_units))
-  weights[null] <- as.numeric(track_units[null])
+  if (any(null)) weights[null] <- as.numeric(track_units[null])
   remaining <- max(0, total_px - sum(fixed[!null]))
   if (sum(weights) > 0) fixed[null] <- remaining * weights[null] / sum(weights)
   fixed
@@ -576,6 +600,34 @@ extract_label <- function(g) {
   if (inherits(g, "gTree") && length(g$children)) {
     labels <- unlist(lapply(g$children, extract_label), use.names=FALSE)
     return(paste(labels[nzchar(labels)], collapse=" | "))
+  }
+  ""
+}
+
+extract_gp <- function(g, field) {
+  if (!is.null(g$gp) && !is.null(g$gp[[field]])) {
+    value <- suppressWarnings(as.numeric(g$gp[[field]][1]))
+    if (length(value) && is.finite(value)) return(value)
+  }
+  if (inherits(g, "gTree") && length(g$children)) {
+    for (child in g$children) {
+      value <- extract_gp(child, field)
+      if (!is.na(value)) return(value)
+    }
+  }
+  NA_real_
+}
+
+extract_fill <- function(g) {
+  if (!is.null(g$gp) && !is.null(g$gp$fill)) {
+    value <- g$gp$fill[1]
+    if (!is.na(value)) return(as.character(value))
+  }
+  if (inherits(g, "gTree") && length(g$children)) {
+    for (child in g$children) {
+      value <- extract_fill(child)
+      if (nzchar(value)) return(value)
+    }
   }
   ""
 }
@@ -692,6 +744,26 @@ for (i in seq_len(nrow(gt$layout))) {
   py <- y_before[item$t]
   pw <- sum(widths[item$l:item$r])
   ph <- sum(heights[item$t:item$b])
+  if (is_table_content) {
+    cell_text <- extract_label(grob)
+    if (nzchar(cell_text)) {
+      font_size <- extract_gp(grob, "fontsize")
+      colour <- extract_fill(grob)
+      rows[[i]] <- row_frame(
+        paste0("gg-", i), as.character(item$name), cell_text,
+        px, py, pw, ph, "text", "", "",
+        if (is.na(font_size)) "" else as.character(font_size)
+      )
+    } else {
+      fill <- extract_fill(grob)
+      kind <- if (nzchar(fill)) "rect" else "zone"
+      rows[[i]] <- row_frame(
+        paste0("gg-", i), as.character(item$name), "",
+        px, py, pw, ph, kind, "", fill
+      )
+    }
+    next
+  }
   rows[[i]] <- row_frame(
     paste0("gg-", i), as.character(item$name), extract_label(grob),
     px, py, pw, ph
@@ -739,6 +811,7 @@ def _render_ggplot2(
     build_function: str,
     dimensions: dict[str, Any],
     probe: dict[str, Any],
+    render_kind: str = "chart",
 ) -> dict[str, Any]:
     if source.suffix.lower() != ".r":
         raise ValueError("The ggplot2 adapter requires an .R chart source")
@@ -770,6 +843,7 @@ def _render_ggplot2(
                 str(height),
                 str(dpi),
                 build_function,
+                render_kind,
             ],
             text=True,
             capture_output=True,
@@ -892,20 +966,29 @@ def _render_ggplot2(
             "gtable_hierarchy_zones": True,
             "line_series_paths": True,
             "patch_and_common_collection_bounds": True,
+            "table_cell_bounds": render_kind == "table",
             "unsupported_non_line_mark_count": unsupported_marks,
             "limitations": (
-                ["Some ggplot2 panel grobs could not be normalized"]
+                [
+                    "Table cell bounding boxes, text, and fills are exact from the gtable"
+                    " tracks; decimal-point alignment and wrap/overflow within a cell are"
+                    " not automatically verified and must be read from the rendered raster."
+                ]
+                if render_kind == "table"
+                else ["Some ggplot2 panel grobs could not be normalized"]
                 if unsupported_marks
                 else ["ggplot2 text glyph bounds are deterministic font-metric estimates"]
             ),
         },
     }
+    renderer_label = "gt-table" if render_kind == "table" else "ggplot2"
     spec_path = destination / "chart-spec.json"
     layout_path = destination / "layout-metadata.json"
     manifest_path = destination / "manifest.json"
     spec = {
         "schema_version": SCHEMA_VERSION,
-        "renderer": "ggplot2",
+        "renderer": renderer_label,
+        "content_kind": render_kind,
         "source": {"path": str(source), "sha256": sha256_file(source)},
         "build_function": build_function,
         "dimensions": {"width_px": width, "height_px": height, "dpi": dpi},
@@ -916,7 +999,8 @@ def _render_ggplot2(
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "created_at": _now_iso(),
-        "renderer": "ggplot2",
+        "renderer": renderer_label,
+        "content_kind": render_kind,
         "artifact": artifact,
         "chart_spec": {"path": str(spec_path), "sha256": sha256_file(spec_path)},
         "layout_metadata": {"path": str(layout_path), "sha256": sha256_file(layout_path)},
@@ -953,17 +1037,30 @@ def render_and_inspect_chart(
     dimensions: dict[str, Any] | None = None,
     artifact_name: str = "chart.png",
     build_function: str = "build_chart",
+    content: str = "chart",
 ) -> dict[str, Any]:
     """Render with explicit precedence, inspect the exact PNG, and emit review views."""
     if renderer not in ("auto", "ggplot2", "matplotlib"):
         raise ValueError("renderer must be auto, ggplot2, or matplotlib")
+    if content not in ("chart", "table"):
+        raise ValueError("content must be chart or table")
     source = Path(source_path).expanduser().resolve()
     destination = Path(output_dir).expanduser().resolve()
     destination.mkdir(parents=True, exist_ok=True)
     probe = probe_renderers()
     requested = renderer
     fallback_reason: str | None = None
-    if renderer == "auto":
+    if content == "table":
+        if renderer == "matplotlib":
+            raise ValueError("table content renders through the R/grid path, not matplotlib")
+        if source.suffix.lower() != ".r":
+            raise ValueError("table content requires an .R source that returns a gtable")
+        if not probe["renderers"]["ggplot2"]["available"]:
+            reasons = "; ".join(probe["renderers"]["ggplot2"]["failure_reasons"])
+            raise RuntimeError(f"table rendering is unavailable: {reasons}")
+        selected = "ggplot2"
+        fallback_reason = None
+    elif renderer == "auto":
         ggplot_available = probe["renderers"]["ggplot2"]["available"]
         if ggplot_available and source.suffix.lower() == ".r":
             selected = "ggplot2"
@@ -990,6 +1087,7 @@ def render_and_inspect_chart(
             build_function,
             delivery_dimensions,
             probe,
+            render_kind=content,
         )
     else:
         dpi = int(delivery_dimensions.get("dpi", 144))
@@ -1033,6 +1131,7 @@ def render_and_inspect_chart(
         },
         "delivery_profile": delivery_profile,
         "dimensions": delivery_dimensions,
+        "content": content,
         "inspection": {
             "path": inspection["inspection_path"],
             "sha256": inspection["inspection_sha256"],
@@ -1044,6 +1143,7 @@ def render_and_inspect_chart(
     write_json(manifest_path, manifest)
     bundle["manifest_sha256"] = sha256_file(manifest_path)
     bundle["renderer"] = selected
+    bundle["content"] = content
     bundle["renderer_selection"] = manifest["renderer_selection"]
     bundle["inspection_path"] = inspection["inspection_path"]
     bundle["review_view_paths"] = [str(path) for path in view_paths]

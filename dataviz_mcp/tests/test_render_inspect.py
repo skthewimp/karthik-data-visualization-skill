@@ -182,3 +182,46 @@ def test_mismatched_metadata_is_rejected(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="hash does not match"):
         inspect_rendered_chart(clean["artifact"]["path"], bad["layout_metadata_path"])
+
+
+def test_probe_reports_table_rendering_capability() -> None:
+    probe = probe_renderers()
+    table = probe["table_rendering"]
+    assert table["backend"] == "grid/gtable via ragg"
+    assert isinstance(table["failure_reasons"], list)
+    assert table["available"] == probe["renderers"]["ggplot2"]["available"]
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
+def test_table_content_renders_and_captures_every_cell(tmp_path: Path) -> None:
+    source = Path(__file__).parent / "fixtures" / "table_fixture.R"
+    bundle = render_and_inspect_chart(
+        str(source),
+        str(tmp_path / "table"),
+        content="table",
+        build_function="build_table",
+    )
+    assert bundle["content"] == "table"
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text(encoding="utf-8"))
+    assert layout["coverage"]["table_cell_bounds"] is True
+    texts = {element["text"] for element in layout["elements"]}
+    # every header and body cell is captured with its text
+    for expected in ("Region", "Revenue", "Share", "North", "12.5", "42%"):
+        assert expected in texts
+    # cell font sizes are recovered from the gtable grobs
+    assert any(element.get("font_size_pt") for element in layout["elements"])
+    manifest = json.loads(Path(bundle["manifest_path"]).read_text(encoding="utf-8"))
+    assert manifest["content"] == "table"
+    assert manifest["renderer"] == "gt-table"
+
+
+def test_table_content_rejects_non_r_source(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="table content requires an .R source"):
+        render_and_inspect_chart(
+            str(FIXTURES),
+            str(tmp_path / "bad-table"),
+            content="table",
+        )
