@@ -12,7 +12,8 @@
 
 - Rebuilt the `dataviz-fix` default flow around one chat and one spawn: a single-pass source critique and an in-context checker loop (capped at two passes) run in the current session, and exactly one blind `dataviz-eval` subagent runs once on the converged candidate. This removes the slow, unbounded independent-review loop while restoring a real blind read at bounded cost.
 - Made the input image non-sacred but the prompt authoritative: reconstruction may redesign freely against the image and biases toward redesign, while every prompt instruction (chart type, annotations, what to fix, wording, style) must survive the process.
-- Wired `dataviz-selector` (default-on unless the form is clearly correct) and `chart-annotations` (default-on for redesigns) into the reconstruction step; the annotation skill had been dropped from the flow.
+- Wired `dataviz-selector` (default-on unless the form is clearly correct) and `chart-annotations` into the reconstruction step; the annotation skill had been dropped from the flow. Annotation is a judgment call - the skill is invoked and decides whether any mark clears the bar, rather than annotating by default.
+- Made headline and subhead authorship explicit in reconstruction: title claim from `chart-annotations`, style from `karthik-data-visualization`, voice from the installed writing skill. There is no dedicated headline skill and none is added.
 - Scoped the eval brief to the rendered artifact plus prompt, inferred style, headings, and intended message - not the source image, maker diagnosis, or rendering code - to keep the read blind.
 - Made the installed writing or brand-style skill a conditional dependency, invoked only when available.
 

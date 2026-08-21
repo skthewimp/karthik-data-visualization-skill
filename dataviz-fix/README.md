@@ -13,7 +13,8 @@ The default path: run one single-pass `dataviz-critique` on the source, reconstr
 
 - Rebuilds an uploaded or pasted visualization as a real PNG, SVG, or PDF.
 - Runs the source critique once (JSON is fine) with no maker-checker on the critique itself.
-- Invokes `dataviz-selector` (default-on unless the form is clearly correct) and `chart-annotations` (default-on for redesigns) during reconstruction.
+- Invokes `dataviz-selector` (default-on unless the form is clearly correct) during reconstruction, and `chart-annotations` whenever the chart may have a point worth marking - letting that skill judge whether any mark clears the bar rather than annotating by default.
+- Composes the headline and subhead in the reconstruction step: title claim from `chart-annotations`, style from `karthik-data-visualization`, voice from the installed writing skill when available. There is no separate headline skill.
 - Runs an in-context checker loop on the export, capped at two passes, exiting on no fatal or major defect.
 - Spawns one blind `dataviz-eval` reviewer on the converged candidate; skips it for a purely literal or cosmetic edit.
 - Applies at most one final revision from eval findings, with no re-spawn.

@@ -39,8 +39,9 @@ Rebuild from the critique, the prompt, the inferred data, and the inferred headi
 
 - `dataviz-selector` by default, unless the source form is clearly correct and the prompt does not question it.
 - `karthik-data-visualization` for implementation and Karthik-style defaults.
-- `chart-annotations` by default for a redesign, to choose, rank, word, and place the marks on the key points (peaks, inflections, thresholds, the headline datum). Skip it only for a bare literal edit that adds no callout.
-- the installed writing or brand-style skill, if available.
+- `chart-annotations` whenever the chart plausibly has a point worth marking. Whether any mark is warranted is a judgment the skill itself makes: it decides what, if anything, clears the bar, ranks the candidates, words the label, and places it - or leaves the chart unmarked and puts the finding in the title. Do not annotate by default, and do not skip the skill's judgment either; invoke it and let it decide.
+
+Compose the headline and subhead as part of this step. There is no dedicated skill for it; the authorship is split: `chart-annotations` decides the claim the title asserts (title vs annotation division of labour), `karthik-data-visualization` sets title/subtitle style (claim, question, measure, or honest null; subtitle carries the insight, not the mechanics), and the installed writing or brand-style skill, if available, sets the voice. Do not manufacture a claim to sound decisive; let the evidence choose the headline.
 
 Honour every prompt constraint - requested chart type, annotations, wording, and preferences - even while redesigning everything the prompt left open. Produce one PNG, SVG, or PDF from reproducible R, Python, JavaScript, or editable vector code. Reuse the project's renderer when one exists; otherwise prefer ggplot2 when available, but do not delay output for a renderer preference.
 

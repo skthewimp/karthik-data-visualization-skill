@@ -97,7 +97,10 @@ STEP 1  dataviz-critique  (in-context, one pass, no maker-checker)
 STEP 2  reconstruct
    • dataviz-selector (default-on unless form clearly right)
    • karthik-data-visualization
-   • chart-annotations (default-on for redesigns)
+   • chart-annotations (invoke when a point may be worth marking;
+     the skill judges whether any mark clears the bar)
+   • headline + subhead: claim from chart-annotations, style from
+     karthik-data-visualization, voice from writing skill (if any)
    • writing/brand skill (if available)
    • honour every prompt constraint; build one artifact
    ▼
@@ -126,7 +129,8 @@ DELIVER → iterate on real user feedback
 | Eval input | artifact + brief, no source image | blind read judged against the brief |
 | Input image | redesign freely, bias to redesign | old flow was too faithful to a weak chart |
 | Prompt | authoritative throughout | user constraints are requirements, not hints |
-| Annotation | `chart-annotations` default-on for redesigns | it had been dropped from the flow |
+| Annotation | invoke `chart-annotations`; it judges if a mark is warranted | it had been dropped from the flow; over-annotating is as bad as none |
+| Headline/subhead | no dedicated skill; claim ← chart-annotations, style ← karthik-data-viz, voice ← writing skill | the pieces already exist; a new skill would duplicate title-vs-annotation logic |
 | Writing/brand skill | conditional, only if installed | not part of this public repo |
 
 ## Known tradeoffs
