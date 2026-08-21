@@ -31,9 +31,20 @@ Before critique, identify:
 4. Likely audience interpretation.
 5. Any assumptions due to missing context.
 
-For a repair handoff, also freeze a source inventory before proposing changes: chart/panel structure; every visible period, category, series, unit, qualification, source note, and annotation that can change the reading; semantic colour/shape/order mappings; repeated instances; and anything too uncertain to reproduce. Diagnose the full artifact and neighbouring zones, not only the defect named by the user. The inventory is the preservation boundary for the first build.
+For a repair handoff, also freeze a source inventory before proposing changes: chart/panel structure; every visible period, category, series, unit, qualification, source note, and annotation that can change the reading; semantic colour/shape/order mappings; repeated instances; and anything too uncertain to reproduce. Diagnose the full artifact and neighbouring zones, not only the defect named by the user. The inventory is the raw catalogue of what is present; the key-messages judgment below decides which of it must survive.
 
 If the chart is impossible to interpret, say so directly and explain why.
+
+## Key messages and required content
+
+Cataloguing what a chart contains is not the same as judging what matters. After the inventory, decide - as a judgment call, not a preserve-everything rule - what the rebuild must carry.
+
+- **Key messages.** From the trifecta and the source, state the one or few messages the chart exists to carry (for example: "total usage is growing exponentially" *and* "the mix is shifting away from a dominant incumbent"). A chart may legitimately carry more than one.
+- **Required content per message.** For each key message, name the data and encoding a rebuild must show to support it - the specific series, periods, breakdowns, comparisons, or annotations without which the message collapses. A per-category breakdown is required content for a "the mix is shifting" message; it is not for a "the total is growing" message.
+- **Explicit drops.** Name any source information you judge is *not* key, and why. Silence is not a decision. If a ten-series breakdown is being set aside, say so and say why - this is what stops valid information from vanishing unnoticed, as it did when a stacked chart came back as a bare total.
+- **One chart or several.** Note when the messages need more than one chart's worth of content (a whole-and-parts split, a totals view alongside a per-category view). Decide the messages and their required content here; leave the actual chart count, decomposition, and form to reconstruction.
+
+Keep what carries a key message; drop what does not - out loud.
 
 ## Trifecta checkup
 
@@ -129,6 +140,11 @@ When an audited `dataviz-fix` workflow is explicitly selected, return this contr
     "semantic_mappings": ["..."],
     "uncertainties": ["..."]
   },
+  "key_messages": [
+    {"message": "...", "required_content": ["series/periods/breakdowns/comparisons this message needs"]}
+  ],
+  "dropped_as_not_key": [{"item": "...", "reason": "..."}],
+  "chart_count_hint": "one|several - several when messages need whole-and-parts or separate views",
   "layout_risks": ["longest labels, dense regions, neighbouring zones, repeated placements, and outer-edge risks"],
   "findings": {
     "fatal": [],
@@ -162,6 +178,12 @@ For a critique that is not part of repair implementation, use this reader-facing
 - Data: ...
 - Visual: ...
 - Main mismatch: ...
+
+## Key messages and required content
+- Key message(s): ...
+- Required content for each: ...
+- Dropped as not key (with reason): ...
+- One chart or several: ...
 
 ## Issues to fix
 1. **[Fatal/Major/Minor] Issue** — impact. Fix: ...

@@ -77,13 +77,17 @@ Two separate fidelity questions were being conflated:
   must survive the whole process. When a redesign impulse conflicts with the prompt, the
   prompt wins.
 
-Preserving the source's *information* is separate from being faithful to its *form*. The form
-is free to change; the information content is not. Every category, series, period, unit, and
-qualification the original encoded must survive the rebuild unless the prompt or critique
-justifies dropping it. This is owned by the critique and the rebuild step, not by a later
-reviewer - which is also why the data inference must produce the full period-by-category table
-rather than the totals. A regression here (the ten-category stacked chart that came back as a
-single total) is a rebuild failure, not something the eval is expected to backstop.
+Preserving the source's *value* is separate from being faithful to its *form*, and it is a
+judgment, not a keep-everything rule. The critique reads the source and decides the key
+messages the chart must carry, the content each message requires, and - named explicitly, with
+a reason - any information judged *not* key. The rebuild then carries those messages, which may
+take more than one chart (a whole plus its parts). What must survive is the messages and their
+required content, not every mark. This is owned by the critique and the rebuild step, not by a
+later reviewer - which is also why the data inference must produce the full period-by-category
+table: you cannot judge what is key without first reading all of it. The failure the flow
+guards against (the ten-category stacked chart that came back as a single total) is a *silent*
+drop - the breakdown carried a key message and no one decided to lose it. An explicit,
+reasoned decision to drop non-key information is fine; silence is the bug.
 
 A consequence of this split: the eval subagent is given the rendered artifact and a brief
 (prompt, inferred style, inferred headings, intended message) but **not the source image**.
@@ -100,11 +104,12 @@ STEP 1  dataviz-critique  (in-context, one pass, no maker-checker)
    • right form? • trifecta • conveys message? (semantic scan)
    • style (installed writing/brand skill, if available)
    • repair vs redesign, biased to redesign
+   • key messages + required content per message; drops named out loud
    ├─ parallel: infer full data table (every period × every category)
    ▼
 STEP 2  reconstruct
-   • preserve all valid source information (every category/series/
-     period/unit survives; dropping one is a justified decision)
+   • carry every key message with its required content; may be
+     several charts (whole + parts) - form/decomposition decided here
    • dataviz-selector (default-on unless form clearly right)
    • karthik-data-visualization
    • chart-annotations (invoke when a point may be worth marking;
@@ -138,8 +143,10 @@ DELIVER → iterate on real user feedback
 | Eval in-context? | never | in-context eval is ceremony without independence |
 | Eval input | artifact + brief, no source image | blind read judged against the brief |
 | Input image | redesign freely, bias to redesign | old flow was too faithful to a weak chart |
-| Data inference | full period-by-category table, not totals | dropped category values can't be preserved if never inferred |
-| Information content | preserved by critique + rebuild, not eval | dropping a source dimension is a rebuild failure, owned upstream |
+| Data inference | full period-by-category table, not totals | can't judge what's key without reading all of it |
+| What survives | key messages + required content, a critique judgment | preserve value, not every mark; whole-and-parts may be several charts |
+| Dropping information | allowed, but named explicitly with a reason | silent drops are the bug; a reasoned drop is fine |
+| Who owns preservation | critique + rebuild, not eval | it's a judgment made upstream, not a backstop |
 | Prompt | authoritative throughout | user constraints are requirements, not hints |
 | Annotation | invoke `chart-annotations`; it judges if a mark is warranted | it had been dropped from the flow; over-annotating is as bad as none |
 | Headline/subhead | no dedicated skill; claim ← chart-annotations, style ← karthik-data-viz, voice ← writing skill | the pieces already exist; a new skill would duplicate title-vs-annotation logic |

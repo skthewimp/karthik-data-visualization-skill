@@ -60,12 +60,13 @@ A full critique should contain:
 
 1. **Quick read** — what the visual is, what it seems to say, and a verdict.
 2. **Trifecta checkup** — question, data, visual, and the main mismatch.
-3. **Issues to fix** — prioritized by severity:
+3. **Key messages and required content** — the one or few messages the chart must carry, the content each message needs, any source information dropped as *not* key (named, with a reason), and whether the messages need one chart or several. This is a judgment call, not a keep-everything rule; it is what a rebuild uses to decide what must survive, and naming the drops out loud is what stops valid information from vanishing unnoticed.
+4. **Issues to fix** — prioritized by severity:
    - **Fatal**: changes the conclusion or makes the chart uninterpretable.
    - **Major**: materially slows or misleads interpretation.
    - **Minor**: readability or polish.
-4. **Recommended alternatives** — only options that solve a diagnosed mismatch.
-5. **Implementation notes** — title, annotation, caveats, and checks.
+5. **Recommended alternatives** — only options that solve a diagnosed mismatch.
+6. **Implementation notes** — title, annotation, caveats, and checks.
 
 For quick requests, the skill can compress this to the verdict and smallest consequential fix set. Alternatives are optional.
 
@@ -86,6 +87,12 @@ The redesign section is the main extension beyond ordinary critique. Do not list
 - Data: ...
 - Visual: ...
 - Main mismatch: ...
+
+## Key messages and required content
+- Key message(s): ...
+- Required content for each: ...
+- Dropped as not key (with reason): ...
+- One chart or several: ...
 
 ## Issues to fix
 - **<severity>** — ... Fix: ...

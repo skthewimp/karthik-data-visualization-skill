@@ -1,6 +1,6 @@
 # Devlog
 
-## 2026-08-21 - Information preservation is the rebuilder's job
+## 2026-08-21 - Preservation as a critique judgment, not a keep-everything rule
 
 ### Context
 
@@ -8,13 +8,18 @@ An a16z stacked-bar chart (weekly OpenRouter usage, ~10 model categories by colo
 
 ### Key design decisions
 
-- **Full-table data inference.** Step 1 must infer a value for every period and every category/series/stack - colour is data, not decoration. A ten-category weekly stack needs ten values per week.
-- **Preservation is owned by critique + rebuild, not eval.** Plain rule in step 2: the form may change freely, but every category, series, period, unit, and qualification must survive unless the prompt or critique justifies dropping it. Retired the "preservation mapping" jargon.
-- **Eval stays final-image-only.** Considered feeding eval the source image so it could catch dropped information; rejected - preservation is the rebuilder's responsibility, not a backstop the eval is expected to provide. Eval keeps the artifact + brief only.
+Designed collaboratively, one question at a time (Karthik's call on each fork):
+
+- **Preservation is a judgment, not a rule.** First cut was a hard "keep every category" rule; Karthik rejected it - the real task is reading the source for its *key messages* and deciding what must be shown to carry them, which can even mean several charts (whole + parts). "Keep everything" is wrong; "keep what matters, out loud" is right.
+- **The judgment lives in `dataviz-critique`.** Not a new skill. Critique already carries the trifecta and message read; it now also outputs key messages + required content per message. New section, reader-facing template rows, and audited-JSON fields (`key_messages`, `dropped_as_not_key`, `chart_count_hint`).
+- **Critique names messages + required content; reconstruction owns the output.** Critique does not lay out charts; it decides what matters. Reconstruction decides chart count, decomposition, and form.
+- **Drops must be explicit.** Non-key information may be dropped, but critique names it and says why. Silence is the a16z bug (the breakdown vanished with no decision); a reasoned drop is fine.
+- **Full-table data inference stays.** You cannot judge what is key without reading all of it, and the parts view needs the per-category values - so step 1 still infers a value for every period × every category.
+- **Eval stays final-image-only.** Considered feeding eval the source image to catch dropped information; rejected - preservation is owned upstream by critique + rebuild, not backstopped by the reviewer. Eval keeps artifact + brief.
 
 ### Files touched
 
-- `dataviz-fix/{claude,codex}/SKILL.md`, `dataviz-fix/README.md`, `docs/skills/dataviz-fix.md`, `docs/design/dataviz-fix-repair-flow.md`, `CHANGELOG.md`.
+- `dataviz-critique/{claude,codex}/SKILL.md`, `dataviz-fix/{claude,codex}/SKILL.md`, `dataviz-fix/README.md`, `docs/skills/dataviz-fix.md`, `docs/skills/dataviz-critique.md`, `docs/design/dataviz-fix-repair-flow.md`, `CHANGELOG.md`.
 
 ## 2026-08-21 - Repair flow redesign: one chat, one spawn
 
