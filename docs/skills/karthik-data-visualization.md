@@ -59,6 +59,8 @@ It rejects:
 - over-decorated infographic styling
 - interactivity as a default
 
+It also uses perceptual grouping as a design tool. The reader groups marks before reading any label, so the skill turns the Gestalt laws into moves: proximity and common region to group; similarity to signal same-kind (and never to link unrelated series); connectedness - a line or a directly placed label - to bind more strongly than a colour the eye must match, which is the real reason direct labels beat legends; enclosure as a quiet alternative to arrows; and figure-ground, one focal element against muted context. One channel, and only one, should make the most important thing pop without search.
+
 ## Renderer preference
 
 Preserve the renderer already established by the project. For a new Karthik-style static chart without project precedent, prefer R/ggplot2 when it is available. The preference comes from the working grammar and the way Karthik's charts are usually built; it does not mean accepting ggplot2's default theme unchanged.

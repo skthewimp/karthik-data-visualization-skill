@@ -62,6 +62,18 @@ Do not write a design contract in the default output-first `dataviz-fix` path. B
 
 In audited mode, treat this as executable scope. Submit it to an independent plan audit only when that audit was part of the requested workflow. In the default path, do not delay chart code for a contract or plan audit. A revision continues from the latest candidate and changes the smallest relevant region; a redesign returns to the underlying evidence.
 
+## Grouping and emphasis
+
+The reader groups marks by perception before reading any label. Use those groupings as tools rather than fighting them:
+
+- **Proximity and common region.** Near things, or things sharing a panel or band, read as one group. Keep related marks and their labels close; put unrelated series in separate panels or regions. (See the whitespace and label-binding rules above.)
+- **Similarity.** Marks sharing a hue, shape, or weight read as the same kind. Give one meaning one encoding across the chart, and never hand unrelated series a similar encoding - a similarity the reader cannot switch off asserts a grouping that is not there.
+- **Connectedness.** A line, or a label placed directly on its mark, binds two things more strongly than a shared colour the eye has to match. This is why direct labels beat a legend and a connected slope beats two coloured dots: prefer connection and adjacency to a colour lookup whenever the layout allows.
+- **Enclosure.** A light band, box, or shaded region says "these belong together" or "look here" more quietly than an arrow or a heavy outline. Reach for a restrained enclosure before louder marks.
+- **Figure-ground.** One focal element against muted context (the focal-colour-plus-grey rule below) works because the reader separates figure from ground before reading. Keep exactly one thing as figure; when two things compete to be seen first, neither is.
+
+Preattentive first read: exactly one channel should make the single most important thing pop without search - a lone hue, a size, a position. When several channels shout at once, the reader searches instead of seeing.
+
 ## Colour system
 
 Colour must earn its place. Position, length, ordering, direct labels, and annotation should carry the main comparison; colour should clarify identity, order, direction, or emphasis.
