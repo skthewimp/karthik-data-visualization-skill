@@ -4,7 +4,7 @@
 
 ### Platform separation
 
-- Made the public creator contract assemble itself from the current canonical `dataviz-fix`, `dataviz-critique`, `dataviz-selector`, `karthik-data-visualization`, and `chart-annotations` Codex sources, with a fingerprint and an explicit single-creator adapter. Editable public-site deployments now pick up skill-only changes after their normal restart instead of silently retaining an older handwritten prompt.
+- Made the public creator contract discover every top-level `<skill>/codex/SKILL.md` and assemble itself from the current repository without a per-skill allowlist. It exposes the core Git revision, discovered paths, fingerprint, and an explicit single-creator adapter. Editable public-site deployments now pick up added, renamed, removed, or revised skills after their normal restart instead of silently retaining an older handwritten prompt.
 - Removed the client-specific release-guard plugin, installation surface, state paths, identity defaults, attachment syntax, deployment instructions, and host checks from this repository.
 - Kept the reusable independent-review workflow, case state machine, Codex and Claude skill surfaces, and MCP server client-neutral.
 - Moved the client adapter and host deployment workflow to the client repository that owns them.

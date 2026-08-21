@@ -3,28 +3,22 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 from pathlib import Path
 
 
 DEFAULT_REPAIR_STAGES = ("creator",)
 DEFAULT_INDEPENDENT_REVIEW = False
 
-PUBLIC_CREATOR_SKILL_PATHS = (
-    "dataviz-fix/codex/SKILL.md",
-    "dataviz-critique/codex/SKILL.md",
-    "dataviz-selector/codex/SKILL.md",
-    "karthik-data-visualization/codex/SKILL.md",
-    "chart-annotations/codex/SKILL.md",
-)
-
 PUBLIC_RUNTIME_ADAPTER = """You are the single creator in the public chart-repair
 runtime. Build and return the strongest usable repaired PNG in this response.
 
-The current canonical skill sources are appended below. Apply their chart diagnosis,
-data reconstruction, chart selection, visualization, annotation, headline, and
-in-context inspection guidance yourself. Named skills describe decision frameworks;
-they are not tools available in this runtime. Do not try to invoke them, spawn another
-agent, start an independent evaluation, create a case record, or wait for optional
+Every canonical Codex skill discovered in the current repository is appended below so
+new, renamed, removed, or revised skills are reflected without a website allowlist. Apply
+only the guidance relevant to this screenshot chart-repair task; the presence of unrelated
+analysis or presentation skills must not expand the task. Named skills describe decision
+frameworks; they are not tools available in this runtime. Do not try to invoke them, spawn
+another agent, start an independent evaluation, create a case record, or wait for optional
 infrastructure. Perform the relevant work directly in this one creator run. If a skill's
 workflow mechanics conflict with this adapter, this adapter wins. For chart judgment and
 design, the appended canonical skill sources are authoritative.
@@ -53,18 +47,47 @@ def _skill_body(text: str) -> str:
     return body.strip()
 
 
-def _repository_skill_bundle() -> tuple[str, tuple[str, ...]] | None:
-    repository_root = Path(__file__).resolve().parents[1]
-    paths = tuple(repository_root / relative for relative in PUBLIC_CREATOR_SKILL_PATHS)
-    if not all(path.is_file() for path in paths):
+def _discover_repository_skill_paths(repository_root: Path) -> tuple[str, ...]:
+    """Discover every canonical Codex skill using the repository's folder contract."""
+    return tuple(
+        path.relative_to(repository_root).as_posix()
+        for skill_directory in sorted(repository_root.iterdir())
+        if skill_directory.is_dir()
+        for path in (skill_directory / "codex" / "SKILL.md",)
+        if path.is_file()
+    )
+
+
+def _repository_revision(repository_root: Path) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repository_root), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    revision = result.stdout.strip()
+    return revision or None
+
+
+def _repository_skill_bundle(
+    repository_root: Path | None = None,
+) -> tuple[str, tuple[str, ...], str | None] | None:
+    repository_root = repository_root or Path(__file__).resolve().parents[1]
+    source_paths = _discover_repository_skill_paths(repository_root)
+    if not source_paths:
         return None
     sections = []
-    for relative, path in zip(PUBLIC_CREATOR_SKILL_PATHS, paths, strict=True):
+    for relative in source_paths:
+        path = repository_root / relative
         sections.append(
             f"## Canonical skill source: {relative}\n\n"
             f"{_skill_body(path.read_text(encoding='utf-8'))}"
         )
-    return "\n\n".join(sections), PUBLIC_CREATOR_SKILL_PATHS
+    return "\n\n".join(sections), source_paths, _repository_revision(repository_root)
 
 
 PLANNER_INSTRUCTIONS = """This is an optional audited stage. Do not invoke it in the
@@ -360,19 +383,23 @@ constraint stops the work, return the strongest valid candidate and state the li
 """
 
 
-def build_public_creator_instructions() -> tuple[str, str, tuple[str, ...]]:
+def build_public_creator_instructions() -> tuple[
+    str, str, tuple[str, ...], str | None
+]:
     bundle = _repository_skill_bundle()
     if bundle is None:
         return (
             _EMBEDDED_FALLBACK_CREATOR_INSTRUCTIONS,
             "embedded_fallback",
             (),
+            None,
         )
-    skill_text, source_paths = bundle
+    skill_text, source_paths, repository_revision = bundle
     return (
         f"{PUBLIC_RUNTIME_ADAPTER.strip()}\n\n{skill_text}",
         "repository",
         source_paths,
+        repository_revision,
     )
 
 
@@ -380,6 +407,7 @@ def build_public_creator_instructions() -> tuple[str, str, tuple[str, ...]]:
     CREATOR_INSTRUCTIONS,
     PUBLIC_CREATOR_SKILL_SOURCE,
     PUBLIC_CREATOR_SKILL_SOURCES,
+    PUBLIC_CREATOR_REPOSITORY_REVISION,
 ) = build_public_creator_instructions()
 PUBLIC_CREATOR_SKILL_FINGERPRINT = hashlib.sha256(
     CREATOR_INSTRUCTIONS.encode("utf-8")

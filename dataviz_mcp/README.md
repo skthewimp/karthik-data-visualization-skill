@@ -6,17 +6,18 @@ See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation a
 
 ## Public repair runtime bundle
 
-`dataviz_mcp.public_repair_contract` assembles its public creator instructions at
-import time from the current Codex sources for `dataviz-fix`, `dataviz-critique`,
-`dataviz-selector`, `karthik-data-visualization`, and `chart-annotations`. A small
-adapter preserves the public website's single-creator, immediate-PNG runtime while
-making current analytical and visual guidance available inside that creator run.
+`dataviz_mcp.public_repair_contract` discovers every top-level
+`<skill>/codex/SKILL.md` at import time and assembles the public creator instructions
+from those current sources. There is no per-skill allowlist: adding, renaming,
+removing, or revising a canonical skill changes the next assembled bundle. A small
+adapter preserves the public website's single-creator, immediate-PNG runtime and
+applies only the discovered guidance relevant to chart repair.
 
 The public site installs this repository in editable mode and restarts whenever the
-checkout advances, so a change to any listed skill is included automatically. The
-contract exposes its source mode, source paths, and SHA-256 fingerprint. A packaged
-fallback remains for non-repository installations; the public website rejects that
-fallback so production cannot silently run stale instructions.
+checkout advances, so any core commit is available after the automatic restart. The
+contract exposes its repository revision, discovered source paths, and SHA-256
+fingerprint. A packaged fallback remains for non-repository installations; the public
+website rejects that fallback so production cannot silently run stale instructions.
 
 ## Requirements and installation
 
