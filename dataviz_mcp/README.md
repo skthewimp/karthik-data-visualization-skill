@@ -4,6 +4,20 @@ This local stdio server handles the mechanical part of chart production. It prob
 
 See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation and repair flows, hash/version guarantees, and the reasons for using render metadata.
 
+## Public repair runtime bundle
+
+`dataviz_mcp.public_repair_contract` assembles its public creator instructions at
+import time from the current Codex sources for `dataviz-fix`, `dataviz-critique`,
+`dataviz-selector`, `karthik-data-visualization`, and `chart-annotations`. A small
+adapter preserves the public website's single-creator, immediate-PNG runtime while
+making current analytical and visual guidance available inside that creator run.
+
+The public site installs this repository in editable mode and restarts whenever the
+checkout advances, so a change to any listed skill is included automatically. The
+contract exposes its source mode, source paths, and SHA-256 fingerprint. A packaged
+fallback remains for non-repository installations; the public website rejects that
+fallback so production cannot silently run stale instructions.
+
 ## Requirements and installation
 
 - Python 3.10 or newer

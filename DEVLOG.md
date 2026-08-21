@@ -1,5 +1,11 @@
 # Devlog
 
+## 2026-08-21 - Bind the public creator to the canonical skills
+
+The public website updater was correctly fast-forwarding and reinstalling this repository, but the website imported a handwritten `CREATOR_INSTRUCTIONS` constant that had not changed with the latest skill commits. The checkout was current while the behaviour was stale.
+
+`dataviz_mcp.public_repair_contract` now assembles the public creator instructions directly from the current Codex sources for the five creator-relevant skills. A runtime adapter translates their multi-skill workflow into the website's existing one-creator execution boundary: it applies the decision guidance in-context, does not attempt unavailable skill or subagent calls, and still requires an inspected `/mnt/data/repaired.png`. The bundle publishes its source paths and content fingerprint, and tests prove that every canonical source body is present. Non-repository installs retain the embedded fallback, while the website is expected to reject that fallback rather than silently serving it.
+
 ## 2026-08-21 - Preservation as a critique judgment, not a keep-everything rule
 
 ### Context
