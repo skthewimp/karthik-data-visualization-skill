@@ -57,10 +57,16 @@ precision than the data supports, is not finished.
   left-align text; align each header with its column body. Equalise the decimal
   count down a column so digit-length itself reads as magnitude - the number's
   size becomes a small bar chart.
-- **Precision keyed to variance.** Show the number of decimals that resolves the
-  smallest meaningful difference in the column, not the maximum the data
-  carries. A column of large, widely spread values needs fewer decimals, not
-  more. Do not show precision the data cannot support.
+- **Precision keyed to variance, in both directions.** Precision is significant
+  digits, not decimal places. Show the number that resolves the smallest
+  meaningful difference in the column - which cuts to the *left* of the decimal
+  point as well as the right. When the trailing digits of a large number carry no
+  signal, round them off to zeros (to tens, hundreds, thousands): 12,483 reads as
+  12,500 or 12,000 if that is the resolution the comparison needs. A column of
+  large, widely spread values usually wants coarser rounding and fewer decimals,
+  not more; over-precise trailing digits are noise that hides the magnitude the
+  reader is comparing. Round every value in a column to the same place. Do not
+  show precision the data cannot support, and never manufacture it to fill space.
 - **Column widths sized to content.** Give each column the width its content
   needs; wrap long text columns deliberately and never let one column's wrap
   distort the grid or push number columns out of scanning range. Number columns
