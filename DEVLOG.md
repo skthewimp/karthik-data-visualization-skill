@@ -704,3 +704,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `Rplots.pdf`
 
 <!-- claude-session:863824a3-d75b-406c-be51-f49a9cc4a003:end -->
+
+<!-- claude-session:573fb7bb-aec9-47e8-ae40-8d76697ca8b4:start -->
+## 2026-08-21 21:41 IST | Claude session `573fb7bb-aec`
+
+### User prompts
+> recent changes in some of teh skills have made the dataviz-fix WORSE. [Image #4] from the logs: }, "request": { "mode": "automatic_critique", "repair_brief": "No user-specific change was supplied. Run a complete exper...
+
+### Work done
+- `Rplots.pdf` is a stray R artifact, not mine — unstaging it.
+- Done. Pushed `a1441d2`. ## What was wrong Not a weakened guardrail. The de-overfit commit kept every rule. The chart collapsed through the one door nobody had sealed: the guardrails all block **value/precision** excus...
+- Touched files: `Rplots.pdf`
+
+<!-- claude-session:573fb7bb-aec9-47e8-ae40-8d76697ca8b4:end -->
