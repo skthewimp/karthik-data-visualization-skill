@@ -35,6 +35,7 @@ When this skill is invoked inside a chart repair (`dataviz-fix`), it runs on the
 - Slowing growth: show the level and the comparison that establishes slowing; use a derivative or projection only when it answers the stated question and is interpretable to the audience.
 - Forecast/anomaly: actual line, forecast/dashed line, uncertainty ribbon, highlighted anomaly/intervention window.
 - Many comparable series: small multiples or cluster prototypes; avoid spaghetti.
+- Category-by-time matrices (heatmaps): a heatmap puts magnitude on colour lightness, a weak channel for reading values, rates, or trajectories - and a log colour scale hides change further. Reserve it for spotting presence, timing, gaps, or block patterns across many cells that position cannot lay out. When the message is how each series moves or how large it is, put magnitude back on position: small multiples, direct-labelled lines, or a ranked view (reduce to top-N plus an explicit "other" if the count is unwieldy).
 - If the chart will be consumed in chat or at thumbnail size, prefer forms that support direct labels and strong contrast; avoid designs that depend on faint colour differences or tiny legends.
 - Choose colour by data role: focal-plus-grey for emphasis, qualitative hues for nominal identity, a perceptually ordered sequential scale for magnitude, and a diverging scale only around a meaningful midpoint. If colour is doing work that position or direct labels could do better, remove it.
 - For slopegraphs, place endpoint labels where they remain paired and legible, then choose the aspect ratio from row density, label geometry, and delivery medium rather than a fixed orientation.
@@ -62,6 +63,7 @@ If implementing: <short code/design note>
 ## Hard guardrails
 
 - One chart, one main job.
+- Encode magnitude on the strongest channel the layout allows: position and length before angle, area, or colour lightness/saturation. Colour lightness answers "where are the hot and cold cells", never "how much" or "which way is it moving"; if position or length can carry the value, they should. This is why a heatmap is a poor default for a value or trajectory comparison.
 Treat commonly problematic forms as risk conditions, not universal prohibitions. Recommend the simplest form that preserves the intended comparison in the actual medium. A form that is often misleading may still be appropriate when its purpose, encoding, audience, and limitations are explicit; reject it when it obscures magnitude, comparison, uncertainty, or interpretation.
 - Bars start at zero; scatters need not.
 - Do not extend regression/counterfactual lines beyond defensible range without marking them as projections.

@@ -17,7 +17,7 @@ It is a vision task, not a rendering task - there is no MCP tool for it. The num
 
 ## Precision and honesty
 
-Exact values are used when the prompt supplies them or when they are printed as labels; screenshot-derived values are marked approximate. Approximate values, labelled approximate, are fine - the messages rarely depend on exact precision. Difficulty of reading a value is never a reason to drop the category it belongs to; deciding a category is not key is the brief's job, made in message terms.
+Exact values are used when the prompt supplies them or when they are printed as labels. Reading values off an image is inherently approximate - that is self-evident and does not need announcing on the chart or repeating through the brief, so the skill neither hedges every number nor stamps "approximate" as chart furniture. The real rule is the anti-fabrication one: no digits the image cannot support, no rounding toward rounder-sounding numbers. Difficulty of reading a value is never a reason to drop the category it belongs to; deciding a category is not key is the brief's job, made in message terms.
 
 ## Relationship to other skills
 

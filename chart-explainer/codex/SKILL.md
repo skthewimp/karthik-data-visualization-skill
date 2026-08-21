@@ -115,7 +115,7 @@ Register changes the wording. It never changes the finding, and it never softens
 |---|---|
 | Rendered chart + the data | Read the image for the shape, compute every number from the data, verify the claim against the data before writing. |
 | Chart code + the data, no render | Infer the shape from the geoms and the grouping, compute the claim from the data. |
-| Image only | Describe conservatively. No invented precision. Flag in the note that numbers are read off the chart. |
+| Image only | Describe conservatively. No invented precision. That a number is read off a chart is self-evident from context - do not spend the note announcing it. |
 
 The verification step is not optional when data is available. A note that states a number the data does not support is worse than no note.
 

@@ -38,7 +38,7 @@ Do not critique the source chart's execution here. Forward design needs the inte
 
 ### 2. Data - extract the full table
 
-In parallel with step 1, run `dataviz-extract` on the image to recover the full period-by-category table: a value for every period and every category, series, stack, or facet the chart encodes (colour is data). Not totals or the envelope - every cell, so any chosen form can be built. Mark screenshot-derived values approximate; never drop a category because its values are hard to read.
+In parallel with step 1, run `dataviz-extract` on the image to recover the full period-by-category table: a value for every period and every category, series, stack, or facet the chart encodes (colour is data). Not totals or the envelope - every cell, so any chosen form can be built. A reconstruction is self-evidently approximate; do not fabricate precision, but do not clutter the chart or brief announcing it, and never drop a category because its values are hard to read.
 
 ### 3. Select - choose the form cold
 

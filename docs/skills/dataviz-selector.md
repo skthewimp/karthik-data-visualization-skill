@@ -88,6 +88,7 @@ If the user asks for one of these, the skill should say it is not recommended an
 | Swing scenarios | Seat curves by swing, faceted by state |
 | Survey polarisation | Faceted response histograms |
 | Share substitution | 100% stacked bars/area only if broad mix is the story; use small multiples, grouped bars, lines, dots, or a table when intermediate or top components need precise comparison |
+| Many series × time, compare trajectories | Small multiples or direct-labelled lines (reduce to top-N + explicit "other" if crowded). Not a heatmap: colour lightness is a weak channel for magnitude and rate, so trajectories become unreadable, and a log colour scale hides change further. Reserve heatmaps for presence/timing/gap/block patterns across many cells that position cannot lay out. |
 | Risk | Downside distributions, scenarios, utility curves |
 | Root cause | Waterfall if reconciled; otherwise ranked driver bars or action table |
 | Management scan | Scorecard first, diagnostic chart second |

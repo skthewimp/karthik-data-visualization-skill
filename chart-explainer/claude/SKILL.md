@@ -1,6 +1,6 @@
 ---
 name: chart-explainer
-description: Explain what a chart or table says with concise, evidence-grounded context.
+description: Write the short note that travels with a chart or table - the two lines in an email above the graph, the line under a figure in a notebook, the sentence in a Slack message. Use when asked to build an exploratory notebook, explore a dataset, or produce analysis someone else will read, since every plot in that notebook needs its note. Also use when a chart is finished and someone else has to be told what it says, when handing analysis to a client or colleague, when the reader will see the visual without the analyst in the room, or when a draft note says "this chart shows the distribution of X", quotes a number with nothing to compare it to, or manufactures a finding out of a chart that shows nothing.
 metadata:
   short-description: Write the two-line note that accompanies a chart or table
   claude-description: Explain what a chart or table says in two lines - for an email, a message, or under every plot in an exploratory notebook. Includes saying when it shows nothing.
@@ -115,7 +115,7 @@ Register changes the wording. It never changes the finding, and it never softens
 |---|---|
 | Rendered chart + the data | Read the image for the shape, compute every number from the data, verify the claim against the data before writing. |
 | Chart code + the data, no render | Infer the shape from the geoms and the grouping, compute the claim from the data. |
-| Image only | Describe conservatively. No invented precision. Flag in the note that numbers are read off the chart. |
+| Image only | Describe conservatively. No invented precision. That a number is read off a chart is self-evident from context - do not spend the note announcing it. |
 
 The verification step is not optional when data is available. A note that states a number the data does not support is worse than no note.
 
