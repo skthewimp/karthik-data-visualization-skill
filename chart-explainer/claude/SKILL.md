@@ -1,6 +1,6 @@
 ---
 name: chart-explainer
-description: Write the short note that travels with a chart or table - the two lines in an email above the graph, the line under a figure in a notebook, the sentence in a Slack message. Use when asked to build an exploratory notebook, explore a dataset, or produce analysis someone else will read, since every plot in that notebook needs its note. Also use when a chart is finished and someone else has to be told what it says, when handing analysis to a client or colleague, when the reader will see the visual without the analyst in the room, or when a draft note says "this chart shows the distribution of X", quotes a number with nothing to compare it to, or manufactures a finding out of a chart that shows nothing.
+description: Explain what a chart or table says with concise, evidence-grounded context.
 metadata:
   short-description: Write the two-line note that accompanies a chart or table
   claude-description: Explain what a chart or table says in two lines - for an email, a message, or under every plot in an exploratory notebook. Includes saying when it shows nothing.
