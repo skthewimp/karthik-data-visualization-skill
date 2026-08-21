@@ -22,8 +22,8 @@ Record the dataset or existing artifact, question or purpose, audience, medium, 
 - Discover candidate questions from a raw dataset: `dataset-question-generator`.
 - Define an operational question and evidence contract: `karthik-analysis-planner`.
 - Inspect and transform data: `karthik-data-cleaning`.
-- Choose a visual form: `dataviz-selector`.
-- Implement style, labels, layout, and export: `karthik-data-visualization`.
+- Choose a visual form, chart or table: `dataviz-selector`.
+- Implement style, labels, layout, and export: `karthik-data-visualization` for a chart, `karthik-table-style` for a table.
 - Choose and place on-chart annotations: `chart-annotations`.
 - Write accompanying prose: `chart-explainer`.
 - Review an existing or rendered visual: `dataviz-critique`. Use `dataviz-eval` only for an explicit audit, high-risk decision, or benchmark.

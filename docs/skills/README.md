@@ -17,5 +17,6 @@ Human-facing guides for the public skills.
 - [`chart-annotations.md`](chart-annotations.md) - explains the chart-annotation skill: what to mark, how to rank, how to word it, where to place it.
 - [`chart-explainer.md`](chart-explainer.md) - explains the chart-explainer skill: the two-line note that travels with a chart or table.
 - [`karthik-r-analysis-style.md`](karthik-r-analysis-style.md) - explains the R analysis skill: notebook shape, probe sequencing, and working-note register.
+- [`karthik-table-style.md`](karthik-table-style.md) - explains the table-as-visualization craft skill: emphasis, decimal alignment, precision, columns, rules, and conditional formatting.
 
 These files are for people reading the repo. The actual installable skill files live in each skill folder under `codex/` and `claude/`.

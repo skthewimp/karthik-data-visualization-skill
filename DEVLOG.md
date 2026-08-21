@@ -1,5 +1,25 @@
 # Devlog
 
+## 2026-08-21 - A well-formatted table is a visualization too
+
+### Context
+
+The suite could only ever answer with a chart. Given a badly formatted table it produced a chart; given data that would read better as a table it produced a tidier chart, because no skill treated a table as an option and none owned table craft. Karthik's own table principles - emphasis, decimal alignment, precision keyed to variance, column widths, minimal rules, tabular figures, deliberately-scoped conditional formatting - lived nowhere in the repo.
+
+### Decision
+
+Four forks were settled with Karthik before building: a new standalone skill (`karthik-table-style`) rather than bloating the chart-style skill; full render + inspect rather than code-only tables; and, after the render stack turned out to have no headless/screenshot path to reuse (only `ragg` for ggplot and matplotlib Agg), tables render as `grid`/`tableGrob` objects through the existing `ragg` path - zero new dependencies, no headless Chrome - instead of adding `webshot2`/chromote. `gt` stays the recommended idiom for delivered HTML tables; the gated raster uses grid.
+
+### Build (five phases, one commit each)
+
+1. `karthik-table-style` skill - both surfaces byte-identical, folder + surface READMEs, generalised heuristics (no example-specific rules).
+2. `dataviz-selector` - an explicit "Table or chart?" section and a table verdict routing to the new skill; a table named a legitimate cold verdict in a repair.
+3. `dataviz-fix` - a `form = table` exit that builds via the table skill and gates via the grid/ragg raster.
+4. MCP - `render_and_inspect_chart` gains `content="table"`. The key realisation: `ggplotGrob()` already produces a gtable, and a `tableGrob` *is* a gtable with the same `$layout/$grobs/$widths/$heights`, so the existing layout-extraction machinery works on a table almost unchanged. The R runner now accepts a gtable return and, for table content, captures each cell's text, font size, and background fill at its exact track bbox. One real bug surfaced and was fixed: `resolve_tracks` created a zero-length unit vector when no track was a `null` unit (tables have all-fixed widths), so it now guards that subset. Added a `table_fixture.R`, three tests, and a `table_rendering` probe capability. Full suite: 34 passed.
+5. Docs/plumbing - root README (15→16, layout, per-skill section, install lists, renderer-policy note), `docs/skills/` index + new page, orchestrator routing, CHANGELOG, this entry.
+
+The honesty boundary is explicit in the coverage report: cell bounding boxes, text, and fills are exact from the gtable tracks, but decimal-point alignment and in-cell overflow are not automatically verified and must be read from the rendered raster.
+
 ## 2026-08-21 - Stop the whack-a-mole: repair is forward design, not critique-plus-patch
 
 ### Context

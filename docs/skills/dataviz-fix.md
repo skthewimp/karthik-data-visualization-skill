@@ -25,6 +25,10 @@ Three consecutive prose patches to the old critique-first flow each fixed a symp
 
 Invoking a skill loads its instructions into the current session - it is not a new LLM session. So the brief, extract, selection, build, and checker loop are all cheap: same model, same context, different instruction files. A subagent (the `Agent`/`Task` tool) is a genuinely separate session with a cold start. The flow spawns exactly once, on the converged candidate, to recover a real blind read at bounded cost. A same-session checker catches mechanical regressions well but conceptual blind spots poorly; the single independent eval closes that gap.
 
+## Tables
+
+Cold selection can return a table. When it does, the repair builds it with `karthik-table-style` instead of `karthik-data-visualization`, delivers it via `gt` (or markdown/HTML), and gates it through the same render path as a chart - `render_and_inspect_chart` with `content="table"` - where the checker reads cell alignment, decimal alignment, overflow, and font size instead of axis and baseline.
+
 ## Rendering and inspection
 
 `render_and_inspect_chart` is the preferred mechanical path when available. If the MCP tool fails, fall back to a direct local renderer and visual inspection, and state that deterministic inspection was unavailable. Do not fabricate metadata or describe incomplete checks as complete.

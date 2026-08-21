@@ -36,8 +36,9 @@ Installing the skills does not register the MCP server. For the full workflow, c
 - Use Matplotlib only when ggplot2 is unavailable or the adapter cannot produce the requested output, and record the reason in the manifest.
 - If Matplotlib is the practical fallback, specify the theme, typography, palette, grid, axes, labels, and spacing deliberately; default Matplotlib aesthetics are a failed visual implementation.
 - Both adapters emit the same artifact, specification, layout, inspection, review-view, and manifest bundle. Coverage limitations remain explicit in the inspection report.
+- Tables are gated on the same footing: call `render_and_inspect_chart` with `content="table"` on an `.R` source that returns a gtable (`gridExtra::tableGrob` or `gt::as_gtable`). It renders through the same `ragg` path - no headless Chrome - capturing every cell's text, font size, and background fill at its exact bounding box. Decimal-point alignment and in-cell overflow stay a visual read, and the inspection report says so.
 
-This repo contains fifteen related skills, coordinated as a context-sensitive visualization workflow:
+This repo contains sixteen related skills, coordinated as a context-sensitive visualization workflow:
 
 1. **`dataviz-fix`** - forward-design repair rules: extract intent and data from the source, choose a form cold, rebuild, run one downstream critique-checker loop, and improve it from user feedback.
 2. **`dataviz-brief`** - intent-extraction rules that open a repair: key messages and required content, explicit drops, audience, constraints, keep-notes, and the edit-vs-redesign decision.
@@ -54,8 +55,9 @@ This repo contains fifteen related skills, coordinated as a context-sensitive vi
 13. **`chart-annotations`** - annotation rules for deciding what a chart should mark, which competing candidate wins, how the label is worded, and where it sits.
 14. **`chart-explainer`** - accompanying-note rules for writing the two lines that travel with a finished chart or table into an email, notebook, or message.
 15. **`karthik-r-analysis-style`** - notebook rules for how an exploratory R scratchpad is written: local precedent, analyst-first probes, tidyverse/tidytable idiom, and the working-note register.
+16. **`karthik-table-style`** - table-craft rules for when the chosen form is a table: emphasis as scarce ink, decimal-point alignment, precision keyed to variance, content-sized columns, minimal rules, tabular figures, and deliberately-scoped conditional formatting.
 
-The split is deliberate. The orchestrator routes the work and preserves handoffs; it does not duplicate every specialist procedure. Planning defines the analytical claim and evidence contract. Cleaning establishes provenance, grain, and data validity. Question generation proposes supported questions. Selection chooses an encoding for the task. Construction implements it. Annotation adds supported context. Explanation communicates the result at calibrated strength. Critique diagnoses interpretive failures. Repair manages bounded revisions and reusable lessons. Evaluation independently verifies semantic, visual, evidentiary, and delivery outcomes.
+The split is deliberate. The orchestrator routes the work and preserves handoffs; it does not duplicate every specialist procedure. Planning defines the analytical claim and evidence contract. Cleaning establishes provenance, grain, and data validity. Question generation proposes supported questions. Selection chooses an encoding for the task - a chart or a well-formatted table. Construction implements it, with `karthik-data-visualization` owning chart craft and `karthik-table-style` owning table craft. Annotation adds supported context. Explanation communicates the result at calibrated strength. Critique diagnoses interpretive failures. Repair manages bounded revisions and reusable lessons. Evaluation independently verifies semantic, visual, evidentiary, and delivery outcomes.
 
 ## Repository layout
 
@@ -104,6 +106,9 @@ The split is deliberate. The orchestrator routes the work and preserves handoffs
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── karthik-r-analysis-style/        # How an exploratory R notebook is written
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── karthik-table-style/             # Table-as-visualization craft skill
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── tester/                          # Local repair-loop case console
@@ -222,6 +227,13 @@ Use this when writing the R analysis itself - an exploratory scratchpad, an RMar
 
 See: [`docs/skills/karthik-r-analysis-style.md`](docs/skills/karthik-r-analysis-style.md)
 
+
+### `karthik-table-style`
+
+Use this once the chosen form is a table - or when reviewing a table's formatting. A well-formatted table is a visualization: it owns emphasis as scarce ink, right-aligned decimal-point alignment with decimals equalised down a column, precision keyed to the smallest meaningful difference, content-sized columns, minimal rules and whitespace grouping, tabular figures, and conditional formatting scoped by column, row, or whole table. It recommends `gt` for delivered HTML tables and a `grid`/`tableGrob` raster for the gated inspection path. Chart-vs-table selection stays in `dataviz-selector`.
+
+See: [`docs/skills/karthik-table-style.md`](docs/skills/karthik-table-style.md)
+
 ## Quick start
 
 Clone the repository and choose the skill surface for your client:
@@ -279,6 +291,7 @@ This pulls latest changes and installs all skills to:
 - `~/.codex/skills/chart-annotations`
 - `~/.codex/skills/chart-explainer`
 - `~/.codex/skills/karthik-r-analysis-style`
+- `~/.codex/skills/karthik-table-style`
 - `~/.codex/skills/dataviz-fix`
 - `~/.codex/skills/dataviz-eval`
 - `~/.claude/skills/karthik-data-visualization`
@@ -292,6 +305,7 @@ This pulls latest changes and installs all skills to:
 - `~/.claude/skills/chart-annotations`
 - `~/.claude/skills/chart-explainer`
 - `~/.claude/skills/karthik-r-analysis-style`
+- `~/.claude/skills/karthik-table-style`
 - `~/.claude/skills/dataviz-fix`
 - `~/.claude/skills/dataviz-eval`
 

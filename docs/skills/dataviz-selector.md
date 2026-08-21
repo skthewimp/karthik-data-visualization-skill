@@ -96,6 +96,10 @@ If the user asks for one of these, the skill should say it is not recommended an
 | Management scan | Scorecard first, diagnostic chart second |
 | Geography | Map only when spatial pattern or shape matters |
 
+## Table or chart
+
+A table is a first-class verdict, not a fallback. When the reader's task is exact lookup, the rows are few, the values are not commensurable on one scale, or the artifact is a reference or monitoring surface, the selector can choose a well-formatted table and hand off to `karthik-table-style`. A chart wins when the message is a shape, trend, or comparison the eye should grab pre-attentively. Inside a repair, a table is a legitimate cold verdict.
+
 ## Public red-team suite
 
 Keep adversarial eval prompts local-only; do not commit `references/` or `scripts/` to the public repo.
