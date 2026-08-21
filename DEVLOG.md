@@ -643,3 +643,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Reran and no fix — agreed, prose guardrails have hit their ceiling. Here's a self-contained handoff prompt for a fresh session. On MCPs: **no new MCP needed.** The reorder is pure skill-flow logic. Rendering/inspectio...
 
 <!-- claude-session:f7d7de41-ee72-45fb-aa79-99daa5f3782d:end -->
+
+<!-- claude-session:2660d710-f0c6-4bac-b8a3-f1a28c1b8712:start -->
+## 2026-08-21 16:36 IST | Claude session `2660d710-f0c`
+
+### User prompts
+> Repo: /Users/Karthik/Documents/work/karthik-data-visualization-skill # Task: restructure the dataviz repair flow so it stops re-rendering the source chart ## Background (why we're doing this) The repair flow (dataviz-...
+> are we overfitting to this one case? i had a hard time undoing such s tuff in the past
+> yes do that now
+
+### Work done
+- Honest state: the selector already carries most of Tufte's *selection*-level principles — comparison-first (step 2 = "compared to what?", the core Tufte question), simplest form (step 5 = smallest effective difference...
+- Pushed `bd0be77`. Tree clean, in sync. **Direct answer:** most of Tufte was *already* in the selector — it just wasn't labelled as such: | Tufte selection principle | Was it there? | |---|---| | "Compared to what?" (c...
+
+<!-- claude-session:2660d710-f0c6-4bac-b8a3-f1a28c1b8712:end -->
