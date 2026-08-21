@@ -16,6 +16,8 @@
 - Made headline and subhead authorship explicit in reconstruction: title claim from `chart-annotations`, style from `karthik-data-visualization`, voice from the installed writing skill. There is no dedicated headline skill and none is added.
 - Scoped the eval brief to the rendered artifact plus prompt, inferred style, headings, and intended message - not the source image, maker diagnosis, or rendering code - to keep the read blind.
 - Made the installed writing or brand-style skill a conditional dependency, invoked only when available.
+- Strengthened data inference: step 1 must infer the full period-by-category table (a value for every period and every category/series/stack the chart encodes), not just totals or the envelope. Fixes charts where the category breakdown was silently dropped.
+- Made information preservation explicit in reconstruction and owned upstream: the form may change freely, but every category, series, period, unit, and qualification the source encoded must survive unless the prompt or critique justifies dropping it. Preservation is the job of the critique and the rebuild, not the later eval - which keeps the eval final-image-only. Retired the abstract "preservation mapping" framing in favour of this plain rule.
 
 ### Repair reliability
 

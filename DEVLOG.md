@@ -1,5 +1,21 @@
 # Devlog
 
+## 2026-08-21 - Information preservation is the rebuilder's job
+
+### Context
+
+An a16z stacked-bar chart (weekly OpenRouter usage, ~10 model categories by colour) came back from a repair with the category breakdown dropped - the key information gone. Traced the failing to the default `dataviz-fix` path: (1) data inference was one vague line ("infer the raw data as usual") with no requirement to capture every encoded dimension, so the maker could infer the total envelope and never register 10 series; (2) the "preservation mapping" guard that would catch a dropped dimension lives only in `karthik-data-visualization`'s audited-contract mode and is off in the default path; (3) that guard's wording was abstract ("observable state proves it did not regress") and had never been understood or exercised.
+
+### Key design decisions
+
+- **Full-table data inference.** Step 1 must infer a value for every period and every category/series/stack - colour is data, not decoration. A ten-category weekly stack needs ten values per week.
+- **Preservation is owned by critique + rebuild, not eval.** Plain rule in step 2: the form may change freely, but every category, series, period, unit, and qualification must survive unless the prompt or critique justifies dropping it. Retired the "preservation mapping" jargon.
+- **Eval stays final-image-only.** Considered feeding eval the source image so it could catch dropped information; rejected - preservation is the rebuilder's responsibility, not a backstop the eval is expected to provide. Eval keeps the artifact + brief only.
+
+### Files touched
+
+- `dataviz-fix/{claude,codex}/SKILL.md`, `dataviz-fix/README.md`, `docs/skills/dataviz-fix.md`, `docs/design/dataviz-fix-repair-flow.md`, `CHANGELOG.md`.
+
 ## 2026-08-21 - Repair flow redesign: one chat, one spawn
 
 ### Context
