@@ -1,5 +1,25 @@
 # Devlog
 
+## 2026-08-21 - Repair flow redesign: one chat, one spawn
+
+### Context
+
+After removing the per-iteration `dataviz-eval` loop for speed, the repair flow regressed in some cases and was "too respectful of the input image". Investigated the recent commits (`51fb61c` eval-loop removal, `8bf4c62` overfit removal) and found the diagnostic substance intact in the underlying skills but the `dataviz-fix` fast path either contradicting them (a "semantic preflight" ban colliding with `karthik-data-visualization`'s required semantic scan) or narrowing them (reinspect only changed regions), and the `chart-annotations` skill dropped from the flow entirely.
+
+### Key design decisions
+
+- **Skills are not sessions.** Invoking a skill loads instructions into the current chat; a subagent is a separate session. The 15-minute iterations came from spawning an independent `dataviz-eval` subagent on every loop turn, not from the checking itself.
+- **Default = one chat.** Source critique and the export checker loop run in-context using `dataviz-critique`. Cheap, non-independent, honest about it.
+- **One spawn per flow.** Exactly one blind `dataviz-eval` subagent runs once on the converged candidate to recover independence at bounded cost. Fed only the artifact and a brief (prompt, inferred style, headings, message) - no source image, no maker intent or code. Skipped for purely literal/cosmetic edits.
+- **Two-pass cap** on the in-context checker loop (a deliberate reintroduction of a bound removed in `814bf4d`).
+- **Image not sacred, prompt authoritative.** Redesign freely against the image, biased toward redesign; honour every prompt constraint throughout.
+- **Re-wired `dataviz-selector` (default-on) and `chart-annotations` (default-on for redesigns).**
+- **Writing/brand skill is conditional** - not in this repo, invoked only if installed.
+
+### Files touched
+
+- `dataviz-fix/{claude,codex}/SKILL.md`, `dataviz-fix/README.md`, `docs/skills/dataviz-fix.md`, `CHANGELOG.md`.
+
 ## 2026-08-15 - Metadata-first MCP rendering and inspection
 
 ### User prompts

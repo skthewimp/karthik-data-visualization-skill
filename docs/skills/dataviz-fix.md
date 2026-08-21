@@ -2,24 +2,27 @@
 
 Use `dataviz-fix` when an existing visualization needs to be repaired and returned as a real artifact.
 
-The default workflow is output-first:
+Two anchors govern the flow. A valid rendered candidate must always be delivered. And the repair may redesign freely against the input image while staying faithful to the prompt: any instruction that arrives with the image - requested chart type, annotations, what to fix, wording, brand or style preferences - is authoritative and must survive the whole process.
 
-1. Inspect the source and requested change.
-2. Run one concise internal critique: comparison, consequential problems, and identification system. Do not fill a fixed issue quota.
-3. Build one real PNG, SVG, or PDF.
-4. Critique the exact export once for geometry, typography hierarchy, label relationships, and redundant scaffolding.
-5. Consolidate the findings into one focused revision pass and return the best valid candidate.
+## Default workflow
 
-The critique remains inside the creator stage. It does not call a fresh reviewer, create a structured contract, or recurse through approval gates. There is no default candidate count or elapsed-time limit for local rendering corrections. Stop when the artifact is usable and another pass would be speculative, cosmetic, or unrelated to the request. Losing MCP access or lacking an independent reviewer does not suppress a valid artifact.
+1. **Critique the source once.** Run `dataviz-critique` in the current chat as a single pass (JSON is fine), with no maker-checker on the critique. Judge the right form, the trifecta, whether the chart conveys its message (including the semantic scan), the requested style, and repair-versus-redesign with a bias toward redesign. In parallel, infer the raw data from the image.
+2. **Reconstruct.** Rebuild from the critique, prompt, inferred data, and inferred style. Load `dataviz-selector` by default (unless the form is clearly correct), `karthik-data-visualization`, `chart-annotations` for redesigns, and the installed writing or brand-style skill when available. Honour every prompt constraint. Build one PNG, SVG, or PDF.
+3. **In-context checker loop.** Critique the exact export at delivery size in the same chat, consolidate issues into one focused revision, and reinspect the changed regions. Cap the loop at two passes and exit as soon as no fatal or major defect remains.
+4. **One independent evaluation.** Spawn exactly one subagent to run `dataviz-eval` as a blind reviewer on the converged candidate. Give it only the rendered artifact and a short brief (prompt, inferred style, inferred headings and subheadings, intended message) - not the source image, the maker's diagnosis, the claimed fixes, or the rendering code. It returns one verdict and ranked findings; it is never re-spawned. Skip this step for a purely literal or cosmetic edit.
+5. **One final revision.** Apply at most one in-context revision from the eval findings, without spawning again or re-entering the loop. An expensive redesign is applied when cheap; otherwise deliver the current candidate and surface the concern to the user.
+6. **Deliver and continue.** Deliver the artifact with its actual status. User feedback is the main release signal: continue from the latest candidate, change the smallest relevant part, inspect the named element, and return it.
 
-Typography is judged by hierarchy at delivery size, not only minimum legibility. Secondary text should not compete with data or primary labels. Every identification or scale element must add a distinct reading task such as comparison, estimation, orientation, or context; duplicate scaffolding should be removed.
+## Why one chat and one spawn
 
-`render_and_inspect_chart` is the preferred mechanical path when available. If the MCP tool fails, the agent falls back to a direct local renderer and visual inspection. It must not fabricate metadata or describe incomplete checks as complete.
+Invoking a skill loads its instructions into the current session - it is not a new LLM session. So critique and the checker loop are cheap: same model, same context, different instruction files. A subagent (the `Agent`/`Task` tool) is a genuinely separate session with a cold start. The old default looped an independent `dataviz-eval` subagent on every iteration, which is what made iterations slow. The current flow spawns exactly once, on the converged candidate, to recover a real blind read at bounded cost.
 
-Independent `dataviz-eval` review is optional. It is a formal audit with a fresh reviewer, blind reads, structured gates, and a `Send`, `Revise`, `Redesign`, or `Not evaluable` verdict. That strictness is useful for high-consequence claims and benchmarks, but harmful as a default repair step: it can block `Send`, add model calls, and create revision loops after a usable artifact already exists.
+A same-session checker catches mechanical regressions well but conceptual blind spots poorly, because the checker is the same context that built the chart. The single independent eval is what closes that gap.
 
-Use it only when the user requests independent evaluation, when a materially misleading claim may survive visual polish, for consequential redesigns, or for system benchmarks. Its verdict may inform another revision, but it must not suppress the current valid artifact.
+## Rendering and inspection
 
-The detailed case manager remains available for audit trails, comparison history, benchmarks, and reusable learning records. It is not part of the default user-facing repair path. It has no iteration limit unless the user supplies one.
+`render_and_inspect_chart` is the preferred mechanical path when available. If the MCP tool fails, fall back to a direct local renderer and visual inspection, and state that deterministic inspection was unavailable. Do not fabricate metadata or describe incomplete checks as complete. Typography is judged by hierarchy at delivery size, not only minimum legibility, and duplicate identification or scale scaffolding should be removed.
 
-User feedback is the main release signal. Continue from the latest candidate, change the smallest relevant part, inspect the named element, and return the changed artifact.
+## Case logging
+
+The detailed case manager remains available for audit trails, comparison history, benchmarks, and reusable learning records. It is not part of the default repair path and never suppresses a valid artifact.
