@@ -11,7 +11,7 @@ This is a vision task, not a rendering task. There is no MCP tool for it: read t
 
 ## What to produce
 
-The **full period-by-category table**: a value for every period and every category, series, stack, or facet the chart encodes. Colour is data, not decoration - a chart that stacks ten models by week needs ten values for every week, not one total. The envelope, the totals, or the top line alone are not enough; a later form change (small multiples, direct-labelled lines, a ranked view) needs each cell.
+The **full period-by-category table**: a value for every period and every category, series, stack, or facet the chart encodes. Colour is data, not decoration - a chart encoding N series across a period needs N values for that period, not one total. The envelope, the totals, or the top line alone are not enough; any later form change needs each cell.
 
 Produce, explicitly:
 

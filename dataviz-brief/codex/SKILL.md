@@ -35,7 +35,7 @@ For each key message, name the data and encoding the rebuild must show to suppor
 
 ### 3. Explicit drops
 
-Name anything you judge *not* key, and why, in message terms. A drop is legitimate only when the information serves no key message - not when it is merely inconvenient to recover or render. Silence is not a decision: a ten-category stacked chart that comes back as a bare total failed because no one decided to lose the model mix. If you drop, say so out loud with a reason.
+Name anything you judge *not* key, and why, in message terms. A drop is legitimate only when the information serves no key message - not when it is merely inconvenient to recover or render. Silence is not a decision: a multi-category chart that comes back as a bare total has failed if no one decided to lose the per-category breakdown. If you drop, say so out loud with a reason.
 
 ### 4. Audience, story, and constraints
 
