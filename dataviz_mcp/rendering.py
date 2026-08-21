@@ -549,6 +549,9 @@ dpi <- as.numeric(args[[7]])
 build_function <- args[[8]]
 content_kind <- if (length(args) >= 9) args[[9]] else "chart"
 is_table_content <- identical(content_kind, "table")
+table_margin_in <- 0.12
+table_x_offset <- 0
+table_y_offset <- 0
 
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(ragg))
@@ -574,6 +577,30 @@ if (inherits(built, "ggplot")) {
   stop("build must return a ggplot, a gtable (tableGrob/gt::as_gtable), or list(plot=/table=, metadata=)")
 }
 
+if (is_table_content) {
+  # Shrink-wrap the canvas to the table's natural size instead of centering a
+  # small table in a fixed frame. Font-dependent (grobwidth) tracks need an open
+  # device with real metrics to resolve, so measure on a scratch device first.
+  measure_path <- tempfile(fileext=".png")
+  ragg::agg_png(measure_path, width=width_px, height=height_px, units="px", res=dpi)
+  grid.newpage()
+  natural_w_in <- convertWidth(sum(gt$widths), "inches", valueOnly=TRUE)
+  natural_h_in <- convertHeight(sum(gt$heights), "inches", valueOnly=TRUE)
+  dev.off()
+  unlink(measure_path)
+  margin_px <- round(table_margin_in * dpi)
+  if (is.finite(natural_w_in) && natural_w_in > 0) {
+    natural_w_px <- natural_w_in * dpi
+    width_px <- as.integer(max(1, round(natural_w_px + 2 * margin_px)))
+    table_x_offset <- (width_px - natural_w_px) / 2
+  }
+  if (is.finite(natural_h_in) && natural_h_in > 0) {
+    natural_h_px <- natural_h_in * dpi
+    height_px <- as.integer(max(1, round(natural_h_px + 2 * margin_px)))
+    table_y_offset <- (height_px - natural_h_px) / 2
+  }
+}
+
 ragg::agg_png(artifact_path, width=width_px, height=height_px, units="px", res=dpi)
 grid.newpage()
 grid.draw(gt)
@@ -592,8 +619,8 @@ resolve_tracks <- function(track_units, total_px) {
 
 widths <- resolve_tracks(gt$widths, width_px)
 heights <- resolve_tracks(gt$heights, height_px)
-x_before <- c(0, cumsum(widths))
-y_before <- c(0, cumsum(heights))
+x_before <- table_x_offset + c(0, cumsum(widths))
+y_before <- table_y_offset + c(0, cumsum(heights))
 
 extract_label <- function(g) {
   if (inherits(g, "text") && !is.null(g$label)) return(paste(g$label, collapse=" | "))
@@ -854,6 +881,11 @@ def _render_ggplot2(
             reason = completed.stderr.strip() or completed.stdout.strip()
             raise RuntimeError(f"ggplot2 render failed: {reason}")
         artifact = raster_info(artifact_path)
+        # A table shrink-wraps its canvas to the gtable's natural size, so the
+        # exact artifact - not the requested profile - defines the coordinate
+        # space the layout and inspection share.
+        width = artifact["width"]
+        height = artifact["height"]
         rows: list[dict[str, str]] = []
         with layout_csv.open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
