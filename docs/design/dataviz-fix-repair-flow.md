@@ -89,6 +89,18 @@ guards against (the ten-category stacked chart that came back as a single total)
 drop - the breakdown carried a key message and no one decided to lose it. An explicit,
 reasoned decision to drop non-key information is fine; silence is the bug.
 
+But a reasoned drop can still use a bad reason, and a later run did exactly that: it dropped
+the ten model categories and justified it - "many thin stacked segments and long legend do not
+support reliable model-by-model comparison", "without inventing unreadable category precision".
+That converted *hard to recover / hard to read* into *not key*. Two guardrails close it. First,
+the source's form declares its messages: a stacked, multi-series, or faceted chart has the
+category comparison as a key message, so collapsing it to a single total is dropping a key
+message, not simplifying. Second, difficulty of recovery is never grounds to drop a dimension -
+approximate screenshot values, a crowded legend, "unreadable precision" argue for a *better
+form* (small multiples, direct-labelled lines, top-N plus an explicit "other", a share-of-total
+view), never for deletion. Source illegibility triggers a redesign of the form; it does not
+authorise removing the information.
+
 A consequence of this split: the eval subagent is given the rendered artifact and a brief
 (prompt, inferred style, inferred headings, intended message) but **not the source image**.
 It judges "does this chart do its job, per the brief", not "does it faithfully match the

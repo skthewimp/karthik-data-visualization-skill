@@ -60,7 +60,7 @@ A full critique should contain:
 
 1. **Quick read** — what the visual is, what it seems to say, and a verdict.
 2. **Trifecta checkup** — question, data, visual, and the main mismatch.
-3. **Key messages and required content** — the one or few messages the chart must carry, the content each message needs, any source information dropped as *not* key (named, with a reason), and whether the messages need one chart or several. This is a judgment call, not a keep-everything rule; it is what a rebuild uses to decide what must survive, and naming the drops out loud is what stops valid information from vanishing unnoticed.
+3. **Key messages and required content** — the one or few messages the chart must carry, the content each message needs, any source information dropped as *not* key (named, with a reason), and whether the messages need one chart or several. This is a judgment call, not a keep-everything rule; it is what a rebuild uses to decide what must survive, and naming the drops out loud is what stops valid information from vanishing unnoticed. Two guardrails on the judgment: the chart's own form declares its messages (a stacked or multi-series chart has the category comparison as a key message), and difficulty of recovery — approximate screenshot values, a crowded legend, "unreadable precision" — is never a reason to drop a dimension, only a reason to pick a better form (small multiples, direct-labelled lines, top-N plus "other").
 4. **Issues to fix** — prioritized by severity:
    - **Fatal**: changes the conclusion or makes the chart uninterpretable.
    - **Major**: materially slows or misleads interpretation.

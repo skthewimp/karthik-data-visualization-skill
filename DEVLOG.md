@@ -6,6 +6,24 @@ The public website updater was correctly fast-forwarding and reinstalling this r
 
 `dataviz_mcp.public_repair_contract` now discovers every top-level `<skill>/codex/SKILL.md` directly from the current checkout. There is no list of individual skill names: new, renamed, removed, and revised skill entrypoints change the assembled bundle automatically. A runtime adapter translates relevant guidance into the website's existing one-creator execution boundary: it does not attempt unavailable skill or subagent calls, does not let unrelated skills expand the task, and still requires an inspected `/mnt/data/repaired.png`. The bundle publishes the core Git revision, discovered paths, and content fingerprint. Tests exercise discovery against synthetic additions rather than merely checking a maintained list. Non-repository installs retain the embedded fallback, while the website rejects that fallback rather than silently serving it.
 
+## 2026-08-21 - "Hard to read" is not "not key": guardrails on the drop judgment
+
+### Context
+
+The hosted repair (dataviz.karthiks.co) still collapsed the a16z stacked-by-model chart to a single grey total column - but this time with an *explicit reason*, which the previous change had made mandatory. Its stated WHY: "many thin stacked segments and long legend do not support reliable model-by-model comparison" and "without inventing unreadable category precision." So the reasoned-drop slot we added became a rationalization slot: the model converted "hard to recover exact values from a screenshot" and "legend is crowded" into "the categories aren't key," and dropped the mix - the entire reason a stacked-by-model chart exists.
+
+### Fix
+
+Two guardrails on the key-messages judgment in `dataviz-critique` (mirrored into `dataviz-fix`):
+
+- **The form declares its messages.** A stacked, multi-series, or faceted chart has the category comparison as a key message. The primary encoded dimension (colour/stack/facet) is presumptively key unless the prompt redirects. Collapsing to a single total deletes a key message.
+- **"Hard to recover" is not "not key".** Approximate screenshot values, crowded legend, too many categories, "unreadable precision" are reasons to pick a *better form* (small multiples, direct-labelled lines, top-N plus "other", share-of-total), never to delete the dimension. Source illegibility triggers redesign, not removal. Approximate-but-labelled values still carry the message.
+- Tightened "explicit drops": a drop is legitimate only when the information serves no key message, not when it is inconvenient to recover or render.
+
+### Deploy note
+
+These are source-repo + local skill edits. The hosted site now discovers skills from the checkout (see the creator-binding entry above), so it picks these up on its next restart/redeploy - but not before. Until it restarts, dataviz.karthiks.co keeps reproducing the old behaviour.
+
 ## 2026-08-21 - Preservation as a critique judgment, not a keep-everything rule
 
 ### Context
