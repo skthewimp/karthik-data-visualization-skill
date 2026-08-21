@@ -2,7 +2,9 @@
 
 Human-facing guides for the public skills.
 
-- [`dataviz-fix.md`](dataviz-fix.md) - explains the output-first chart-repair and feedback workflow.
+- [`dataviz-fix.md`](dataviz-fix.md) - explains the forward-design chart-repair and feedback workflow.
+- [`dataviz-brief.md`](dataviz-brief.md) - explains the intent-extraction skill that opens a repair: key messages, constraints, edit-vs-redesign.
+- [`dataviz-extract.md`](dataviz-extract.md) - explains the vision skill that reads the full period-by-category data table out of a chart image.
 - [`dataviz-eval.md`](dataviz-eval.md) - explains the artifact gate, blind reader checks, failure taxonomy, and creator-system benchmark.
 - [`dataviz-selector.md`](dataviz-selector.md) - explains when to use the chart-selection skill and what output to expect.
 - [`karthik-data-visualization.md`](karthik-data-visualization.md) - explains Karthik's chart style and review principles.

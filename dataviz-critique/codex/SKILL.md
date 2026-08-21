@@ -7,7 +7,12 @@ description: Critique charts with the question-data-visual triangle, semantic cl
 
 Use this when the user gives a visualization, screenshot, chart spec, code output, dashboard, or slide and asks whether it works or how to improve it.
 
-Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing. In the default `dataviz-fix` path, keep this diagnosis concise and move directly to a repaired artifact. Return a structured repair brief only when the user explicitly requests an audited workflow.
+Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing.
+
+## Two roles
+
+1. **Standalone review** - the user shows a chart and asks "what's wrong with this?" or "how do I improve it?". Run the full diagnosis below and return the reader-facing structure. This is the primary use and is unchanged.
+2. **Downstream checker in a repair** - inside `dataviz-fix`, this skill runs *after* a candidate is built, as a checker, not as the first move and not as the designer. Repair no longer begins with critique: the intent is owned by `dataviz-brief` and the form is chosen cold by `dataviz-selector` before anything is drawn. As the checker you do **not** re-derive the key messages (the brief owns them) and you do **not** reopen the form choice unless the candidate genuinely fails a message. You answer: does the candidate carry the brief's intent (every key message with its required content, nothing key silently dropped, prompt constraints honoured), and is it a good chart (mechanical and semantic)? Run in-context, consolidate into one focused revision per pass, cap at two passes, and exit as soon as no fatal or major defect remains.
 
 ## Inputs to seek or infer
 
@@ -36,6 +41,8 @@ For a repair handoff, also freeze a source inventory before proposing changes: c
 If the chart is impossible to interpret, say so directly and explain why.
 
 ## Key messages and required content
+
+In a **repair**, this judgment is owned upstream by `dataviz-brief` (the intent step), not here - the brief names the key messages and required content before any chart is built, and as the downstream checker you verify the candidate against that brief rather than re-deriving it. This section is the reasoning for **standalone review**, and for sanity-checking a brief when one exists.
 
 Cataloguing what a chart contains is not the same as judging what matters. After the inventory, decide - as a judgment call, not a preserve-everything rule - what the rebuild must carry.
 

@@ -2,21 +2,22 @@
 
 Use this skill when the task is not merely to critique a chart, but to repair it and return a real artifact.
 
-The default path: run one single-pass `dataviz-critique` on the source, reconstruct the chart (biased toward redesign, faithful to the prompt), run an in-context critique-checker loop capped at two passes, then spawn exactly one blind `dataviz-eval` reviewer, apply at most one final revision, and deliver. User feedback drives later revisions.
+The default path is **forward design, not critique-plus-patch**: extract the intent (`dataviz-brief`) and the data (`dataviz-extract`) from the source, choose a form cold (`dataviz-selector`, source form gets no vote), build the chart(s), run an in-context critique-checker loop capped at two passes, then spawn exactly one blind `dataviz-eval` reviewer, apply at most one final revision, and deliver. User feedback drives later revisions.
 
 ## Design principles
 
-- **Redesign against the image, stay faithful to the prompt.** The input image is not sacred; any instruction that arrives with it (chart type, annotations, what to fix, wording, style) is authoritative throughout.
-- **One chat, one spawn.** Critique and the checker loop run in the current session (cheap). Independent evaluation is the single subagent spawn in the flow - a real blind read, run once, never looped. This is the deliberate fix for slow, unbounded maker-checker loops.
+- **Forward design, not critique-first.** Repair does not begin by critiquing the source chart - that anchors on the existing image and makes "re-render the source form, tidied" the default. Intent and data come first; the form is chosen cold with the source form removed from the room. Preserving a message is not preserving a form.
+- **Redesign against the image, stay faithful to the prompt.** The input image is not sacred and the source form gets no vote; any instruction that arrives with it (chart type, annotations, what to fix, wording, style) is authoritative throughout.
+- **One chat, one spawn.** The brief, extract, selection, build, and checker loop run in the current session (cheap). Independent evaluation is the single subagent spawn - a real blind read, run once, never looped.
 
 ## What it does
 
-- Rebuilds an uploaded or pasted visualization as a real PNG, SVG, or PDF.
-- Runs the source critique once (JSON is fine) with no maker-checker on the critique itself.
-- Infers the full period-by-category data table from the image (every category/series/period), not just totals, so the critique can judge what matters. `dataviz-critique` then decides the key messages the chart must carry, the content each needs, and any information dropped as *not* key (named explicitly, with a reason); the rebuild carries those messages - which may take more than one chart (whole plus parts). What must survive is the messages and their required content, not every mark, and drops are conscious decisions rather than silent losses.
-- Invokes `dataviz-selector` (default-on unless the form is clearly correct) during reconstruction, and `chart-annotations` whenever the chart may have a point worth marking - letting that skill judge whether any mark clears the bar rather than annotating by default.
-- Composes the headline and subhead in the reconstruction step: title claim from `chart-annotations`, style from `karthik-data-visualization`, voice from the installed writing skill when available. There is no separate headline skill.
-- Runs an in-context checker loop on the export, capped at two passes, exiting on no fatal or major defect.
+- Extracts the repair's intent with `dataviz-brief`: key messages and required content, explicit drops, audience, story, authoritative constraints, thin keep-notes, and the edit-vs-redesign mode. A `bounded-edit` stays anchored to the source form; a `redesign` (the default when unsure) reopens it.
+- Extracts the full period-by-category data table from the image with `dataviz-extract` (every category/series/period), not just totals, so any chosen form can be built.
+- Chooses the form cold with `dataviz-selector` on the intent and data - the source chart's form is not an input and gets no vote; there is no "unless the form is clearly correct" escape hatch in the redesign path.
+- Rebuilds as a real PNG, SVG, or PDF with `karthik-data-visualization`, carrying every key message with its required content (which may take more than one chart, whole plus parts). Invokes `chart-annotations` whenever the chart may have a point worth marking and lets that skill judge whether any mark clears the bar.
+- Composes the headline and subhead in the build step: title claim from `chart-annotations`, style from `karthik-data-visualization`, voice from the installed writing skill when available. There is no separate headline skill.
+- Runs `dataviz-critique` as a downstream checker on the export, capped at two passes, exiting on no fatal or major defect. It verifies the candidate against the brief; it does not re-derive the messages or reopen the form.
 - Spawns one blind `dataviz-eval` reviewer on the converged candidate; skips it for a purely literal or cosmetic edit.
 - Applies at most one final revision from eval findings, with no re-spawn.
 - Falls back to direct rendering and visual inspection when MCP inspection is unavailable.
@@ -32,7 +33,7 @@ The default path: run one single-pass `dataviz-critique` on the source, reconstr
 
 ## Relationship to other skills
 
-`dataviz-fix` is the repair umbrella. It uses `dataviz-critique`, `dataviz-selector`, `chart-annotations`, and `karthik-data-visualization`, plus the installed writing or brand-style skill when one is available. `dataviz-eval` is the single independent reviewer spawned once per flow; the case manager is an optional audited path, not a default release gate.
+`dataviz-fix` is the repair umbrella. It opens with `dataviz-brief` (intent) and `dataviz-extract` (data), then uses `dataviz-selector` (form, chosen cold), `karthik-data-visualization`, and `chart-annotations` to build, and `dataviz-critique` as the downstream checker - plus the installed writing or brand-style skill when one is available. `dataviz-eval` is the single independent reviewer spawned once per flow; the case manager is an optional audited path, not a default release gate.
 
 ## Edit rule
 

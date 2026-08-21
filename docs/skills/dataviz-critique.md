@@ -10,11 +10,17 @@ Use `dataviz-critique` when reviewing an existing chart, dashboard, slide visual
 
 This is the repository's **review and redesign** skill. It is not just a style checker.
 
+## Two roles
+
+1. **Standalone review** - the user shows a chart and asks what is wrong or how to improve it. This is the primary use, described throughout this page, and is unchanged.
+2. **Downstream checker in a repair** - inside `dataviz-fix`, critique runs *after* a candidate is built, as a checker, not as the first move. Repair no longer starts with critique: the intent is owned by `dataviz-brief` and the form is chosen cold by `dataviz-selector` before anything is drawn. As the checker, it does not re-derive the key messages (the brief owns them) or reopen the form choice unless a message genuinely fails; it verifies that the candidate carries the brief's intent and is a good chart, in-context, capped at two passes. The "Key messages and required content" frame below is therefore the reasoning for standalone review; in a repair the same judgment lives in `dataviz-brief`.
+
 ## How it fits with the other skills
 
+- Use **`dataviz-brief`** at the start of a repair, to extract the intent the replacement must carry.
 - Use **`dataviz-selector`** before making a chart, when choosing the right visual form for a dataset and question.
 - Use **`karthik-data-visualization`** when styling or implementing a chosen chart.
-- Use **`dataviz-critique`** after a chart exists, when diagnosing whether it works and proposing better alternatives.
+- Use **`dataviz-critique`** to review an existing chart, or as the downstream checker in a repair.
 - Use **`karthik-powerpoint-style`** when the chart is part of an analytical slide or deck.
 
 ## Core diagnostic frame

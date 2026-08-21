@@ -1,5 +1,33 @@
 # Devlog
 
+## 2026-08-21 - Stop the whack-a-mole: repair is forward design, not critique-plus-patch
+
+### Context
+
+Three consecutive prose patches to the repair flow (the three DEVLOG entries below this one) each fixed the last symptom on the a16z "Weekly usage of models across OpenRouter" chart and exposed the next: dropped the ten model categories → dropped them with a justification → kept all ten but re-rendered the same stacked bar. Every patch was a better sentence; none changed the outcome. They all traced to one root cause: the flow *started by critiquing the source chart*, which anchors everything on the existing image, and `dataviz-selector` was only a conditional downstream helper with an "unless the form is clearly correct" escape hatch. So the path of least resistance was always "re-render the source form, tidied." Prose guardrails cannot overcome the ordering.
+
+### Decision
+
+Stop patching sentences; change the order. Repair becomes forward design informed by the source, not critique-plus-patch. New six-step order:
+
+1. **INTENT** (`dataviz-brief`, new skill) - key messages + required content, explicit drops, audience, story, authoritative constraints, thin keep-notes, and the edit-vs-redesign mode.
+2. **DATA** (`dataviz-extract`, new skill) - the full period-by-category table, in parallel with intent.
+3. **SELECT** (`dataviz-selector`) - run cold on intent+data; the source form gets no vote; no "clearly correct" escape hatch in the redesign path.
+4. **BUILD** (`karthik-data-visualization` + `chart-annotations` + headline/subhead).
+5. **CRITIQUE** (`dataviz-critique`) - now a downstream checker only: does the candidate carry the step-1 intent, and is it a good chart? In-context, ≤2 passes.
+6. **EVAL** - one blind `dataviz-eval` subagent on the converged candidate. Unchanged.
+
+Four forks were confirmed with Karthik before implementing: intent-extraction is its own new skill (not a critique mode); the edit-vs-redesign fork lives in the brief's output; data-extraction is its own new skill; and source-diagnosis survives only as a thin "anything worth keeping?" pass feeding intent, not a fault-list.
+
+### What moved
+
+- `dataviz-critique` lost its "step 1 of repair" role and its design job (key messages + required content moved up into `dataviz-brief`). It keeps the standalone "what's wrong with this chart?" path and becomes the downstream checker in repair.
+- `dataviz-selector` was promoted from optional downstream helper to the forward-design engine at step 3, run cold.
+- `dataviz-fix` orchestration rewritten to the six-step order; the bounded-edit path stays anchored to the source form and skips selection.
+- Two new skills, both surfaces, byte-identical. `docs/design/dataviz-fix-repair-flow.md` rewritten; new skill doc pages; indexes, folder READMEs, root README, and CHANGELOG updated.
+
+The general principle - repair = forward design from intent+data, source form has no vote, preserve the message not the form - is deliberately not overfit to the a16z chart. No "always small multiples for stacks" rule was encoded; the selector picks the form the data shape and message want, cold.
+
 ## 2026-08-21 - Bind the public creator to the canonical skills
 
 The public website updater was correctly fast-forwarding and reinstalling this repository, but the website imported a handwritten `CREATOR_INSTRUCTIONS` constant that had not changed with the latest skill commits. The checkout was current while the behaviour was stale.

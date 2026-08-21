@@ -11,6 +11,10 @@ Core job: pick the visual form that makes the intended claim easiest to see and 
 
 For non-trivial chart selection, use the workflow and guardrails below; private local references may add nuance, but this public skill is self-contained.
 
+## Cold selection in a repair
+
+When this skill is invoked inside a chart repair (`dataviz-fix`), it runs on the intent (from `dataviz-brief`) and the extracted data - not on the source chart. Run it **cold**: the source chart's form is not an input and gets **no vote**. Choose the form the messages and data want, as if drawing the chart for the first time. There is no "the source form is clearly correct, so keep it" shortcut: a many-series stacked bar or area whose message is per-series comparison or trajectory is not correct enough to inherit - it becomes small multiples, direct-labelled lines, or a ranked/indexed view. Preserving the categories means keeping the data, not the chart type; a tidier version of the same illegible form is not a selection.
+
 ## Workflow
 
 0. **Disambiguate semantics before choosing a chart:** identify the measure, denominator, displayed universe, relevant time/context boundaries, claim strength, and audience meaning of the units. Choose a form and semantic cues that make the intended comparison hard to misread; do not prescribe a chart type, vocabulary, or annotation when another defensible design communicates the distinction equally well.

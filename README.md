@@ -37,21 +37,23 @@ Installing the skills does not register the MCP server. For the full workflow, c
 - If Matplotlib is the practical fallback, specify the theme, typography, palette, grid, axes, labels, and spacing deliberately; default Matplotlib aesthetics are a failed visual implementation.
 - Both adapters emit the same artifact, specification, layout, inspection, review-view, and manifest bundle. Coverage limitations remain explicit in the inspection report.
 
-This repo contains thirteen related skills, coordinated as a context-sensitive visualization workflow:
+This repo contains fifteen related skills, coordinated as a context-sensitive visualization workflow:
 
-1. **`dataviz-fix`** - output-first repair rules: run one concise creator critique, rebuild a pasted chart, critique the exact export once, make a focused revision, and improve it from user feedback.
-2. **`dataviz-eval`** - artifact and creator-system evaluation rules for separate blind review, scoped send/revise/redesign decisions, failure analysis, and regression benchmarks.
-3. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
-4. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
-5. **`karthik-powerpoint-style`** - slide and deck rules for making PowerPoint-style presentations in Karthik's analytical, claim-first style.
-6. **`dataviz-critique`** - chart critique and redesign rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards, then proposing better alternatives.
-7. **`karthik-analysis-planner`** - analysis-contract rules for turning fuzzy natural-language questions into operational definitions, denominators, comparisons, metrics, caveats, and falsifiers before evidence-building.
-8. **`dataviz-orchestrator`** - end-to-end workflow for turning a dataset, loose question, and audience into an analysed, styled, critiqued visual story.
-9. **`dataset-question-generator`** - upstream skill for profiling raw datasets and generating fresh, visualisable questions before planning or charting.
-10. **`karthik-data-cleaning`** - data-cleaning rules for Karthik-style exploratory analysis: inspect, clean in context, inspect again, and avoid generic unsupervised fixes.
-11. **`chart-annotations`** - annotation rules for deciding what a chart should mark, which competing candidate wins, how the label is worded, and where it sits.
-12. **`chart-explainer`** - accompanying-note rules for writing the two lines that travel with a finished chart or table into an email, notebook, or message.
-13. **`karthik-r-analysis-style`** - notebook rules for how an exploratory R scratchpad is written: local precedent, analyst-first probes, tidyverse/tidytable idiom, and the working-note register.
+1. **`dataviz-fix`** - forward-design repair rules: extract intent and data from the source, choose a form cold, rebuild, run one downstream critique-checker loop, and improve it from user feedback.
+2. **`dataviz-brief`** - intent-extraction rules that open a repair: key messages and required content, explicit drops, audience, constraints, keep-notes, and the edit-vs-redesign decision.
+3. **`dataviz-extract`** - vision rules for reading the full period-by-category data table out of a chart image, so the repair rebuilds from data rather than tracing the picture.
+4. **`dataviz-eval`** - artifact and creator-system evaluation rules for separate blind review, scoped send/revise/redesign decisions, failure analysis, and regression benchmarks.
+5. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
+6. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.
+7. **`karthik-powerpoint-style`** - slide and deck rules for making PowerPoint-style presentations in Karthik's analytical, claim-first style.
+8. **`dataviz-critique`** - chart critique and redesign rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards, then proposing better alternatives.
+9. **`karthik-analysis-planner`** - analysis-contract rules for turning fuzzy natural-language questions into operational definitions, denominators, comparisons, metrics, caveats, and falsifiers before evidence-building.
+10. **`dataviz-orchestrator`** - end-to-end workflow for turning a dataset, loose question, and audience into an analysed, styled, critiqued visual story.
+11. **`dataset-question-generator`** - upstream skill for profiling raw datasets and generating fresh, visualisable questions before planning or charting.
+12. **`karthik-data-cleaning`** - data-cleaning rules for Karthik-style exploratory analysis: inspect, clean in context, inspect again, and avoid generic unsupervised fixes.
+13. **`chart-annotations`** - annotation rules for deciding what a chart should mark, which competing candidate wins, how the label is worded, and where it sits.
+14. **`chart-explainer`** - accompanying-note rules for writing the two lines that travel with a finished chart or table into an email, notebook, or message.
+15. **`karthik-r-analysis-style`** - notebook rules for how an exploratory R scratchpad is written: local precedent, analyst-first probes, tidyverse/tidytable idiom, and the working-note register.
 
 The split is deliberate. The orchestrator routes the work and preserves handoffs; it does not duplicate every specialist procedure. Planning defines the analytical claim and evidence contract. Cleaning establishes provenance, grain, and data validity. Question generation proposes supported questions. Selection chooses an encoding for the task. Construction implements it. Annotation adds supported context. Explanation communicates the result at calibrated strength. Critique diagnoses interpretive failures. Repair manages bounded revisions and reusable lessons. Evaluation independently verifies semantic, visual, evidentiary, and delivery outcomes.
 
@@ -59,7 +61,13 @@ The split is deliberate. The orchestrator routes the work and preserves handoffs
 
 ```text
 .
-├── dataviz-fix/                     # Output-first chart repair and feedback
+├── dataviz-fix/                     # Forward-design chart repair and feedback
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataviz-brief/                   # Repair intent: messages, constraints, edit-vs-redesign
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataviz-extract/                 # Full period-by-category table read from a chart image
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── dataviz-eval/                    # Artifact gate and chart-creator benchmark
@@ -114,6 +122,18 @@ Each skill owns its Codex and Claude versions directly. Every public folder has 
 Use this when you want to paste or upload a chart, receive a real regenerated visual, iterate with short feedback until it is right, and turn the accepted result into a narrow reusable improvement to the skill stack.
 
 See: [`docs/skills/dataviz-fix.md`](docs/skills/dataviz-fix.md)
+
+### `dataviz-brief`
+
+Use this at the start of a repair to extract the intent - key messages and required content, explicit drops, audience, story, authoritative constraints, keep-notes, and the edit-vs-redesign mode - so the form is chosen forward from the intent, not patched onto the source chart.
+
+See: [`docs/skills/dataviz-brief.md`](docs/skills/dataviz-brief.md)
+
+### `dataviz-extract`
+
+Use this in parallel with `dataviz-brief` to read the full period-by-category data table out of a chart image (every value for every period and every series), so the repair can rebuild from data on any chosen form rather than tracing the picture.
+
+See: [`docs/skills/dataviz-extract.md`](docs/skills/dataviz-extract.md)
 
 ### `dataviz-eval`
 

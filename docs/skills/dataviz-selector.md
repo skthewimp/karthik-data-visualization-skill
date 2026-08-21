@@ -11,6 +11,10 @@ It is designed for situations where the failure mode is not bad styling, but bad
 - using a dashboard when management needs a decision and an action
 - using a pie chart because the data is technically "part-to-whole"
 
+## Cold selection inside a repair
+
+When `dataviz-selector` is invoked inside a chart repair (`dataviz-fix`), it runs on the extracted intent (`dataviz-brief`) and data, **cold**: the source chart's form is not an input and gets no vote. There is no "the source form is clearly correct, so keep it" shortcut. A many-series stacked bar whose message is per-series comparison is not correct enough to inherit - it becomes small multiples, direct-labelled lines, or a ranked view. Preserving the categories means keeping the data, not the chart type.
+
 ## Trigger examples
 
 Use it for prompts like:
