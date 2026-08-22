@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Small multiples that carry magnitude, and forms that carry every message
+
+- Added three generalised rules after a repair returned a legible-but-thin small-multiples grid: near-flat panels with no numbers, a residual "Others" bucket leading the grid, and the total-growth message dropped because the breakdown alone was built. Each miss was encoded as the underlying principle, not the OpenRouter specifics.
+- `karthik-data-visualization`: a shared or compressed scale buys comparability at the cost of resolution - any series well below the axis maximum flattens toward the baseline and its level stops being readable. When a needed value cannot be resolved from the scale, put the number on the mark (endpoints or focal value) before abandoning the shared scale or adding a second one. Framed around scale-vs-labels, so it covers a small series under a dominant one, a low panel in a grid, or a sparkline - not one chart form.
+- `karthik-data-visualization`: a residual/catch-all bucket (Other, Misc, Unclassified, remainder) aggregates the un-named and carries little information per unit of size; never give it the focal colour or the first slot in any ordering (first bar, panel, or labelled line) even when largest. Emphasis and the reader's first look go to named, interpretable categories.
+- `dataviz-selector` (hard guardrail): a form must let every brief message be read off it, and one form rarely carries both an aggregate and its decomposition - a breakdown shows the parts but not the sum, a total shows the sum but not the parts. When the brief needs both, pair a totals view with the breakdown; check each message against a visible element before finalizing and treat a message with no element as dropped, not a detail.
+
 ### Tables as a first-class visualization
 
 - Added `karthik-table-style` (both surfaces, byte-identical): the table twin of `karthik-data-visualization`. It owns table craft as generalised heuristics - emphasis as scarce ink, right-aligned decimal-point alignment with decimals equalised down a column, precision keyed to the smallest meaningful difference, content-sized columns, minimal rules and whitespace grouping, tabular figures, and conditional formatting scoped by column, row, or whole table. `gt` for delivered HTML tables; `grid`/`tableGrob` for the gated raster. The suite goes from fifteen to sixteen skills.

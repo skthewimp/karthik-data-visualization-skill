@@ -71,6 +71,7 @@ If implementing: <short code/design note>
 ## Hard guardrails
 
 - One chart, one main job.
+- A form must let every message the brief carries be read off it; a form that serves one message can silently hide another. An aggregate and its decomposition are the common pair - the total and the mix, the whole and the parts - and one form rarely carries both: a breakdown (small multiples, decomposed lines, grouped bars) shows the parts but not the sum, and a single total line shows the sum but not the parts. When the brief needs both, that is two jobs; pair a totals view with the breakdown rather than committing to one and dropping the other. Before finalizing, check each brief message against a visible element and treat any message with no element as a dropped message, not a detail.
 - Match the visual channel to the job the data does, and give the reader's most important comparison the most accurate channel. Roughly, from most to least accurate for reading values: position on a common scale, then length, then angle/slope, then area, then colour and density. Apply it to what the chart is actually asking the reader to do:
   - Magnitude or quantity to compare: position on a common scale or length (dots, bars, lines) - not area (bubble), angle (pie), or colour intensity.
   - Change or trajectory over time: position (lines, slopes) - not colour shifts across cells.
