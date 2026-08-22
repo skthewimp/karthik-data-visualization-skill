@@ -6,6 +6,10 @@ Use `dataviz-fix` when an existing visualization needs to be repaired and return
 
 Two anchors govern the flow. A valid rendered candidate must always be delivered. And the repair may redesign freely against the input image - the source form gets no vote - while staying faithful to the prompt: any instruction that arrives with the image (chart type, annotations, what to fix, wording, style) is authoritative and must survive. Preserving a message is not preserving a form: the data and messages survive, the encoding usually should not.
 
+## Staged, not one context
+
+`dataviz-fix` is the **repair orchestrator**, and it runs as a sequence of separate calls - **diagnose+extract -> select -> build -> refine** - each carrying only the skills that stage needs plus a compact structured artifact handed forward. Loading every skill into one context rots it; the build stage has no use for the discovery or evaluation skills. The eight steps below map onto those four stages (1-2 diagnose, 3 select, 4 build, 5-7 refine). The machine-readable contract - the exact skill subset and JSON handoff schema for every stage - is `dataviz_mcp/stage_contracts.py:REPAIR_PIPELINE`; the skill carries the reasoning, the module carries the shape.
+
 ## Default workflow
 
 1. **Intent - build the brief.** Run `dataviz-brief` on the image and prompt: key messages and required content, explicit drops, audience and medium, story, authoritative constraints, thin keep-notes, and the **edit-vs-redesign mode**. `bounded-edit` stays anchored to the source form (skip steps 2-3, apply the named edit in step 4); `redesign` (the default when unsure) reopens the form.

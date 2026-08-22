@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Staged pipelines that carry only the skills each step needs
+
+- Ended the single mega-prompt. The old `dataviz_mcp/public_repair_contract.py` discovered every `<skill>/codex/SKILL.md` and appended all of them into one creator adapter, so a build call carried brief, extract, critique, selector, table-style, powerpoint, cleaning, analysis-planner and eval at once. Long single-context runs rot. Replaced it with `dataviz_mcp/stage_contracts.py`: a provider-neutral contract defining two pipelines as ordered `Stage` objects - `REPAIR_PIPELINE` (diagnose+extract -> select -> build -> refine) and `STORY_PIPELINE` (discover -> contract -> clean -> facts -> select -> build -> refine). Each stage names the smallest skill subset it needs, the JSON handoff schema it receives, the schema it emits, and a focused adapter.
+- `stage_skill_bundle(stage, builder, active_conditions)` reads only that stage's skills - never the whole repository - which is the context-rot fix; `build_stage_adapter` prepends the shared guardrails and the stage's instructions. The build stage's builder skill (`karthik-data-visualization` for a chart, `karthik-table-style` for a table) is chosen from the previous stage's `builder` output, and `chart-annotations` / `chart-explainer` load only when the select artifact asks for them. The regression guard in `dataviz_mcp/tests/test_stage_contracts.py` asserts each stage bundles only its named skills and none of the others.
+- Repurposed `dataviz-fix` (both surfaces) into the staged **repair** orchestrator and refactored `dataviz-orchestrator` (both surfaces) into the staged **dataset-to-story** orchestrator. Each is written as a sequence of separate calls, one per stage, and points at `stage_contracts.py` as the source of truth for skill subsets and handoff schemas rather than duplicating them. `dataviz-fix` keeps `case_manager.py` for loop state and telemetry. `facts` is a named placeholder stage until `karthik-evidence-builder` exists.
+- Remaining: `tester/local_runner.py` still runs one bounded creator pass holding several skills at once; converting it to drive the stages as separate codex invocations is tracked in `docs/plans/staged-pipeline-contract.md`.
+
 ### Small multiples that carry magnitude, and forms that carry every message
 
 - Added three generalised rules after a repair returned a legible-but-thin small-multiples grid: near-flat panels with no numbers, a residual "Others" bucket leading the grid, and the total-growth message dropped because the breakdown alone was built. Each miss was encoded as the underlying principle, not the OpenRouter specifics.

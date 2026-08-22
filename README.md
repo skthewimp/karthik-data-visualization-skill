@@ -40,7 +40,7 @@ Installing the skills does not register the MCP server. For the full workflow, c
 
 This repo contains sixteen related skills, coordinated as a context-sensitive visualization workflow:
 
-1. **`dataviz-fix`** - forward-design repair rules: extract intent and data from the source, choose a form cold, rebuild, run one downstream critique-checker loop, and improve it from user feedback.
+1. **`dataviz-fix`** - the staged repair orchestrator (diagnose+extract -> select -> build -> refine): extract intent and data from the source, choose a form cold, rebuild, run one downstream critique-checker loop, and improve it from user feedback. Each stage is a separate call carrying only its own skills.
 2. **`dataviz-brief`** - intent-extraction rules that open a repair: key messages and required content, explicit drops, audience, constraints, keep-notes, and the edit-vs-redesign decision.
 3. **`dataviz-extract`** - vision rules for reading the full period-by-category data table out of a chart image, so the repair rebuilds from data rather than tracing the picture.
 4. **`dataviz-eval`** - artifact and creator-system evaluation rules for separate blind review, scoped send/revise/redesign decisions, failure analysis, and regression benchmarks.
@@ -49,7 +49,7 @@ This repo contains sixteen related skills, coordinated as a context-sensitive vi
 7. **`karthik-powerpoint-style`** - slide and deck rules for making PowerPoint-style presentations in Karthik's analytical, claim-first style.
 8. **`dataviz-critique`** - chart critique and redesign rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards, then proposing better alternatives.
 9. **`karthik-analysis-planner`** - analysis-contract rules for turning fuzzy natural-language questions into operational definitions, denominators, comparisons, metrics, caveats, and falsifiers before evidence-building.
-10. **`dataviz-orchestrator`** - end-to-end workflow for turning a dataset, loose question, and audience into an analysed, styled, critiqued visual story.
+10. **`dataviz-orchestrator`** - the staged dataset-to-story orchestrator (discover -> contract -> clean -> facts -> select -> build -> refine) for turning a dataset, loose question, and audience into an analysed, styled, critiqued visual story. Each stage is a separate call carrying only its own skills.
 11. **`dataset-question-generator`** - upstream skill for profiling raw datasets and generating fresh, visualisable questions before planning or charting.
 12. **`karthik-data-cleaning`** - data-cleaning rules for Karthik-style exploratory analysis: inspect, clean in context, inspect again, and avoid generic unsupervised fixes.
 13. **`chart-annotations`** - annotation rules for deciding what a chart should mark, which competing candidate wins, how the label is worded, and where it sits.

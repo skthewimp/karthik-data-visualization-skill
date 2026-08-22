@@ -1,5 +1,32 @@
 # Devlog
 
+## 2026-08-22 - Staging the pipelines so the context stops rotting
+
+### Context
+
+Delivered through a web app, the skills went out as one mega-prompt. `dataviz_mcp/public_repair_contract.py` discovered every `<skill>/codex/SKILL.md` and appended all sixteen into a single creator adapter, so a build call carried brief, extract, critique, selector, table-style, powerpoint, cleaning, analysis-planner and eval at once. The build step has no use for the discovery or evaluation skills; a long single context loses the thread. Karthik wanted each pipeline run as a sequence of separate API calls, each carrying only the skills relevant to that step plus a compact artifact handed forward.
+
+### Decisions (settled with Karthik before building)
+
+- Two staged orchestrators, not one. `dataviz-orchestrator` keeps its name and owns the dataset-to-story flow; the repair flow needed its own. `dataviz-fix` already *was* the repair pipeline (intent -> data -> select -> build -> critique -> eval), written for one context and with no other job, so we **repurposed** it in place rather than renaming or adding a sibling.
+- The provider-neutral contract is the authoritative machine layer (a Python module with per-stage skill subsets + JSON schemas); the prose skills carry the reasoning and reference it for the shape.
+- No thin wrappers or back-compat shims. The old module was deleted outright and its test rewritten, not aliased.
+
+### Build
+
+- `dataviz_mcp/stage_contracts.py` (new): `REPAIR_PIPELINE` (diagnose+extract -> select -> build -> refine) and `STORY_PIPELINE` (discover -> contract -> clean -> facts -> select -> build -> refine) as ordered `Stage` objects. `stage_skill_bundle` reads only a stage's own skills - the context-rot fix - and `build_stage_adapter` prepends shared guardrails (untrusted image text, frameworks-not-tools, approximate-not-exact, harvested from the old adapter) plus the stage's focused instructions. The build stage swaps `karthik-data-visualization` / `karthik-table-style` from the previous stage's `builder` enum; `chart-annotations` / `chart-explainer` load only when the select artifact asks. Reused `REPAIR_PLAN_SCHEMA`'s blocks, split into a diagnose brief schema and a select design/layout/acceptance schema.
+- Deleted `dataviz_mcp/public_repair_contract.py` and its test; wrote `dataviz_mcp/tests/test_stage_contracts.py` whose load-bearing assertion is that each stage bundles only its named skills and none of the others.
+- Repurposed `dataviz-fix` and refactored `dataviz-orchestrator` (both surfaces, byte-identical) into staged orchestrators, each written as separate per-stage calls pointing at the contract module. `dataviz-fix` keeps `case_manager.py`. `facts` is a named placeholder until `karthik-evidence-builder` exists.
+- Docs: new `docs/plans/staged-pipeline-contract.md`, updated `dataviz_mcp/README.md`, both `docs/skills/*` pages, both skill READMEs, `docs/README.md`, `docs/plans/README.md`, root README, and CHANGELOG.
+
+### Verification
+
+48 tests pass (`pytest -q`), including the new context-rot regression guard. `./sync.sh --no-pull` validated and installed all sixteen skills.
+
+### Remaining
+
+`tester/local_runner.py` still runs one bounded creator pass holding several skills at once. Converting it to drive the stages as separate codex invocations is the consumer-side change; it needs live codex runs to validate, so it is tracked in the plans note rather than rushed in unverified.
+
 ## 2026-08-21 - "Can't name it" is not "not key": sealing the identity crack
 
 ### Context

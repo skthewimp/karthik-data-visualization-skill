@@ -1,8 +1,10 @@
 # dataviz-fix
 
-Use this skill when the task is not merely to critique a chart, but to repair it and return a real artifact.
+The staged orchestrator for **chart repair**: image in, repaired artifact out. Use it when the task is not merely to critique a chart, but to repair it and return a real artifact. (For raw data in, visual story out, use `dataviz-orchestrator`.)
 
-The default path is **forward design, not critique-plus-patch**: extract the intent (`dataviz-brief`) and the data (`dataviz-extract`) from the source, choose a form cold (`dataviz-selector`, source form gets no vote), build the chart(s), run an in-context critique-checker loop capped at two passes, then spawn exactly one blind `dataviz-eval` reviewer, apply at most one final revision, and deliver. User feedback drives later revisions.
+It runs as an ordered sequence of separate calls - **diagnose+extract -> select -> build -> refine** - each carrying only the skills that stage needs plus a compact artifact handed forward. That per-stage scoping is the fix for context rot. The machine-readable contract - exact skill subset and JSON handoff schema per stage - is `dataviz_mcp/stage_contracts.py:REPAIR_PIPELINE`.
+
+The path is **forward design, not critique-plus-patch**: extract the intent (`dataviz-brief`) and the data (`dataviz-extract`) from the source, choose a form cold (`dataviz-selector`, source form gets no vote), build the chart(s) with the builder skill the select stage picks, run an in-context critique-checker loop capped at two passes, spawn one blind `dataviz-eval` reviewer only for an audit or high-risk decision, apply at most one final revision, and deliver. User feedback drives later revisions.
 
 ## Design principles
 

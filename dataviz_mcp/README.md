@@ -4,20 +4,25 @@ This local stdio server handles the mechanical part of chart production. It prob
 
 See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation and repair flows, hash/version guarantees, and the reasons for using render metadata.
 
-## Public repair runtime bundle
+## Staged pipeline contract
 
-`dataviz_mcp.public_repair_contract` discovers every top-level
-`<skill>/codex/SKILL.md` at import time and assembles the public creator instructions
-from those current sources. There is no per-skill allowlist: adding, renaming,
-removing, or revising a canonical skill changes the next assembled bundle. A small
-adapter preserves the public website's single-creator, immediate-PNG runtime and
-applies only the discovered guidance relevant to chart repair.
+`dataviz_mcp.stage_contracts` is the provider-neutral, staged contract another
+application can reuse. It defines two pipelines - `REPAIR_PIPELINE` (image in:
+diagnose -> select -> build -> refine) and `STORY_PIPELINE` (dataset to story:
+discover -> contract -> clean -> facts -> select -> build -> refine) - as ordered
+`Stage` objects. Each stage names the smallest skill subset it needs, the JSON-schema
+artifact it receives, the artifact it emits, and a focused adapter.
 
-The public site installs this repository in editable mode and restarts whenever the
-checkout advances, so any core commit is available after the automatic restart. The
-contract exposes its repository revision, discovered source paths, and SHA-256
-fingerprint. There is no embedded instruction fallback: a package without the canonical
-repository skill sources fails at import instead of silently running stale instructions.
+A driver runs one model call per stage. `stage_skill_bundle(stage, builder, active_conditions)`
+reads only that stage's `<skill>/codex/SKILL.md` sources - never the whole repository - so
+a skill absent from a stage never enters its call. That per-stage bundling is the fix for
+the context rot the old single-creator all-skills bundle caused. `build_stage_adapter(...)`
+prepends the shared guardrails and the stage's focused instructions to that bundle.
+
+The build stage's builder skill (`karthik-data-visualization` for a chart,
+`karthik-table-style` for a table) is chosen from the previous stage's `builder` output;
+`chart-annotations` and `chart-explainer` load only when the select artifact asks for them.
+`build_stage_adapter` also exposes the repository revision for reproducibility.
 
 ## Requirements and installation
 

@@ -1,6 +1,10 @@
 # dataviz-orchestrator
 
-Use this when the task starts with a dataset, a loose question, and an audience, and should end with an analysed, critiqued visual story rather than just a chart.
+Use this when the task starts with a dataset, a loose question, and an audience, and should end with an analysed, critiqued visual story rather than just a chart. For repairing an existing chart from an image, use `dataviz-fix` (the repair orchestrator) instead.
+
+## Staged, not one context
+
+It runs as a sequence of separate calls - **discover -> contract -> clean -> facts -> select -> build -> refine** - each carrying only the skills that stage needs plus a compact artifact handed forward. Per-stage scoping is what keeps a long pipeline from rotting a single context. The `facts` stage is a named placeholder until `karthik-evidence-builder` exists. The machine-readable contract - exact skill subset and JSON handoff schema per stage - is `dataviz_mcp/stage_contracts.py:STORY_PIPELINE`.
 
 The skill coordinates the existing suite:
 
