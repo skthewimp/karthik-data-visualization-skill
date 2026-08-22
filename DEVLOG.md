@@ -19,13 +19,15 @@ Delivered through a web app, the skills went out as one mega-prompt. `dataviz_mc
 - Repurposed `dataviz-fix` and refactored `dataviz-orchestrator` (both surfaces, byte-identical) into staged orchestrators, each written as separate per-stage calls pointing at the contract module. `dataviz-fix` keeps `case_manager.py`. `facts` is a named placeholder until `karthik-evidence-builder` exists.
 - Docs: new `docs/plans/staged-pipeline-contract.md`, updated `dataviz_mcp/README.md`, both `docs/skills/*` pages, both skill READMEs, `docs/README.md`, `docs/plans/README.md`, root README, and CHANGELOG.
 
+### Then: no monoliths, everything consistent across codex and claude
+
+Karthik's follow-up was two words of principle - "everything needs to be consistent across codex and claude" and "no monoliths". The skill copies were already byte-identical where it mattered (the diffs are only the deliberate long-vs-short frontmatter `description`; bodies match). The monolith was the tester: `tester/local_runner.py` ran one codex `exec` that opened dataviz-fix + critique + selector + visual + writing at once and did the whole build in a single context - the practical rot the contract was meant to end.
+
+Split it. The creator pass is now three scoped codex calls driven off `stage_contracts`: diagnose (brief+extract+critique) writes `diagnose-NN.json`; select (selector, no image) reads it and writes `select-NN.json` with the `builder` choice; build opens only the chosen builder skill (chart or table) plus the installed writing skill, reads both artifacts, runs the case-manager workflow, and renders the candidate. The blind reviewer was already a separate call. Usage for all three creator sub-calls is recorded under the case-manager's existing `creator` stage enum, so no state-machine change was needed. New runner tests assert the anti-monolith property directly: the build call carries the builder skill but not the diagnosis or selection skills, and diagnose carries neither.
+
 ### Verification
 
-48 tests pass (`pytest -q`), including the new context-rot regression guard. `./sync.sh --no-pull` validated and installed all sixteen skills.
-
-### Remaining
-
-`tester/local_runner.py` still runs one bounded creator pass holding several skills at once. Converting it to drive the stages as separate codex invocations is the consumer-side change; it needs live codex runs to validate, so it is tracked in the plans note rather than rushed in unverified.
+48 tests pass (`pytest -q`) and the tester suite is 20 (`pytest -q tester/tests`), including the new per-stage scoping guards. `./sync.sh --no-pull` validated and installed all sixteen skills. End-to-end validation of the staged runner needs a live codex run (`DATAVIZ_ENABLE_LOCAL_RUNNER=1`); the unit tests cover the wiring and scoping.
 
 ## 2026-08-21 - "Can't name it" is not "not key": sealing the identity crack
 

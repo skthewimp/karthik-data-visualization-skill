@@ -127,7 +127,7 @@ class LocalRunnerTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Required installed skill not found"):
                 runner._skill_path("missing-style-skill")
 
-    def test_one_job_runs_one_creator_and_one_reviewer(self) -> None:
+    def test_one_job_runs_staged_creator_then_one_reviewer(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             client = FakeCaseManager(root)
@@ -138,13 +138,22 @@ class LocalRunnerTests(unittest.TestCase):
                 stages.append(stage)
                 self.assertIn(client.case_id, prompt)
                 self.assertEqual(case_dir, client.case_dir)
-                if stage == "creator":
+                if stage == "diagnose":
+                    (client.case_dir / "diagnose-01.json").write_text("{}", encoding="utf-8")
+                elif stage == "select":
+                    # No image on the cold-selection call.
+                    self.assertEqual(images, [])
+                    (client.case_dir / "select-01.json").write_text(
+                        '{"builder":"chart","needs_annotations":false,"needs_explainer":false}',
+                        encoding="utf-8",
+                    )
+                elif stage == "build":
                     match = re.search(r"Render exactly one real PNG to (.+?) and inspect", prompt)
                     self.assertIsNotNone(match)
-                    artifact = Path(match.group(1))
-                    artifact.write_bytes(PNG_1X1)
+                    Path(match.group(1)).write_bytes(PNG_1X1)
                     client.data["semantic_preflights"].append({"context_version": 1})
                 else:
+                    self.assertEqual(stage, "reviewer")
                     self.assertEqual(len(images), 4)
                     (client.case_dir / "review-response-01.json").write_text("{}", encoding="utf-8")
                     client.data["state"] = "context_reveal"
@@ -165,11 +174,13 @@ class LocalRunnerTests(unittest.TestCase):
                 time.sleep(0.01)
 
             self.assertEqual(job["status"], "complete", job)
-            self.assertEqual(stages, ["creator", "reviewer"])
+            self.assertEqual(stages, ["diagnose", "select", "build", "reviewer"])
             self.assertEqual(client.data["state"], "revise")
             self.assertEqual(
                 [call[0] for call in client.calls],
                 [
+                    "usage",
+                    "usage",
                     "usage",
                     "build-check",
                     "iterate",
@@ -303,26 +314,67 @@ class LocalRunnerTests(unittest.TestCase):
                 prompt.index("karthik-writing-style"),
             )
 
-    def test_creator_prompt_loads_visual_and_writing_skills(self) -> None:
+    def test_build_prompt_loads_builder_and_writing_skills(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             client = FakeCaseManager(root)
             runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
-            prompt = runner._creator_prompt(
+            prompt = runner._build_prompt(
                 client.case_id,
                 client.case_dir,
                 client.case_dir / "candidate-01.png",
+                client.case_dir / "diagnose-01.json",
+                client.case_dir / "select-01.json",
                 1,
                 1,
+                "chart",
+                (),
             )
-            self.assertIn("dataviz-fix", prompt)
-            self.assertIn("karthik-data-visualization", prompt)
+            self.assertIn("karthik-data-visualization/codex/SKILL.md", prompt)
             self.assertIn("karthik-writing-style", prompt)
             self.assertIn("required inputs, not optional references", prompt)
-            self.assertIn("every title, subtitle, annotation, note", prompt)
             self.assertIn("closest pair of competing encoded colours", prompt)
+            # The build call must NOT drag in the diagnosis or selection skills - that is the
+            # whole point of staging: no single call holds every skill.
+            self.assertNotIn("dataviz-selector/codex/SKILL.md", prompt)
+            self.assertNotIn("dataviz-brief/codex/SKILL.md", prompt)
 
-    def test_revision_uses_latest_candidate_and_preserves_prior_passes(self) -> None:
+    def test_build_prompt_swaps_to_table_builder(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            client = FakeCaseManager(root)
+            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
+            prompt = runner._build_prompt(
+                client.case_id,
+                client.case_dir,
+                client.case_dir / "candidate-01.png",
+                client.case_dir / "diagnose-01.json",
+                client.case_dir / "select-01.json",
+                1,
+                1,
+                "table",
+                (),
+            )
+            self.assertIn("karthik-table-style/codex/SKILL.md", prompt)
+            self.assertNotIn("karthik-data-visualization/codex/SKILL.md", prompt)
+
+    def test_diagnose_prompt_is_scoped_to_its_skills(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            client = FakeCaseManager(root)
+            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
+            prompt = runner._diagnose_prompt(
+                client.case_id, client.case_dir, client.case_dir / "diagnose-01.json", 1
+            )
+            self.assertIn("dataviz-brief/codex/SKILL.md", prompt)
+            self.assertIn("dataviz-extract/codex/SKILL.md", prompt)
+            self.assertIn("dataviz-critique/codex/SKILL.md", prompt)
+            # Diagnose does not choose a form or build, so its build skills must be absent.
+            self.assertNotIn("dataviz-selector/codex/SKILL.md", prompt)
+            self.assertNotIn("karthik-data-visualization/codex/SKILL.md", prompt)
+            self.assertIn("do not render", prompt.lower())
+
+    def test_revision_build_uses_latest_candidate_and_preserves_prior_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             client = FakeCaseManager(root)
@@ -333,12 +385,16 @@ class LocalRunnerTests(unittest.TestCase):
             )
             runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
             images = runner._creator_images(client.data)
-            prompt = runner._creator_prompt(
+            prompt = runner._build_prompt(
                 client.case_id,
                 client.case_dir,
                 client.case_dir / "candidate-02.png",
+                client.case_dir / "diagnose-02.json",
+                client.case_dir / "select-02.json",
                 2,
                 1,
+                "chart",
+                (),
             )
             self.assertEqual(images, [Path(client.data["original"]["path"]), latest])
             self.assertIn("Continue from the latest candidate", prompt)

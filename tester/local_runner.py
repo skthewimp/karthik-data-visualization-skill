@@ -12,6 +12,7 @@ from statistics import median
 from typing import Any
 from uuid import uuid4
 
+from dataviz_mcp import stage_contracts as sc
 from dataviz_mcp.artifacts import read_json, sha256_file, write_json
 from dataviz_mcp.inspection import inspect_rendered_chart
 from dataviz_mcp.review_views import build_review_views
@@ -189,22 +190,15 @@ class LocalCodexRunner:
             case_dir = self.client.root / "cases" / case_id
             iteration_number = len(case["iterations"]) + 1
             candidate_path = case_dir / f"runner-{job_id}-candidate-{iteration_number:02d}.png"
-            self._event(job_id, "creator", f"Building candidate {iteration_number}")
-            creator_prompt = self._creator_prompt(
+            self._run_creator_stages(
+                job_id,
+                case,
                 case_id,
                 case_dir,
                 candidate_path,
                 iteration_number,
                 case["context_version"],
             )
-            usage = self._invoke(
-                job_id,
-                "creator",
-                creator_prompt,
-                self._creator_images(case),
-                case_dir,
-            )
-            self._record_usage(case_id, "creator", iteration_number, usage)
             if not candidate_path.is_file():
                 raise RuntimeError(f"Creator did not write the required artifact: {candidate_path}")
             case = self.client.status(case_id)
@@ -448,20 +442,177 @@ class LocalCodexRunner:
             }
         return usage
 
-    def _creator_prompt(
+    def _run_creator_stages(
         self,
+        job_id: str,
+        case: dict[str, Any],
         case_id: str,
         case_dir: Path,
         candidate_path: Path,
         iteration: int,
         context_version: int,
+    ) -> None:
+        """Drive the repair pipeline as separate scoped calls - no single monolith pass.
+
+        Each call opens only the skills its stage needs (per ``stage_contracts``), and the
+        structured artifact of one stage is the input of the next. Diagnose and select emit
+        JSON; build renders the candidate PNG and runs the case-manager workflow.
+        """
+        source_images = self._creator_images(case)
+        diagnose_path = case_dir / f"diagnose-{iteration:02d}.json"
+        select_path = case_dir / f"select-{iteration:02d}.json"
+
+        # Stage 1 - diagnose and extract. Skills: brief, extract, critique.
+        self._event(job_id, "diagnose", f"Diagnosing source for candidate {iteration}")
+        usage = self._invoke(
+            job_id,
+            "diagnose",
+            self._diagnose_prompt(case_id, case_dir, diagnose_path, iteration),
+            source_images,
+            case_dir,
+        )
+        self._record_usage(case_id, "creator", iteration, usage)
+        if not diagnose_path.is_file():
+            raise RuntimeError(f"Diagnose stage did not write the brief artifact: {diagnose_path}")
+
+        # Stage 2 - select the form cold. Skills: selector. No image.
+        self._event(job_id, "select", f"Selecting the form for candidate {iteration}")
+        usage = self._invoke(
+            job_id,
+            "select",
+            self._select_prompt(case_id, case_dir, diagnose_path, select_path, iteration),
+            [],
+            case_dir,
+        )
+        self._record_usage(case_id, "creator", iteration, usage)
+        if not select_path.is_file():
+            raise RuntimeError(f"Select stage did not write the plan artifact: {select_path}")
+        builder, active = self._read_builder_choice(select_path)
+
+        # Stage 3 - build. Skills: the chosen builder skill (+ annotations/explainer).
+        self._event(job_id, "build", f"Building candidate {iteration} ({builder})")
+        usage = self._invoke(
+            job_id,
+            "build",
+            self._build_prompt(
+                case_id,
+                case_dir,
+                candidate_path,
+                diagnose_path,
+                select_path,
+                iteration,
+                context_version,
+                builder,
+                active,
+            ),
+            source_images,
+            case_dir,
+        )
+        self._record_usage(case_id, "creator", iteration, usage)
+
+    @staticmethod
+    def _read_builder_choice(select_path: Path) -> tuple[str, tuple[str, ...]]:
+        """Read builder (chart/table) and active conditionals from the select artifact."""
+        builder = "chart"
+        active: list[str] = []
+        try:
+            plan = read_json(select_path)
+            if plan.get("builder") in ("chart", "table"):
+                builder = plan["builder"]
+            if plan.get("needs_annotations"):
+                active.append("chart-annotations")
+            if plan.get("needs_explainer"):
+                active.append("chart-explainer")
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+        return builder, tuple(active)
+
+    def _stage_skill_directive(
+        self,
+        stage: sc.Stage,
+        builder: str | None = None,
+        active: tuple[str, ...] = (),
+        extra: tuple[str, ...] = (),
+    ) -> str:
+        """The 'open and follow' line plus guardrails and focus for one stage.
+
+        The skill subset is the authority of ``stage_contracts``; the runner resolves each
+        name to its installed SKILL.md so Codex opens only that stage's skills.
+        """
+        names = list(stage.skill_names(builder=builder, active_conditions=active))
+        for name in extra:
+            if name not in names:
+                names.append(name)
+        paths: list[str] = []
+        for name in names:
+            try:
+                paths.append(str(self._skill_path(name)))
+            except RuntimeError:
+                if name in extra:
+                    continue  # optional/environmental skill (e.g. installed writing style)
+                raise
+        follow = (
+            f"Open and follow {', '.join(paths)}. These are required inputs, not optional references."
+            if paths
+            else "No stage skill is bundled for this stage; apply the prior artifacts directly."
+        )
+        return f"{sc.GUARDRAIL_PREAMBLE.strip()}\n\n{stage.instructions.strip()}\n\n{follow}"
+
+    def _diagnose_prompt(
+        self, case_id: str, case_dir: Path, diagnose_path: Path, iteration: int
     ) -> str:
         manager = self.repo_root / "dataviz-fix" / "codex" / "scripts" / "case_manager.py"
-        skill = self._skill_path("dataviz-fix")
-        critique_skill = self._skill_path("dataviz-critique")
-        selector_skill = self._skill_path("dataviz-selector")
-        visual_skill = self._skill_path("karthik-data-visualization")
-        writing_skill = self._skill_path("karthik-writing-style")
+        directive = self._stage_skill_directive(sc.stage("repair", "diagnose"))
+        return f"""{directive}
+
+You are the diagnose-and-extract stage for case {case_id}, iteration {iteration}. The attached image is the source. Read the current case using:
+
+DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} status --case {case_id}
+
+Do not choose a form and do not render. Work only inside {case_dir}; do not edit the checked-out repository or any skill. Produce the repair brief (key messages and required content, explicit drops with reasons, audience and medium, and the edit-vs-redesign mode) and recover the full period-by-category data table - a value for every period and every category, series, stack, or facet (colour is data). Difficulty of recovery is never grounds to drop a message or category; put uncertain values and unreadable labels in the limitations and keep the categories.
+
+Save the structured repair brief and attach it with `critique` (the only state-changing case-manager command you may run in this stage). Also write the diagnose artifact as JSON to {diagnose_path} for the next stage. Stop after {diagnose_path} exists."""
+
+    def _select_prompt(
+        self,
+        case_id: str,
+        case_dir: Path,
+        diagnose_path: Path,
+        select_path: Path,
+        iteration: int,
+    ) -> str:
+        manager = self.repo_root / "dataviz-fix" / "codex" / "scripts" / "case_manager.py"
+        directive = self._stage_skill_directive(sc.stage("repair", "select"))
+        return f"""{directive}
+
+You are the form-selection stage for case {case_id}, iteration {iteration}. No image is attached - select from the brief, not the picture. Read the diagnose artifact at {diagnose_path} and the recorded context using:
+
+DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} status --case {case_id}
+
+Choose the form cold: the source chart's form gets no vote. Set `builder` to `table` when the intent is exact lookup or the values are not commensurable on one scale, otherwise `chart` - this decides which builder skill the build stage loads. Set `needs_annotations` and `needs_explainer` from whether the plan genuinely calls for on-chart marks or accompanying prose. Produce the design, the layout plan under the declared delivery condition, and an observable acceptance check for every fatal or major problem and every preservation requirement.
+
+Save and attach a complete `design-contract`, including the selector decision whenever form is implicated (the only state-changing case-manager commands you may run in this stage). Also write the select artifact as JSON to {select_path}, with the `builder`, `needs_annotations`, and `needs_explainer` fields, for the next stage. Do not render. Stop after {select_path} exists."""
+
+    def _build_prompt(
+        self,
+        case_id: str,
+        case_dir: Path,
+        candidate_path: Path,
+        diagnose_path: Path,
+        select_path: Path,
+        iteration: int,
+        context_version: int,
+        builder: str,
+        active: tuple[str, ...],
+    ) -> str:
+        manager = self.repo_root / "dataviz-fix" / "codex" / "scripts" / "case_manager.py"
+        directive = self._stage_skill_directive(
+            sc.stage("repair", "build"),
+            builder=builder,
+            active=active,
+            extra=("karthik-writing-style",),
+        )
+        semantic_path = case_dir / f"semantic-preflight-v{context_version}.json"
         revision_instruction = (
             "The first attached image is the source. The second is the latest candidate. "
             "Continue from the latest candidate and its generating code in the case directory. "
@@ -470,25 +621,23 @@ class LocalCodexRunner:
             if iteration > 1
             else "The attached image is the source. Build the first candidate from it."
         )
-        semantic_path = case_dir / f"semantic-preflight-v{context_version}.json"
-        return f"""Open and follow {skill}, {critique_skill}, {visual_skill}, and {writing_skill}. Open {selector_skill} whenever the critique or a Redesign verdict questions the chart form. These are required inputs, not optional references.
+        return f"""{directive}
 
-You are the chart creator for case {case_id}, not its reviewer. Build exactly one candidate for iteration {iteration}. Read the current case using:
+You are the build stage for case {case_id}, iteration {iteration}. The chosen builder is `{builder}`. Read the diagnose artifact at {diagnose_path} and the select artifact at {select_path}, and the recorded context using:
 
 DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} status --case {case_id}
 
 {revision_instruction}
 
-Inspect the recorded context and acceptance checks. Work only inside {case_dir}. Do not edit the checked-out repository or any skill. Render exactly one real PNG to {candidate_path} and inspect that exact export. Do not run iterate, review-request, blind-submit, evaluate, accept, or diagnose. The wrapper will record the artifact after your process exits. Stop after the inspected PNG exists at the required path.
+Build exactly one candidate to the plan, carrying every key message with its required content. Work only inside {case_dir}; do not edit the checked-out repository or any skill. Render exactly one real PNG to {candidate_path} and inspect that exact export. Do not run iterate, review-request, blind-submit, evaluate, accept, or diagnose. The wrapper will record the artifact after your process exits.
 
-Before starting the renderer, satisfy the recorded workflow state. On the first build, run the mandatory critique of the original, save the structured repair brief, and attach it with `critique`; then save and attach a complete `design-contract`. After Redesign, repeat both and include the selector decision whenever form is implicated. Before Revise, attach a `revision-contract` mapping every open evaluator action and new user check. Probe renderers with `dataviz_mcp.rendering.probe_renderers`, save and attach `renderer-selection`, then audit measure, time/context, universe/denominator, claim strength, and audience units. Write the complete context-version {context_version} report to {semantic_path}, run `semantic-preflight`, and finally run `build-check`. These workflow commands are the only state-changing case-manager commands you may run. Treat every structured field marked `inferred` as a hypothesis, not user intent. Each required value must be an observable delivered state.
+Before starting the renderer, satisfy the recorded workflow state. Before Revise, attach a `revision-contract` mapping every open evaluator action and new user check. Probe renderers with `dataviz_mcp.rendering.probe_renderers`, save and attach `renderer-selection`, then audit measure, time/context, universe/denominator, claim strength, and audience units. Write the complete context-version {context_version} report to {semantic_path}, run `semantic-preflight`, and finally run `build-check`. These workflow commands are the only state-changing case-manager commands you may run. Treat every structured field marked `inferred` as a hypothesis, not user intent. Each required value must be an observable delivered state.
 
 Treat the active change and preservation checks as the edit boundary. Make each literal requested removal, addition, and relocation; do not retain or restore a forbidden element as a fallback. Expand shared edits across every applicable panel, facet, row, or series; do not stop after fixing one repeated instance. Preserve untouched elements unless a dependent adjustment is necessary for the requested change.
 
-Apply the writing skill to every title, subtitle, annotation, note, and other reader-facing phrase. Accurate copy still fails when it uses generic AI phrasing or violates the applicable writing style. Before accepting a palette, identify the closest pair of competing encoded colours and verify that they remain distinct at delivery size, in grayscale, and under common colour-vision deficiencies. A palette name or brand match is not evidence of distinction.
+Apply the installed writing or brand-style skill, if one is attached above, to every title, subtitle, annotation, note, and other reader-facing phrase; if none is available, apply the prompt's stated preferences. Accurate copy still fails when it uses generic AI phrasing. Before accepting a palette, identify the closest pair of competing encoded colours and verify that they remain distinct at delivery size, in grayscale, and under common colour-vision deficiencies. A palette name or brand match is not evidence of distinction.
 
-Python, R, Matplotlib, ggplot2, ragg, NumPy, Pillow, and this repo's `dataviz_mcp` package may be available. Use `render_and_inspect_chart(..., renderer="auto")`; it must choose ggplot2 for a supported R builder when the probe succeeds. Use Matplotlib only for an explicit requirement or a recorded unavailable/unsupported ggplot2 reason. In either renderer, define the visible design deliberately. Write the complete bundle into `{case_dir}` with artifact name `{candidate_path.name}`. An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Copy an artifact unchanged only when no active correction or unresolved evaluator action requires a change.
-"""
+Python, R, Matplotlib, ggplot2, ragg, NumPy, Pillow, and this repo's `dataviz_mcp` package may be available. Use `render_and_inspect_chart(..., renderer="auto")`; it must choose ggplot2 for a supported R builder when the probe succeeds. For a table build, render the gtable through the same path with `content="table"`. Use Matplotlib only for an explicit requirement or a recorded unavailable/unsupported ggplot2 reason. In either renderer, define the visible design deliberately. Write the complete bundle into `{case_dir}` with artifact name `{candidate_path.name}`. An unchanged or perceptually unchanged artifact cannot satisfy an active correction. Copy an artifact unchanged only when no active correction or unresolved evaluator action requires a change. Stop after the inspected PNG exists at {candidate_path}."""
 
     @staticmethod
     def _creator_images(case: dict[str, Any]) -> list[Path]:

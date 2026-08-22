@@ -159,7 +159,7 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 | `dataviz_mcp/server.py` | Five-tool stdio MCP surface |
 | `dataviz_mcp/review_views.py` | Full, delivery, panel, hierarchy, and dense-placement views |
 | `dataviz-fix/*/scripts/case_manager.py` | Versioned case state and inspection/evaluation binding |
-| `tester/local_runner.py` | One bounded creator, inspection, and blind-review cycle |
+| `tester/local_runner.py` | Staged repair cycle (diagnose/select/build), inspection, and blind review |
 | `dataviz_mcp/tests/` | Capability, protocol, geometry, and coffee repair tests |
 
 Installation, client registration, tool parameters, and the chart-builder contract are in [`dataviz_mcp/README.md`](../dataviz_mcp/README.md).

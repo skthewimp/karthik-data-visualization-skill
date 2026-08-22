@@ -39,11 +39,19 @@ The skills repo owns:
   bundles only its named skills, and the build stage swaps chart vs table builder from the
   select artifact's `builder` field.
 
+## Consumer wired up
+
+`tester/local_runner.py` drives the repair pipeline as separate scoped codex calls -
+diagnose -> select -> build - each opening only its stage's skills via `stage_contracts`,
+with the diagnose and select JSON artifacts passed forward. The blind reviewer stays a
+separate call. There is no longer a single creator pass holding every skill. The build call's
+builder skill (chart vs table) is read from the select artifact's `builder` field at runtime.
+
 ## Remaining
 
-- `tester/local_runner.py` still runs one bounded creator pass that internally holds several
-  skills at once. Converting it to drive the stages as separate codex invocations (one call
-  per stage, validated artifact passed forward) is the consumer-side change; it needs live
-  codex runs to validate, so it is tracked here rather than rushed in unverified.
 - `facts` is a named placeholder stage in the story pipeline until `karthik-evidence-builder`
   exists (see `agentic-dataviz-skill-build-plan.md`).
+- The story pipeline has no live driver yet; only the repair pipeline is wired into the
+  tester. A story driver would follow the same shape (one scoped call per stage).
+- End-to-end validation of the staged runner needs a live codex run
+  (`DATAVIZ_ENABLE_LOCAL_RUNNER=1`); the unit tests cover the wiring and per-stage scoping.
