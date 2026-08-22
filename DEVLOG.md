@@ -718,3 +718,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:573fb7bb-aec9-47e8-ae40-8d76697ca8b4:end -->
 
+<!-- claude-session:32df88b3-3350-4321-9be8-2f72668c7a50:start -->
+## 2026-08-22 09:53 IST | Claude session `32df88b3-335`
+
+### User prompts
+> can you test the dataviz-fix skill on @~/Downloads/openrouter.png ?
+> where is it stored?
+> yeah downloads
+
+### Work done
+- It's my commit — the 3-rule change you were unhappy with, still sitting on `origin/main` (not in your local anymore after the reset). Here's exactly what it added: **`karthik-data-visualization`** (2 lines): 1. *"A sh...
+- Local now at `0079ed0`, in sync with `origin/main` (no ahead/behind). Skills reinstalled to both surfaces. State: the 3 skill rules are committed, pushed, and installed. The global CLAUDE.md and the significant-figure...
+- Touched files: `Rplots.pdf`
+
+<!-- claude-session:32df88b3-3350-4321-9be8-2f72668c7a50:end -->
