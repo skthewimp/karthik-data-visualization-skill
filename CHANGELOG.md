@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Inspector no longer false-fails in-panel labels as legend collisions
+
+- Fixed a geometry-gate bug surfaced by an end-to-end run: `passes_geometry_checks` came back false for a clean ggplot dumbbell whose only "defect" was two `legend_collisions`. The flagged legend had the exact bbox of the plot panel. Cause: ggplot >= 3.5 lays out a `guide-box-inside` cell spanning the whole panel; with `guide="none"` it holds a `zeroGrob`, but the ggplot layout adapter (`dataviz_mcp/rendering.py`) still emitted it as a panel-sized legend, so every in-panel direct label registered a false legend collision and blocked the pass. The top-level cell loop now skips empty `guide-box*` cells, mirroring what the panel-child capture already did for `zeroGrob`/`nullGrob`. Regression test `test_guide_none_does_not_emit_phantom_panel_legend` renders a `guide="none"` chart with an in-panel label and asserts no phantom legend. (A running MCP server must restart to pick up the change.)
+
 ### Staged pipelines that carry only the skills each step needs
 
 - Ended the single mega-prompt. The old `dataviz_mcp/public_repair_contract.py` discovered every `<skill>/codex/SKILL.md` and appended all of them into one creator adapter, so a build call carried brief, extract, critique, selector, table-style, powerpoint, cleaning, analysis-planner and eval at once. Long single-context runs rot. Replaced it with `dataviz_mcp/stage_contracts.py`: a provider-neutral contract defining two pipelines as ordered `Stage` objects - `REPAIR_PIPELINE` (diagnose+extract -> select -> build -> refine) and `STORY_PIPELINE` (discover -> contract -> clean -> facts -> select -> build -> refine). Each stage names the smallest skill subset it needs, the JSON handoff schema it receives, the schema it emits, and a focused adapter.

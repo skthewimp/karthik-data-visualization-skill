@@ -791,11 +791,21 @@ for (i in seq_len(nrow(gt$layout))) {
     }
     next
   }
+  # Skip empty guide-box placeholder cells. In ggplot >= 3.5 the guide-box-inside
+  # cell spans the whole panel and, when no legend is drawn (guide="none"), holds a
+  # zeroGrob. Emitting it produced a phantom panel-sized "legend" that made every
+  # in-panel direct label register a false legend collision.
+  grob_name <- as.character(item$name)
+  grob_empty <- inherits(grob, c("zeroGrob", "nullGrob")) ||
+    (inherits(grob, "gTree") && !length(grob$children))
+  if (grob_empty && startsWith(grob_name, "guide-box")) {
+    next
+  }
   rows[[i]] <- row_frame(
-    paste0("gg-", i), as.character(item$name), extract_label(grob),
+    paste0("gg-", i), grob_name, extract_label(grob),
     px, py, pw, ph
   )
-  if (startsWith(as.character(item$name), "panel") && inherits(grob, "gTree")) {
+  if (startsWith(grob_name, "panel") && inherits(grob, "gTree")) {
     for (child_name in names(grob$children)) {
       if (grepl("^(grill|panel\\.border|NULL)", child_name)) next
       child_rows <- capture_panel_grob(

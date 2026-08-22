@@ -154,6 +154,29 @@ def test_ggplot_adapter_captures_every_panel_and_repeated_mark_structure(
     assert sum("panel-" in Path(path).name for path in bundle["review_view_paths"]) == 2
 
 
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
+def test_guide_none_does_not_emit_phantom_panel_legend(tmp_path: Path) -> None:
+    # Regression: ggplot >= 3.5 lays out a guide-box-inside cell spanning the whole
+    # panel. With guide="none" it holds a zeroGrob, but the adapter used to emit it as a
+    # panel-sized legend, so every in-panel direct label registered a false legend
+    # collision and passes_geometry_checks came back false.
+    source = Path(__file__).parent / "fixtures" / "ggplot_noguide_fixture.R"
+    bundle = render_and_inspect_chart(
+        str(source),
+        str(tmp_path / "noguide"),
+        renderer="auto",
+    )
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    inspection = json.loads(Path(bundle["inspection_path"]).read_text())
+    assert layout["legends"] == []
+    assert inspection["legend_collisions"] == []
+    assert inspection["checks_complete"] is True
+    assert inspection["passes_geometry_checks"] is True
+
+
 def test_auto_renderer_records_ggplot_fallback_for_python_source(tmp_path: Path) -> None:
     bundle = render_and_inspect_chart(
         str(FIXTURES),

@@ -29,6 +29,12 @@ Split it. The creator pass is now three scoped codex calls driven off `stage_con
 
 48 tests pass (`pytest -q`) and the tester suite is 20 (`pytest -q tester/tests`), including the new per-stage scoping guards. `./sync.sh --no-pull` validated and installed all sixteen skills. End-to-end validation of the staged runner needs a live codex run (`DATAVIZ_ENABLE_LOCAL_RUNNER=1`); the unit tests cover the wiring and scoping.
 
+### End-to-end run (Claude-driven) and a real inspector bug
+
+Rather than the Codex tester, drove the provider-neutral pipeline as Claude on a real sample (the NIFTY 50 vs NIFTY NEXT 50 sector-weight mirror chart), one stage at a time, loading only each stage's skills: diagnose (brief+extract+critique) -> select (selector, chose a dumbbell) -> build (data-visualization+annotations+writing, ggplot2 via the MCP render/inspect) -> refine. The staging held and the artifacts chained. The refine loop earned its keep twice: it caught direct labels clipping into the subtitle (moved them to the Financials row) and then a genuine `LOW_TEXT_CONTRAST` on the orange label (darkened the label text; dots keep Okabe-Ito).
+
+The run also surfaced a real bug in the geometry gate the whole loop depends on. `passes_geometry_checks` was false on a visibly clean chart, and the only failing signal was two `legend_collisions` whose "legend" bbox equalled the plot panel. Traced it to the ggplot layout adapter emitting the empty `guide-box-inside` cell (panel-sized `zeroGrob`, present whenever `guide="none"`) as a legend, so any in-panel direct label false-collided. Fixed in `rendering.py` by skipping empty `guide-box*` cells in the top-level loop; added `test_guide_none_does_not_emit_phantom_panel_legend`. After the fix the same chart passes with `legends: []` and `defects: []`. 49 tests pass.
+
 ## 2026-08-21 - "Can't name it" is not "not key": sealing the identity crack
 
 ### Context
