@@ -767,3 +767,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `Rplots.pdf`
 
 <!-- claude-session:32df88b3-3350-4321-9be8-2f72668c7a50:end -->
+
+<!-- claude-session:d6f10a8c-6b4a-438f-865e-969e68e74534:start -->
+## 2026-08-22 10:30 IST | Claude session `d6f10a8c-6b4`
+
+### User prompts
+> the problem with the current structure of teh skills, especially when implemented through a web app, is that it sends all the skills as part of one mega prompt and there is context rot. what we need is something like...
+> [Request interrupted by user]
+> don't rename it. repurpose it
+
+### Work done
+- Yes — all committed and pushed. `git log origin/main..HEAD` is empty, so nothing is unpushed. The three commits from this work are all on `origin/main`: - `0ef589e` — staged pipelines, killed the mega-prompt (contract...
+- Removed. Working tree is now clean and everything's pushed.
+
+<!-- claude-session:d6f10a8c-6b4a-438f-865e-969e68e74534:end -->
