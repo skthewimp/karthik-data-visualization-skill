@@ -866,3 +866,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed. Rule now: when total genuinely varies and you need both total + mix → **total line + breakdown**, never a stacked bar/area. The stack does both jobs badly (floating segments hide the parts, moving height hides...
 
 <!-- claude-session:025c440f-6057-44ae-b311-e23c172d8190:end -->
+
+<!-- claude-session:10270db0-824f-471a-ae30-a8179b3b7400:start -->
+## 2026-08-24 11:24 IST | Claude session `10270db0-824`
+
+### User prompts
+> recommendation from an LLM which is deploying this set of skills on a website: ## 1. Fix upstream first The colour-count semantics are already fixed in the latest upstream code: colour_groups now means the maximum num...
+> - Upstream’s 74 tests pass, but sync.sh --no-pull --validate-only fails because the YAML description in /home/karthik/apps/karthik-data- visualization-skill/dataviz-precision/codex/SKILL.md:3 contains an unquoted colo...
+
+### Work done
+- Strict-YAML clean across all skills. Cleaning up the temp pyyaml install (wasn't a project dep):
+- Fixed and pushed. Local matches `origin/main`. **Fix:** quoted the codex `dataviz-precision` description - it had `choose precision: how many` (colon-space) as a plain YAML scalar, which strict parsers reject. My `syn...
+
+<!-- claude-session:10270db0-824f-471a-ae30-a8179b3b7400:end -->
