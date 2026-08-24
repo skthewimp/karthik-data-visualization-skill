@@ -852,3 +852,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Session captured, but there was not enough structured activity to summarize.
 
 <!-- claude-session:110c274e-a7c9-4fef-b448-1daf40432fd4:end -->
+
+<!-- claude-session:025c440f-6057-44ae-b311-e23c172d8190:start -->
+## 2026-08-24 10:51 IST | Claude session `025c440f-605`
+
+### User prompts
+> we have some issues with the dataviz selector. check out these two outputs from the current pipeline. the first one is oriented the wrong way. it should just be a set of simple slope graphs, but put in a way that it i...
+> ok now look at these two examples. for whatever reason, we have two separate graphs. a stacked bar and small multiples. i don't know if we need both! this actually confuses, if you think of it. [Image #3] [Image #4] ....
+> a related thing - even when the total changes over time, just showing that is good, we don't need a stacked bar there. (again i'm giving just one example. don't hard code anything)
+
+### Work done
+- Right — the totals view should be a **plain total line**, not a stacked bar. A stacked bar tries to do both jobs (total = full height, parts = segments) and does neither well: internal segments float so parts are hard...
+- Pushed. Rule now: when total genuinely varies and you need both total + mix → **total line + breakdown**, never a stacked bar/area. The stack does both jobs badly (floating segments hide the parts, moving height hides...
+
+<!-- claude-session:025c440f-6057-44ae-b311-e23c172d8190:end -->
