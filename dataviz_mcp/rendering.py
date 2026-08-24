@@ -556,6 +556,9 @@ table_y_offset <- 0
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(ragg))
 suppressPackageStartupMessages(library(grid))
+# Base-level null device so implicit device demand (ggplotGrob text metrics before
+# our agg_png opens) never falls back to a stray Rplots.pdf in the working directory.
+pdf(NULL)
 source(source_path, local=.GlobalEnv)
 builder <- get(build_function, mode="function", inherits=TRUE)
 built <- builder()
