@@ -127,3 +127,34 @@ def test_missing_builder_choice_raises() -> None:
 
 def test_select_output_drives_builder_enum() -> None:
     assert sc.SELECT_SCHEMA["properties"]["builder"]["enum"] == ["chart", "table"]
+
+
+def test_recommend_colours_returns_one_colour_per_series() -> None:
+    """colour_groups is the palette size, so a k-series plan yields k assigned colours."""
+    from dataviz_mcp.palette import recommend_colours
+
+    available = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+    for n_series in (1, 2, 3, 4):
+        result = recommend_colours(available, n_series=n_series)
+        assert result["n_series"] == n_series
+        assert len(result["assignment"]) == n_series
+        assert len(result["chosen"]) == n_series
+
+
+def test_build_result_can_record_recommendations_used() -> None:
+    props = sc.BUILD_SCHEMA["properties"]
+    assert "recommendations_used" in props
+    used = props["recommendations_used"]
+    # Every numeric display group must get a precision decision: number_formats required.
+    assert used["required"] == ["number_formats"]
+
+
+def test_number_format_cannot_record_a_silent_exact_override() -> None:
+    """An exact-digit override must carry its flag and a non-empty reason - never silent."""
+    entry = (
+        sc.BUILD_SCHEMA["properties"]["recommendations_used"]
+        ["properties"]["number_formats"]["items"]
+    )
+    assert "exact_override" in entry["required"]
+    assert "reason" in entry["required"]
+    assert entry["properties"]["reason"]["minLength"] == 1

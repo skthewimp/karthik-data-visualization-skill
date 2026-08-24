@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Precision precedence and an auditable build record
+
+- `recommend_precision` gained an `exact` flag (MCP tool and core). By default the spread rule governs every number; `exact=True` preserves every source digit for identifiers or a genuine exact-lookup requirement, and every result now carries an `exact_override` flag so the choice is explicit rather than a silent hand-format. `dataviz-precision` (both surfaces) and `docs/skills/dataviz-precision.md` document the precedence: spread rule is the default, exact digits are the exception, and an override must state its reason.
+- Added `recommendations_used` to `BUILD_SCHEMA`: the palette and per-display-group `number_formats` the builder actually applied. Each number-format entry requires `exact_override` and a non-empty `reason`, so an exact-precision override can never be recorded silently, and `number_formats` is required so every numeric display group gets a precision decision.
+- New contract tests: `recommend_colours` returns exactly `n_series` colours (colour_groups == palette size), the build result can record `recommendations_used`, and a number format cannot record a silent exact override. New precision tests cover the exact-override path.
+
 ### R analysis style: no raw SQL, right-assignment long chains, run-not-knit
 
 - `karthik-r-analysis-style` (both surfaces) now bans raw SQL for data access. Database/large-data work goes through dplyr backends - `dbplyr`, `duckplyr`/DuckDB, `arrow` - with SQL strings allowed only for an unavoidable one-off DDL/config statement that has no dplyr equivalent.

@@ -18,4 +18,8 @@ For example, `{12483, 9210, 15040}` spans ~5830, so the place is hundreds and th
 
 The rule is the same for charts and tables; apply it per axis and per column, each with its own spread. In tables it works alongside `karthik-table-style` for decimal alignment and tabular figures.
 
+## Exact-digit override
+
+The spread rule is the default for every displayed number. It is overridden in one case only - **identifiers or a genuine exact-lookup requirement**, where a reader must read a value off verbatim. `recommend_precision(values, role, exact=True)` preserves every source digit and returns `exact_override: true`. The override is never silent: the reason for it is recorded in the build result's `recommendations_used.number_formats` entry, whose `reason` field is required.
+
 The installable skill lives in `dataviz-precision/{codex,claude}/SKILL.md`.

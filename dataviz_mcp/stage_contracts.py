@@ -402,6 +402,50 @@ SELECT_SCHEMA: dict[str, object] = {
     "additionalProperties": False,
 }
 
+# What the builder actually applied, so palette and precision choices are auditable and
+# an exact-precision override can never be silent - every number format states its reason.
+_RECOMMENDATIONS_USED = {
+    "type": "object",
+    "description": (
+        "The palette and per-display-group number formats actually applied. Records what "
+        "was used, not what was merely recommended, so overrides are traceable."
+    ),
+    "properties": {
+        "palette": {
+            "type": "object",
+            "properties": {
+                "colours": _STRING_ARRAY,
+                "focal": {"type": ["string", "null"]},
+                "background": {"type": "string"},
+            },
+            "required": ["colours"],
+            "additionalProperties": False,
+        },
+        "number_formats": {
+            "type": "array",
+            "description": (
+                "One entry per numeric display group shown (each axis, each numeric column). "
+                "A group with an exact-digit override sets exact_override true and states why "
+                "in reason - an exact override cannot be recorded without its justification."
+            ),
+            "items": {
+                "type": "object",
+                "properties": {
+                    "display_group": {"type": "string"},
+                    "role": {"type": "string"},
+                    "recommended_place": {"type": ["integer", "null"]},
+                    "exact_override": {"type": "boolean"},
+                    "reason": {"type": "string", "minLength": 1},
+                },
+                "required": ["display_group", "role", "exact_override", "reason"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["number_formats"],
+    "additionalProperties": False,
+}
+
 # Stage 3 output: the built artifact and the maker's own inspection of the exact export.
 BUILD_SCHEMA: dict[str, object] = {
     "type": "object",
@@ -425,6 +469,7 @@ BUILD_SCHEMA: dict[str, object] = {
             },
         },
         "open_issues": _STRING_ARRAY,
+        "recommendations_used": _RECOMMENDATIONS_USED,
     },
     "required": [
         "artifact_path",

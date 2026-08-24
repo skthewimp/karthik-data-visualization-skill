@@ -33,6 +33,12 @@ If you know the smallest difference that actually matters (`d`), pass `smallest_
 - **Do not show precision the data cannot support**, and never manufacture it to fill space. Precision is a data decision, not a layout one.
 - **Never round toward rounder-sounding numbers** - round to the place the spread dictates, not to whatever looks tidy.
 
+## Precedence: the spread rule is the default; exact digits are the exception
+
+By default, `recommend_precision` governs every displayed number. Source digits override it in exactly one case: **identifiers or a genuine exact-lookup requirement** - an account number, a code, a reference value the reader must read off verbatim. Call `recommend_precision(values, role, exact=True)` for those; it preserves every source digit and returns `exact_override: true`.
+
+An exact override is never silent. Whenever you leave the spread rule behind, **record the reason** - why this column is an identifier or an exact lookup rather than a quantity to compare. In the staged pipeline that reason belongs in the build result's `recommendations_used.number_formats` entry, whose `reason` field is required. If you cannot name why exact digits are needed, the spread rule stands.
+
 ## Charts and tables
 
 The rule is the same for both. On a chart it sets axis-tick and data-label formatting; in a table it sets each numeric column's rounding and, with `karthik-table-style`, the decimal alignment and tabular figures. Apply `recommend_precision` per axis and per column - each has its own spread.

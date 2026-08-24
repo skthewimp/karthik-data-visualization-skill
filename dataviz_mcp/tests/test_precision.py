@@ -29,3 +29,23 @@ def test_precision_empty_column_reports_error():
     result = recommend_precision([])
     assert result["recommended_place"] is None
     assert "error" in result
+    assert result["exact_override"] is False
+
+
+def test_default_precision_is_not_an_exact_override():
+    result = recommend_precision([12483, 9210, 15040])
+    assert result["exact_override"] is False
+
+
+def test_exact_override_preserves_every_source_digit_and_flags_itself():
+    # Same values that the spread rule would coarsen to hundreds.
+    result = recommend_precision([12483, 9210, 15040], role="table_column", exact=True)
+    assert result["exact_override"] is True
+    assert [p["shown"] for p in result["preview"]] == ["12,483", "9,210", "15,040"]
+
+
+def test_exact_override_keeps_decimals_the_spread_would_drop():
+    result = recommend_precision([1.02, 1.44, 1.09], exact=True)
+    assert result["exact_override"] is True
+    assert result["recommended_place"] == -2  # hundredths preserved
+    assert [p["shown"] for p in result["preview"]] == ["1.02", "1.44", "1.09"]

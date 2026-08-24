@@ -24,11 +24,23 @@ def _format_value(value: float, place: int) -> str:
     return f"{rounded:,.{decimals}f}"
 
 
+def _exact_decimals(numbers: Sequence[float], cap: int = 10) -> int:
+    """Smallest decimal count that shows every value without dropping a digit."""
+    decimals = 0
+    for value in numbers:
+        needed = 0
+        while needed < cap and round(value, needed) != value:
+            needed += 1
+        decimals = max(decimals, needed)
+    return decimals
+
+
 def recommend_precision(
     values: Sequence[float],
     role: str = "axis",
     target_steps: int = 2,
     smallest_meaningful_difference: Optional[float] = None,
+    exact: bool = False,
 ) -> dict[str, Any]:
     """Recommend a uniform rounding place and significant-digit count for `values`.
 
@@ -39,9 +51,13 @@ def recommend_precision(
             just about resolve the information (default 2).
         smallest_meaningful_difference: if the caller knows the smallest difference that
             matters (d), the place is taken from it directly instead of from the range.
+        exact: override the spread rule and preserve every source digit. Use ONLY for
+            identifiers or a genuine exact-lookup requirement (account numbers, precise
+            reference values a reader must read off verbatim). The result is flagged
+            ``exact_override`` so the caller must record why it left the default behind.
 
     Returns a dict with the recommended place, significant digits, per-value preview,
-    and a one-line rationale.
+    a one-line rationale, and an ``exact_override`` flag.
     """
     numbers = [float(value) for value in values if value is not None and math.isfinite(value)]
     if not numbers:
@@ -51,7 +67,32 @@ def recommend_precision(
             "recommended_place": None,
             "significant_digits": None,
             "preview": [],
+            "exact_override": exact,
             "rationale": "Nothing to format: the column has no finite values.",
+        }
+
+    if exact:
+        place = -_exact_decimals(numbers)
+        step = 10.0 ** place
+        largest = max(abs(v) for v in numbers)
+        sig_digits = max(1, (_floor_log10(largest) - place + 1) if largest > 0 else 1)
+        decimals = max(0, -place)
+        preview = [{"value": value, "shown": _format_value(value, place)} for value in numbers]
+        rationale = (
+            f"{role}: EXACT override - every source digit preserved, spread rule bypassed. "
+            "Only valid for identifiers or a genuine exact-lookup requirement; record the reason."
+        )
+        return {
+            "role": role,
+            "recommended_place": place,
+            "step": step,
+            "significant_digits": sig_digits,
+            "decimals": decimals,
+            "range": max(numbers) - min(numbers),
+            "smallest_resolved_difference": step,
+            "preview": preview,
+            "exact_override": True,
+            "rationale": rationale,
         }
 
     lo, hi = min(numbers), max(numbers)
@@ -93,6 +134,7 @@ def recommend_precision(
         "range": spread,
         "smallest_resolved_difference": step,
         "preview": preview,
+        "exact_override": False,
         "rationale": rationale,
     }
 

@@ -158,14 +158,18 @@ def create_server() -> Any:
         role: str = "axis",
         target_steps: int = 2,
         smallest_meaningful_difference: float | None = None,
+        exact: bool = False,
     ) -> dict[str, Any]:
         """Recommend significant digits / a uniform rounding place for a numeric column.
 
         Precision is derived from the spread (max - min), not from individual values, and
         every value is rounded to one uniform place. Set ``role`` to axis/label/table_column.
+        Set ``exact`` only for identifiers or a genuine exact-lookup requirement: it
+        preserves every source digit and flags ``exact_override`` so the choice is never
+        silent - record why the default spread rule was overridden.
         """
         return recommend_precision_core(
-            values, role, target_steps, smallest_meaningful_difference
+            values, role, target_steps, smallest_meaningful_difference, exact
         )
 
     return server
