@@ -801,3 +801,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Removed. Working tree is now clean and everything's pushed.
 
 <!-- claude-session:d6f10a8c-6b4a-438f-865e-969e68e74534:end -->
+
+<!-- claude-session:5a415341-5371-494f-8450-312eb561684e:start -->
+## 2026-08-24 08:48 IST | Claude session `5a415341-537`
+
+### User prompts
+> as part of this suite of data visualisation skills and MCPs, i want to add two other capabilitlies. one is to choose colours for a graph and the ohter is to figure out the appropriate number of significant digits to d...
+> <task-notification> <task-id>af5678bd45af1fd8d</task-id> <tool-use-id>toolu_01XoG5mrVsvcK28tPkDgeSk2</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/5a...
+> <task-notification> <task-id>a2b95c3ddf1064449</task-id> <tool-use-id>toolu_01KDuJT8NanQsCmA1eXQykRK</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/5a...
+
+### Work done
+- Adding a regression test for the ordering guarantee, then shipping.
+- Both refinements shipped and pushed. **1. `colour_groups` = max series per panel.** No longer "colours the encoding needs" — now the **maximum number of series sharing a single panel**. So small multiples with 3 lines...
+
+<!-- claude-session:5a415341-5371-494f-8450-312eb561684e:end -->
