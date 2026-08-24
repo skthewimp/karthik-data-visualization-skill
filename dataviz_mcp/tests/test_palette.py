@@ -40,6 +40,16 @@ def test_recommend_falls_back_to_default_when_no_available():
     assert result["validation"]["verdict"] in {"pass", "soft_fail"}
 
 
+def test_recommend_returns_ordered_prefix_nested_palette():
+    result = recommend_colours(["#D55E00", "#0072B2", "#009E73", "#CC79A7"], n_series=4)
+    palette = result["ordered_palette"]
+    assert result["prefix_nested"] is True
+    # assignment order must match the ordered palette, so a smaller panel takes the prefix.
+    assert [item["colour"] for item in result["assignment"]] == palette
+    # the first two of a four-colour request are the two farthest apart in the pool.
+    assert len(palette) == 4 and palette[:2] != palette[2:]
+
+
 def test_recommend_drops_low_contrast_colours():
     result = recommend_colours(["#FEFEFE", "#0072B2", "#D55E00"], n_series=2)
     assert "#FEFEFE" in result["dropped_low_contrast"]

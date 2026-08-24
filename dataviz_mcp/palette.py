@@ -181,11 +181,18 @@ def recommend_colours(
 ) -> dict[str, Any]:
     """Pick and assign `n_series` colours for one graph from the `available` set.
 
-    Chooses greedily to maximise the minimum pairwise separation while keeping
-    every colour readable against the background. If `focal` is given it is pinned
-    to the first series (focal-colour-plus-grey lives in the skill; here focal just
-    anchors the assignment). If the available set cannot supply `n_series` usable
-    colours, the shortfall and suggested additions are reported.
+    `n_series` is the palette size - the maximum number of series that share a single
+    panel (so small multiples with k lines per panel pass k, not the total category
+    count). The returned palette is **ordered and prefix-nested**: it is built by
+    farthest-first traversal, so the first m colours are themselves a good m-colour
+    palette. A panel that needs fewer series than the maximum uses the first that many
+    colours, and the assignment stays consistent across panels.
+
+    Chooses greedily to maximise the minimum pairwise separation while keeping every
+    colour readable against the background. If `focal` is given it is pinned to the first
+    series (focal-colour-plus-grey lives in the skill; here focal just anchors the
+    assignment). If the available set cannot supply `n_series` usable colours, the
+    shortfall and suggested additions are reported.
     """
     pool = list(available) if available else list(OKABE_ITO)
     # Keep only colours that read against the background; remember what was dropped.
@@ -244,13 +251,16 @@ def recommend_colours(
 
     return {
         "assignment": assignment,
+        "ordered_palette": chosen,
         "chosen": chosen,
+        "prefix_nested": True,
         "n_series": n_series,
         "shortfall": shortfall,
         "suggested_additions": suggestions,
         "dropped_low_contrast": dropped,
         "validation": validation,
-        "rationale": " ".join(rationale_parts),
+        "rationale": " ".join(rationale_parts)
+        + " Palette is ordered and prefix-nested: a panel with fewer series uses the first that many colours.",
     }
 
 

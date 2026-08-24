@@ -20,13 +20,13 @@ The mechanical checks live in the dataviz MCP: `recommend_colours`, `validate_pa
 
 Whatever wins defines the *available set*. The available set is the input to the decision, not the answer.
 
-## 2. How many colours (a property of the encoding, not the data)
+## 2. How many colours (max series per panel, not total categories)
 
-The number of colours is decided upstream by the select stage and handed to you as `design.colour_groups`. It is **not** the number of series or categories - it is how many distinct colours *this encoding* actually needs. Five series shown as five lines in one panel need five colours; the same five as small multiples need none, because the facet carries identity, not hue. Focal-plus-grey needs one. Direct-labelled or position-carried identity needs none. Use `design.colour_groups` as `n_series`; if it is 0, there is no colour decision to make (the build already skipped this skill via `needs_color_plan`).
+The palette size is decided upstream by the select stage and handed to you as `design.colour_groups`. It is the **maximum number of series that share a single panel** and must be told apart by colour - a property of the form, not the total category count. N lines in one panel need N. Small multiples with k lines *per panel* need k (the same k colours reused across panels) - not 0, and not the total across panels. Small multiples with one line per panel, direct labels, or position carrying identity need 0. Focal-plus-grey needs 1. Use `design.colour_groups` as `n_series`; if it is 0, there is no colour decision to make (the build already skipped this skill via `needs_color_plan`).
 
 ## 3. Always recommend for the specific graph
 
-Call `recommend_colours(available, colour_groups, background, focal)`. It picks and assigns colours by maximising the minimum separation between series while keeping each readable against the background, and pins a `focal` colour to the first series. Read its `rationale`, `shortfall`, and `suggested_additions`:
+Call `recommend_colours(available, colour_groups, background, focal)`. It picks and assigns colours by maximising the minimum separation between series while keeping each readable against the background, and pins a `focal` colour to the first series. The returned palette is **ordered and prefix-nested** (`ordered_palette`): the first *m* colours are themselves a good *m*-colour palette, so a panel with fewer series than the maximum uses the first that many colours, and the mapping stays consistent across panels. Read its `rationale`, `shortfall`, and `suggested_additions`:
 
 - If the available set is **too small** for the series count, it says so and suggests the minimal additions or substitutions. Add them, or collapse series, rather than reusing a hue.
 - If colours are **dropped for low background contrast**, respect that - a light mark on a light ground is not a real option for a thin line, though a large fill tolerates less.

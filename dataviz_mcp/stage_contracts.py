@@ -279,7 +279,16 @@ _DESIGN = {
         "identification_strategy": {"type": "string"},
         "copy_and_context": {"type": "string"},
         "colour_role": {"type": "string"},
-        "colour_groups": {"type": "integer", "minimum": 0},
+        "colour_groups": {
+            "type": "integer",
+            "minimum": 0,
+            "description": (
+                "Palette size: the maximum number of series that share a single panel and "
+                "must be told apart by colour. Not the total category count - small multiples "
+                "with k lines per panel need k colours (reused across panels), and with one "
+                "line per panel need 0-1. One panel with N lines needs N."
+            ),
+        },
     },
     "required": [
         "chart_form",
@@ -561,11 +570,12 @@ single form cannot carry every message. A table is a valid cold verdict when the
 exact lookup or the values are not commensurable on one scale - set ``builder`` to ``table``
 in that case, otherwise ``chart``. Set ``needs_annotations`` and ``needs_explainer`` from
 whether the plan genuinely calls for on-chart marks or accompanying prose. Set
-``design.colour_groups`` to how many distinct colours *this encoding* needs - a property of the
-form, not of the data: the number of lines, stacks, or slices when they share one panel and
-colour distinguishes them; 1 for a focal-plus-grey emphasis; and 0 when identity is carried by
-something other than hue - small multiples or facets, direct labels, or position - or for a
-single neutral series. Set ``needs_color_plan`` true when ``colour_groups`` is 1 or more (a
+``design.colour_groups`` to the palette size - the **maximum number of series that share a
+single panel** and must be told apart by colour. This is a property of the form, not the total
+category count: N lines, stacks, or slices in one panel need N; small multiples with k lines per
+panel need k (the same k colours reused across panels); small multiples with one line per panel,
+direct labels, or position carrying identity need 0; focal-plus-grey needs 1. Set
+``needs_color_plan`` true when ``colour_groups`` is 1 or more (a
 colour must still be chosen against brand and background) and false when it is 0. Set
 ``needs_precision_plan`` true whenever numeric values are
 shown (axis ticks, data labels, or table cells). Produce the design,
@@ -629,10 +639,11 @@ analysis contract and the facts. Choose the simplest form that makes the claim e
 and hardest to misread for the stated audience and medium. A table is a valid verdict for
 exact lookup or non-commensurable values - set ``builder`` to ``table``, otherwise ``chart``.
 Set ``needs_annotations`` and ``needs_explainer`` from the plan. Set ``design.colour_groups``
-to how many distinct colours *this encoding* needs - a property of the form, not of the data:
-the number of lines, stacks, or slices when they share one panel and colour distinguishes them;
-1 for a focal-plus-grey emphasis; and 0 when identity is carried by something other than hue -
-small multiples or facets, direct labels, or position - or for a single neutral series. Set
+to the palette size - the **maximum number of series that share a single panel** and must be
+told apart by colour, a property of the form, not the total category count: N lines, stacks, or
+slices in one panel need N; small multiples with k lines per panel need k (the same k colours
+reused across panels); small multiples with one line per panel, direct labels, or position
+carrying identity need 0; focal-plus-grey needs 1. Set
 ``needs_color_plan`` true when ``colour_groups`` is 1 or more and false when it is 0. Set
 ``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels,
 or table cells). Produce the design, layout
