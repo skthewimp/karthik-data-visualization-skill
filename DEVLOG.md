@@ -832,3 +832,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Both refinements shipped and pushed. **1. `colour_groups` = max series per panel.** No longer "colours the encoding needs" — now the **maximum number of series sharing a single panel**. So small multiples with 3 lines...
 
 <!-- claude-session:5a415341-5371-494f-8450-312eb561684e:end -->
+
+<!-- claude-session:fce8f599-2913-48f4-a0bf-32666203e1ab:start -->
+## 2026-08-24 10:10 IST | Claude session `fce8f599-291`
+
+### User prompts
+> a few changes needed in my r-exploration-style - 1. don't write SQL. use dbplyr / duckplyr / arrow / ... when accessing database stuff; 2. i always prefer right assignmetns (-> ) in long chains, so i can easily run st...
+
+### Work done
+- Check DEVLOG, then run sync.
+- Done. 3 rules added to `karthik-r-analysis-style`, all copies synced, committed + pushed. **Changes:** 1. **No raw SQL** - data access via `dbplyr`/`duckplyr`/`arrow`; SQL strings only for unavoidable one-off DDL/conf...
+
+<!-- claude-session:fce8f599-2913-48f4-a0bf-32666203e1ab:end -->
