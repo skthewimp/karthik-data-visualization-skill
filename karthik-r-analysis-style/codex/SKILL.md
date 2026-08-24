@@ -144,6 +144,7 @@ require(tidytable)   # if grouped summaries get compact
 
 Rules:
 
+- The notebook is for running chunk by chunk while exploring, never for knitting. Do not add anything that only serves a knitted output (figure sizing/captions for the rendered doc, `knitr::opts_chunk$set`, cross-references, "run all"/knit-ready structure). Assume every chunk is executed one at a time in the console.
 - Use absolute paths or `setwd()` when RStudio chunk-by-chunk execution needs it.
 - Keep chunks short. One chunk = one thought/probe.
 - Print raw objects early: dataframe, `head()`, `count()`, `summary()`.
@@ -210,14 +211,15 @@ Prefer these over checklist EDA:
 - Prefer tidyverse `%>%` pipes.
 - Use `tidytable` when `.by` makes code shorter: `summarise.`, `mutate.`, `filter.`.
 - Preserve surrounding style. Old notebooks may use `group_by() %>% summarise()` and `T/F`; do not modernize gratuitously.
-- Right assignment at pipe end is natural and common:
+- Default to right assignment (`->`) at the end of any long chain. Karthik prefers this so a pipe can be run partially, line by line, in the console while exploring - the target is only named once, at the bottom.
 
 ```r
-some_pipeline(...) ->
+some_pipeline(...) %>%
+  more_steps(...) ->
   object
 ```
 
-- Left assignment is also fine. Do not enforce one style globally.
+- Left assignment is fine for short one-liners and when surrounding code uses it. Do not modernize old notebooks' assignment style, but new long chains should end in `->`.
 - Prefer `case_when()` over nested `ifelse()` in new code, but do not rewrite old code without need.
 - Helpers should stay small and local in first-pass exploration. Exception: parsers, simulations, forecasting calibration, Elo/dynamic-pricing algorithms, and repeated text-processing steps may need functions. Even then, inspect inputs/outputs around the function and keep assumptions visible.
 - Use `write_delim(pipe('pbcopy'), '\t')`, `pdf(...)`, or quick export only when the notebook is clearly feeding a chart/article/client output.
@@ -243,11 +245,9 @@ When a plot becomes a deliverable rather than a probe, hand chart-form choice to
 
 ## Database / large data
 
-- Use `dbplyr` with `tbl(...)` for databases.
-- Use DuckDB/Arrow/Parquet for large local or S3 data.
-- Keep heavy aggregation in-database.
-- `collect()` only when local materialization is needed.
-- Raw SQL is fine for setup, views, S3 config, or awkward operations.
+- Do not write raw SQL. Reach for a dplyr backend instead: `dbplyr` with `tbl(...)` for databases, `duckplyr` / DuckDB for local analytical queries, `arrow` for Parquet/S3. Express filters, joins, and aggregation as dplyr verbs and let the backend translate.
+- Keep heavy aggregation in-backend; `collect()` only when local materialization is needed.
+- Only exception: an unavoidable one-off DDL/config statement (create view, attach, S3 credentials) with no dplyr equivalent. Never hand-write query logic (`SELECT`/`GROUP BY`/joins) as SQL strings.
 
 ## Anti-patterns: what went wrong before
 

@@ -1,5 +1,22 @@
 # Devlog
 
+## 2026-08-24 - R analysis style: no SQL, right-assign long chains, run-not-knit
+
+### Context
+
+Karthik gave three corrections to his R exploration style, all reflecting how he actually works at the console.
+
+### Decisions
+
+- No raw SQL. Data access uses dplyr backends (`dbplyr`, `duckplyr`/DuckDB, `arrow`); logic goes through dplyr verbs and the backend translates. SQL strings survive only for an unavoidable one-off DDL/config statement with no dplyr equivalent - previously the skill said "raw SQL is fine for setup, views, S3 config, or awkward operations", which was too permissive.
+- Right assignment (`->`) is the default for new long chains. Reason he gave: it lets a pipe be run partially, line by line, while exploring. Old notebooks' style stays untouched, so this is a new-code default, not a global rewrite rule.
+- Notebooks are for running chunk by chunk, never knitting. Added an explicit rule to drop anything that only serves knitted output (`knitr::opts_chunk$set`, figure sizing/captions, cross-references, knit-ready structure).
+
+### Build notes
+
+- Edited `karthik-r-analysis-style/claude/SKILL.md`, rebuilt the codex copy from the shared body (only the frontmatter differs between the two surfaces), updated `docs/skills/karthik-r-analysis-style.md` and CHANGELOG, and ran `./sync.sh --no-pull`.
+- Encoded as generalized rules, not example-specific behaviour.
+
 ## 2026-08-24 - Colour selection and significant digits as skills plus MCP tools
 
 ### Context

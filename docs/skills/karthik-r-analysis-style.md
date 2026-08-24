@@ -30,6 +30,12 @@ Why does this analysis read like a generated report?
 
 **tidyverse/tidytable, not base R.** With explicit routing to dbplyr, Arrow, or DuckDB when the data will not sit in memory.
 
+**No raw SQL.** Database and large-data access goes through dplyr backends - `dbplyr`, `duckplyr`/DuckDB, `arrow` - never hand-written `SELECT`/`GROUP BY`/join strings. The only exception is an unavoidable one-off DDL/config statement with no dplyr equivalent.
+
+**Right assignment in long chains.** New long pipes end in `->` so they can be run partially, line by line, while exploring. Old notebooks' assignment style is left untouched.
+
+**For running, never knitting.** The notebook assumes every chunk is executed one at a time in the console. Nothing that only serves a knitted output - `knitr::opts_chunk$set`, figure sizing/captions, cross-references, knit-ready structure - is added.
+
 ## References
 
 `references/` ships inside each surface directory because `SKILL.md` reads it at runtime:

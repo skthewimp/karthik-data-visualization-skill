@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### R analysis style: no raw SQL, right-assignment long chains, run-not-knit
+
+- `karthik-r-analysis-style` (both surfaces) now bans raw SQL for data access. Database/large-data work goes through dplyr backends - `dbplyr`, `duckplyr`/DuckDB, `arrow` - with SQL strings allowed only for an unavoidable one-off DDL/config statement that has no dplyr equivalent.
+- Made right assignment (`->`) the default for new long chains, so a pipe can be run partially line by line while exploring. Old notebooks' assignment style is still left untouched.
+- Added an explicit run-chunk-by-chunk, never-knit rule: notebooks assume each chunk is executed one at a time in the console, and nothing that only serves a knitted output (`knitr::opts_chunk$set`, figure sizing/captions, cross-references) is added.
+
 ### Colour selection and significant-digit capabilities, as skills plus MCP tools
 
 - Added two first-class capabilities the suite had only as scattered prose. `dataviz-color` (both surfaces) owns the colour decision for a specific graph - which colours to use and how to assign them - and `dataviz-precision` (both surfaces) owns significant digits for chart and table numbers. Both are wired into the build stage of `REPAIR_PIPELINE` and `STORY_PIPELINE` as conditional skills, gated on two new `SELECT_SCHEMA` flags `needs_color_plan` / `needs_precision_plan` that the selector sets, mirroring the existing `needs_annotations` / `needs_explainer` pattern.
