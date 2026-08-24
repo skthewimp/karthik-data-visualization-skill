@@ -38,7 +38,7 @@ Installing the skills does not register the MCP server. For the full workflow, c
 - Both adapters emit the same artifact, specification, layout, inspection, review-view, and manifest bundle. Coverage limitations remain explicit in the inspection report.
 - Tables are gated on the same footing: call `render_and_inspect_chart` with `content="table"` on an `.R` source that returns a gtable (`gridExtra::tableGrob` or `gt::as_gtable`). It renders through the same `ragg` path - no headless Chrome - capturing every cell's text, font size, and background fill at its exact bounding box. Decimal-point alignment and in-cell overflow stay a visual read, and the inspection report says so.
 
-This repo contains sixteen related skills, coordinated as a context-sensitive visualization workflow:
+This repo contains eighteen related skills, coordinated as a context-sensitive visualization workflow:
 
 1. **`dataviz-fix`** - the staged repair orchestrator (diagnose+extract -> select -> build -> refine): extract intent and data from the source, choose a form cold, rebuild, run one downstream critique-checker loop, and improve it from user feedback. Each stage is a separate call carrying only its own skills.
 2. **`dataviz-brief`** - intent-extraction rules that open a repair: key messages and required content, explicit drops, audience, constraints, keep-notes, and the edit-vs-redesign decision.
@@ -56,6 +56,8 @@ This repo contains sixteen related skills, coordinated as a context-sensitive vi
 14. **`chart-explainer`** - accompanying-note rules for writing the two lines that travel with a finished chart or table into an email, notebook, or message.
 15. **`karthik-r-analysis-style`** - notebook rules for how an exploratory R scratchpad is written: local precedent, analyst-first probes, tidyverse/tidytable idiom, and the working-note register.
 16. **`karthik-table-style`** - table-craft rules for when the chosen form is a table: emphasis as scarce ink, decimal-point alignment, precision keyed to variance, content-sized columns, minimal rules, tabular figures, and deliberately-scoped conditional formatting.
+17. **`dataviz-color`** - colour-selection rules for a specific graph: pick and assign series colours from a brand or default palette, honour an installed brand skill or in-context style first, and validate for contrast, colour-vision-deficiency, and grayscale. Backed by the `recommend_colours` and `validate_palette` MCP tools.
+18. **`dataviz-precision`** - significant-digit rules for chart and table numbers: derive a uniform rounding place from the column's spread (max minus min), never fabricate precision. Backed by the `recommend_precision` MCP tool.
 
 The split is deliberate. The orchestrator routes the work and preserves handoffs; it does not duplicate every specialist procedure. Planning defines the analytical claim and evidence contract. Cleaning establishes provenance, grain, and data validity. Question generation proposes supported questions. Selection chooses an encoding for the task - a chart or a well-formatted table. Construction implements it, with `karthik-data-visualization` owning chart craft and `karthik-table-style` owning table craft. Annotation adds supported context. Explanation communicates the result at calibrated strength. Critique diagnoses interpretive failures. Repair manages bounded revisions and reusable lessons. Evaluation independently verifies semantic, visual, evidentiary, and delivery outcomes.
 
@@ -111,8 +113,14 @@ The split is deliberate. The orchestrator routes the work and preserves handoffs
 ├── karthik-table-style/             # Table-as-visualization craft skill
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
+├── dataviz-color/                   # Colour selection + palette validation for a specific graph
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataviz-precision/               # Significant digits for chart and table numbers
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
 ├── tester/                          # Local repair-loop case console
-├── dataviz_mcp/                     # Local stdio MCP: render, inspect, compare
+├── dataviz_mcp/                     # Local stdio MCP: render, inspect, compare, colour, precision
 ├── docs/                            # Human docs; subfolder READMEs explain contents
 ├── sync-skills.py                   # Install Codex or Claude skill surfaces
 └── sync.sh                          # Pull + install wrapper

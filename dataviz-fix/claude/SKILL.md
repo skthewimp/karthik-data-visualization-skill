@@ -100,8 +100,9 @@ every preservation requirement.
 ## Stage 3 - Build
 
 **Load:** `karthik-data-visualization` (when `builder` is `chart`) **or** `karthik-table-style`
-(when `builder` is `table`); add `chart-annotations` when `needs_annotations`, and
-`chart-explainer` when `needs_explainer`. **In:** source, diagnose artifact, select artifact.
+(when `builder` is `table`); add `chart-annotations` when `needs_annotations`,
+`chart-explainer` when `needs_explainer`, `dataviz-color` when `needs_color_plan`, and
+`dataviz-precision` when `needs_precision_plan`. **In:** source, diagnose artifact, select artifact.
 **Out:** the build artifact (`BUILD_SCHEMA`).
 
 Build the deliverable to the plan, carrying every key message with its required content -

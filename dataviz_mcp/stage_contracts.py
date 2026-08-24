@@ -372,6 +372,8 @@ SELECT_SCHEMA: dict[str, object] = {
         "builder": {"type": "string", "enum": ["chart", "table"]},
         "needs_annotations": {"type": "boolean"},
         "needs_explainer": {"type": "boolean"},
+        "needs_color_plan": {"type": "boolean"},
+        "needs_precision_plan": {"type": "boolean"},
         "design": _DESIGN,
         "layout_plan": _LAYOUT_PLAN,
         "acceptance_checks": _ACCEPTANCE_CHECKS,
@@ -380,6 +382,8 @@ SELECT_SCHEMA: dict[str, object] = {
         "builder",
         "needs_annotations",
         "needs_explainer",
+        "needs_color_plan",
+        "needs_precision_plan",
         "design",
         "layout_plan",
         "acceptance_checks",
@@ -554,7 +558,10 @@ hardest to misread for the stated audience and medium; more than one chart is al
 single form cannot carry every message. A table is a valid cold verdict when the intent is
 exact lookup or the values are not commensurable on one scale - set ``builder`` to ``table``
 in that case, otherwise ``chart``. Set ``needs_annotations`` and ``needs_explainer`` from
-whether the plan genuinely calls for on-chart marks or accompanying prose. Produce the design,
+whether the plan genuinely calls for on-chart marks or accompanying prose. Set
+``needs_color_plan`` true whenever colour encodes a dimension (multi-series charts, or a
+conditionally-formatted table) and ``needs_precision_plan`` true whenever numeric values are
+shown (axis ticks, data labels, or table cells). Produce the design,
 the layout plan under the declared delivery condition, and an observable acceptance check for
 every fatal or major problem and every preservation requirement. Return the select artifact
 against the required schema."""
@@ -614,7 +621,10 @@ _STORY_SELECT = """You are the form-selection stage of dataset-to-story work. Yo
 analysis contract and the facts. Choose the simplest form that makes the claim easiest to see
 and hardest to misread for the stated audience and medium. A table is a valid verdict for
 exact lookup or non-commensurable values - set ``builder`` to ``table``, otherwise ``chart``.
-Set ``needs_annotations`` and ``needs_explainer`` from the plan. Produce the design, layout
+Set ``needs_annotations`` and ``needs_explainer`` from the plan. Set ``needs_color_plan`` true
+whenever colour encodes a dimension (multi-series charts, or a conditionally-formatted table)
+and ``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels,
+or table cells). Produce the design, layout
 plan, and acceptance checks. Return the select artifact against the required schema."""
 
 _STORY_BUILD = _REPAIR_BUILD.replace("of a static chart repair", "of dataset-to-story work")
@@ -656,6 +666,8 @@ REPAIR_PIPELINE: tuple[Stage, ...] = (
         conditional_skills={
             "chart-annotations": "select.needs_annotations",
             "chart-explainer": "select.needs_explainer",
+            "dataviz-color": "select.needs_color_plan",
+            "dataviz-precision": "select.needs_precision_plan",
         },
         input_schema=SELECT_SCHEMA,
         output_schema=BUILD_SCHEMA,
@@ -721,6 +733,8 @@ STORY_PIPELINE: tuple[Stage, ...] = (
         conditional_skills={
             "chart-annotations": "select.needs_annotations",
             "chart-explainer": "select.needs_explainer",
+            "dataviz-color": "select.needs_color_plan",
+            "dataviz-precision": "select.needs_precision_plan",
         },
         input_schema=SELECT_SCHEMA,
         output_schema=BUILD_SCHEMA,

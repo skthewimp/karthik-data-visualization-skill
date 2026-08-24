@@ -57,7 +57,10 @@ precision than the data supports, is not finished.
   left-align text; align each header with its column body. Equalise the decimal
   count down a column so digit-length itself reads as magnitude - the number's
   size becomes a small bar chart.
-- **Precision keyed to variance, in both directions.** Precision is significant
+- **Precision keyed to variance, in both directions.** To compute the digits for a
+  column, use `dataviz-precision` (the `recommend_precision` MCP tool), which derives
+  the uniform rounding place from the column's spread; the rule is stated here.
+  Precision is significant
   digits, not decimal places. Show the number that resolves the smallest
   meaningful difference in the column - which cuts to the *left* of the decimal
   point as well as the right. When the trailing digits of a large number carry no

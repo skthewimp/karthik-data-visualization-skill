@@ -23,6 +23,10 @@ def test_stdio_server_exposes_renderer_probe_and_backend_neutral_workflow() -> N
         "probe_renderers",
         "inspect_rendered_chart",
         "compare_chart_artifacts",
+        "recommend_colours",
+        "validate_palette",
+        "extract_palette_from_image",
+        "recommend_precision",
     }
 
 
@@ -107,4 +111,8 @@ asyncio.run(main())
         "probe_renderers",
         "inspect_rendered_chart",
         "compare_chart_artifacts",
+        "recommend_colours",
+        "validate_palette",
+        "extract_palette_from_image",
+        "recommend_precision",
     }

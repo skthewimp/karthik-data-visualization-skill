@@ -4,9 +4,8 @@ import math
 from pathlib import Path
 from typing import Any, Iterable
 
-from PIL import ImageColor
-
 from .artifacts import raster_info, read_json, sha256_file, write_json
+from .color_math import _contrast_ratio
 
 
 SCHEMA_VERSION = 2
@@ -60,29 +59,6 @@ def _union_area(boxes: list[dict[str, Any]]) -> float:
         covered += end - start
         area += (right - left) * covered
     return area
-
-
-def _relative_luminance(colour: str) -> float | None:
-    try:
-        red, green, blue, _ = ImageColor.getcolor(colour, "RGBA")
-    except (ValueError, TypeError):
-        return None
-    channels = []
-    for value in (red, green, blue):
-        scaled = value / 255
-        channels.append(scaled / 12.92 if scaled <= 0.04045 else ((scaled + 0.055) / 1.055) ** 2.4)
-    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
-
-
-def _contrast_ratio(first: str | None, second: str | None) -> float | None:
-    if not first or not second:
-        return None
-    a = _relative_luminance(first)
-    b = _relative_luminance(second)
-    if a is None or b is None:
-        return None
-    lighter, darker = max(a, b), min(a, b)
-    return (lighter + 0.05) / (darker + 0.05)
 
 
 def _contains(container: dict[str, Any], inner: dict[str, Any], tolerance: float = 0.5) -> bool:

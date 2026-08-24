@@ -76,6 +76,8 @@ Preattentive first read: exactly one channel should make the single most importa
 
 ## Colour system
 
+For the full colour-selection workflow - assigning specific hues to this graph's series from a brand or default palette, and validating them for contrast, colour-vision-deficiency, and grayscale - use `dataviz-color` (backed by the `recommend_colours` and `validate_palette` MCP tools). The rules below are the craft summary.
+
 Colour must earn its place. Position, length, ordering, direct labels, and annotation should carry the main comparison; colour should clarify identity, order, direction, or emphasis.
 
 - Default to neutral marks when the question and insight do not establish a focal item. Use one focal colour plus neutral grey context only when the focal item is named by the question, supported by the evidence, or explicitly requested. Never manufacture a highlight to make a chart look designed. Use several categorical hues only when several identities genuinely need equal status; when they cease to remain separable at delivery size, use grouping, direct labels, or small multiples instead of more hues.

@@ -1,5 +1,25 @@
 # Devlog
 
+## 2026-08-24 - Colour selection and significant digits as skills plus MCP tools
+
+### Context
+
+The suite could render, inspect, select, critique and repair, but two everyday decisions had no home beyond scattered prose: which colours a specific graph should use, and how many significant digits its numbers should show. Karthik wanted both as first-class, reusable capabilities - deterministic where the maths is deterministic, judgement where it isn't.
+
+### Decisions (settled with Karthik before building)
+
+- Two new skills (`dataviz-color`, `dataviz-precision`), each backed by MCP tools rather than prose alone.
+- Brand is optional and usually arrives as an installed skill: the colour skill scans the session's available-skills list for a `brand`/`style`/`theme`/`palette` name and honours it first, then in-context style, then our accessibility defaults. But even with a brand or recommended set in hand, a specific graph still needs a which-and-how-assigned decision - so `recommend_colours` is a recommender, not just a validator.
+- Precision is driven by the spread, not by individual values: derive the uniform rounding place from the column's range (max - min) via a formula, and round every value to that one place. No fabricated precision, no rounding toward rounder-sounding numbers.
+- In a repair, the source chart's colours are a *prior*, not a rule: `extract_palette_from_image` samples them (pixel extraction) to seed the palette, then brand and accessibility may override while the semantic mapping is kept.
+- Reuse the WCAG contrast code already in `inspection.py` rather than rewriting it; keep the new skills the authority and leave the old craft skills pointing to them (no duplicated rulesets, no thin wrappers).
+
+### Build notes
+
+- Extracted `_relative_luminance` / `_contrast_ratio` into `dataviz_mcp/color_math.py` (names unchanged) and added hue/lightness, Machado CVD matrices, and grayscale helpers. `inspection.py` now imports the shared pair.
+- `palette.py` separation metric is lightness-weighted on purpose: hue collapses under CVD and grayscale, lightness survives both, so `separation = Δlightness + 0.4·(Δhue/180)`. Greedy max-min selection with a pinned focal.
+- Verified against the plan's examples: `recommend_precision([12483, 9210, 15040])` rounds to hundreds (`12,500 / 9,200 / 15,000`); `validate_palette` on two near-identical blues soft-fails on distinctness + CVD + grayscale; `extract_palette_from_image` on the sector fixture returns the chart's magenta hues. Two naive test expectations were corrected once the validator (correctly) flagged that many light Okabe-Ito colours miss 3:1 on white and some dark pairs collide in grayscale - accessibility on a white ground is genuinely hard, and the tool says so.
+
 ## 2026-08-22 - Staging the pipelines so the context stops rotting
 
 ### Context

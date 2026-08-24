@@ -57,7 +57,8 @@ Each stage is one call. Load only the listed skill(s); pass the emitted artifact
    non-commensurable values); set `needs_annotations` / `needs_explainer` from the plan;
    emit design, layout plan, and acceptance checks.
 6. **Build** - load `karthik-data-visualization` (chart) **or** `karthik-table-style`
-   (table) per the `builder` field; add `chart-annotations` / `chart-explainer` when the
+   (table) per the `builder` field; add `chart-annotations` / `chart-explainer` /
+   `dataviz-color` / `dataviz-precision` when the
    select artifact asks for them. In: contract, facts, select artifact. Out: the rendered
    artifact plus reproducible code and the maker's inspection of the exact export.
 7. **Refine** - load `dataviz-critique`; add `dataviz-eval` only for an explicit audit,
