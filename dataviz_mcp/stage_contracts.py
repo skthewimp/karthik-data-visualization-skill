@@ -279,6 +279,7 @@ _DESIGN = {
         "identification_strategy": {"type": "string"},
         "copy_and_context": {"type": "string"},
         "colour_role": {"type": "string"},
+        "colour_groups": {"type": "integer", "minimum": 0},
     },
     "required": [
         "chart_form",
@@ -286,6 +287,7 @@ _DESIGN = {
         "identification_strategy",
         "copy_and_context",
         "colour_role",
+        "colour_groups",
     ],
     "additionalProperties": False,
 }
@@ -559,8 +561,13 @@ single form cannot carry every message. A table is a valid cold verdict when the
 exact lookup or the values are not commensurable on one scale - set ``builder`` to ``table``
 in that case, otherwise ``chart``. Set ``needs_annotations`` and ``needs_explainer`` from
 whether the plan genuinely calls for on-chart marks or accompanying prose. Set
-``needs_color_plan`` true whenever colour encodes a dimension (multi-series charts, or a
-conditionally-formatted table) and ``needs_precision_plan`` true whenever numeric values are
+``design.colour_groups`` to how many distinct colours *this encoding* needs - a property of the
+form, not of the data: the number of lines, stacks, or slices when they share one panel and
+colour distinguishes them; 1 for a focal-plus-grey emphasis; and 0 when identity is carried by
+something other than hue - small multiples or facets, direct labels, or position - or for a
+single neutral series. Set ``needs_color_plan`` true when ``colour_groups`` is 1 or more (a
+colour must still be chosen against brand and background) and false when it is 0. Set
+``needs_precision_plan`` true whenever numeric values are
 shown (axis ticks, data labels, or table cells). Produce the design,
 the layout plan under the declared delivery condition, and an observable acceptance check for
 every fatal or major problem and every preservation requirement. Return the select artifact
@@ -621,9 +628,13 @@ _STORY_SELECT = """You are the form-selection stage of dataset-to-story work. Yo
 analysis contract and the facts. Choose the simplest form that makes the claim easiest to see
 and hardest to misread for the stated audience and medium. A table is a valid verdict for
 exact lookup or non-commensurable values - set ``builder`` to ``table``, otherwise ``chart``.
-Set ``needs_annotations`` and ``needs_explainer`` from the plan. Set ``needs_color_plan`` true
-whenever colour encodes a dimension (multi-series charts, or a conditionally-formatted table)
-and ``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels,
+Set ``needs_annotations`` and ``needs_explainer`` from the plan. Set ``design.colour_groups``
+to how many distinct colours *this encoding* needs - a property of the form, not of the data:
+the number of lines, stacks, or slices when they share one panel and colour distinguishes them;
+1 for a focal-plus-grey emphasis; and 0 when identity is carried by something other than hue -
+small multiples or facets, direct labels, or position - or for a single neutral series. Set
+``needs_color_plan`` true when ``colour_groups`` is 1 or more and false when it is 0. Set
+``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels,
 or table cells). Produce the design, layout
 plan, and acceptance checks. Return the select artifact against the required schema."""
 

@@ -20,26 +20,30 @@ The mechanical checks live in the dataviz MCP: `recommend_colours`, `validate_pa
 
 Whatever wins defines the *available set*. The available set is the input to the decision, not the answer.
 
-## 2. Always recommend for the specific graph
+## 2. How many colours (a property of the encoding, not the data)
 
-Call `recommend_colours(available, n_series, background, focal)`. It picks and assigns colours by maximising the minimum separation between series while keeping each readable against the background, and pins a `focal` colour to the first series. Read its `rationale`, `shortfall`, and `suggested_additions`:
+The number of colours is decided upstream by the select stage and handed to you as `design.colour_groups`. It is **not** the number of series or categories - it is how many distinct colours *this encoding* actually needs. Five series shown as five lines in one panel need five colours; the same five as small multiples need none, because the facet carries identity, not hue. Focal-plus-grey needs one. Direct-labelled or position-carried identity needs none. Use `design.colour_groups` as `n_series`; if it is 0, there is no colour decision to make (the build already skipped this skill via `needs_color_plan`).
+
+## 3. Always recommend for the specific graph
+
+Call `recommend_colours(available, colour_groups, background, focal)`. It picks and assigns colours by maximising the minimum separation between series while keeping each readable against the background, and pins a `focal` colour to the first series. Read its `rationale`, `shortfall`, and `suggested_additions`:
 
 - If the available set is **too small** for the series count, it says so and suggests the minimal additions or substitutions. Add them, or collapse series, rather than reusing a hue.
 - If colours are **dropped for low background contrast**, respect that - a light mark on a light ground is not a real option for a thin line, though a large fill tolerates less.
 
 Picking a subset from an available set is the normal case, not an exception.
 
-## 3. Defaults and craft rules (when choosing freely)
+## 4. Defaults and craft rules (when choosing freely)
 
 - **Focal colour plus grey.** One series in the focal colour; the rest muted grey context, unless every series genuinely competes for attention.
 - **Adjacent regions differ in hue AND lightness** - never hue alone. Stacked or touching areas especially.
 - **Do not rely on hue to carry meaning**; avoid red-versus-green as the only distinction.
 - **WCAG soft targets:** roughly 4.5:1 for normal chart text, 3:1 for large text, 3:1 against the background for small or thin essential marks. Diagnostic, not a gate - "not very strict".
 
-## 4. Repair: source colours are a prior, not a rule
+## 5. Repair: source colours are a prior, not a rule
 
 In a chart repair, run `extract_palette_from_image(image_path)` to read the source's dominant hues. Treat them as a **prior**: feed them in as the `available` set or as a `focal` hint, and keep the semantic mapping (which series a colour stands for). Then override any specific hue freely for brand or accessibility. Preserve the mapping; do not defend the exact colours.
 
-## 5. Validate and iterate
+## 6. Validate and iterate
 
 Run `validate_palette(colours, background)` on the assignment. It reports soft-fails on background contrast, adjacent-series distinctness, colour-vision-deficiency (deutan/protan/tritan), and grayscale, each with a concrete nudge. Act on them: lighten/darken to separate, or shift a hue. Re-check. A `soft_fail` is guidance, not a stop - accessible multi-colour palettes on a white ground are genuinely hard, so weigh the findings against how the chart is actually read.
