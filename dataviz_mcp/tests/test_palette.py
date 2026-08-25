@@ -56,6 +56,89 @@ def test_recommend_drops_low_contrast_colours():
     assert "#FEFEFE" not in result["chosen"]
 
 
+def test_recommend_soft_family_picks_in_family_colour():
+    # Series 0 wants a blue; the pool has one clear blue among unrelated hues.
+    result = recommend_colours(
+        ["#D55E00", "#0072B2", "#009E73", "#CC79A7"],
+        n_series=3,
+        semantic_hints=[{"series_index": 0, "hue_family": "blue"}],
+    )
+    by_index = {item["series_index"]: item["colour"] for item in result["assignment"]}
+    assert by_index[0] == "#0072B2"  # the blue, honoured for the blue-intent series
+    assert result["prefix_nested"] is False  # positions are now identity-bound
+    assert not result["semantic_findings"]
+
+
+def test_recommend_hard_pin_places_exact_colour_at_index():
+    result = recommend_colours(
+        ["#D55E00", "#0072B2", "#009E73"],
+        n_series=3,
+        semantic_hints=[{"series_index": 1, "colour": "#111111"}],
+    )
+    by_index = {item["series_index"]: item["colour"] for item in result["assignment"]}
+    assert by_index[1] == "#111111"
+
+
+def test_recommend_soft_family_unmet_reports_finding():
+    # No blue in the pool (orange/green/pink, all contrast-passing); blue can't be met.
+    result = recommend_colours(
+        ["#D55E00", "#009E73", "#CC79A7"],
+        n_series=3,
+        semantic_hints=[{"series_index": 0, "hue_family": "blue"}],
+    )
+    assert any(f["rule"] == "semantic_unmet" for f in result["semantic_findings"])
+    # It still returns a full, separation-based assignment for every series.
+    assert len(result["assignment"]) == 3
+
+
+def test_recommend_away_kit_used_when_home_colours_collide():
+    # Two series both want blue; the pool has two confusable blues plus an orange.
+    # Series 0 keeps a blue (home); series 1's blue clashes, so it takes its away kit.
+    result = recommend_colours(
+        ["#0072B2", "#3B6FB0", "#D55E00"],
+        n_series=2,
+        semantic_hints=[
+            {"series_index": 0, "hue_family": "blue"},
+            {"series_index": 1, "hue_family": "blue", "alternates": ["orange"]},
+        ],
+    )
+    by_index = {item["series_index"]: item["colour"] for item in result["assignment"]}
+    assert by_index[1] == "#D55E00"  # away kit, not a second confusable blue
+    assert not result["semantic_findings"]
+
+
+def test_recommend_flags_collision_when_no_away_kit():
+    # Both want blue, no alternates, only confusable blues available -> flag, keep home.
+    result = recommend_colours(
+        ["#0072B2", "#3B6FB0"],
+        n_series=2,
+        semantic_hints=[
+            {"series_index": 0, "hue_family": "blue"},
+            {"series_index": 1, "hue_family": "blue"},
+        ],
+    )
+    assert any(f["rule"] == "semantic_collision" for f in result["semantic_findings"])
+    assert len(result["assignment"]) == 2  # both series still placed
+
+
+def test_recommend_semantics_can_override_contrast_gate():
+    # The only blue is too light to pass the 3:1 background gate, but a blue hint still
+    # reaches it - meaning outranks accessibility (which validate_palette then flags).
+    result = recommend_colours(
+        ["#CCE0FF", "#D55E00"],
+        n_series=1,
+        semantic_hints=[{"series_index": 0, "hue_family": "blue"}],
+    )
+    by_index = {item["series_index"]: item["colour"] for item in result["assignment"]}
+    assert by_index[0] == "#CCE0FF"
+
+
+def test_recommend_no_hints_matches_prior_behaviour():
+    result = recommend_colours(["#D55E00", "#0072B2", "#009E73", "#CC79A7"], n_series=4)
+    assert result["prefix_nested"] is True
+    assert result["semantic_findings"] == []
+
+
 def test_extract_palette_from_image_returns_hexes():
     fixture = Path("tester-outputs/sector-performance-accepted.png")
     if not fixture.exists():

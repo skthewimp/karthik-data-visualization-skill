@@ -113,14 +113,25 @@ def create_server() -> Any:
         n_series: int,
         background: str = "#FFFFFF",
         focal: str | None = None,
+        semantic_hints: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Pick and assign colours for one graph from an available set (brand/context/default).
 
         Chooses by max-min separation and background contrast, pins ``focal`` to series 0,
         and reports any shortfall with suggested additions. Use even when colours are given -
         a specific chart still needs a which-and-how-assigned decision.
+
+        Pass ``semantic_hints`` to bind series to a colour intent the model has judged
+        appropriate: a list of ``{"series_index": i, "colour": "#hex"}`` (hard pin) or
+        ``{"series_index": i, "hue_family": "blue"}`` (soft family - nearest in-family
+        colour is used), each with an optional ``"alternates"`` list of away-kit colours or
+        family words. Priority: series stay distinguishable (hard), meaning outranks
+        contrast/CVD (a soft family may take a low-contrast in-family colour), and a home
+        colour that clashes with a placed series moves to its first clearing away-kit - or,
+        with none, is kept and flagged (``semantic_collision``), never silently reskinned.
+        Unmet and collided hints are reported in ``semantic_findings``.
         """
-        return recommend_colours_core(available, n_series, background, focal)
+        return recommend_colours_core(available, n_series, background, focal, semantic_hints)
 
     @server.tool()
     async def validate_palette(

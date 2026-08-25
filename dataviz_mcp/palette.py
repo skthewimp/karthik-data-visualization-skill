@@ -13,6 +13,7 @@ Targets are soft: findings are reported, not hard-blocked. WCAG is a diagnostic.
 
 from __future__ import annotations
 
+import colorsys
 from typing import Any, Optional, Sequence
 
 from .color_math import (
@@ -22,8 +23,25 @@ from .color_math import (
     hue_lightness,
     lightness_delta,
     simulate_cvd,
+    to_rgb,
     _contrast_ratio,
 )
+
+# Colour-word vocabulary: where each family sits on the hue wheel (degrees). This is
+# colour *vocabulary*, not a semantic map - the model decides that a series "means"
+# blue; this only says where "blue" is. Grey is handled separately (no hue, low
+# saturation). Unknown words fall through and are reported as unmet, never guessed.
+HUE_FAMILIES = {
+    "red": 0, "crimson": 350, "scarlet": 5,
+    "orange": 30, "amber": 40, "gold": 48, "brown": 28,
+    "yellow": 55, "lime": 90, "green": 130, "olive": 80,
+    "teal": 175, "cyan": 185, "turquoise": 180,
+    "sky": 200, "blue": 215, "navy": 225, "azure": 205,
+    "indigo": 250, "violet": 275, "purple": 285,
+    "magenta": 310, "pink": 335, "rose": 345,
+}
+_GREY_FAMILIES = {"grey", "gray", "neutral", "slate"}
+_GREY_MAX_SATURATION = 0.15
 
 # Colour-blind-safe fallback when no brand or context colours are supplied (Okabe-Ito).
 OKABE_ITO = [
@@ -48,6 +66,53 @@ def _separation(first: str, second: str) -> float:
     if d_light is None or d_hue is None:
         return 0.0
     return d_light + 0.4 * (d_hue / 180.0)
+
+
+def _saturation(colour: str) -> Optional[float]:
+    """HLS saturation in [0,1], or None if unparseable."""
+    rgb = to_rgb(colour)
+    if rgb is None:
+        return None
+    r, g, b = (value / 255 for value in rgb)
+    _, _, sat = colorsys.rgb_to_hls(r, g, b)
+    return sat
+
+
+def _circular_hue_distance(a: float, b: float) -> float:
+    diff = abs(a - b) % 360.0
+    return min(diff, 360.0 - diff)
+
+
+def _nearest_in_family(family: str, pool: Sequence[str]) -> tuple[Optional[str], Optional[float]]:
+    """From `pool`, the colour closest to a named hue family and its hue distance (deg).
+
+    Grey/neutral is matched by lowest saturation, not hue. An unknown family word
+    returns (None, None) so the caller reports it unmet rather than guessing a hue.
+    """
+    if family in _GREY_FAMILIES:
+        best, best_sat = None, None
+        for colour in pool:
+            sat = _saturation(colour)
+            if sat is None:
+                continue
+            if best_sat is None or sat < best_sat:
+                best, best_sat = colour, sat
+        if best is None or best_sat is None or best_sat > _GREY_MAX_SATURATION:
+            return None, None
+        return best, 0.0
+
+    target = HUE_FAMILIES.get(family)
+    if target is None:
+        return None, None
+    best, best_dist = None, None
+    for colour in pool:
+        hl = hue_lightness(colour)
+        if hl is None:
+            continue
+        dist = _circular_hue_distance(hl[0], target)
+        if best_dist is None or dist < best_dist:
+            best, best_dist = colour, dist
+    return best, best_dist
 
 
 def _pair_report(first: str, second: str) -> dict[str, Any]:
@@ -178,46 +243,159 @@ def recommend_colours(
     n_series: int,
     background: str = "#FFFFFF",
     focal: Optional[str] = None,
+    semantic_hints: Optional[Sequence[dict[str, Any]]] = None,
+    family_tolerance_deg: float = 40.0,
+    min_separation: float = 0.18,
 ) -> dict[str, Any]:
     """Pick and assign `n_series` colours for one graph from the `available` set.
 
     `n_series` is the palette size - the maximum number of series that share a single
     panel (so small multiples with k lines per panel pass k, not the total category
-    count). The returned palette is **ordered and prefix-nested**: it is built by
-    farthest-first traversal, so the first m colours are themselves a good m-colour
-    palette. A panel that needs fewer series than the maximum uses the first that many
-    colours, and the assignment stays consistent across panels.
+    count).
 
-    Chooses greedily to maximise the minimum pairwise separation while keeping every
-    colour readable against the background. If `focal` is given it is pinned to the first
-    series (focal-colour-plus-grey lives in the skill; here focal just anchors the
-    assignment). If the available set cannot supply `n_series` usable colours, the
-    shortfall and suggested additions are reported.
+    Without `semantic_hints`, the returned palette is **ordered and prefix-nested**: it
+    is built by farthest-first traversal, so the first m colours are themselves a good
+    m-colour palette and a smaller panel uses the prefix. Colours are chosen greedily to
+    maximise the minimum pairwise separation while staying readable against the
+    background. `focal` pins a colour to series 0.
+
+    `semantic_hints` binds specific series to a colour *intent* the model has judged. Each
+    entry is ``{"series_index": i, ...}`` with either ``"colour": "#hex"`` (a hard pin) or
+    ``"hue_family": "blue"`` (a soft family - the nearest in-family colour in the available
+    set, within `family_tolerance_deg`), and an optional ``"alternates"`` list of away-kit
+    colours or family words. The model owns the judgement of which series means what and
+    what its away kits are; this function only reconciles.
+
+    Priority (higher wins): (1) series stay distinguishable - the near-hard bar is
+    `min_separation`; (2) semantic meaning - honoured even at a background-contrast or CVD
+    cost, so a soft family may reach a low-contrast in-family colour; (3) contrast/CVD/
+    grayscale - soft, reported by `validate_palette`. When a series' home colour is too
+    close to one already placed (like two football teams in the same kit), it is moved to
+    the first `alternates` away-kit that clears the bar; if none do, it is **left on its
+    home colour and flagged** (`semantic_collision`) - never silently reskinned. Home is
+    kept for hard pins, `focal`, then lower `series_index`. Unmet hints (no in-family
+    colour, unknown word) are flagged `semantic_unmet` and the slot is filled by
+    separation. Hints make positions identity-bound, so the palette is not prefix-nested.
     """
     pool = list(available) if available else list(OKABE_ITO)
-    # Keep only colours that read against the background; remember what was dropped.
-    usable, dropped = [], []
+    # Split into parseable / usable (reads against the background) / dropped (low contrast).
+    # Semantic hints may reach the full parseable set; separation fill uses only `usable`.
+    parsed, usable, dropped = [], [], []
     for colour in pool:
         ratio = _contrast_ratio(colour, background)
-        if ratio is not None and ratio >= 3.0:
+        if ratio is None:
+            continue
+        parsed.append(colour)
+        if ratio >= 3.0:
             if colour not in usable:
                 usable.append(colour)
         else:
             dropped.append(colour)
 
-    chosen: list[str] = []
-    if focal and _contrast_ratio(focal, background):
-        chosen.append(focal)
-        usable = [c for c in usable if c != focal]
+    def _resolve(kind: str, value: str, exclude: set[str]) -> Optional[str]:
+        """A hint candidate -> a concrete colour. Exact colours are honoured even if
+        low-contrast or absent from the pool (semantics over accessibility); a family
+        resolves to its nearest in-family colour among the not-yet-used parseable set."""
+        if kind == "colour":
+            return value if _contrast_ratio(value, background) is not None else None
+        pick, dist = _nearest_in_family(value, [c for c in parsed if c not in exclude])
+        if pick is None or dist is None or dist > family_tolerance_deg:
+            return None
+        return pick
 
-    while len(chosen) < n_series and usable:
-        if not chosen:
-            # Seed with the highest-background-contrast colour.
-            best = max(usable, key=lambda c: _contrast_ratio(c, background) or 0.0)
+    def _candidate(value: Any) -> tuple[str, str]:
+        """An `alternates` item: a family word if it names one, else an exact colour."""
+        text = str(value).strip()
+        if text.lower() in HUE_FAMILIES or text.lower() in _GREY_FAMILIES:
+            return "family", text.lower()
+        return "colour", text
+
+    # Normalise hints; treat focal as a home hard pin at series 0.
+    hints: list[tuple[int, tuple[str, str], list[tuple[str, str]]]] = []
+    seen_idx: set[int] = set()
+    for hint in semantic_hints or []:
+        idx = hint.get("series_index")
+        if not isinstance(idx, int) or not (0 <= idx < n_series) or idx in seen_idx:
+            continue
+        if hint.get("colour"):
+            home = ("colour", str(hint["colour"]))
+        elif hint.get("hue_family"):
+            home = ("family", str(hint["hue_family"]).strip().lower())
         else:
-            best = max(usable, key=lambda c: min(_separation(c, picked) for picked in chosen))
-        chosen.append(best)
-        usable = [c for c in usable if c != best]
+            continue
+        alternates = [_candidate(a) for a in (hint.get("alternates") or [])]
+        hints.append((idx, home, alternates))
+        seen_idx.add(idx)
+    if focal and 0 not in seen_idx:
+        hints.append((0, ("colour", focal), []))
+        seen_idx.add(0)
+
+    has_semantics = bool(semantic_hints)
+    # Home priority: hard pins/focal before soft families, then lower series_index.
+    hints.sort(key=lambda item: (0 if item[1][0] == "colour" else 1, item[0]))
+
+    slots: dict[int, str] = {}
+    placed: list[str] = []
+    used: set[str] = set()
+    semantic_findings: list[dict[str, Any]] = []
+
+    def _clears(colour: str) -> bool:
+        return not placed or min(_separation(colour, other) for other in placed) >= min_separation
+
+    for idx, home, alternates in hints:
+        home_colour = _resolve(home[0], home[1], used)
+        if home_colour is None:
+            semantic_findings.append(
+                {
+                    "rule": "semantic_unmet",
+                    "series_index": idx,
+                    "requested": home[1],
+                    "nudge": f"no colour for '{home[1]}' within {family_tolerance_deg:g} deg in the "
+                    "available set; add one, or accept the separation-based pick",
+                }
+            )
+            continue
+        if _clears(home_colour):
+            chosen_colour = home_colour
+        else:
+            # Home clashes with a placed series - try the away kits in order.
+            chosen_colour = None
+            for kind, value in alternates:
+                candidate = _resolve(kind, value, used)
+                if candidate is not None and _clears(candidate):
+                    chosen_colour = candidate
+                    break
+            if chosen_colour is None:
+                # Nothing clears; keep home and flag - never reskin without an away kit.
+                chosen_colour = home_colour
+                semantic_findings.append(
+                    {
+                        "rule": "semantic_collision",
+                        "series_index": idx,
+                        "colour": home_colour,
+                        "nudge": "too close to another series; give this series an away-kit alternate "
+                        "or merge the two",
+                    }
+                )
+        slots[idx] = chosen_colour
+        placed.append(chosen_colour)
+        used.add(chosen_colour)
+
+    # Fill the remaining positions farthest-first from what is already placed (usable only).
+    fill_pool = [c for c in usable if c not in used]
+    for idx in range(n_series):
+        if idx in slots or not fill_pool:
+            continue
+        if not placed:
+            best = max(fill_pool, key=lambda c: _contrast_ratio(c, background) or 0.0)
+        else:
+            best = max(fill_pool, key=lambda c: min(_separation(c, other) for other in placed))
+        slots[idx] = best
+        placed.append(best)
+        fill_pool = [c for c in fill_pool if c != best]
+
+    ordered_positions = sorted(slots)
+    chosen = [slots[idx] for idx in ordered_positions]
 
     shortfall = n_series - len(chosen)
     suggestions: list[str] = []
@@ -232,7 +410,7 @@ def recommend_colours(
             if ratio is not None and ratio >= 3.0:
                 suggestions.append(colour)
 
-    assignment = [{"series_index": index, "colour": colour} for index, colour in enumerate(chosen)]
+    assignment = [{"series_index": idx, "colour": slots[idx]} for idx in ordered_positions]
     validation = validate_palette(chosen, background=background) if chosen else {"verdict": "pass", "findings": []}
 
     rationale_parts = [
@@ -241,6 +419,11 @@ def recommend_colours(
     ]
     if focal:
         rationale_parts.append(f"Pinned focal {focal} to series 0.")
+    if has_semantics:
+        rationale_parts.append(
+            f"Applied {len(hints) - len(semantic_findings)} of {len(hints)} semantic hint(s); "
+            f"positions are identity-bound so the palette is not prefix-nested."
+        )
     if dropped:
         rationale_parts.append(f"Dropped {len(dropped)} low-contrast colour(s): {', '.join(dropped)}.")
     if shortfall > 0:
@@ -253,14 +436,19 @@ def recommend_colours(
         "assignment": assignment,
         "ordered_palette": chosen,
         "chosen": chosen,
-        "prefix_nested": True,
+        "prefix_nested": not has_semantics,
         "n_series": n_series,
         "shortfall": shortfall,
         "suggested_additions": suggestions,
         "dropped_low_contrast": dropped,
+        "semantic_findings": semantic_findings,
         "validation": validation,
         "rationale": " ".join(rationale_parts)
-        + " Palette is ordered and prefix-nested: a panel with fewer series uses the first that many colours.",
+        + (
+            ""
+            if has_semantics
+            else " Palette is ordered and prefix-nested: a panel with fewer series uses the first that many colours."
+        ),
     }
 
 
