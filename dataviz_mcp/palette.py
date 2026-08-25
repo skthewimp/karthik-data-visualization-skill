@@ -178,6 +178,8 @@ def recommend_colours(
     n_series: int,
     background: str = "#FFFFFF",
     focal: Optional[str] = None,
+    series: Optional[Sequence[str]] = None,
+    current_assignment: Optional[dict[str, str]] = None,
 ) -> dict[str, Any]:
     """Pick and assign `n_series` colours for one graph from the `available` set.
 
@@ -193,7 +195,22 @@ def recommend_colours(
     series (focal-colour-plus-grey lives in the skill; here focal just anchors the
     assignment). If the available set cannot supply `n_series` usable colours, the
     shortfall and suggested additions are reported.
+
+    The recommender is **identity-aware** when the caller names its categories. Pass
+    `series` (category names, one per assignment slot) to label the output; the count-only
+    path is unchanged when it is omitted. Pass `current_assignment` (category -> existing
+    colour) to anchor identity: categories whose existing colour already reads well and
+    stays distinct from the rest are kept verbatim, so a caller can be the single source
+    of truth *and* preserve the prior category->colour mapping. Only colours that fail
+    contrast or collide with another category are moved, and every move is disclosed in
+    `remapped` (with the reason) so a downstream check can tell a preserved identity from
+    a deliberate improvement. `preserved` is True when nothing moved.
     """
+    if current_assignment:
+        return _recommend_preserving(
+            available, n_series, background, focal, series, current_assignment
+        )
+
     pool = list(available) if available else list(OKABE_ITO)
     # Keep only colours that read against the background; remember what was dropped.
     usable, dropped = [], []
@@ -232,7 +249,14 @@ def recommend_colours(
             if ratio is not None and ratio >= 3.0:
                 suggestions.append(colour)
 
-    assignment = [{"series_index": index, "colour": colour} for index, colour in enumerate(chosen)]
+    assignment = [
+        {
+            "series_index": index,
+            **({"series": series[index]} if series and index < len(series) else {}),
+            "colour": colour,
+        }
+        for index, colour in enumerate(chosen)
+    ]
     validation = validate_palette(chosen, background=background) if chosen else {"verdict": "pass", "findings": []}
 
     rationale_parts = [
@@ -254,6 +278,8 @@ def recommend_colours(
         "ordered_palette": chosen,
         "chosen": chosen,
         "prefix_nested": True,
+        "preserved": False,
+        "remapped": [],
         "n_series": n_series,
         "shortfall": shortfall,
         "suggested_additions": suggestions,
@@ -261,6 +287,115 @@ def recommend_colours(
         "validation": validation,
         "rationale": " ".join(rationale_parts)
         + " Palette is ordered and prefix-nested: a panel with fewer series uses the first that many colours.",
+    }
+
+
+def _recommend_preserving(
+    available: Optional[Sequence[str]],
+    n_series: int,
+    background: str,
+    focal: Optional[str],
+    series: Optional[Sequence[str]],
+    current_assignment: dict[str, str],
+) -> dict[str, Any]:
+    """Identity-anchored assignment: keep each category on its existing colour unless that
+    colour fails contrast or collides with another category, moving only the losers."""
+    categories = list(series) if series else list(current_assignment.keys())
+    current = {cat: current_assignment.get(cat) for cat in categories}
+
+    # A category is a "loser" (must move) if its colour is unreadable on the background, or
+    # if it is the lower-background-contrast member of a confusable pair. Preserve the rest.
+    def bg_contrast(colour: Optional[str]) -> float:
+        ratio = _contrast_ratio(colour, background) if colour else None
+        return ratio if ratio is not None else 0.0
+
+    losers: list[str] = []
+    reasons: dict[str, str] = {}
+    for cat in categories:
+        colour = current[cat]
+        if colour is None or bg_contrast(colour) < 3.0:
+            if cat not in losers:
+                losers.append(cat)
+                reasons[cat] = "existing colour is missing or too low-contrast on the background"
+
+    for i in range(len(categories)):
+        for j in range(i + 1, len(categories)):
+            a, b = categories[i], categories[j]
+            ca, cb = current[a], current[b]
+            if ca is None or cb is None:
+                continue
+            if _separation(ca, cb) < 0.18:
+                # Move the lower-background-contrast member; keep the more legible one put.
+                loser, keeper = (a, b) if bg_contrast(ca) <= bg_contrast(cb) else (b, a)
+                if loser not in losers and keeper not in losers:
+                    losers.append(loser)
+                    reasons[loser] = f"confusable with '{keeper}' ({current[loser]} vs {current[keeper]})"
+
+    kept = {cat: current[cat] for cat in categories if cat not in losers}
+    # Replacement pool: supplied set (or Okabe-Ito), readable, not already held by a kept category.
+    held = set(kept.values())
+    pool, dropped = [], []
+    for colour in (list(available) if available else list(OKABE_ITO)):
+        if bg_contrast(colour) >= 3.0:
+            if colour not in pool and colour not in held:
+                pool.append(colour)
+        else:
+            dropped.append(colour)
+
+    remapped: list[dict[str, Any]] = []
+    shortfall = 0
+    for cat in categories:
+        if cat not in losers:
+            continue
+        anchors = list(kept.values()) + [entry["to"] for entry in remapped]
+        candidates = [c for c in pool if c not in anchors]
+        if not candidates:
+            shortfall += 1
+            kept[cat] = current[cat]  # nothing usable left; keep the flawed colour, flagged by shortfall
+            continue
+        replacement = (
+            max(candidates, key=lambda c: min((_separation(c, a) for a in anchors), default=bg_contrast(c)))
+            if anchors
+            else max(candidates, key=bg_contrast)
+        )
+        remapped.append({"series": cat, "from": current[cat], "to": replacement, "reason": reasons[cat]})
+        kept[cat] = replacement
+
+    final = [kept[cat] for cat in categories]
+    assignment = [
+        {"series_index": index, "series": cat, "colour": kept[cat]}
+        for index, cat in enumerate(categories)
+    ]
+    validation = validate_palette(final, background=background) if final else {"verdict": "pass", "findings": []}
+
+    rationale_parts = [
+        f"Anchored {len(categories)} categories to their existing colours; "
+        f"kept {len(categories) - len(remapped)} verbatim."
+    ]
+    if remapped:
+        rationale_parts.append(
+            "Remapped "
+            + ", ".join(f"'{e['series']}' {e['from']}->{e['to']}" for e in remapped)
+            + " (disclosed for identity checks)."
+        )
+    else:
+        rationale_parts.append("Prior category->colour mapping preserved exactly.")
+    if shortfall:
+        rationale_parts.append(f"{shortfall} category(ies) had no usable replacement; flawed colour kept.")
+
+    return {
+        "assignment": assignment,
+        "ordered_palette": final,
+        "chosen": final,
+        "prefix_nested": False,
+        "preserved": not remapped,
+        "remapped": remapped,
+        "n_series": n_series,
+        "shortfall": shortfall,
+        "suggested_additions": [],
+        "dropped_low_contrast": dropped,
+        "validation": validation,
+        "rationale": " ".join(rationale_parts),
     }
 
 

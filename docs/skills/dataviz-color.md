@@ -14,7 +14,7 @@ Whatever wins is the *available set*, the input to the decision, not the answer.
 
 ## What it does
 
-- **`recommend_colours`** (MCP tool) picks and assigns colours from the available set by maximising the minimum separation between series while keeping each readable against the background, pins a focal colour to the lead series, and reports any shortfall with suggested additions.
+- **`recommend_colours`** (MCP tool) picks and assigns colours from the available set by maximising the minimum separation between series while keeping each readable against the background, pins a focal colour to the lead series, and reports any shortfall with suggested additions. It is **identity-aware**: pass `series` (category names) and `current_assignment` (category -> existing colour) when repairing a chart that already has a mapping, and it keeps every still-legible, still-distinct category on its existing colour, moving only failing/colliding ones and disclosing each move in `remapped` (`preserved` is True when nothing moved).
 - **`validate_palette`** (MCP tool) scores a palette on WCAG background contrast, adjacent-series distinctness, colour-vision-deficiency (deutan/protan/tritan), and grayscale, returning soft-fail findings each with a concrete nudge.
 - **`extract_palette_from_image`** (MCP tool) samples a source chart's dominant hues during a repair, so those colours become a *prior* the skill may override for brand or accessibility while keeping the semantic mapping.
 

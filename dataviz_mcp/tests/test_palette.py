@@ -56,6 +56,54 @@ def test_recommend_drops_low_contrast_colours():
     assert "#FEFEFE" not in result["chosen"]
 
 
+def test_preserves_usable_current_assignment():
+    # A prior category->colour map whose colours already form a good palette must be
+    # kept verbatim: identity is stable, nothing is remapped.
+    current = {
+        "cacheRead": "#E69F00",
+        "cacheWrite": "#56B4E9",
+        "output": "#009E73",
+        "input": "#F0E442",
+    }
+    result = recommend_colours(
+        list(current.values()),
+        n_series=4,
+        series=list(current),
+        current_assignment=current,
+    )
+    assert result["preserved"] is True
+    assert result["remapped"] == []
+    got = {item["series"]: item["colour"] for item in result["assignment"]}
+    assert got == current
+
+
+def test_remaps_only_failing_category_and_discloses():
+    # Two confusable blues in the prior map; the rest are fine. Only one category moves,
+    # the others keep their colour, and the move is disclosed with a reason.
+    current = {
+        "cacheRead": "#3B6FB0",  # confusable blue
+        "cacheWrite": "#3E74B5",  # confusable blue
+        "output": "#009E73",
+        "input": "#D55E00",
+    }
+    result = recommend_colours(
+        None,  # draw replacements from the Okabe-Ito default
+        n_series=4,
+        series=list(current),
+        current_assignment=current,
+    )
+    assert result["preserved"] is False
+    moved = {entry["series"] for entry in result["remapped"]}
+    assert moved and moved.issubset({"cacheRead", "cacheWrite"})
+    assert len(moved) == 1  # only one of the confusable pair needs to move
+    got = {item["series"]: item["colour"] for item in result["assignment"]}
+    assert got["output"] == "#009E73"  # untouched category keeps its colour
+    assert got["input"] == "#D55E00"
+    entry = result["remapped"][0]
+    assert entry["from"] == current[entry["series"]]
+    assert entry["to"] != entry["from"] and entry["reason"]
+
+
 def test_extract_palette_from_image_returns_hexes():
     fixture = Path("tester-outputs/sector-performance-accepted.png")
     if not fixture.exists():
