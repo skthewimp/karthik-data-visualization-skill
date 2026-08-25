@@ -936,3 +936,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Shipped. `863be42..3951d4e` pushed to `origin/main`, local matches upstream. **Done this session:** - **Skill fix 1** - quantitative axes/gridlines now drop-unless when direct labels carry the values (was keep-unless,...
 
 <!-- claude-session:32b31352-6112-4229-920d-3a2fcf857353:end -->
+
+<!-- claude-session:d69d5a99-7e52-4439-ba28-929ee7e6fcdf:start -->
+## 2026-08-25 17:44 IST | Claude session `d69d5a99-7e5`
+
+### User prompts
+> we are having some deployment issues, especilly with weaker models. downstream LLM recommends: 1. Upstream skill/stage contract: - Add a structured distinction between source_fidelity and external_validation. - When e...
+
+### Work done
+- DEVLOG is auto-generated per session (separate commit). Now commit + push per maintainer default:
+- Shipped. All 3 recs landed, 77 tests green, synced + pushed. **What changed:** 1. **External validation no longer blocks.** Root cause of your failure: a check demanding "exact denominator/dataset/methodology" had no...
+
+<!-- claude-session:d69d5a99-7e52-4439-ba28-929ee7e6fcdf:end -->
