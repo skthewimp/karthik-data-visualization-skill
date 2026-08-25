@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Redundant quantitative axes and aspect-matched small-multiple grids
+
+- `karthik-data-visualization` (both surfaces): generalized the "remove redundant scaffolding" rule so it applies to quantitative axes, not only identity axes/legends. When direct labels already carry the values, the axis, ticks, and gridlines that only repeat them are removed; a scale, baseline, or reference line is kept only when it performs a reading task the labels do not (estimation between marks, alignment, a threshold, comparison of unlabelled marks). The default is now to drop redundant scaffolding rather than keep it. Previously the removal imperative was stated only for the identity axis/legend, and the quantitative case was a soft "keep unless" clause that defaulted to keep - so builders direct-labelled every value yet still emitted a full quantitative axis and gridlines.
+- `dataviz-selector` and `karthik-data-visualization` (both surfaces): tightened the small-multiples layout rule. The grid's proportions must track the delivery frame's aspect ratio (a wide frame takes more columns than rows, a tall frame the reverse), and the panel count must keep each panel legible at delivery size - reduce the number or move to a taller medium before shrinking panels. "Sized to the delivery medium" previously ruled out only single-row/single-column strips, not a tall grid dropped into a wide frame.
+
 ### Precision precedence and an auditable build record
 
 - `recommend_precision` gained an `exact` flag (MCP tool and core). By default the spread rule governs every number; `exact=True` preserves every source digit for identifiers or a genuine exact-lookup requirement, and every result now carries an `exact_override` flag so the choice is explicit rather than a silent hand-format. `dataviz-precision` (both surfaces) and `docs/skills/dataviz-precision.md` document the precedence: spread rule is the default, exact digits are the exception, and an override must state its reason.

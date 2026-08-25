@@ -1,5 +1,48 @@
 # Devlog
 
+## 2026-08-25 - Drop redundant quantitative axes; match small-multiple grids to the frame
+
+### Context
+
+Two chart failures pointed at the same kind of gap - a rule that existed but was written so it never
+fired. A skill-made small-multiples chart kept full quantitative Y axes plus a dense gridline ladder
+even though every point was already value-labelled; and a separate repair (the a16z OpenRouter
+stacked bar) exposed a layout fumble when it was rebuilt as small multiples.
+
+### Diagnosis
+
+- **Quantitative axis never dropped.** The core rule said, for identity: "remove that redundant axis
+  or legend" (active imperative), but for quantitative: "keep quantitative scales ... only when they
+  add information the direct labels do not" (passive, default-keep). Three failures compounded: the
+  framing asymmetry (drop-unless vs keep-unless), a scope trap (the rule lived inside "identification
+  route" language, which reads as identity/naming, so value axes fell outside it), and an escape hatch
+  so wide that a scale could always be argued to "add" something. So the intent was there; the wording
+  guaranteed it wouldn't act.
+- **Grid orientation.** The selector required a grid "sized to the delivery medium" but never said the
+  grid's aspect should track the frame's aspect, nor to cap panels for legibility. A tall 3x4 grid in a
+  wide 16:9 chat frame passed the letter of the rule while producing cramped panels whose end-labels
+  clipped.
+
+### Decisions
+
+- Generalized the redundant-scaffolding test to every channel (axis, scale, gridline, tick, label,
+  legend) and flipped the quantitative default to drop-unless, naming the concrete reading tasks that
+  earn a scale its place. Encoded as one general principle - no counts, thresholds, or the immediate
+  example.
+- Added to the small-multiples rule (selector + core viz skill): grid proportions track the delivery
+  frame's aspect ratio, and panel count must keep panels legible or the number/medium changes before
+  panels shrink.
+
+### Build notes
+
+- Edited both surfaces of `karthik-data-visualization` and `dataviz-selector`; `dataviz-eval:135`
+  already carried the general redundancy audit, so it was left as the backstop. Verified codex/claude
+  bodies stay byte-identical, ran `./sync.sh --no-pull --validate-only`, then `./sync.sh --no-pull`.
+- Test case: repaired `~/Downloads/openrouter.png` (11-series stacked bar) into small multiples with
+  direct end-value labels; the new rule dropped every per-panel quantitative axis and gridline while
+  the end-labels carried magnitude. Values were reconstructed/illustrative and labelled as such,
+  since exact per-model series are not recoverable from the source stack.
+
 ## 2026-08-24 - R analysis style: no SQL, right-assign long chains, run-not-knit
 
 ### Context
