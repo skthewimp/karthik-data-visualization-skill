@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Weak-model deployment: disclose external gaps, carry the exact-lookup flag upstream
+
+- Acceptance checks now declare a `validation_type` (`source_fidelity` | `external_validation`) in both `SELECT_SCHEMA` and its build results. `source_fidelity` checks are answerable inside the run (the artifact matches the source, the recovered data, or the plan); `external_validation` checks need ground truth outside the run (an exact denominator, an authoritative dataset, a methodology). Fixes a deployment failure where a weaker model, facing an `external_validation` requirement it could not satisfy, blocked the whole repair and produced no chart. Now an unavailable external validation is recorded `unknown`, disclosed as a residual limitation (a chart footnote), and the artifact is delivered regardless - the build and refine adapters state this, and `refine` reserves the `blocked` verdict for a genuine inability to produce any artifact.
+- Moved the exact-vs-spread decision upstream. `SELECT_SCHEMA` gained a required `number_display_groups` array; each entry sets `exact_lookup_required` (with a required reason) per numeric display group at form selection. The build stage obeys the flag instead of inferring "is this an identifier?" from prose - a judgement a weaker build model made unreliably. `dataviz-precision` (both surfaces) and `docs/skills/dataviz-precision.md` document the provenance.
+- New contract tests: select carries the exact-lookup decision per display group, acceptance checks split source fidelity from external validation, and a missing external validation never blocks delivery.
+
 ### Redundant quantitative axes and aspect-matched small-multiple grids
 
 - `karthik-data-visualization` (both surfaces): generalized the "remove redundant scaffolding" rule so it applies to quantitative axes, not only identity axes/legends. When direct labels already carry the values, the axis, ticks, and gridlines that only repeat them are removed; a scale, baseline, or reference line is kept only when it performs a reading task the labels do not (estimation between marks, alignment, a threshold, comparison of unlabelled marks). The default is now to drop redundant scaffolding rather than keep it. Previously the removal imperative was stated only for the identity axis/legend, and the quantitative case was a soft "keep unless" clause that defaulted to keep - so builders direct-labelled every value yet still emitted a full quantitative axis and gridlines.

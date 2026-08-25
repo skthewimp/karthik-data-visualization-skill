@@ -37,7 +37,9 @@ If you know the smallest difference that actually matters (`d`), pass `smallest_
 
 By default, `recommend_precision` governs every displayed number. Source digits override it in exactly one case: **identifiers or a genuine exact-lookup requirement** - an account number, a code, a reference value the reader must read off verbatim. Call `recommend_precision(values, role, exact=True)` for those; it preserves every source digit and returns `exact_override: true`.
 
-An exact override is never silent. Whenever you leave the spread rule behind, **record the reason** - why this column is an identifier or an exact lookup rather than a quantity to compare. In the staged pipeline that reason belongs in the build result's `recommendations_used.number_formats` entry, whose `reason` field is required. If you cannot name why exact digits are needed, the spread rule stands.
+An exact override is never silent. Whenever you leave the spread rule behind, **record the reason** - why this column is an identifier or an exact lookup rather than a quantity to compare. If you cannot name why exact digits are needed, the spread rule stands.
+
+In the staged pipeline the exact-vs-spread call is not left to whoever builds the artifact to infer from prose. The **form-selection stage decides it**, emitting a structured `exact_lookup_required` flag (with a reason) for each numeric display group in `number_display_groups`. The build stage obeys that flag and records what it applied in the build result's `recommendations_used.number_formats` entry, whose `reason` field is required. Carrying the decision as a flag rather than a paragraph is what lets a weaker build model apply it reliably.
 
 ## Charts and tables
 

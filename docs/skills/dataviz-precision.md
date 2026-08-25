@@ -22,4 +22,6 @@ The rule is the same for charts and tables; apply it per axis and per column, ea
 
 The spread rule is the default for every displayed number. It is overridden in one case only - **identifiers or a genuine exact-lookup requirement**, where a reader must read a value off verbatim. `recommend_precision(values, role, exact=True)` preserves every source digit and returns `exact_override: true`. The override is never silent: the reason for it is recorded in the build result's `recommendations_used.number_formats` entry, whose `reason` field is required.
 
+In the staged pipeline the decision is made upstream at the form-selection stage, not inferred by the builder from prose: select emits a structured `exact_lookup_required` flag (with a reason) for each numeric display group in `number_display_groups`, and the build stage obeys it. Carrying the decision as a flag rather than a paragraph is what lets a weaker build model apply it reliably.
+
 The installable skill lives in `dataviz-precision/{codex,claude}/SKILL.md`.

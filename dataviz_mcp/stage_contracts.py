@@ -334,8 +334,56 @@ _ACCEPTANCE_CHECKS = {
             "target": {"type": "string"},
             "required": {"type": "string"},
             "evidence": {"type": "string"},
+            "validation_type": {
+                "type": "string",
+                "enum": ["source_fidelity", "external_validation"],
+                "description": (
+                    "source_fidelity: the check is answerable inside this run - the "
+                    "artifact matches the source image, the recovered data, or the plan. "
+                    "external_validation: the check needs ground truth outside the run "
+                    "(an exact denominator, an authoritative dataset, a methodology to "
+                    "verify against). External validation is usually NOT available in a "
+                    "single call; when it is not, that is a normal outcome, not a failure - "
+                    "the build records the check as unknown, discloses the gap as a "
+                    "residual limitation (a chart footnote), and still delivers. Never let "
+                    "an unavailable external validation block the artifact."
+                ),
+            },
         },
-        "required": ["id", "target", "required", "evidence"],
+        "required": ["id", "target", "required", "evidence", "validation_type"],
+        "additionalProperties": False,
+    },
+}
+
+# Per numeric display group, the exact-lookup decision is made HERE, at form selection,
+# and carried forward as a structured flag - so the build stage obeys it instead of
+# re-inferring "is this an identifier?" from prose. A weaker build model cannot be relied
+# on to make that judgement; select owns it.
+_NUMBER_DISPLAY_GROUPS = {
+    "type": "array",
+    "description": (
+        "One entry per numeric display group that will be shown (each axis, each numeric "
+        "column, each labelled series). Empty when no numeric values are shown "
+        "(needs_precision_plan false). Sets, per group, whether exact source digits are "
+        "required - decided at selection, not left to the builder to infer."
+    ),
+    "items": {
+        "type": "object",
+        "properties": {
+            "group": {"type": "string"},
+            "role": {"type": "string", "enum": ["axis", "label", "table_column"]},
+            "exact_lookup_required": {
+                "type": "boolean",
+                "description": (
+                    "true only for identifiers or a genuine exact-lookup requirement "
+                    "(account numbers, codes, reference values read off verbatim). false "
+                    "means the spread rule governs - the default. Reason is required either "
+                    "way so the decision is auditable."
+                ),
+            },
+            "reason": {"type": "string", "minLength": 1},
+        },
+        "required": ["group", "role", "exact_lookup_required", "reason"],
         "additionalProperties": False,
     },
 }
@@ -385,6 +433,7 @@ SELECT_SCHEMA: dict[str, object] = {
         "needs_explainer": {"type": "boolean"},
         "needs_color_plan": {"type": "boolean"},
         "needs_precision_plan": {"type": "boolean"},
+        "number_display_groups": _NUMBER_DISPLAY_GROUPS,
         "design": _DESIGN,
         "layout_plan": _LAYOUT_PLAN,
         "acceptance_checks": _ACCEPTANCE_CHECKS,
@@ -395,6 +444,7 @@ SELECT_SCHEMA: dict[str, object] = {
         "needs_explainer",
         "needs_color_plan",
         "needs_precision_plan",
+        "number_display_groups",
         "design",
         "layout_plan",
         "acceptance_checks",
@@ -425,8 +475,11 @@ _RECOMMENDATIONS_USED = {
             "type": "array",
             "description": (
                 "One entry per numeric display group shown (each axis, each numeric column). "
-                "A group with an exact-digit override sets exact_override true and states why "
-                "in reason - an exact override cannot be recorded without its justification."
+                "exact_override mirrors the select stage's number_display_groups."
+                "exact_lookup_required for that group - the builder obeys the upstream flag "
+                "rather than re-deciding from prose. A group with an exact-digit override sets "
+                "exact_override true and states why in reason - an exact override cannot be "
+                "recorded without its justification."
             ),
             "items": {
                 "type": "object",
@@ -623,10 +676,18 @@ direct labels, or position carrying identity need 0; focal-plus-grey needs 1. Se
 ``needs_color_plan`` true when ``colour_groups`` is 1 or more (a
 colour must still be chosen against brand and background) and false when it is 0. Set
 ``needs_precision_plan`` true whenever numeric values are
-shown (axis ticks, data labels, or table cells). Produce the design,
+shown (axis ticks, data labels, or table cells). When it is true, enumerate
+``number_display_groups`` - one entry per axis, numeric column, or labelled numeric series -
+and decide ``exact_lookup_required`` for each HERE: true only for identifiers or a genuine
+exact-lookup requirement, false (the spread rule) otherwise, with a reason either way. The
+build stage obeys this flag rather than re-deciding it. Produce the design,
 the layout plan under the declared delivery condition, and an observable acceptance check for
-every fatal or major problem and every preservation requirement. Return the select artifact
-against the required schema."""
+every fatal or major problem and every preservation requirement. Tag each acceptance check
+with ``validation_type``: ``source_fidelity`` when it can be checked inside the run (the
+artifact matches the source, the recovered data, or the plan), ``external_validation`` when
+it needs ground truth outside the run (an exact denominator, an authoritative dataset, a
+methodology to verify against). Do not make delivery contingent on an external validation -
+those are disclosed, not blocking. Return the select artifact against the required schema."""
 
 _REPAIR_BUILD = """You are the build stage of a static chart repair. You receive the source,
 the diagnose artifact, and the select artifact (form, build plan, acceptance checks). Build
@@ -637,8 +698,16 @@ the installed writing or brand-style skill, if one exists in this environment, t
 reader-facing phrase; if none is installed, apply the prompt's stated preferences. Render
 one real artifact through the project's renderer, then inspect that exact export at its
 delivery size and correct consequential clipping, collision, hierarchy, comparison,
-labelling, colour, content, or prompt-compliance defects before returning. Record each
-acceptance check as pass, fail, or unknown against observed evidence. A valid artifact must
+labelling, colour, content, or prompt-compliance defects before returning. For every numeric
+display group, take ``exact_override`` straight from the select stage's
+``exact_lookup_required`` for that group - do not re-decide it - and record each format in
+``recommendations_used.number_formats`` with its reason. Record each acceptance check as pass,
+fail, or unknown against observed evidence. A ``source_fidelity`` check is answerable here.
+An ``external_validation`` check whose ground truth (an exact denominator, dataset, or
+methodology) is not available in this run is recorded as ``unknown``, its gap stated plainly
+in ``open_issues`` so it can surface as a chart footnote, and the artifact is DELIVERED
+regardless - an unavailable external validation is a disclosure, never a reason to withhold
+the chart or to demand the missing source. A valid artifact must
 not be withheld because an optional reviewer is unavailable. Return the build artifact
 against the required schema."""
 
@@ -650,8 +719,12 @@ its required content, prompt constraints honoured, nothing key silently dropped)
 mechanically and semantically sound at delivery size. Consolidate any fatal or major defects
 into one focused revision, re-render, and re-inspect the changed regions and their
 neighbours; stop as soon as no fatal or major defect remains. Deliver the best valid
-candidate with a plain summary and any residual limitation. Return the refine artifact
-against the required schema."""
+candidate with a plain summary and any residual limitation. An acceptance check left
+``unknown`` because its ``external_validation`` ground truth was unavailable is not a defect
+and never a reason to withhold: carry it into ``residual_limitations`` as a footnote and still
+return ``deliver``. Reserve the ``blocked`` verdict for a genuine inability to produce any
+valid artifact at all - never for a missing external denominator, dataset, or methodology.
+Return the refine artifact against the required schema."""
 
 _STORY_DISCOVER = """You are the discovery stage of dataset-to-story work. You receive a
 dataset and any question or context. Inspect the data and propose visualisable stories before
@@ -691,8 +764,14 @@ reused across panels); small multiples with one line per panel, direct labels, o
 carrying identity need 0; focal-plus-grey needs 1. Set
 ``needs_color_plan`` true when ``colour_groups`` is 1 or more and false when it is 0. Set
 ``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels,
-or table cells). Produce the design, layout
-plan, and acceptance checks. Return the select artifact against the required schema."""
+or table cells). When it is true, enumerate ``number_display_groups`` - one per axis, numeric
+column, or labelled numeric series - and decide ``exact_lookup_required`` for each here (true
+only for identifiers or a genuine exact-lookup requirement, false otherwise, with a reason);
+the builder obeys this flag. Produce the design, layout
+plan, and acceptance checks. Tag each acceptance check with ``validation_type``:
+``source_fidelity`` when checkable inside the run, ``external_validation`` when it needs
+ground truth outside the run. An external validation is disclosed, never blocking. Return the
+select artifact against the required schema."""
 
 _STORY_BUILD = _REPAIR_BUILD.replace("of a static chart repair", "of dataset-to-story work")
 

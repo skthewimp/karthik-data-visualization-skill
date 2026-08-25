@@ -149,6 +149,42 @@ def test_build_result_can_record_recommendations_used() -> None:
     assert used["required"] == ["number_formats"]
 
 
+def test_select_carries_exact_lookup_decision_upstream() -> None:
+    """The exact-vs-spread call is made at select, per numeric display group, not at build."""
+    props = sc.SELECT_SCHEMA["properties"]
+    assert "number_display_groups" in props
+    assert "number_display_groups" in sc.SELECT_SCHEMA["required"]
+    item = props["number_display_groups"]["items"]
+    assert "exact_lookup_required" in item["required"]
+    assert item["properties"]["exact_lookup_required"]["type"] == "boolean"
+    # A group's decision is auditable: a reason is required either way.
+    assert "reason" in item["required"]
+    assert item["properties"]["reason"]["minLength"] == 1
+
+
+def test_acceptance_checks_split_fidelity_from_external_validation() -> None:
+    """Every check declares whether it is answerable in-run or needs external ground truth."""
+    for schema in (sc.SELECT_SCHEMA, sc.REPAIR_PIPELINE[1].output_schema):
+        item = schema["properties"]["acceptance_checks"]["items"]
+        assert "validation_type" in item["required"]
+        assert item["properties"]["validation_type"]["enum"] == [
+            "source_fidelity",
+            "external_validation",
+        ]
+
+
+def test_missing_external_validation_never_blocks_delivery() -> None:
+    """An unavailable external validation is disclosed in a footnote, not a blocking failure."""
+    build = " ".join(sc.stage("repair", "build").instructions.split())
+    refine = " ".join(sc.stage("repair", "refine").instructions.split())
+    # Build delivers and discloses rather than demanding the missing source.
+    assert "DELIVERED regardless" in build
+    assert "external_validation" in build
+    # Refine reserves `blocked` for a genuine inability to produce any artifact.
+    assert "residual_limitations" in refine
+    assert "Reserve the ``blocked`` verdict" in refine
+
+
 def test_number_format_cannot_record_a_silent_exact_override() -> None:
     """An exact-digit override must carry its flag and a non-empty reason - never silent."""
     entry = (
