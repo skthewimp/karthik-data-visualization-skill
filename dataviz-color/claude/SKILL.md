@@ -33,8 +33,6 @@ Call `recommend_colours(available, colour_groups, background, focal)`. It picks 
 
 Picking a subset from an available set is the normal case, not an exception.
 
-**Repairing a chart that already has a category->colour mapping?** Pass `series` (the category names) and `current_assignment` (category -> existing colour). The recommender then anchors identity: every category whose colour already reads well and stays distinct is kept **verbatim**, and only a colour that fails contrast or collides with another category is moved. Each move is disclosed in `remapped` (with the reason); `preserved` is True when nothing moved. This is what lets the recommender be the single source of truth *and* keep the reader's learned category->colour mapping - never reshuffle a whole legend just to re-derive a palette the source already had. Without `current_assignment` the tool only knows positional series indices, so it cannot preserve identity.
-
 ## 4. Defaults and craft rules (when choosing freely)
 
 - **Focal colour plus grey.** One series in the focal colour; the rest muted grey context, unless every series genuinely competes for attention.

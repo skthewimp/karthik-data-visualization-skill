@@ -113,25 +113,14 @@ def create_server() -> Any:
         n_series: int,
         background: str = "#FFFFFF",
         focal: str | None = None,
-        series: list[str] | None = None,
-        current_assignment: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Pick and assign colours for one graph from an available set (brand/context/default).
 
         Chooses by max-min separation and background contrast, pins ``focal`` to series 0,
         and reports any shortfall with suggested additions. Use even when colours are given -
         a specific chart still needs a which-and-how-assigned decision.
-
-        Identity-aware: pass ``series`` (category names) to label the output, and
-        ``current_assignment`` (category -> existing colour) to anchor a prior mapping.
-        Categories whose colour already reads well and stays distinct are kept verbatim;
-        only failing/colliding ones move, and every move is disclosed in ``remapped`` with a
-        reason (``preserved`` is True when nothing moved). This lets a caller be the single
-        source of truth *and* preserve the original category->colour mapping.
         """
-        return recommend_colours_core(
-            available, n_series, background, focal, series, current_assignment
-        )
+        return recommend_colours_core(available, n_series, background, focal)
 
     @server.tool()
     async def validate_palette(

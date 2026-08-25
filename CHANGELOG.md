@@ -2,12 +2,6 @@
 
 ## Unreleased
 
-### Identity-aware colour recommendation: preserve a prior category->colour mapping
-
-- `recommend_colours` (MCP tool and core) gained optional `series` (category names) and `current_assignment` (category -> existing colour). When a prior mapping is supplied it anchors identity: every category whose colour still reads well and stays distinct is kept verbatim, only colours that fail background contrast or collide with another category are moved, and every move is disclosed in a new `remapped` list (with a reason). Results also carry `preserved` (True when nothing moved). Fixes a repair failure where the recommender - which previously knew only positional series indices - returned a reordered palette that satisfied "use the deterministic palette" but violated a separate "preserve the original category->colour mapping" requirement, so the two checks contradicted and the chart was rejected. The count-only call path is unchanged.
-- `dataviz-color` (both surfaces) and `docs/skills/dataviz-color.md` document the identity-aware path: pass `series` + `current_assignment` when repairing a chart that already has a mapping.
-- New tests: a usable prior assignment is preserved verbatim, and a confusable pair moves exactly one category while the rest keep their colour and the move is disclosed.
-
 ### Weak-model deployment: disclose external gaps, carry the exact-lookup flag upstream
 
 - Acceptance checks now declare a `validation_type` (`source_fidelity` | `external_validation`) in both `SELECT_SCHEMA` and its build results. `source_fidelity` checks are answerable inside the run (the artifact matches the source, the recovered data, or the plan); `external_validation` checks need ground truth outside the run (an exact denominator, an authoritative dataset, a methodology). Fixes a deployment failure where a weaker model, facing an `external_validation` requirement it could not satisfy, blocked the whole repair and produced no chart. Now an unavailable external validation is recorded `unknown`, disclosed as a residual limitation (a chart footnote), and the artifact is delivered regardless - the build and refine adapters state this, and `refine` reserves the `blocked` verdict for a genuine inability to produce any artifact.
