@@ -962,3 +962,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Reverted. `fb0c898` pushed, all 7 files back to pre-change state, local matches `origin/main`. `recommend_colours` is count-only again.
 
 <!-- claude-session:94f7df76-e044-4b03-9fc9-f1ff331a8411:end -->
+
+<!-- claude-session:6d1d1db3-64a5-4986-bf17-ee71544982e8:start -->
+## 2026-08-25 21:54 IST | Claude session `6d1d1db3-64a`
+
+### User prompts
+> i'm thinking about the colour selector - if there is a way we can also get it to choose SEMANTICALLY APPROPRIATE colours. how would we code it, if we would want to add this?
+> ok soft families, judgment in the model; we should use semantic colouring whenever the LLM thinks its appropriate unless the promopt or brand style or something else has strongly recommended against it.
+> [Request interrupted by user]
+
+### Work done
+- Local is one commit ahead of remote (the devlog auto-commit) and clean to fast-forward. Staging and committing:
+- Pushed. Local and `origin/main` both at `a52e8f3`. Shipped: - `recommend_colours` now takes `semantic_hints` (hard pins / soft hue families + away-kit `alternates`), with the priority you set - distinctness hard, mean...
+
+<!-- claude-session:6d1d1db3-64a5-4986-bf17-ee71544982e8:end -->
