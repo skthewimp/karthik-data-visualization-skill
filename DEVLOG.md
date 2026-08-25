@@ -922,3 +922,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Fixed and pushed. Local matches `origin/main`. **Fix:** quoted the codex `dataviz-precision` description - it had `choose precision: how many` (colon-space) as a plain YAML scalar, which strict parsers reject. My `syn...
 
 <!-- claude-session:10270db0-824f-471a-ae30-a8179b3b7400:end -->
+
+<!-- claude-session:32b31352-6112-4229-920d-3a2fcf857353:start -->
+## 2026-08-24 12:54 IST | Claude session `32b31352-611`
+
+### User prompts
+> more issues in the skill set. again i dont konw where to fix this. check out this chart. Y axes are too dense. and given the direct labelling, ew don't need the axes at all. and why do we have small multiples here rat...
+> <task-notification> <task-id>a3cf0386b2971dd28</task-id> <tool-use-id>toolu_019ZjLeLZBiG2qeeun7aTNGT</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/02...
+> ok let's figuer out where to fix this. thing is - i don't know why the "don't repeat axes" things was never implemented for quantitative axes. tit was always intended to
+
+### Work done
+- Installed to `~/.codex` + `~/.claude`, diff-check clean, only the 6 intended files changed. Fetching, committing, pushing.
+- Shipped. `863be42..3951d4e` pushed to `origin/main`, local matches upstream. **Done this session:** - **Skill fix 1** - quantitative axes/gridlines now drop-unless when direct labels carry the values (was keep-unless,...
+
+<!-- claude-session:32b31352-6112-4229-920d-3a2fcf857353:end -->
