@@ -948,3 +948,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Shipped. All 3 recs landed, 77 tests green, synced + pushed. **What changed:** 1. **External validation no longer blocks.** Root cause of your failure: a check demanding "exact denominator/dataset/methodology" had no...
 
 <!-- claude-session:d69d5a99-7e52-4439-ba28-929ee7e6fcdf:end -->
+
+<!-- claude-session:94f7df76-e044-4b03-9fc9-f1ff331a8411:start -->
+## 2026-08-25 18:15 IST | Claude session `94f7df76-e04`
+
+### User prompts
+> The underlying problem is upstream: recommend_colours knows positional series indices, not semantic category identities. The contract simultaneously required its reordered palette and preservation of the old semantic...
+> this is on the colour recommender. resulted in an unnecessary failure. Case 2 had four semantic colour assignments in the source: - cacheRead → light green - cacheWrite → dark green - output → amber - input → grey Ter...
+> actually we don't need this last change. revert it. it's way too specific.
+
+### Work done
+- Reverting via `git revert` (no history rewrite, safe to push).
+- Reverted. `fb0c898` pushed, all 7 files back to pre-change state, local matches `origin/main`. `recommend_colours` is count-only again.
+
+<!-- claude-session:94f7df76-e044-4b03-9fc9-f1ff331a8411:end -->
