@@ -1031,3 +1031,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed. Local and `origin/main` both at `a52e8f3`. Shipped: - `recommend_colours` now takes `semantic_hints` (hard pins / soft hue families + away-kit `alternates`), with the priority you set - distinctness hard, mean...
 
 <!-- claude-session:6d1d1db3-64a5-4986-bf17-ee71544982e8:end -->
+
+<!-- claude-session:22f8f071-11b4-4531-9d41-f338f4fd3e25:start -->
+## 2026-08-26 09:44 IST | Claude session `22f8f071-11b`
+
+### User prompts
+> recently we moved the dataviz-fix and orchestrator workflows from a monolith to a series of LLM calls with only the right contexts loaded in. however the issue with this is that it now overly depends upon json output...
+> one more thing - we have skilslfor codex and claude. how will other LLMs work with this? how should the harness be s tructured for that?
+> [Request interrupted by user]
+
+### Work done
+- Now remove the project-local duplicate so it lives in one place:
+- Done. The principle now lives globally in `~/.claude/CLAUDE.md`, under **Coding Behavior → "LLM handoffs: markdown over JSON"**, so it applies to every project: > Avoid JSON "contracts" unless absolutely necessary. An...
+
+<!-- claude-session:22f8f071-11b4-4531-9d41-f338f4fd3e25:end -->
