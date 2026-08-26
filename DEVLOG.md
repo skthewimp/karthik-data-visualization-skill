@@ -1094,3 +1094,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. The principle now lives globally in `~/.claude/CLAUDE.md`, under **Coding Behavior → "LLM handoffs: markdown over JSON"**, so it applies to every project: > Avoid JSON "contracts" unless absolutely necessary. An...
 
 <!-- claude-session:22f8f071-11b4-4531-9d41-f338f4fd3e25:end -->
+
+<!-- claude-session:9b830eee-8084-42e7-ab5f-38f7284325c1:start -->
+## 2026-08-26 15:44 IST | Claude session `9b830eee-808`
+
+### User prompts
+> forget the downstream harness that i'm building. how does this repo currently stand as a set of standalone skills and MCPs for building and repairing dataviz, and analysing data? anything is off or overfit or hardcoded?
+> ok first undo the machine-specific overfit. don't push yet.
+> ok now for hte other issues. how do we deal wtih it? "demote" doesn't sound good.
+
+### Work done
+- Pushed. `main` up to date with `origin/main`, clean. **Committed `f550edf`** (+ the prior devlog commit `b5186cc` that was already ahead) → pushed `cc05cf2..f550edf`. - 16 skill files reframed/cleaned + CHANGELOG + DE...
+- Synced. All 18 skills installed to both `~/.claude` and `~/.codex`. Everything's committed, pushed, and the local installs now match.
+
+<!-- claude-session:9b830eee-8084-42e7-ab5f-38f7284325c1:end -->
