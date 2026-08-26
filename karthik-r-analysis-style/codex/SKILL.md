@@ -84,16 +84,7 @@ For each example, ask: what is the question/context, grain, first inspection, br
 
 Copy texture, not just syntax: roughness, local object names, domain metrics, assignment style, plot roughness, section rhythm, willingness to abandon paths.
 
-Good exemplars to search when relevant:
-
-- `Clover/basic analytics.Rmd` for client/order exploration.
-- `data_work/bangalore/weather/scratchpad.Rmd` for weather scratchpads.
-- `elections/legacy/_flat_compat/karnataka analysis 2023.Rmd` for elections/simulation/maps.
-- `cricket/odis/number4.Rmd` and other old cricket notebooks for cricket story analysis.
-- `qcom/cosmix/explore_cosmix_june.Rmd` for modern client scratchpad with joined data sources.
-- `BabbageInsight/SingleTimeSeries/new_explorations.qmd` for rough hypothesis-testing notebooks.
-
-Read `references/style-observations.md` only when matching old notebooks closely or when examples are unclear.
+Read `references/style-observations.md` only when matching old notebooks closely.
 
 ## Notebook family routing
 

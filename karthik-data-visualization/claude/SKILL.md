@@ -47,20 +47,20 @@ Core operating rules:
 - Let the evidence determine whether the title states a claim, a question, a measure, or a null result. Do not manufacture a claim merely to make the chart sound decisive.
 - Let complexity come from the data, not decoration.
 
-## Optional audited repair contract
+## Optional: audited repair plan
 
-Do not write a design contract in the default output-first `dataviz-fix` path. Build the chart and inspect the export. When the user explicitly requests an audited repair workflow, write a design contract that records:
+Work output-first by default: build the chart and inspect the export, without writing a plan up front. Only when an audited repair is explicitly requested, record a short plan first, covering:
 
 - the measure and evidence scope, including what a screenshot can support only approximately;
-- the selected chart form and, when form was questioned, the `dataviz-selector` decision;
+- the selected chart form, and the reason if the source form was rejected;
 - one primary identification route for each series/category;
 - the intended contents of the title, subtitle, legend, plot, annotation, and footer zones;
 - colour's semantic role: identity, order, direction, emphasis, uncertainty, or none;
-- one implementation requirement for every fatal and major critique finding, naming the affected zones and observable outcome.
-- one preservation mapping for every required source item and semantic mapping in the critique inventory, stating how it will be carried forward and what observable state proves it did not regress;
+- one implementation requirement for every fatal and major finding, naming the affected zones and observable outcome;
+- one preservation mapping for every required source item and semantic mapping, stating how it will be carried forward and what observable state proves it did not regress;
 - a layout plan for the declared delivery size that names the longest text, densest regions, likely title/subtitle/legend/annotation/footer collisions, their mitigation, and the representative preview check.
 
-In audited mode, treat this as executable scope. Submit it to an independent plan audit only when that audit was part of the requested workflow. In the default path, do not delay chart code for a contract or plan audit. A revision continues from the latest candidate and changes the smallest relevant region; a redesign returns to the underlying evidence.
+Treat the plan as executable scope. In the default path, do not delay chart code for a plan. A revision continues from the latest candidate and changes the smallest relevant region; a redesign returns to the underlying evidence.
 
 ## Grouping and emphasis
 

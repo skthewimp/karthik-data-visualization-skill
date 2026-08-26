@@ -39,7 +39,7 @@ By default, `recommend_precision` governs every displayed number. Source digits 
 
 An exact override is never silent. Whenever you leave the spread rule behind, **record the reason** - why this column is an identifier or an exact lookup rather than a quantity to compare. If you cannot name why exact digits are needed, the spread rule stands.
 
-In the staged pipeline the exact-vs-spread call is not left to whoever builds the artifact to infer from prose. The **form-selection stage decides it**, emitting a structured `exact_lookup_required` flag (with a reason) for each numeric display group in `number_display_groups`. The build stage obeys that flag and records what it applied in the build result's `recommendations_used.number_formats` entry, whose `reason` field is required. Carrying the decision as a flag rather than a paragraph is what lets a weaker build model apply it reliably.
+If an upstream decision has already marked a column as an identifier or exact-lookup, obey that mark and carry its stated reason forward - do not silently re-decide it at build time. Absent any such mark, the spread rule stands and the exact-vs-spread call is yours to make here. Carrying the decision as an explicit flag with its reason, rather than leaving it to be re-inferred from prose, is what lets a weaker downstream model apply it reliably.
 
 ## Charts and tables
 

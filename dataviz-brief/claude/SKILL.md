@@ -45,10 +45,10 @@ Name anything you judge *not* key, and why, in message terms. A drop is legitima
 
 ### 5. Edit-vs-redesign mode
 
-Classify the request and emit the mode explicitly - this decides whether the form is reopened downstream:
+Classify the request and emit the mode explicitly - this decides whether the form is reopened:
 
 - **`bounded-edit`**: a literal, self-contained change to the existing chart that leaves its form intact and correct - "fix the axis labels", "change the title", "recolour series 3", "remove the gridlines". Stay anchored to the source form; skip form selection and full data extraction; apply the named edit and re-render. Choose this only when the existing form genuinely serves the messages and the prompt does not question it.
-- **`redesign`**: everything else - a new question, a weak or misleading form, a per-series message trapped in a stack, "make this clearer", or no prompt at all. The form is reopened. Downstream, `dataviz-selector` runs cold on the messages and data; the source form gets no vote.
+- **`redesign`**: everything else - a new question, a weak or misleading form, a per-series message trapped in a stack, "make this clearer", or no prompt at all. The form is reopened: the source form gets no vote, and form selection runs cold from the messages and data.
 
 When in doubt, choose `redesign`. A bounded-edit that turns out to need a form change can always be widened; a redesign wrongly narrowed to an edit reproduces the source's weakness.
 

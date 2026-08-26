@@ -12,7 +12,7 @@ Core job: diagnose whether the visual makes the right thing easy to see, hard to
 ## Two roles
 
 1. **Standalone review** - the user shows a chart and asks "what's wrong with this?" or "how do I improve it?". Run the full diagnosis below and return the reader-facing structure. This is the primary use and is unchanged.
-2. **Downstream checker in a repair** - inside `dataviz-fix`, this skill runs *after* a candidate is built, as a checker, not as the first move and not as the designer. Repair no longer begins with critique: the intent is owned by `dataviz-brief` and the form is chosen cold by `dataviz-selector` before anything is drawn. As the checker you do **not** re-derive the key messages (the brief owns them) and you do **not** reopen the form choice unless the candidate genuinely fails a message. You answer: does the candidate carry the brief's intent (every key message with its required content, nothing key silently dropped, prompt constraints honoured), and is it a good chart (mechanical and semantic)? Run in-context, consolidate into one focused revision per pass, cap at two passes, and exit as soon as no fatal or major defect remains.
+2. **Checker against an existing brief** - a chart candidate arrives together with a brief that already names the intent (the key messages and required content for each). Run *after* the candidate is built, as a checker, not as the designer: you do **not** re-derive the key messages (the brief owns them) and you do **not** reopen the form choice unless the candidate genuinely fails a message. You answer: does the candidate carry the brief's intent (every key message with its required content, nothing key silently dropped, prompt constraints honoured), and is it a good chart (mechanical and semantic)? Run in-context, consolidate into one focused revision per pass, cap at two passes, and exit as soon as no fatal or major defect remains.
 
 ## Inputs to seek or infer
 
@@ -42,7 +42,7 @@ If the chart is impossible to interpret, say so directly and explain why.
 
 ## Key messages and required content
 
-In a **repair**, this judgment is owned upstream by `dataviz-brief` (the intent step), not here - the brief names the key messages and required content before any chart is built, and as the downstream checker you verify the candidate against that brief rather than re-deriving it. This section is the reasoning for **standalone review**, and for sanity-checking a brief when one exists.
+When a chart arrives with a brief that already names the key messages and required content, that judgment is owned by the brief, not re-made here - verify the candidate against it rather than re-deriving it. This section is the reasoning for **standalone review**, and for sanity-checking a brief when one exists.
 
 Cataloguing what a chart contains is not the same as judging what matters. After the inventory, decide - as a judgment call, not a preserve-everything rule - what the rebuild must carry.
 
@@ -128,54 +128,11 @@ Do not over-focus on minor style while fatal data/question problems remain.
 6. For each useful alternative, explain its analytical purpose, encoding, benefit, and tradeoff.
 7. If context is insufficient, list the checks needed rather than pretending certainty.
 
-For an audited repair brief, make the repair/redesign decision explicit. Choose `redesign` when the question, evidence-to-claim relationship, or chart form blocks the intended comparison; otherwise choose `repair`. Set `form_questioned` independently so `dataviz-selector` is invoked whenever the form is implicated. State observable conditions the replacement must satisfy and what must survive unchanged.
-
 ## Redesign alternatives
 
 Offer alternatives only when they address a diagnosed mismatch. Choose the number and kind of alternatives from the question, data, audience, medium, and constraints; do not force a fixed taxonomy or count. A minimal repair may be enough, and a redesign may be inappropriate when the evidence or question is the real limitation.
 
-## Optional structured repair brief
-
-When an audited `dataviz-fix` workflow is explicitly selected, return this contract as JSON:
-
-```json
-{
-  "context_version": 1,
-  "apparent_question": "...",
-  "apparent_claim": "...",
-  "evidence_limitations": ["..."],
-  "source_inventory": {
-    "structure": ["..."],
-    "required_content": ["every visible period, category, unit, qualification, source note, and annotation that must survive"],
-    "semantic_mappings": ["..."],
-    "uncertainties": ["..."]
-  },
-  "key_messages": [
-    {"message": "...", "required_content": ["series/periods/breakdowns/comparisons this message needs"]}
-  ],
-  "dropped_as_not_key": [{"item": "...", "reason": "..."}],
-  "chart_count_hint": "one|several - several when messages need whole-and-parts or separate views",
-  "layout_risks": ["longest labels, dense regions, neighbouring zones, repeated placements, and outer-edge risks"],
-  "findings": {
-    "fatal": [],
-    "major": [{"id": "c1", "problem": "...", "reader_consequence": "...", "observable_condition": "..."}],
-    "minor": []
-  },
-  "highest_consequence_findings": ["c1"],
-  "misleading_reader_interpretation": "...",
-  "defensible_interpretation": "...",
-  "intervention": "repair|redesign",
-  "form_questioned": false,
-  "required_delivered_outcomes": ["..."],
-  "preserve": ["..."]
-}
-```
-
-Rank the findings that actually determine the intervention; do not require or invent a fixed number. Retain every additional fatal, major, and minor finding in its severity list. `required_delivered_outcomes` must be observable in the replacement artifact. `preserve` must name source context, evidence, wording, mappings, or geometry that should not regress.
-
-`source_inventory.required_content` and `semantic_mappings` are not optional summaries. Enumerate the source elements whose omission, shortening, reassignment, or relabelling could change the reading. `layout_risks` must anticipate the most failure-prone geometry before implementation, including long text and adjacent zones.
-
-For a critique that is not part of repair implementation, use this reader-facing structure:
+Return this reader-facing structure:
 
 ```markdown
 ## Quick read

@@ -51,7 +51,7 @@ Capture, when available:
 - the audience and what they should understand or do
 - the delivery medium and real display size
 - the active change contract: each requested addition, removal, relocation, and preservation constraint rewritten as an observable before-to-after acceptance check
-- the original structured critique and first/revised design contract
+- the original critique and any repair plan from prior revisions
 - the frozen source inventory, preservation mappings, and pre-build layout-risk plan
 - every open action from prior evaluations and every active user acceptance check
 - deterministic full, delivery, panel, hierarchy, and dense-placement views plus the revision comparison

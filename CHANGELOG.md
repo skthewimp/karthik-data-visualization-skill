@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Standalone-skill hygiene: decouple skill prose from the repair/story harness
+
+- Several skills carried the staged pipeline's wiring in their bodies - harness component names (`dataviz-fix`, the "form-selection stage"), schema field names (`design.colour_groups`, `exact_lookup_required`, `number_display_groups`, `needs_color_plan`), and a stale JSON "structured repair brief" - so they read as pipeline-stage configs rather than skills usable on their own. Reframed the coupling by *precondition* ("if an upstream decision already exists, obey it; else decide here") instead of by naming the harness, so each skill stands alone and still works when driven by `dataviz-fix` / `dataviz-orchestrator`. The wire-format field names now live only in `stage_contracts.py`, where code reads them.
+- `dataviz-critique`: removed the dead `## Optional structured repair brief` JSON contract (the pre-staged `public_repair_contract` shape - `context_version`, `chart_count_hint`, `intervention`, `form_questioned` - superseded by `DIAGNOSE_SCHEMA`) and its two field-describing paragraphs, plus an orphaned `form_questioned`/`repair`-vs-`redesign` note; "two roles" reframed from "inside `dataviz-fix`" to standalone-review vs checker-against-an-existing-brief.
+- `dataviz-precision`, `dataviz-brief`, `dataviz-color`, `dataviz-selector`: pipeline and field-name references reframed to precondition language.
+- `karthik-data-visualization`: `## Optional audited repair contract` → `## Optional: audited repair plan`; dropped the deprecated "design contract" concept and the `dataviz-fix` path naming, kept the checklist.
+- `dataviz-eval`: dropped the dead "design contract" evaluation input.
+- `karthik-r-analysis-style`: removed a block of hardcoded machine-local exemplar paths (`Clover/…`, `elections/…/karnataka analysis 2023.Rmd`, etc.) that only resolved on the maintainer's machine.
+- Prose only; no code, schema, or test changes. `./sync.sh --no-pull --validate-only` green across all 18 skills. `dataviz-fix` and `dataviz-orchestrator` are unchanged - they own the pipeline and correctly name it.
+
 ### Structured-text handoffs: run the staged pipelines on cheaper / open-weight models
 
 - The staged `dataviz-fix` (repair) and `dataviz-orchestrator` (dataset-to-story) pipelines passed each stage's artifact forward as strict, deeply-nested JSON. That serialization broke cheaper / open-weight models, which are unreliable at valid JSON, so the pipeline could only run on a strong model. Almost every field in a stage artifact is reasoning content read only by the *next LLM stage* (which reads markdown fine); the only thing code must parse reliably is a handful of routing scalars.

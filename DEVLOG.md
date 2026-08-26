@@ -1,5 +1,54 @@
 # Devlog
 
+## 2026-08-26 - Decouple standalone skills from the repair/story harness
+
+### Prompt
+
+> forget the downstream harness that i'm building. how does this repo currently stand as a set
+> of standalone skills and MCPs for building and repairing dataviz, and analysing data? anything
+> is off or overfit or hardcoded?
+
+Then, across follow-ups: undo the machine-specific overfit; reframe the pipeline coupling by
+*precondition* rather than "demote" it to a footer; check once more for dangling references, dead
+blocks, and unnecessary JSON; do all four remaining; commit and push with documentation.
+
+### Context
+
+An audit of the 18 skills + MCP as standalone units. The MCP (10 deterministic render/inspect/
+colour/precision tools) and the single-purpose skills were clean; `color_math` / `precision` are
+principled (real WCAG sRGB constants, spread-keyed significant digits), not tuned. Two problems:
+(1) one personal skill hardcoded machine-local notebook paths; (2) ~6 skills wove the staged-
+pipeline wiring into their prose - harness component names and schema field names - so they read
+as stage configs, not standalone skills, and `dataviz-critique` still carried a JSON "structured
+repair brief" that the staged refactor had already replaced with `DIAGNOSE_SCHEMA`.
+
+### What changed
+
+- Reframed harness coupling by precondition in `dataviz-precision`, `dataviz-brief`,
+  `dataviz-critique`, `dataviz-color`, `dataviz-selector`: "if an upstream decision already exists,
+  obey it and carry its reason; otherwise decide here" - no harness component or field names. The
+  wire-format field names stay in `stage_contracts.py`, where code actually reads them.
+- Removed dead blocks: `dataviz-critique`'s `public_repair_contract`-era JSON contract and its
+  orphaned field notes; `karthik-data-visualization`'s deprecated "design contract" (rewritten as a
+  standalone "audited repair plan" checklist); the stale "design contract" input in `dataviz-eval`.
+- Deleted the machine-local exemplar-path block from `karthik-r-analysis-style` (kept the
+  domain-name lists and comment-voice examples, which are portable).
+- Left `dataviz-fix` and `dataviz-orchestrator` as-is - they own the pipeline and correctly name
+  `stage_contracts.py`, `stage_skill_bundle`, and the routing block. Sibling "see also →
+  `dataviz-fix`" pointers kept.
+
+### Decision / scoping note
+
+The rule: **frame the coupling by precondition, not by naming the harness component and its wire
+fields.** That keeps each skill true standalone and still correct inside the pipeline. Rejected the
+alternative of quarantining the pipeline prose in a trailer ("demote"), which would have left the
+harness field names sitting in the skill body.
+
+### Validation
+
+`./sync.sh --no-pull --validate-only` validates all 18 skills; `git diff --check` clean. Prose-only
+change, no code or tests touched. 16 files (8 skills × `codex`/`claude` surfaces).
+
 ## 2026-08-26 - Structured-text handoffs so the staged pipelines run on cheaper models
 
 ### Prompt

@@ -22,7 +22,7 @@ Whatever wins defines the *available set*. The available set is the input to the
 
 ## 2. How many colours (max series per panel, not total categories)
 
-The palette size is decided upstream by the select stage and handed to you as `design.colour_groups`. It is the **maximum number of series that share a single panel** and must be told apart by colour - a property of the form, not the total category count. N lines in one panel need N. Small multiples with k lines *per panel* need k (the same k colours reused across panels) - not 0, and not the total across panels. Small multiples with one line per panel, direct labels, or position carrying identity need 0. Focal-plus-grey needs 1. Use `design.colour_groups` as `n_series`; if it is 0, there is no colour decision to make (the build already skipped this skill via `needs_color_plan`).
+Size the palette to the **maximum number of series that share a single panel** and must be told apart by colour - a property of the form, not the total category count. N lines in one panel need N. Small multiples with k lines *per panel* need k (the same k colours reused across panels) - not 0, and not the total across panels. Small multiples with one line per panel, direct labels, or position carrying identity need 0. Focal-plus-grey needs 1. Take that count as `n_series`; if an upstream step already decided it, use the count it handed you. When it is 0 there is no colour decision to make.
 
 ## 3. Always recommend for the specific graph
 
