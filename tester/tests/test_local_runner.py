@@ -139,12 +139,18 @@ class LocalRunnerTests(unittest.TestCase):
                 self.assertIn(client.case_id, prompt)
                 self.assertEqual(case_dir, client.case_dir)
                 if stage == "diagnose":
-                    (client.case_dir / "diagnose-01.json").write_text("{}", encoding="utf-8")
+                    (client.case_dir / "diagnose-01.md").write_text(
+                        "## APPARENT QUESTION\nWhat changed?\n", encoding="utf-8"
+                    )
                 elif stage == "select":
                     # No image on the cold-selection call.
                     self.assertEqual(images, [])
-                    (client.case_dir / "select-01.json").write_text(
-                        '{"builder":"chart","needs_annotations":false,"needs_explainer":false}',
+                    # Structured-text handoff: markdown sections plus a routing block.
+                    (client.case_dir / "select-01.md").write_text(
+                        "## DESIGN\nDirect-labelled lines.\n\n"
+                        "```routing\nbuilder: chart\nneeds_annotations: no\n"
+                        "needs_explainer: no\nneeds_color_plan: no\n"
+                        "needs_precision_plan: no\n```\n",
                         encoding="utf-8",
                     )
                 elif stage == "build":
@@ -405,6 +411,48 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertIn("every applicable panel, facet, row, or series", prompt)
             self.assertIn("semantic-preflight", prompt)
             self.assertIn("structured field marked `inferred`", prompt)
+
+    def test_read_builder_choice_parses_routing_block_and_wires_all_conditionals(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            select = Path(temp) / "select-01.md"
+            select.write_text(
+                "## DESIGN\nGrouped bars.\n\n"
+                "```routing\nbuilder: table\nneeds_annotations: yes\n"
+                "needs_explainer: no\nneeds_color_plan: yes\n"
+                "needs_precision_plan: yes\n```\n",
+                encoding="utf-8",
+            )
+            builder, active = LocalCodexRunner._read_builder_choice(select)
+            self.assertEqual(builder, "table")
+            # The colour and precision conditional skills must now be wired - the pre-existing
+            # gap where only annotations/explainer were activated is fixed.
+            self.assertEqual(
+                set(active), {"chart-annotations", "dataviz-color", "dataviz-precision"}
+            )
+
+    def test_read_builder_choice_defaults_when_artifact_is_garbled(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            select = Path(temp) / "select-01.md"
+            select.write_text("## DESIGN\nno routing block here at all\n", encoding="utf-8")
+            builder, active = LocalCodexRunner._read_builder_choice(select)
+            self.assertEqual(builder, "chart")
+            self.assertEqual(active, ())
+
+    def test_select_prompt_requests_routing_block(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            client = FakeCaseManager(Path(temp))
+            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
+            prompt = runner._select_prompt(
+                client.case_id,
+                client.case_dir,
+                client.case_dir / "diagnose-01.md",
+                client.case_dir / "select-01.md",
+                1,
+            )
+            self.assertIn("```routing", prompt)
+            self.assertIn("needs_color_plan", prompt)
+            self.assertIn("needs_precision_plan", prompt)
+            self.assertNotIn("as JSON", prompt)
 
     def test_reviewer_gets_delivery_preview_and_overlapping_detail_sheet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

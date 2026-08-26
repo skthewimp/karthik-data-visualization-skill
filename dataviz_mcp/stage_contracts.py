@@ -6,10 +6,18 @@ powerpoint, cleaning, analysis-planner and eval at once, even though two or thre
 for the step. That is context rot.
 
 This module runs each pipeline as an ordered sequence of **stages**. Each stage names the
-smallest skill subset it needs, the JSON-schema artifact it receives, the artifact it
-emits, and a focused provider-neutral adapter. An application drives the pipeline by making
-one model call per stage, bundling only that stage's skills (:func:`stage_skill_bundle`)
-and passing the validated output artifact forward as the next stage's input.
+smallest skill subset it needs, the content its artifact must carry, the content it emits,
+and a focused provider-neutral adapter. An application drives the pipeline by making one
+model call per stage, bundling only that stage's skills (:func:`stage_skill_bundle`) and
+passing the emitted artifact forward as the next stage's input.
+
+Handoffs are **structured text, not strict JSON**: each stage writes one markdown section
+per content field (read by the next LLM stage) plus, where the driver needs to branch, a
+small ``routing`` block of ``key: value`` lines (parsed by :mod:`dataviz_mcp.handoff`).
+This keeps the pipeline runnable on cheaper / open-weight models that are unreliable at
+valid JSON. The per-stage ``output_schema`` below is retained as the machine-readable
+*content checklist* - what an artifact must contain - not as a JSON wire format; the routing
+parser also accepts a plain JSON object, so strong-model output still works.
 
 Two pipelines:
 
@@ -28,6 +36,8 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from dataviz_mcp import handoff
+
 
 # --------------------------------------------------------------------------- #
 # Shared guardrails - every stage adapter inherits these.
@@ -43,6 +53,15 @@ evaluation, or wait for optional infrastructure. Do the relevant work directly i
 call. Apply only the guidance relevant to this stage; the presence of unrelated skills must
 not expand the task. If a skill's workflow mechanics conflict with this adapter, this
 adapter wins; for chart judgement and design, the appended skill sources are authoritative.
+"""
+
+
+HANDOFF_FORMAT_PREAMBLE = """Emit your result as structured text, not JSON. Write one
+markdown section (a `## HEADING`) per required field, with the content beneath it as prose,
+bullets, or a small table. This is read by the next stage; be complete and specific but do
+not wrap it in JSON. When a routing block is requested, add it verbatim as the very last
+thing in your reply so the driver can parse it. Do not add commentary after the routing
+block.
 """
 
 
@@ -69,6 +88,21 @@ class Stage:
     instructions: str
     builder_skills: dict[str, tuple[str, ...]] = field(default_factory=dict)
     conditional_skills: dict[str, str] = field(default_factory=dict)
+    routing_fields: tuple[str, ...] = ()
+
+    def handoff_spec(self) -> str:
+        """The 'emit these sections (+ routing block)' instruction for this stage.
+
+        Derived from ``output_schema`` so the section list and the required-content
+        checklist share one source of truth. Routing scalars go only in the routing block,
+        never also as a prose section.
+        """
+        sections = tuple(
+            name
+            for name in handoff.expected_sections(self.output_schema)
+            if name not in self.routing_fields
+        )
+        return handoff.render_handoff_spec(sections, self.routing_fields)
 
     def skill_names(
         self,
@@ -179,7 +213,9 @@ def build_stage_adapter(
     )
     adapter = (
         f"{GUARDRAIL_PREAMBLE.strip()}\n\n"
+        f"{HANDOFF_FORMAT_PREAMBLE.strip()}\n\n"
         f"{stage.instructions.strip()}\n\n"
+        f"{stage.handoff_spec()}\n\n"
         f"{bundle_text}"
     )
     return adapter, sources, _repository_revision(root)
@@ -656,8 +692,7 @@ table - a value for every period and every category, series, stack, or facet the
 encodes (colour is data). Inventory the source, diagnose the whole chart including
 neighbouring zones, and list what must be preserved unchanged. Difficulty of recovery is
 never grounds to drop a message or a category; put uncertain values and unreadable labels in
-the limitations, keep the categories. Return the diagnose artifact against the required
-schema."""
+the limitations, keep the categories."""
 
 _REPAIR_SELECT = """You are the form-selection stage of a static chart repair. You receive
 the diagnose artifact (messages, required content, recovered data, preservation
@@ -687,7 +722,7 @@ with ``validation_type``: ``source_fidelity`` when it can be checked inside the 
 artifact matches the source, the recovered data, or the plan), ``external_validation`` when
 it needs ground truth outside the run (an exact denominator, an authoritative dataset, a
 methodology to verify against). Do not make delivery contingent on an external validation -
-those are disclosed, not blocking. Return the select artifact against the required schema."""
+those are disclosed, not blocking."""
 
 _REPAIR_BUILD = """You are the build stage of a static chart repair. You receive the source,
 the diagnose artifact, and the select artifact (form, build plan, acceptance checks). Build
@@ -708,8 +743,7 @@ methodology) is not available in this run is recorded as ``unknown``, its gap st
 in ``open_issues`` so it can surface as a chart footnote, and the artifact is DELIVERED
 regardless - an unavailable external validation is a disclosure, never a reason to withhold
 the chart or to demand the missing source. A valid artifact must
-not be withheld because an optional reviewer is unavailable. Return the build artifact
-against the required schema."""
+not be withheld because an optional reviewer is unavailable."""
 
 _REPAIR_REFINE = """You are the refine-and-deliver stage of a static chart repair. You
 receive the source, the plan, and the built candidate at its delivery size. Act as a checker,
@@ -723,34 +757,29 @@ candidate with a plain summary and any residual limitation. An acceptance check 
 ``unknown`` because its ``external_validation`` ground truth was unavailable is not a defect
 and never a reason to withhold: carry it into ``residual_limitations`` as a footnote and still
 return ``deliver``. Reserve the ``blocked`` verdict for a genuine inability to produce any
-valid artifact at all - never for a missing external denominator, dataset, or methodology.
-Return the refine artifact against the required schema."""
+valid artifact at all - never for a missing external denominator, dataset, or methodology."""
 
 _STORY_DISCOVER = """You are the discovery stage of dataset-to-story work. You receive a
 dataset and any question or context. Inspect the data and propose visualisable stories before
 any chart is chosen: state the row grain, columns and types, likely denominators, candidate
 stories with the evidence each needs and its misleading risk, a recommended first story, and
-anything that should not be visualised yet. Return the discover artifact against the required
-schema."""
+anything that should not be visualised yet."""
 
 _STORY_CONTRACT = """You are the analysis-contract stage. You receive the discovery artifact
 and the chosen story. Turn the fuzzy question into an operational one: define the metric,
 numerator and denominator, grain, the comparison that makes the number mean something, the
-data required to answer it, falsifiers, and caveats. Do not chart. Return the contract
-artifact against the required schema."""
+data required to answer it, falsifiers, and caveats. Do not chart."""
 
 _STORY_CLEAN = """You are the data-preparation stage. You receive the analysis contract and
 the data. Inspect and transform the data to satisfy the contract, keeping every
 transformation visible. Report the transformations, validation results, provenance, and
 remaining limitations. Do not invent fields or values; if the data cannot answer the
-question, say so and return to the contract. Return the clean artifact against the required
-schema."""
+question, say so and return to the contract."""
 
 _STORY_FACTS = """You are the evidence stage. You receive the analysis contract and the
 prepared data. Compute the facts that answer the question - values, comparisons, and
-uncertainty - from the data, not from priors. Do not chart. Return the facts artifact against
-the required schema. (No dedicated skill exists for this stage yet; apply the contract and
-prepared-data notes directly.)"""
+uncertainty - from the data, not from priors. Do not chart. (No dedicated skill exists for
+this stage yet; apply the contract and prepared-data notes directly.)"""
 
 _STORY_SELECT = """You are the form-selection stage of dataset-to-story work. You receive the
 analysis contract and the facts. Choose the simplest form that makes the claim easiest to see
@@ -770,8 +799,7 @@ only for identifiers or a genuine exact-lookup requirement, false otherwise, wit
 the builder obeys this flag. Produce the design, layout
 plan, and acceptance checks. Tag each acceptance check with ``validation_type``:
 ``source_fidelity`` when checkable inside the run, ``external_validation`` when it needs
-ground truth outside the run. An external validation is disclosed, never blocking. Return the
-select artifact against the required schema."""
+ground truth outside the run. An external validation is disclosed, never blocking."""
 
 _STORY_BUILD = _REPAIR_BUILD.replace("of a static chart repair", "of dataset-to-story work")
 
@@ -786,6 +814,17 @@ _BUILDER_SKILLS = {
     "chart": ("karthik-data-visualization",),
     "table": ("karthik-table-style",),
 }
+
+# The scalars the driver must parse from the select artifact to route the build stage: which
+# builder skill to load and which conditional build skills (annotations, explainer, colour,
+# precision) to open. Everything else in the artifact is content read by the next LLM.
+_SELECT_ROUTING_FIELDS = (
+    "builder",
+    "needs_annotations",
+    "needs_explainer",
+    "needs_color_plan",
+    "needs_precision_plan",
+)
 
 REPAIR_PIPELINE: tuple[Stage, ...] = (
     Stage(
@@ -803,6 +842,7 @@ REPAIR_PIPELINE: tuple[Stage, ...] = (
         input_schema=DIAGNOSE_SCHEMA,
         output_schema=SELECT_SCHEMA,
         instructions=_REPAIR_SELECT,
+        routing_fields=_SELECT_ROUTING_FIELDS,
     ),
     Stage(
         stage_id="build",
@@ -870,6 +910,7 @@ STORY_PIPELINE: tuple[Stage, ...] = (
         input_schema=FACTS_SCHEMA,
         output_schema=SELECT_SCHEMA,
         instructions=_STORY_SELECT,
+        routing_fields=_SELECT_ROUTING_FIELDS,
     ),
     Stage(
         stage_id="build",

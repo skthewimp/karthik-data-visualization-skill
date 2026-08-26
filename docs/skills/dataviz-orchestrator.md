@@ -4,7 +4,7 @@ Use this when the task starts with a dataset, a loose question, and an audience,
 
 ## Staged, not one context
 
-It runs as a sequence of separate calls - **discover -> contract -> clean -> facts -> select -> build -> refine** - each carrying only the skills that stage needs plus a compact artifact handed forward. Per-stage scoping is what keeps a long pipeline from rotting a single context. The `facts` stage is a named placeholder until `karthik-evidence-builder` exists. The machine-readable contract - exact skill subset and JSON handoff schema per stage - is `dataviz_mcp/stage_contracts.py:STORY_PIPELINE`.
+It runs as a sequence of separate calls - **discover -> contract -> clean -> facts -> select -> build -> refine** - each carrying only the skills that stage needs plus a compact artifact handed forward. Per-stage scoping is what keeps a long pipeline from rotting a single context. The `facts` stage is a named placeholder until `karthik-evidence-builder` exists. Handoffs are structured text (markdown sections plus, at the branch points, a small `routing` block of `key: value` lines), not strict JSON, so the pipeline runs on cheaper / open-weight models too; the routing parser (`dataviz_mcp.handoff`) also accepts a JSON object. The content contract - exact skill subset and required fields per stage - is `dataviz_mcp/stage_contracts.py:STORY_PIPELINE`.
 
 The skill coordinates the existing suite:
 

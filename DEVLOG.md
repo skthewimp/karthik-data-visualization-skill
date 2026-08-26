@@ -1,5 +1,60 @@
 # Devlog
 
+## 2026-08-26 - Structured-text handoffs so the staged pipelines run on cheaper models
+
+### Prompt
+
+> recently we moved the dataviz-fix and orchestrator workflows from a monolith to a series of
+> LLM calls with only the right contexts loaded in. however the issue with this is that it now
+> overly depends upon json output because of which i'm unable to use this with cheaper / open
+> weight models which inevitably break on json output. is there a way around this? investigate
+> first.
+
+Chosen after investigation: **format-robust handoffs**, full maintainer scope (both pipelines,
+both `codex`/`claude` surfaces, `case_manager`, docs, tests, sync).
+
+### Context
+
+The staged refactor (see the 2026-08-... entries) passes each stage's artifact to the next as
+strict, nested JSON. Cheaper / open-weight models are unreliable at valid JSON, so the pipeline
+effectively required a strong model. The investigation found the JSON is load-bearing in two
+layers: the inter-stage handoff artifacts (`stage_contracts.py` schemas + the `diagnose`/`select`
+files the runner passes forward) and `case_manager.py`'s nine `validate_*` report validators,
+which hard-fail with `SystemExit` on any shape deviation. The key realisation: almost all of that
+JSON is reasoning content whose only consumer is the next LLM stage - which reads markdown fine.
+Only a handful of routing scalars (`builder`, the `needs_*` flags) actually need machine parsing.
+
+### What changed
+
+- **New `dataviz_mcp/handoff.py`** - the dependency-free tolerant layer. Stages emit markdown
+  sections plus a small `routing` block; `parse_routing` reads it leniently and falls back to a
+  lenient JSON parse (fence-strip, trailing-comma tolerance, outermost-object extraction) so
+  strong-model JSON still works. `expected_sections` / `render_handoff_spec` derive the prompt's
+  section list from each stage's `output_schema` (kept as a content checklist, not a wire format).
+- **`stage_contracts.py`** - `Stage.routing_fields` + `Stage.handoff_spec()`, a
+  `HANDOFF_FORMAT_PREAMBLE`, dropped every "return … against the required schema" closer, and
+  `build_stage_adapter` now appends the handoff format + spec.
+- **`tester/local_runner.py`** - routing parsed via `handoff`, and the color/precision conditional
+  skills are now actually wired (a pre-existing dead path: only annotations/explainer were). Handoff
+  files moved `.json` -> `.md`; diagnose/select prompts request the structured-text handoff.
+- **`case_manager.py`** (both surfaces, byte-identical) - a tolerant `read_report` and coercing
+  `nonempty_text` / `text_list`; `case.json` still read strictly. This relaxes the shape rigidity
+  while keeping the cross-referential semantic checks.
+
+### Decision / scoping note
+
+The complex `case_manager` contracts (design-contract maps every finding, etc.) stay JSON but
+parse tolerantly, rather than moving to markdown - forcing those cross-referential reports into
+prose would be a fragile rewrite for little gain. The markdown handoff is for the LLM-to-LLM stage
+artifacts, where the consumer is another model; the machine-validated reports keep JSON with a
+lenient parser. Boundary: LLM-to-LLM handoffs = markdown + routing; machine-validated contracts =
+tolerant JSON.
+
+### Validation
+
+`pytest -q` (101) and `pytest -q tester/tests` (23) green, plus the new `test_handoff.py`.
+`./sync.sh --no-pull` installs both surfaces.
+
 ## 2026-08-25 - Drop redundant quantitative axes; match small-multiple grids to the frame
 
 ### Context

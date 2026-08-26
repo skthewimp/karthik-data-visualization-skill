@@ -17,11 +17,15 @@ previous stage. This is deliberate: loading every skill into one context rots it
 build call has no use for the discovery or evaluation skills. Each stage below names the
 skills to load, the artifact it receives, and the artifact it emits.
 
-The machine-readable contract for this pipeline - the exact skill subset and the JSON
-handoff schema for every stage - is `dataviz_mcp/stage_contracts.py:REPAIR_PIPELINE`. This
-skill carries the *reasoning*; that module carries the *shape*. When an application drives
-the pipeline it loads each stage's skills with `stage_skill_bundle(stage)` and validates
-each handoff against the stage's `output_schema`. Do not duplicate the schemas here.
+Handoffs are **structured text, not strict JSON**: each stage emits one markdown section
+per content field (read by the next stage) plus, where the driver must branch, a small
+`routing` block of `key: value` lines. This keeps the pipeline runnable on cheaper /
+open-weight models that break on nested JSON. The content contract for every stage - the
+required fields and the routing keys - is `dataviz_mcp/stage_contracts.py:REPAIR_PIPELINE`;
+this skill carries the *reasoning*, that module the *shape*. When an application drives the
+pipeline it loads each stage's skills with `stage_skill_bundle(stage)` and parses the routing
+block with `dataviz_mcp.handoff` (which also accepts a JSON object, so strong-model output
+still works). Do not duplicate the schemas here.
 
 ```text
 diagnose+extract  ->  select  ->  build  ->  refine

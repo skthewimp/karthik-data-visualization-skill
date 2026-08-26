@@ -10,8 +10,13 @@ See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation a
 application can reuse. It defines two pipelines - `REPAIR_PIPELINE` (image in:
 diagnose -> select -> build -> refine) and `STORY_PIPELINE` (dataset to story:
 discover -> contract -> clean -> facts -> select -> build -> refine) - as ordered
-`Stage` objects. Each stage names the smallest skill subset it needs, the JSON-schema
-artifact it receives, the artifact it emits, and a focused adapter.
+`Stage` objects. Each stage names the smallest skill subset it needs, the artifact it
+receives, the artifact it emits, and a focused adapter. Handoffs are **structured text**
+(markdown sections per content field, plus a small `routing` block of `key: value` lines at
+the branch points), not strict JSON - so the pipeline runs on cheaper / open-weight models
+too. `dataviz_mcp.handoff` parses the routing block leniently and also accepts a plain JSON
+object; each stage's `output_schema` is retained as the machine-readable *content checklist*,
+not a wire format.
 
 A driver runs one model call per stage. `stage_skill_bundle(stage, builder, active_conditions)`
 reads only that stage's `<skill>/codex/SKILL.md` sources - never the whole repository - so
@@ -20,8 +25,10 @@ the context rot the old single-creator all-skills bundle caused. `build_stage_ad
 prepends the shared guardrails and the stage's focused instructions to that bundle.
 
 The build stage's builder skill (`karthik-data-visualization` for a chart,
-`karthik-table-style` for a table) is chosen from the previous stage's `builder` output;
-`chart-annotations` and `chart-explainer` load only when the select artifact asks for them.
+`karthik-table-style` for a table) is chosen from the previous stage's `builder` routing key;
+`chart-annotations`, `chart-explainer`, `dataviz-color`, and `dataviz-precision` load only
+when the select artifact's routing block asks for them (parsed via
+`dataviz_mcp.handoff.parse_routing`).
 `build_stage_adapter` also exposes the repository revision for reproducibility.
 
 ## Requirements and installation

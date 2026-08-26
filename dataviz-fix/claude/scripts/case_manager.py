@@ -254,6 +254,13 @@ def validate_ratings(
 
 
 def nonempty_text(raw: object, field: str) -> str:
+    # Coerce the shape errors a cheaper model commonly makes - a number where text was
+    # expected, or a single-element list wrapping the string - before rejecting. Genuinely
+    # empty or absent content still fails.
+    if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+        raw = str(raw)
+    elif isinstance(raw, list) and len(raw) == 1 and isinstance(raw[0], str):
+        raw = raw[0]
     if not isinstance(raw, str) or not raw.strip():
         raise SystemExit(f"Review report {field!r} must be non-empty text")
     return raw.strip()
@@ -375,11 +382,19 @@ def validate_semantic_preflight(raw: object, context_version: int) -> dict:
 
 
 def text_list(raw: object, field: str, minimum: int = 0) -> list[str]:
-    if not isinstance(raw, list) or any(
-        not isinstance(item, str) or not item.strip() for item in raw
-    ):
+    # Tolerate the common cheaper-model shape slips: a lone string instead of a list, and
+    # numbers or blank entries mixed into the list. Coerce and drop blanks rather than
+    # rejecting; the minimum check still guards against a genuinely empty list.
+    if isinstance(raw, str):
+        raw = [raw] if raw.strip() else []
+    if not isinstance(raw, list):
         raise SystemExit(f"{field} must be a list of non-empty strings")
-    values = [item.strip() for item in raw]
+    values: list[str] = []
+    for item in raw:
+        if isinstance(item, (int, float)) and not isinstance(item, bool):
+            item = str(item)
+        if isinstance(item, str) and item.strip():
+            values.append(item.strip())
     if len(values) < minimum:
         raise SystemExit(f"{field} requires at least {minimum} item(s)")
     return values
@@ -1284,6 +1299,57 @@ def read_json(path: Path) -> dict:
         raise SystemExit(f"Cannot read case file {path}: {exc}") from exc
 
 
+def _loose_json(text: str) -> dict | None:
+    """Best-effort parse of a JSON object from messy model output. Never raises.
+
+    Strips a surrounding code fence, tolerates trailing commas, and falls back to the
+    outermost ``{ ... }`` span - the mistakes a cheaper / open-weight model makes around
+    otherwise-correct JSON. Returns the dict, or ``None`` when nothing parses. Kept
+    dependency-free and local so this script stays standalone once installed as a skill.
+    """
+    stripped = text.strip()
+    fence = re.match(r"^```[^\n]*\n(.*?)\n```$", stripped, re.DOTALL)
+    if fence:
+        stripped = fence.group(1).strip()
+    candidates = [stripped, re.sub(r",(\s*[}\]])", r"\1", stripped)]
+    first, last = stripped.find("{"), stripped.rfind("}")
+    if first != -1 and last > first:
+        span = stripped[first : last + 1]
+        candidates.extend((span, re.sub(r",(\s*[}\]])", r"\1", span)))
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except (ValueError, TypeError):
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
+
+
+def read_report(path: Path) -> dict:
+    """Read a model-produced report, tolerating fences, trailing commas, and stray prose.
+
+    Unlike the internal ``case.json`` (always machine-written, read strictly by
+    :func:`read_json`), report files are emitted by the model - which may be a cheaper model
+    that wraps JSON in ``` fences or leaves a trailing comma. Parse leniently, then let the
+    existing validators enforce the semantic contract.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise SystemExit(f"Cannot read report file {path}: {exc}") from exc
+    try:
+        parsed: object = json.loads(text)
+    except json.JSONDecodeError:
+        parsed = _loose_json(text)
+    if not isinstance(parsed, dict):
+        raise SystemExit(
+            f"Report file {path} is not a JSON object even after lenient parsing; "
+            "emit a single JSON object (code fences and trailing commas are tolerated)."
+        )
+    return parsed
+
+
 def infer_legacy_state(data: dict) -> str:
     state = data.get("state")
     if state in TERMINAL_STATES or state in ACTIVE_STATES or state in PAUSED_STATES:
@@ -1941,7 +2007,7 @@ def cmd_critique(args: argparse.Namespace) -> None:
     data = load_case(path)
     require_state(data, ("critique", "redesign"), "attach a critique repair brief")
     report_path = Path(args.report).expanduser().resolve()
-    validated = validate_critique_report(read_json(report_path), data["context_version"])
+    validated = validate_critique_report(read_report(report_path), data["context_version"])
     event = {
         "number": len(data["critiques"]) + 1,
         "at": now_iso(),
@@ -1967,7 +2033,7 @@ def cmd_design_contract(args: argparse.Namespace) -> None:
     require_state(data, ("design",), "attach a design contract")
     critique = current_critique(data)
     report_path = Path(args.report).expanduser().resolve()
-    validated = validate_design_contract(read_json(report_path), critique)
+    validated = validate_design_contract(read_report(report_path), critique)
     event = {
         "number": len(data["design_contracts"]) + 1,
         "at": now_iso(),
@@ -1986,7 +2052,7 @@ def cmd_revision_contract(args: argparse.Namespace) -> None:
     data = load_case(path)
     require_state(data, ("revise",), "attach a revision contract")
     report_path = Path(args.report).expanduser().resolve()
-    validated = validate_revision_contract(read_json(report_path), data)
+    validated = validate_revision_contract(read_report(report_path), data)
     event = {
         "number": len(data["revision_contracts"]) + 1,
         "at": now_iso(),
@@ -2006,7 +2072,7 @@ def cmd_renderer_selection(args: argparse.Namespace) -> None:
     data = load_case(path)
     require_state(data, ("build", "revise"), "record renderer selection")
     report_path = Path(args.report).expanduser().resolve()
-    validated = validate_renderer_selection(read_json(report_path))
+    validated = validate_renderer_selection(read_report(report_path))
     event = {
         "number": len(data["renderer_selections"]) + 1,
         "at": now_iso(),
@@ -2036,7 +2102,7 @@ def cmd_semantic_preflight(args: argparse.Namespace) -> None:
                 f"Evaluate iteration {latest_iteration} before replacing its semantic preflight"
             )
     report_path = Path(args.report).expanduser().resolve()
-    validated = validate_semantic_preflight(read_json(report_path), data["context_version"])
+    validated = validate_semantic_preflight(read_report(report_path), data["context_version"])
     event = {
         "number": len(data["semantic_preflights"]) + 1,
         "at": now_iso(),
@@ -2291,7 +2357,7 @@ def cmd_inspect(args: argparse.Namespace) -> None:
     if request_path.exists():
         raise SystemExit("Record deterministic inspection before creating the blind review request")
     report_path = Path(args.report).expanduser().resolve()
-    report = read_json(report_path)
+    report = read_report(report_path)
     if report.get("artifact", {}).get("sha256") != iteration["artifact"]["sha256"]:
         raise SystemExit("Inspection report artifact hash does not match the recorded iteration")
     if not isinstance(report.get("checks_complete"), bool):
@@ -2456,10 +2522,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
     report_path = Path(args.report).expanduser().resolve()
     if not report_path.is_file():
         raise SystemExit(f"Review report not found: {report_path}")
-    try:
-        raw_report = json.loads(report_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise SystemExit(f"Cannot read review report {report_path}: {exc}") from exc
+    raw_report = read_report(report_path)
     reveal_path = case_dir / f"review-reveal-{iteration_number:02d}.json"
     if not reveal_path.is_file():
         raise SystemExit(f"Review request not found for iteration {iteration_number}; run review-request first")
@@ -2470,7 +2533,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
     blind_response_sha = sha256(blind_response_path)
     if blind_response_sha != reveal.get("blind_response_sha256"):
         raise SystemExit("Blind response changed after intent was revealed")
-    blind_response = validate_blind_response(read_json(blind_response_path), iterations[iteration_number])
+    blind_response = validate_blind_response(read_report(blind_response_path), iterations[iteration_number])
     creator = data.get("creator") or f"session:{data['session_id']}"
     carry_actions = open_required_actions(data, iterations[iteration_number])
     acceptance_checks = active_acceptance_checks(data, iterations[iteration_number])
@@ -2663,7 +2726,7 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
     blind_response_path = case_dir / f"review-blind-response-{iteration['number']:02d}.json"
     if not blind_response_path.is_file():
         raise SystemExit(f"Blind response not found: {blind_response_path}")
-    blind_response = validate_blind_response(read_json(blind_response_path), iteration)
+    blind_response = validate_blind_response(read_report(blind_response_path), iteration)
     creator = data.get("creator") or f"session:{data['session_id']}"
     if blind_response["reviewer"] == creator:
         raise SystemExit("Chart creator and blind reviewer must be different identities")

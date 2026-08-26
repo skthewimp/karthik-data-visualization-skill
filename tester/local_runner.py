@@ -14,6 +14,7 @@ from uuid import uuid4
 
 from dataviz_mcp import stage_contracts as sc
 from dataviz_mcp.artifacts import read_json, sha256_file, write_json
+from dataviz_mcp.handoff import parse_routing
 from dataviz_mcp.inspection import inspect_rendered_chart
 from dataviz_mcp.review_views import build_review_views
 
@@ -456,11 +457,12 @@ class LocalCodexRunner:
 
         Each call opens only the skills its stage needs (per ``stage_contracts``), and the
         structured artifact of one stage is the input of the next. Diagnose and select emit
-        JSON; build renders the candidate PNG and runs the case-manager workflow.
+        the structured-text handoff (markdown sections plus, for select, a routing block);
+        build renders the candidate PNG and runs the case-manager workflow.
         """
         source_images = self._creator_images(case)
-        diagnose_path = case_dir / f"diagnose-{iteration:02d}.json"
-        select_path = case_dir / f"select-{iteration:02d}.json"
+        diagnose_path = case_dir / f"diagnose-{iteration:02d}.md"
+        select_path = case_dir / f"select-{iteration:02d}.md"
 
         # Stage 1 - diagnose and extract. Skills: brief, extract, critique.
         self._event(job_id, "diagnose", f"Diagnosing source for candidate {iteration}")
@@ -512,19 +514,21 @@ class LocalCodexRunner:
 
     @staticmethod
     def _read_builder_choice(select_path: Path) -> tuple[str, tuple[str, ...]]:
-        """Read builder (chart/table) and active conditionals from the select artifact."""
-        builder = "chart"
-        active: list[str] = []
-        try:
-            plan = read_json(select_path)
-            if plan.get("builder") in ("chart", "table"):
-                builder = plan["builder"]
-            if plan.get("needs_annotations"):
-                active.append("chart-annotations")
-            if plan.get("needs_explainer"):
-                active.append("chart-explainer")
-        except (OSError, ValueError, KeyError, TypeError):
-            pass
+        """Read builder (chart/table) and active conditionals from the select artifact.
+
+        Parses the small routing block emitted by the select stage (see
+        ``dataviz_mcp.handoff``); it also accepts a plain JSON object and degrades to
+        ``chart`` with no conditionals when the artifact is missing or garbled.
+        """
+        routing = parse_routing(select_path, sc._SELECT_ROUTING_FIELDS)
+        builder = routing["builder"] if routing["builder"] in ("chart", "table") else "chart"
+        conditional = {
+            "needs_annotations": "chart-annotations",
+            "needs_explainer": "chart-explainer",
+            "needs_color_plan": "dataviz-color",
+            "needs_precision_plan": "dataviz-precision",
+        }
+        active = [skill for flag, skill in conditional.items() if routing.get(flag)]
         return builder, tuple(active)
 
     def _stage_skill_directive(
@@ -562,8 +566,13 @@ class LocalCodexRunner:
         self, case_id: str, case_dir: Path, diagnose_path: Path, iteration: int
     ) -> str:
         manager = self.repo_root / "dataviz-fix" / "codex" / "scripts" / "case_manager.py"
-        directive = self._stage_skill_directive(sc.stage("repair", "diagnose"))
+        stage = sc.stage("repair", "diagnose")
+        directive = self._stage_skill_directive(stage)
         return f"""{directive}
+
+{sc.HANDOFF_FORMAT_PREAMBLE.strip()}
+
+{stage.handoff_spec()}
 
 You are the diagnose-and-extract stage for case {case_id}, iteration {iteration}. The attached image is the source. Read the current case using:
 
@@ -571,7 +580,7 @@ DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} status --case {case_id}
 
 Do not choose a form and do not render. Work only inside {case_dir}; do not edit the checked-out repository or any skill. Produce the repair brief (key messages and required content, explicit drops with reasons, audience and medium, and the edit-vs-redesign mode) and recover the full period-by-category data table - a value for every period and every category, series, stack, or facet (colour is data). Difficulty of recovery is never grounds to drop a message or category; put uncertain values and unreadable labels in the limitations and keep the categories.
 
-Save the structured repair brief and attach it with `critique` (the only state-changing case-manager command you may run in this stage). Also write the diagnose artifact as JSON to {diagnose_path} for the next stage. Stop after {diagnose_path} exists."""
+Save the structured repair brief and attach it with `critique` (the only state-changing case-manager command you may run in this stage). Also write the diagnose artifact as the structured-text handoff (markdown sections above) to {diagnose_path} for the next stage. Stop after {diagnose_path} exists."""
 
     def _select_prompt(
         self,
@@ -582,16 +591,21 @@ Save the structured repair brief and attach it with `critique` (the only state-c
         iteration: int,
     ) -> str:
         manager = self.repo_root / "dataviz-fix" / "codex" / "scripts" / "case_manager.py"
-        directive = self._stage_skill_directive(sc.stage("repair", "select"))
+        stage = sc.stage("repair", "select")
+        directive = self._stage_skill_directive(stage)
         return f"""{directive}
+
+{sc.HANDOFF_FORMAT_PREAMBLE.strip()}
+
+{stage.handoff_spec()}
 
 You are the form-selection stage for case {case_id}, iteration {iteration}. No image is attached - select from the brief, not the picture. Read the diagnose artifact at {diagnose_path} and the recorded context using:
 
 DATAVIZ_FIX_ROOT={self.client.root} python3 {manager} status --case {case_id}
 
-Choose the form cold: the source chart's form gets no vote. Set `builder` to `table` when the intent is exact lookup or the values are not commensurable on one scale, otherwise `chart` - this decides which builder skill the build stage loads. Set `needs_annotations` and `needs_explainer` from whether the plan genuinely calls for on-chart marks or accompanying prose. Produce the design, the layout plan under the declared delivery condition, and an observable acceptance check for every fatal or major problem and every preservation requirement.
+Choose the form cold: the source chart's form gets no vote. Set `builder` to `table` when the intent is exact lookup or the values are not commensurable on one scale, otherwise `chart` - this decides which builder skill the build stage loads. Set `needs_annotations`, `needs_explainer`, `needs_color_plan`, and `needs_precision_plan` from whether the plan genuinely calls for on-chart marks, accompanying prose, a colour plan, or a precision plan. Produce the design, the layout plan under the declared delivery condition, and an observable acceptance check for every fatal or major problem and every preservation requirement.
 
-Save and attach a complete `design-contract`, including the selector decision whenever form is implicated (the only state-changing case-manager commands you may run in this stage). Also write the select artifact as JSON to {select_path}, with the `builder`, `needs_annotations`, and `needs_explainer` fields, for the next stage. Do not render. Stop after {select_path} exists."""
+Save and attach a complete `design-contract`, including the selector decision whenever form is implicated (the only state-changing case-manager commands you may run in this stage). Also write the select artifact as the structured-text handoff (markdown sections plus the closing routing block with `builder`, `needs_annotations`, `needs_explainer`, `needs_color_plan`, and `needs_precision_plan`) to {select_path} for the next stage. Do not render. Stop after {select_path} exists."""
 
     def _build_prompt(
         self,

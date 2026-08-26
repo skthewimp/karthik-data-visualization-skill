@@ -185,6 +185,47 @@ def test_missing_external_validation_never_blocks_delivery() -> None:
     assert "Reserve the ``blocked`` verdict" in refine
 
 
+def test_only_select_stages_declare_routing_fields() -> None:
+    """The driver parses routing only from select; other handoffs are pure content."""
+    for pipeline_name, stage in _all_stages():
+        if stage.stage_id == "select":
+            assert stage.routing_fields == sc._SELECT_ROUTING_FIELDS
+        else:
+            assert stage.routing_fields == ()
+
+
+def test_handoff_spec_lists_content_sections_and_routing_block() -> None:
+    select = sc.stage("repair", "select")
+    spec = select.handoff_spec()
+    # Content sections come from the schema, minus the routing scalars.
+    assert "`## DESIGN`" in spec
+    assert "`## ACCEPTANCE CHECKS`" in spec
+    # Routing scalars appear only in the routing block, never as a prose section.
+    assert "`## BUILDER`" not in spec
+    assert "```routing" in spec
+    for field in sc._SELECT_ROUTING_FIELDS:
+        assert f"{field}: <value>" in spec
+
+
+def test_diagnose_handoff_spec_has_no_routing_block() -> None:
+    spec = sc.stage("repair", "diagnose").handoff_spec()
+    assert "`## KEY MESSAGES`" in spec
+    assert "```routing" not in spec
+
+
+def test_adapters_drop_the_return_json_schema_instruction() -> None:
+    """The handoff is structured text now; no stage should still demand JSON to a schema."""
+    for _pipeline_name, stage in _all_stages():
+        assert "against the required schema" not in stage.instructions
+
+
+def test_stage_adapter_includes_handoff_format_and_spec() -> None:
+    diagnose = sc.stage("repair", "diagnose")
+    adapter, _sources, _revision = sc.build_stage_adapter(diagnose, repository_root=REPO_ROOT)
+    assert "structured text, not JSON" in adapter
+    assert "`## KEY MESSAGES`" in adapter
+
+
 def test_number_format_cannot_record_a_silent_exact_override() -> None:
     """An exact-digit override must carry its flag and a non-empty reason - never silent."""
     entry = (

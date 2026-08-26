@@ -1526,5 +1526,69 @@ class CaseManagerTest(unittest.TestCase):
         self.assertEqual(status["limit_changes"], [])
 
 
+def _load_case_manager():
+    """Import case_manager.py as a module so its tolerant loaders can be unit-tested."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("case_manager_under_test", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class TolerantReportParsingTests(unittest.TestCase):
+    """Cheaper / open-weight models slip on strict JSON; reports must parse leniently."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cm = _load_case_manager()
+
+    def _write(self, text):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        path = Path(self.temp.name) / "report.json"
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_read_report_accepts_code_fenced_json(self):
+        path = self._write('```json\n{"a": 1}\n```')
+        self.assertEqual(self.cm.read_report(path), {"a": 1})
+
+    def test_read_report_tolerates_trailing_commas(self):
+        path = self._write('{"a": 1, "b": [1, 2,],}')
+        self.assertEqual(self.cm.read_report(path), {"a": 1, "b": [1, 2]})
+
+    def test_read_report_extracts_object_amid_prose(self):
+        path = self._write('Sure! Here you go:\n{"a": 1}\nHope that helps.')
+        self.assertEqual(self.cm.read_report(path), {"a": 1})
+
+    def test_read_report_rejects_non_object(self):
+        path = self._write("this is not json at all")
+        with self.assertRaises(SystemExit):
+            self.cm.read_report(path)
+
+    def test_nonempty_text_coerces_number_and_singleton_list(self):
+        self.assertEqual(self.cm.nonempty_text(42, "f"), "42")
+        self.assertEqual(self.cm.nonempty_text(["only"], "f"), "only")
+        with self.assertRaises(SystemExit):
+            self.cm.nonempty_text("   ", "f")
+
+    def test_text_list_wraps_lone_string_and_drops_blanks(self):
+        self.assertEqual(self.cm.text_list("solo", "f"), ["solo"])
+        self.assertEqual(self.cm.text_list(["a", "", "b"], "f"), ["a", "b"])
+        with self.assertRaises(SystemExit):
+            self.cm.text_list([], "f", minimum=1)
+
+    def test_validator_runs_on_leniently_parsed_report(self):
+        # A fenced, trailing-comma renderer selection still validates once parsed.
+        path = self._write(
+            '```json\n{"requested": "auto", "selected": "ggplot2", '
+            '"ggplot2_supported": true, '
+            '"probe": {"renderers": {"ggplot2": {"available": true}}},}\n```'
+        )
+        result = self.cm.validate_renderer_selection(self.cm.read_report(path))
+        self.assertEqual(result["selected"], "ggplot2")
+
+
 if __name__ == "__main__":
     unittest.main()

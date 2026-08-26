@@ -8,7 +8,7 @@ Two anchors govern the flow. A valid rendered candidate must always be delivered
 
 ## Staged, not one context
 
-`dataviz-fix` is the **repair orchestrator**, and it runs as a sequence of separate calls - **diagnose+extract -> select -> build -> refine** - each carrying only the skills that stage needs plus a compact structured artifact handed forward. Loading every skill into one context rots it; the build stage has no use for the discovery or evaluation skills. The eight steps below map onto those four stages (1-2 diagnose, 3 select, 4 build, 5-7 refine). The machine-readable contract - the exact skill subset and JSON handoff schema for every stage - is `dataviz_mcp/stage_contracts.py:REPAIR_PIPELINE`; the skill carries the reasoning, the module carries the shape.
+`dataviz-fix` is the **repair orchestrator**, and it runs as a sequence of separate calls - **diagnose+extract -> select -> build -> refine** - each carrying only the skills that stage needs plus a compact structured artifact handed forward. Loading every skill into one context rots it; the build stage has no use for the discovery or evaluation skills. The eight steps below map onto those four stages (1-2 diagnose, 3 select, 4 build, 5-7 refine). Handoffs are structured text (markdown sections plus, at the branch points, a small `routing` block of `key: value` lines), not strict JSON, so the pipeline runs on cheaper / open-weight models too; the routing parser (`dataviz_mcp.handoff`) also accepts a JSON object. The content contract - the exact skill subset and required fields per stage - is `dataviz_mcp/stage_contracts.py:REPAIR_PIPELINE`; the skill carries the reasoning, the module carries the shape.
 
 ## Default workflow
 
