@@ -1194,3 +1194,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Deliverable written straight (caveman is chat-only). Copy-paste this to your downstream agent: --- **Task: resolve chart colour & precision as data before the build stage, instead of loading the colour/precision skill...
 
 <!-- claude-session:8425f19b-86ce-401d-9590-5d2ad3b66afc:end -->
+
+<!-- claude-session:8790f9f9-4747-4cdd-b51d-2ba641f40999:start -->
+## 2026-08-27 13:15 IST | Claude session `8790f9f9-474`
+
+### User prompts
+> check out @sol
+> check out @sol-terra-luna-canonical-comparison.pdf . this is for one harness that i'm running on one website, but shows how diferent openai models are changing a b unch of input graphs. right now i'm not happy with aa...
+> case 1: 1. dark mode is a problem. highly unreadable. unless specifically requested in the prompt, this shouldn't be getting selected at all 2. very weird font 3. i always prefer direct labels (you see sol and terra h...
+
+### Work done
+- Short answer: yes, lean harder on MCPs and the harness - but "MCP vs text skill" is the wrong axis to cut on. The useful split is three-way, and the Luna failures tell you exactly which pieces are in the wrong place....
+- Written and pushed (`0cbe24b`): [`docs/plans/weak-model-repair-hardening.md`](docs/plans/weak-model-repair-hardening.md), indexed in the plans README. It's codename-free so it sits fine in the public repo. The shape:...
+
+<!-- claude-session:8790f9f9-4747-4cdd-b51d-2ba641f40999:end -->
