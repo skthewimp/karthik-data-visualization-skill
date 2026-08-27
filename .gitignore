@@ -12,6 +12,14 @@
 !dataviz-fix/codex/scripts/case_manager.py
 !dataviz-fix/claude/scripts/case_manager.py
 
+# Private model-comparison / eval benchmark artifacts - never commit.
+# These carry private model codenames and raw benchmark transcripts; they live
+# outside the repo (see ../luna-eval-private/). Patterns guard against re-adding.
+/*.pdf
+/ALL_MODELS_MATERIAL_FLOW.md
+docs/plans/luna-regression-diagnosis.md
+docs/plans/dataviz-eval-first-principles.md
+
 # Old/generated build artifacts
 dist/
 

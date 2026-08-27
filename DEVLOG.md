@@ -1,5 +1,77 @@
 # Devlog
 
+## 2026-08-27 - Make the house rules bind when a weaker model runs the repair loop
+
+### Context
+
+A benchmark run of the `dataviz-fix` repair loop on a weaker / open-weight creator model
+regressed against an earlier run that was good: the weaker model loaded
+`karthik-data-visualization` and violated its rules anyway. Two failure clusters, both
+structural rather than "a missing rule":
+
+1. **Form-intelligence collapse.** The model went diagnose -> build, skipping the cold
+   form-selection stage, so it re-rendered the source form more tidily instead of choosing
+   the form that makes the message easiest to read.
+2. **Improvised renderer.** With the deterministic renderer absent, the model hand-rolled an
+   SVG/JS/Ghostscript path that emitted a dark background and a monospace/terminal typeface -
+   the library-default look the skills already forbid.
+
+The rules were already in the skills and were good; they stopped *binding* under a weaker
+model. So the work was to close the routes by which a stage or a house default silently
+drops out. Change surface: everything in this repo (skills + MCP); the private benchmark
+harness is out of scope and fixed separately. Everything had to stay generic so the repo
+keeps working standalone for other people's harnesses - no hardcoded cases, no private model
+names, the house typeface reaching the skill via brand config rather than a literal.
+
+The fixes were walked one at a time (labelled C1-C6 in a private working doc), discussing
+each before editing and editing both `codex`/`claude` copies together.
+
+### What was done
+
+- **C1 - stages mandatory.** `dataviz-fix` reframed so the ordered stages run whether or not
+  a driver splits the calls; single-turn runs must still walk every stage. `select` hard-gated
+  as mandatory for every redesign; only a literal `bounded-edit` skips it. Conditional build
+  loads (`karthik-table-style`, `dataviz-precision`) stated as mandatory-when-triggered.
+- **C2 - House visual defaults.** `karthik-data-visualization` gained a "House visual defaults"
+  block (light background, proportional sans, direct labels, claim-first title) that binds the
+  export regardless of renderer and is checked at the render-and-inspect step. Default-background
+  rule tightened to match.
+- **C3 - renderer fallback ladder.** Explicit renderer order in both `dataviz-fix` and
+  `karthik-data-visualization`, a forbidden-move rule (no improvised dark/monospace/Ghostscript
+  path), and an escape hatch (no compliant renderer -> report failure, do not ship a violating
+  chart). Escape hatch kept in the build stage only.
+- **C4 - canvas/aspect ratio: SKIPPED.** Scoped and discussed (inherit the delivery *frame*,
+  not the source's mis-shapen canvas; source aspect ratio is defeasible evidence, overridden by
+  judgement for implausible shapes like one-column small multiples; the prompt always wins) but
+  deferred this pass as cosmetic relative to the dark/monospace and form-collapse failures. Not
+  rejected - deferred.
+- **C5 - form-decision field + flow check.** Verified `recommend_precision` is sound (money/ratio
+  columns produce no excess digits; the earlier symptom was the stage being skipped, i.e. a C1
+  problem) - no code change. Added a required `form_built` string to `BUILD_SCHEMA` and a refine-
+  stage flow check that reads it: a build with no recorded cold form decision is a fatal flow
+  violation.
+- **C6 - retune `dataviz-eval`: NOT done as a patch.** On inspection, `dataviz-eval` is an
+  optional, out-of-loop blind reviewer (Stage 4's default reviewer is `dataviz-critique`;
+  eval is spawned only for an explicit audit / high-risk decision). It was pulled into the
+  path because the builder was failing - the wrong layer, since C1-C3 prevent those failures
+  upstream while a reviewer only detects them late, and eval's own "taste is not fatal"
+  carve-out was letting the exact house-defaults violation through. Decision: rebuild
+  `dataviz-eval` from first principles in a separate pass rather than patch it. The seed for
+  that rebuild lives in the private working folder.
+
+### Housekeeping
+
+Moved the private benchmark artifacts (model-comparison decks, the full creator/reviewer
+transcript, and the codename-bearing diagnosis + first-principles docs) out of the repo into a
+private sibling folder, and added `.gitignore` patterns so they cannot be re-committed. Those
+carry private model codenames and raw benchmark data and must not reach the public repo.
+
+### Verification
+
+`./sync.sh --no-pull --validate-only` green across all 18 skills;
+`pytest test_stage_contracts.py test_precision.py` → 38 passed. Both `codex`/`claude` copies of
+each edited skill confirmed identical.
+
 ## 2026-08-26 - Decouple standalone skills from the repair/story harness
 
 ### Prompt

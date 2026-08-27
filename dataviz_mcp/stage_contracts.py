@@ -541,6 +541,18 @@ BUILD_SCHEMA: dict[str, object] = {
     "properties": {
         "artifact_path": {"type": "string"},
         "builder_used": {"type": "string", "enum": ["chart", "table"]},
+        "form_built": {
+            "type": "string",
+            "minLength": 1,
+            "description": (
+                "The form this build implements, carried from the select stage's "
+                "design.chart_form (e.g. 'small multiples', 'slopegraph', 'table'). A "
+                "bounded-edit, which keeps the source form on purpose, records the retained "
+                "form and that it was retained (e.g. 'retained source form (bounded edit)'). "
+                "Gives the stage-4 flow check a concrete field to read: a build with no "
+                "recorded form decision is a skipped-stage-2 violation, not a shortcut."
+            ),
+        },
         "render_code_path": {"type": "string"},
         "delivery_condition": {"type": "string"},
         "self_inspection": {"type": "string"},
@@ -563,6 +575,7 @@ BUILD_SCHEMA: dict[str, object] = {
     "required": [
         "artifact_path",
         "builder_used",
+        "form_built",
         "delivery_condition",
         "self_inspection",
         "acceptance_results",

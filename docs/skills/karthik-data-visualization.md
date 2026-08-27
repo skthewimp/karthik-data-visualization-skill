@@ -67,6 +67,8 @@ Preserve the renderer already established by the project. For a new Karthik-styl
 
 The MCP renderer is infrastructure, not the visual style. Its backend-neutral adapter selects ggplot2 first for supported static output and uses Matplotlib only for an explicit request or a recorded unavailable/unsupported condition. It must not cause an agent to replace a sound ggplot2 implementation with a default-looking Matplotlib chart. When Matplotlib is the practical fallback, every visible choice—type, colour, grid, axes, labels, spacing, and annotation—must be set deliberately and checked in the exact export.
 
+The fallback ladder is the project's renderer, then this backend-neutral renderer, then a static path whose typography, palette, and background you set by hand. The **House visual defaults** (light background, proportional sans typeface, direct labels, claim-first title) bind the finished export regardless of which renderer produced it, and are verified at the render-and-inspect step. A hand-rolled SVG/JS/terminal renderer that emits the forbidden look - dark canvas, monospace type, library defaults - is never a rung on this ladder; if no available renderer can meet the House visual defaults, report that as a failure rather than shipping a chart that violates them.
+
 ## Typical use
 
 Use it after the chart form is decided:

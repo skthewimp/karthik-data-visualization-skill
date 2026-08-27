@@ -18,12 +18,25 @@ Workflow:
 3. Build from data outward: data first, direct labels second, annotations third, grids/axes last.
 4. Check graphical integrity: scales, baselines, proportional encoding, missing context, and any visual effect that exaggerates or understates the data effect.
 5. Apply the eraser test: remove any ink that does not carry data, labels, or necessary context.
-6. Render and inspect the exported image; if anything is clipped, overlapping, or misaligned, adjust labels, spacing, hierarchy, and source notes from the actual output, then render again.
+6. Render and inspect the exported image; if anything is clipped, overlapping, or misaligned, adjust labels, spacing, hierarchy, and source notes from the actual output, then render again. Confirm the export also meets the House visual defaults below.
+
+## House visual defaults
+
+These bind the finished output regardless of which renderer produced it - the deterministic tool, ggplot2, or a hand-rolled fallback. They are properties the exported image must satisfy, verified at the render-and-inspect step, not styling that a busy fallback path may drop. Override any of them only on an explicit instruction in the prompt or an established project/brand system; a model's own sense that the chart "looks better" otherwise is not such an instruction, and a renderer's default theme is not a request.
+
+- **Light background.** The plot and canvas are white or near-white. Dark, terminal, or inverted backgrounds appear only when the prompt or brand system explicitly asks. If the fallback renderer defaults to dark, set it light.
+- **Proportional sans typeface.** Type is a clean, legible proportional sans; never a monospace/terminal face or an unstyled library default. Use the project or brand typeface when one is specified; otherwise default to a widely-available proportional sans (for example Inter, Helvetica/Arial, or the platform sans stack). Monospace only for a requested code/terminal aesthetic.
+- **Direct labels are the default identity route.** Name marks and series on the plot wherever they read legibly, and drop the legend and any axis the labels make redundant (see the identification and scaffolding rules below). This is the default, not an enhancement added only if time allows.
+- **Claim-first title, trend subtitle.** The title states the finding the chart supports; the subtitle summarises the trend or comparison; neither restates the chart's mechanics. Fall back to a question, measure, or explicit null only when the evidence genuinely does not support a claim - do not manufacture one (see the title/subtitle rules below).
+
+Surface the finding on the chart, not only in the title: where a single mark, point, or span carries it, consider a direct annotation on that mark. When `chart-annotations` is loaded it judges whether a mark clears the bar and places it - annotate what carries the finding, not everything. When an installed writing or brand-voice skill is present in the environment, use it to word the headline, claims, subtitle, and annotation text; this skill sets their style and placement. If none is installed, follow the prompt's stated preferences and the title/subtitle rules below.
+
+Check the export against these at inspection. A dark, monospace, legend-dependent, or mechanically-titled chart is a defect to fix before delivery, on the same footing as clipping or a wrong scale.
 
 Core operating rules:
 
 - Follow low-chartjunk, high data-ink, direct-labeling principles.
-- Use white backgrounds by default; use another background only when it improves contrast, grouping, or an established project system.
+- Use light (white or near-white) backgrounds; a non-light background requires an explicit request or an established project/brand system, not a rendering default or a design hunch (see House visual defaults).
 - Prefer static PNG/SVG exports unless interactivity is explicitly needed.
 - Choose the identification system from the chart's density and geometry. Prefer direct labels when every important mark or series can be named legibly and unambiguously at delivery size; otherwise use a categorical axis, legend, grouping, or small multiples.
 - Give each category or series one primary identification route. When a direct label carries the identity that a categorical axis or legend would carry, remove that redundant axis or legend. Apply the same drop-unless test to quantitative scaffolding: when direct labels already carry the values, remove the axis, ticks, and gridlines that only repeat them; keep a scale, baseline, or reference line only when it performs a reading task the labels do not - estimating between marks, alignment, a threshold, or comparing unlabelled marks. The default is to remove redundant scaffolding, not to keep it.
@@ -106,5 +119,7 @@ When writing or changing chart code:
 - Include enough source, scale, timeframe, and transformation notes for a stranger to evaluate the evidence.
 
 For new static repair code, use the backend-neutral renderer with `renderer="auto"`. It must select ggplot2 when `Rscript`, `ggplot2`, and `ragg` are available and the adapter supports the output; an explicit user requirement wins. Record why Matplotlib was used whenever auto cannot use ggplot2.
+
+The fallback ladder is the project's renderer, then this backend-neutral renderer (ggplot2 when available, else a deliberately-configured Matplotlib), then a static path whose typography, palette, and background you set by hand. A hand-rolled SVG/JS/terminal renderer that emits the House visual defaults' forbidden look - dark canvas, monospace type, library defaults - is never a rung on this ladder; if no available renderer can produce a chart that meets the House visual defaults, report that as a failure rather than shipping one that violates them.
 
 When implementing in ggplot2, make `build_chart()` return either a ggplot or `list(plot = <ggplot>, metadata = <list>)`, and export through `ragg`. Read [references/ggplot2-repair-patterns.md](references/ggplot2-repair-patterns.md) for reusable sorted-bar, diverging-bar, slopegraph, direct-labelled-trend, and multi-panel implementations.

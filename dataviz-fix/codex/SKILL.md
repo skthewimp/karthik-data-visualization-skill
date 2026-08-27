@@ -9,13 +9,29 @@ The staged orchestrator for **chart repair**: image in, repaired artifact out. R
 improved chart. The workflow exists to help produce an artifact, not to prevent one from
 reaching the user.
 
-## Run it as stages, not one context
+## Run every stage, whether or not a driver splits them
 
-Repair runs as an ordered sequence of **separate calls**, one per stage, each carrying only
-the skills that stage needs plus a compact structured artifact handed forward from the
-previous stage. This is deliberate: loading every skill into one context rots it, and a
-build call has no use for the discovery or evaluation skills. Each stage below names the
-skills to load, the artifact it receives, and the artifact it emits.
+Repair is an ordered sequence of stages: `diagnose+extract -> select -> build -> refine`.
+**Every stage runs, in order, on every redesign** - the only stage any mode skips is stage 2,
+and only for a literal `bounded-edit`. What varies is *who* splits the stages, not *whether*
+they happen.
+
+- **The default, and the right way to run this, is separate calls per stage.** When an
+  application or harness drives the pipeline, each stage is its **own call** that loads only
+  that stage's skills plus the compact artifact handed forward from the previous stage. This
+  keeps every context lean: loading every skill into one context rots it, and a build call has
+  no use for the discovery or evaluation skills. A single call with every skill loaded is not
+  the intended way to run the pipeline - if an orchestrator is available, use it.
+- **Only if nothing is orchestrating the calls** - no driver, no harness, you were simply
+  handed the image and this skill in one turn - are the calls yours to make. Even then you do
+  not dump every skill in at once: **walk the stages in order, opening each stage's named
+  skills as you reach that stage and letting the previous stage's detail fall away** as you
+  move on, exactly as separate calls would. "Separate call" is the architecture, not an excuse:
+  it is **never** a licence to skip a stage or to assume some other call already did it. If no
+  one else is making the calls, you still make all of them.
+
+Each stage below names the skills to load, the artifact it receives, and the artifact it
+emits.
 
 Handoffs are **structured text, not strict JSON**: each stage emits one markdown section
 per content field (read by the next stage) plus, where the driver must branch, a small
@@ -26,10 +42,6 @@ this skill carries the *reasoning*, that module the *shape*. When an application
 pipeline it loads each stage's skills with `stage_skill_bundle(stage)` and parses the routing
 block with `dataviz_mcp.handoff` (which also accepts a JSON object, so strong-model output
 still works). Do not duplicate the schemas here.
-
-```text
-diagnose+extract  ->  select  ->  build  ->  refine
-```
 
 ## Two anchors
 
@@ -86,6 +98,14 @@ The mode governs the rest of the flow:
 **Load:** `dataviz-selector`. **In:** the diagnose artifact (not the image). **Out:** the
 select artifact (`SELECT_SCHEMA`).
 
+**This stage is mandatory for every redesign - it is the core of the repair.** There is no
+path from diagnose straight to build. The build artifact **must** record the cold form
+decision this stage produces; a build that reuses (or re-renders a tidied version of) the
+source form with no recorded cold form decision is a flow violation, not a shortcut. If you
+are running the stages yourself in one turn, you still owe this decision explicitly before you
+build - skipping it because "the source is already a chart" is exactly the failure this stage
+exists to prevent.
+
 Choose the form **cold**: the source chart's form is not an input and gets no vote. Select
 the simplest form that makes the key messages easiest to see and hardest to misread, for the
 stated audience and medium. For "many series over time, compare trajectories" this is small
@@ -109,18 +129,34 @@ every preservation requirement.
 `dataviz-precision` when `needs_precision_plan`. **In:** source, diagnose artifact, select artifact.
 **Out:** the build artifact (`BUILD_SCHEMA`).
 
+These loads are **mandatory when their trigger is met**, not optional add-ons: a `table`
+builder loads `karthik-table-style`, and any build that displays numbers loads
+`dataviz-precision` so significant digits, decimal alignment, and money/ratio formatting are
+decided deliberately rather than left at the renderer's default. Running the stages yourself
+in one turn does not exempt you from opening these - the trigger, not your convenience,
+decides.
+
 Build the deliverable to the plan, carrying every key message with its required content -
 which may take more than one chart (a totals view alongside a per-category breakdown). When
 `chart-annotations` is loaded, let it judge whether any mark clears the bar, rank candidates,
 word the label, and place it - or leave the chart unmarked and put the finding in the title.
 Compose the headline and subhead here: `chart-annotations` decides the claim the title
 asserts, `karthik-data-visualization` sets title/subtitle style, and the installed writing or
-brand-style skill, if one exists in this environment, sets the voice; if none is installed,
-apply the prompt's stated preferences.
+brand-voice skill, if one exists in this environment, words the headline, claims, subtitle,
+and annotation text; if none is installed, apply the prompt's stated preferences.
 
 Honour every prompt constraint even while redesigning everything the prompt left open.
-Produce one PNG, SVG, or PDF from reproducible code, reusing the project's renderer; prefer
-ggplot2 when available but do not delay output for a renderer preference. For a table build,
+Produce one PNG, SVG, or PDF from reproducible code. Take renderers in order: the project's
+own renderer if it has one; else the deterministic `render_and_inspect_chart` tool when
+available; else ggplot2 with ragg; else a static renderer you configure deliberately (for
+example Matplotlib with its defaults overridden). Do not delay output for a higher rung when a
+lower one is ready. Whatever renderer is used, the export must satisfy
+`karthik-data-visualization`'s House visual defaults (light background, proportional sans,
+direct labels, claim-first title); a renderer's default theme is not an exception. **Do not
+improvise an uncontrolled renderer** - a hand-rolled SVG/JS/Ghostscript path that emits a
+dark, monospace, or library-default chart is a defect, not a fallback. If no available
+renderer can meet the house defaults, that is a failure to report (return the concrete gap and
+any earlier valid candidate), not a violating chart to ship. For a table build,
 use `karthik-table-style` with `gt` (or markdown/HTML where R is unavailable) and render the
 inspected raster through the same `render_and_inspect_chart` ragg path the charts use, so it
 is gated on the same footing. Inspect that exact export at delivery size and correct
@@ -142,6 +178,12 @@ collisions, typography hierarchy, label-to-mark association, duplicated scaffold
 categories/periods/units, colour and contrast; semantic: measure, denominator/universe,
 time/context, claim strength, units). Use `render_and_inspect_chart` when available;
 otherwise render locally, inspect visually, and say deterministic inspection was unavailable.
+
+**Flow check:** before judging the chart, confirm the build carries a recorded cold form
+decision from stage 2. If it does not - the candidate is a tidied re-render of the source form
+with no form choice behind it - that is a fatal flow violation on its own: return to stage 2,
+select the form cold, and rebuild. A weak or single-turn run that silently skipped form
+selection is caught here, not shipped.
 
 Consolidate defects into one focused revision and re-inspect the changed regions and their
 neighbours. Cap the loop at two passes; exit as soon as no fatal or major defect remains.
