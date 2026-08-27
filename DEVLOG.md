@@ -1208,3 +1208,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Written and pushed (`0cbe24b`): [`docs/plans/weak-model-repair-hardening.md`](docs/plans/weak-model-repair-hardening.md), indexed in the plans README. It's codename-free so it sits fine in the public repo. The shape:...
 
 <!-- claude-session:8790f9f9-4747-4cdd-b51d-2ba641f40999:end -->
+
+<!-- claude-session:aac159d2-3b6b-4db4-b518-c8e3b1a866e9:start -->
+## 2026-08-27 17:39 IST | Claude session `aac159d2-3b6`
+
+### User prompts
+> right now, in the diagnose part of the dataviz-fix, we do several things - get the raw data, figure chart message, figure out what is wrong with the given chart. should we be separating these out?
+> i gave a github heatmap and asked to "fix" expecting a line graph but got the same thing out instead. the logs say this: "request": { "mode": "prompted_repair", "repair_brief": "User repair request: this chart is hard...
+> actually critique had b een removed (by jmisttke) from stage 1.
+
+### Work done
+- Got it - removed *by mistake*, not a person. Noted. Doesn't change the diagnosis: that removal is in the repo's stage 1, and Luna never ran the repo's stage 1 - it ran the hosted app's critique-first orchestrator. So...
+- Fair - let me separate what I actually verified from what I inferred. **Evidence (verified this session):** - Your log fields are `mode: prompted_repair`, `source_assessment`, `recommendation`, `build_decisions`, `pre...
+
+<!-- claude-session:aac159d2-3b6b-4db4-b518-c8e3b1a866e9:end -->
