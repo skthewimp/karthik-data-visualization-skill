@@ -1108,3 +1108,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Synced. All 18 skills installed to both `~/.claude` and `~/.codex`. Everything's committed, pushed, and the local installs now match.
 
 <!-- claude-session:9b830eee-8084-42e7-ab5f-38f7284325c1:end -->
+
+<!-- claude-session:8425f19b-86ce-401d-9590-5d2ad3b66afc:start -->
+## 2026-08-26 21:50 IST | Claude session `8425f19b-86c`
+
+### User prompts
+> changing from strict json to markdown has made the process much much slower. is this expected?
+> is it possible for you to run samples using both the latest code and the old JSON code, on a local file here, to see if there is a material difference? maybe use ~/Downloads/openrouter.png
+> this is enough. undoing the conditinoals change now
+
+### Work done
+- Functionally: **all downstream.** The resolvers (`palette.py`, `precision.py`) are complete and already in this repo - your driver just imports and calls them. Nothing here needs to change for Option A to work. The on...
+- Deliverable written straight (caveman is chat-only). Copy-paste this to your downstream agent: --- **Task: resolve chart colour & precision as data before the build stage, instead of loading the colour/precision skill...
+
+<!-- claude-session:8425f19b-86ce-401d-9590-5d2ad3b66afc:end -->
