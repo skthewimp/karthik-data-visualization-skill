@@ -1342,3 +1342,14 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Pushed. What changed so the execution gate must use the MCP: 1. **Contract (`EXECUTION_SCHEMA`)** — new required `inspection` block: `geometry_source` + the numbers only the inspector produces (min text pt, over...
 
 <!-- claude-session:6762c11a-a5f9-4732-91a7-a061738a785d:end -->
+
+<!-- claude-session:e663a386-0403-48bb-80cd-33158927a15e:start -->
+## 2026-08-28 14:51 IST | Claude session `e663a386-040`
+
+### User prompts
+> there aer a bunch of chaneges we've made in this repo today. give a quick summary on what has been changed and why which I can now pass on to the downstream harness so these can take effect.
+
+### Work done
+- Here's a handoff summary of today's work. All of it lands in the `dataviz-construct` unification and its follow-ups - one shared terminal pipeline with two gates, then hardening that tail so a cheaper/weaker model can...
+
+<!-- claude-session:e663a386-0403-48bb-80cd-33158927a15e:end -->
