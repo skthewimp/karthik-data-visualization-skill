@@ -1353,3 +1353,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Here's a handoff summary of today's work. All of it lands in the `dataviz-construct` unification and its follow-ups - one shared terminal pipeline with two gates, then hardening that tail so a cheaper/weaker model can...
 
 <!-- claude-session:e663a386-0403-48bb-80cd-33158927a15e:end -->
+
+<!-- claude-session:2512ce59-17bd-44bc-a567-1b208e4e7aaf:start -->
+## 2026-08-28 14:56 IST | Claude session `2512ce59-17b`
+
+### User prompts
+> i want to understand deeply how the part where we figure out what the insight in hte data is is built.
+> ok this is okay for now. question is - how good will weak models be at this in the current form?
+> youve disgnosed well but the recommendstions look wesk
+
+### Work done
+- Fair. Looking it up.
+- Rates found — **sol $5/$30, luna $0.20/$1.20** per 1M in/out. Sol is **25× luna on both**. Per one chart run (50k in / 12k out): | Scenario | Cost/run | vs all-luna | vs all-sol | |---|---|---|---| | 100% sol | **$0.6...
+
+<!-- claude-session:2512ce59-17bd-44bc-a567-1b208e4e7aaf:end -->
