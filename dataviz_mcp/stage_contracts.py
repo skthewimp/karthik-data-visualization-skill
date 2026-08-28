@@ -36,6 +36,15 @@ pre-render gate (is the data / expression / insight right); ``execution`` is the
 post-render gate (geometry, overlap, ink). How many revision passes either gate runs is the
 driver's budget, not a fixed cap in this module or in a skill.
 
+The tail is not a straight pipe. ``insight`` names the headline claim and candidate
+annotations; the ``idea`` gate emits a *critique*, not a plan, so ``build`` cannot read the
+stage before it for what to draw. The insight artifact is the plan that must persist across
+the gate: ``idea`` and ``build`` declare it in :attr:`Stage.also_reads` so a mechanical
+harness feeds it forward explicitly, rather than relying on a smart agent to remember it.
+Without that, the headline claim reaches ``select`` and then vanishes at the gate - the
+title ends up improvised at ``build`` again, the exact failure the insight stage exists to
+prevent.
+
 The skills stay the source of truth for chart judgement; this module owns only the
 sequence, the per-stage skill subset, and the handoff schemas.
 """
@@ -88,6 +97,16 @@ class Stage:
     from the previous stage's ``builder`` output. ``conditional_skills`` maps a skill name
     to a plain-language condition; the driver loads it only when that condition holds
     (e.g. the plan asks for annotations).
+
+    ``input_schema`` is the artifact the previous stage hands directly forward.
+    ``also_reads`` names *earlier* stages whose artifacts this stage ALSO consumes - the
+    plan that has to persist across a gate. The construct tail is not a straight line: the
+    ``idea`` stage is a gate that emits a critique, so ``build`` cannot read "the previous
+    stage" for its plan; it reads the ``select`` artifact (its ``input_schema``) plus the
+    ``insight`` artifact (``also_reads``) that named the headline claim and annotations. A
+    driver feeds a stage its ``input_schema`` artifact and every ``also_reads`` artifact; on
+    a mechanical / weak-model harness this is the difference between the headline claim
+    reaching the title and vanishing at the gate.
     """
 
     stage_id: str
@@ -99,6 +118,7 @@ class Stage:
     builder_skills: dict[str, tuple[str, ...]] = field(default_factory=dict)
     conditional_skills: dict[str, str] = field(default_factory=dict)
     routing_fields: tuple[str, ...] = ()
+    also_reads: tuple[str, ...] = ()
 
     def handoff_spec(self) -> str:
         """The 'emit these sections (+ routing block)' instruction for this stage.
@@ -967,6 +987,9 @@ _IDEA_STAGE = Stage(
     input_schema=SELECT_SCHEMA,
     output_schema=IDEA_CRITIQUE_SCHEMA,
     instructions=_CONSTRUCT_IDEA,
+    # The pre-render gate judges the whole plan: it needs the facts, headline claim, and
+    # candidate annotations from insight, not only the selected form.
+    also_reads=("insight",),
 )
 
 _BUILD_STAGE = Stage(
@@ -978,6 +1001,10 @@ _BUILD_STAGE = Stage(
     input_schema=SELECT_SCHEMA,
     output_schema=BUILD_SCHEMA,
     instructions=_CONSTRUCT_BUILD,
+    # Build reads the select artifact (its plan) AND the insight artifact whose headline
+    # claim it asserts in the title and whose candidate annotations it words and places. The
+    # idea gate between them emits a critique, not a plan, so this cannot be the prior stage.
+    also_reads=("insight",),
 )
 
 _EXECUTION_STAGE = Stage(

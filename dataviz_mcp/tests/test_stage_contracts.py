@@ -136,6 +136,23 @@ def test_insight_names_the_headline_claim_before_build() -> None:
     assert "candidate_annotations" in props
 
 
+def test_insight_artifact_is_carried_across_the_gate_to_idea_and_build() -> None:
+    """The plan must survive the idea gate: idea and build explicitly also read insight.
+
+    The idea gate emits a critique, not a plan, so a mechanical harness that fed each stage
+    only its predecessor's output would lose the headline claim at the gate - it would reach
+    select and then vanish. ``also_reads`` closes that on a weak-model driver.
+    """
+    for pipeline_name in ("repair", "story"):
+        idea = sc.stage(pipeline_name, "idea")
+        build = sc.stage(pipeline_name, "build")
+        assert "insight" in idea.also_reads
+        assert "insight" in build.also_reads
+    # select reads insight as its direct input, so it needs no also_reads.
+    assert sc.stage("story", "select").input_schema is sc.INSIGHT_SCHEMA
+    assert sc.stage("story", "select").also_reads == ()
+
+
 def test_missing_builder_choice_raises() -> None:
     build = sc.stage("story", "build")
     with pytest.raises(ValueError):

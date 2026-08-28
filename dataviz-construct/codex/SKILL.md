@@ -44,6 +44,19 @@ forward. Loading every skill into one context rots it.
    labels, colour, precision, ink. Route back to `build`, or - rarely - to `idea` if the render
    shows the idea itself is wrong.
 
+## The plan carries across the gate
+
+The tail is not a straight pipe. `insight` names the headline claim and the candidate
+annotations; `select` reads that and adds the form. But the `idea` gate emits a *critique*,
+not a plan - so `build` cannot read the stage right before it for what to draw. The insight
+artifact is the plan that has to persist **across** the gate: `idea` and `build` both receive
+the insight artifact (its facts, headline claim, and candidate annotations) **and** the select
+artifact. On a weak-model harness feed both forward explicitly - do not rely on the model to
+remember the claim from two stages back. If only the select artifact reaches build, the
+headline claim vanishes at the gate and the title gets improvised at build again, which is the
+exact failure the insight stage exists to prevent. In `dataviz_mcp/stage_contracts.py` this is
+`Stage.also_reads=("insight",)` on the `idea` and `build` stages.
+
 ## Two gates, in order
 
 The idea gate runs **before** the chart is drawn; the execution gate runs **after**. This is

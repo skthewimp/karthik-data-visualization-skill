@@ -21,6 +21,10 @@ insight -> select -> idea -> build -> execution
 
 The idea gate runs **before** the chart is drawn; the execution gate runs **after**. There is no sense fixing label overlaps on a chart that is the wrong chart. Ideas can be judged from the plan and the data - an LLM does not need the render to know the form cannot carry the claim - so that check comes first; execution can only be judged from pixels, so it comes second. Substance before craft.
 
+## The plan carries across the gate
+
+The tail is not a straight pipe. `insight` names the headline claim and candidate annotations; the `idea` gate emits a critique, not a plan, so `build` cannot read the stage right before it for what to draw. The insight artifact is the plan that must persist **across** the gate - `idea` and `build` both receive the insight artifact *and* the select artifact. On a mechanical / weak-model harness feed both forward explicitly (`Stage.also_reads=("insight",)` on `idea` and `build` in `dataviz_mcp/stage_contracts.py`); rely on nothing remembering the claim from two stages back. If only the select artifact reaches build, the headline claim vanishes at the gate and the title is improvised again - the exact failure the insight stage exists to prevent.
+
 ## The loop is a unit; the driver owns the count
 
 Each gate runs the same shape: find everything wrong, decide the fixes, redo, re-check. Whether that runs zero, one, or several times is the **driver's / harness's budget** - never a fixed pass count baked into the skill or a stage. A valid rendered candidate must be delivered; an unavailable optional evaluator or a check left `unknown` for want of external ground truth is disclosed, not blocking.
