@@ -850,6 +850,52 @@ BUILD_SCHEMA: dict[str, object] = {
     "additionalProperties": False,
 }
 
+# The geometry verdict must rest on the deterministic inspector, not the model's eyes. This
+# required block records WHERE the geometry judgement came from and the numbers only the tool
+# produces (smallest text size, overlap count, clipping). A stage that skips the tool cannot
+# fill the measured numbers, so it must set ``geometry_source: visual-only`` and, per the
+# execution instructions, treat geometry as ``unknown`` rather than asserting a pass - the same
+# make-the-tool-output-a-required-field lever that ``recommendations_used`` applies to
+# precision and colour. ``visual-only`` is legitimate ONLY when ``render_and_inspect_chart`` /
+# ``inspect_rendered_chart`` were genuinely unavailable (see ``probe_renderers``); it is never a
+# shortcut past an available inspector. Thresholds stay tool parameters; nothing is hardcoded here.
+_INSPECTION_EVIDENCE = {
+    "type": "object",
+    "description": (
+        "Where the geometry verdict came from and the numbers the inspector measured. Required "
+        "so a claimed geometry pass cannot be asserted without the deterministic inspector "
+        "having run. When the inspector was unavailable, set geometry_source to visual-only and "
+        "leave the measured numbers null - the execution stage then reports geometry as unknown, "
+        "never as passed."
+    ),
+    "properties": {
+        "geometry_source": {
+            "type": "string",
+            "enum": ["render_and_inspect_chart", "inspect_rendered_chart", "visual-only"],
+            "description": (
+                "The tool that produced the geometry verdict, or visual-only when no inspector "
+                "was available. visual-only is legitimate only when the inspector genuinely "
+                "could not run (probe_renderers), never as a way to skip an available tool."
+            ),
+        },
+        "inspection_report_path": {"type": ["string", "null"]},
+        "min_text_pt": {
+            "type": ["number", "null"],
+            "description": "Smallest rendered text size the inspector measured; null if visual-only.",
+        },
+        "overlap_count": {
+            "type": ["integer", "null"],
+            "description": "Number of overlapping/colliding text or mark pairs the inspector found; null if visual-only.",
+        },
+        "clipped": {
+            "type": ["boolean", "null"],
+            "description": "Whether the inspector found any element clipped by the canvas; null if visual-only.",
+        },
+    },
+    "required": ["geometry_source"],
+    "additionalProperties": False,
+}
+
 # Execution stage output: the post-render craft checker's verdict and the delivered
 # artifact. Replaces the old ``refine`` stage; the idea gate now owns the substance check.
 EXECUTION_SCHEMA: dict[str, object] = {
@@ -858,10 +904,18 @@ EXECUTION_SCHEMA: dict[str, object] = {
         "verdict": {"type": "string", "enum": ["deliver", "revise", "blocked"]},
         "summary": {"type": "string"},
         "artifact_path": {"type": "string"},
+        "inspection": _INSPECTION_EVIDENCE,
         "changes_made": _STRING_ARRAY,
         "residual_limitations": _STRING_ARRAY,
     },
-    "required": ["verdict", "summary", "artifact_path", "changes_made", "residual_limitations"],
+    "required": [
+        "verdict",
+        "summary",
+        "artifact_path",
+        "inspection",
+        "changes_made",
+        "residual_limitations",
+    ],
     "additionalProperties": False,
 }
 
@@ -1044,9 +1098,14 @@ process - the post-render gate. You receive the built candidate at its delivery 
 plan. Check the RENDERING, not the idea (the idea gate owns substance): clipping, collisions,
 label-to-mark association, typography hierarchy, duplicated scaffolding, colour contrast and
 grayscale / CVD survival, the numbers' precision as displayed, and any ink that carries no
-data, label, or necessary context (the eraser test). Use ``render_and_inspect_chart`` when
-available; otherwise render locally, inspect visually, and say deterministic inspection was
-unavailable. Before judging a redesign build, confirm it carries a recorded cold form
+data, label, or necessary context (the eraser test). The geometry verdict is not yours to eyeball:
+run ``render_and_inspect_chart`` (or ``inspect_rendered_chart`` on the exact export) and record
+what it measured in ``inspection`` - ``geometry_source``, the smallest text size, the overlap
+count, and whether anything is clipped. Only when the inspector genuinely cannot run (check
+``probe_renderers``) may you set ``geometry_source: visual-only``; then leave the measured numbers
+null and report geometry as UNKNOWN, never as a pass - a ``deliver`` verdict may rest on a visual
+description of colour or ink, but its geometry claim must come from the tool or be marked unknown.
+Before judging a redesign build, confirm it carries a recorded cold form
 decision; a redesign candidate that is a tidied re-render of the source form with no form
 choice behind it is a flow violation - route it back to the select stage. Consolidate the
 defects you find into one focused revision, re-render, and re-inspect the changed regions and

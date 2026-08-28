@@ -30,10 +30,15 @@ Inspect the exact export at the declared delivery size and find every consequent
 
 ## Rendering and inspection
 
-Use `render_and_inspect_chart` when it is available - it gives deterministic geometry from the
-exact export. If it fails or is unavailable, render locally, inspect the export visually, and
-**say deterministic inspection was unavailable**; never describe an incomplete check as
-complete or fabricate metadata.
+The geometry verdict is not yours to eyeball. Run `render_and_inspect_chart` (or
+`inspect_rendered_chart` on the exact export) - it gives deterministic geometry - and record what
+it measured in the `inspection` block: the source tool, the smallest text size, the overlap
+count, and whether anything is clipped. Only when the inspector genuinely cannot run (check
+`probe_renderers`) may you fall back to a visual look; then set `geometry_source: visual-only`,
+leave the measured numbers empty, and report geometry as **unknown** - never as a pass. A
+`deliver` verdict can rest on a visual read of colour or ink, but its geometry claim must come
+from the tool or be marked unknown. Never describe an incomplete check as complete or fabricate
+metadata.
 
 ## Flow check before craft
 
@@ -60,6 +65,7 @@ in `residual_limitations`, not a defect, and never a reason to withhold - still 
 
 ## Handoff
 
-Emit the verdict, the summary, the delivered artifact path, the changes made, and the residual
-limitations. The exact fields are `dataviz_mcp/stage_contracts.py:EXECUTION_SCHEMA`; this skill
-carries the reasoning, that module the shape.
+Emit the verdict, the summary, the delivered artifact path, the `inspection` evidence (the
+geometry source and its measured numbers), the changes made, and the residual limitations. The
+exact fields are `dataviz_mcp/stage_contracts.py:EXECUTION_SCHEMA`; this skill carries the
+reasoning, that module the shape.
