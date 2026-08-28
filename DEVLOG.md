@@ -1302,3 +1302,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Read the seed (`dataviz-eval-first-principles.md`). It already scopes your redo — and it changes the answer to your last question. Key tension to surface: ## The seed says eval is the *wrong layer* for these failures...
 
 <!-- claude-session:ee9a9607-2333-4906-8527-1fd1e283204e:end -->
+
+<!-- claude-session:fb930fbc-7913-4e91-8ec2-90fd8d74c823:start -->
+## 2026-08-28 09:52 IST | Claude session `fb930fbc-791`
+
+### User prompts
+> i'm thinking of a change in teh dataviz-fix (and even create) workflow - rather. both need to coalesce into one workrflow after having figured out what to do / change. bsaically the graph creation part can be integrat...
+> <task-notification> <task-id>ab5ddc860fb320762</task-id> <tool-use-id>toolu_01NGKsm5SL56AorYbSLfF3No</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/87...
+> <task-notification> <task-id>aceebfcf5b4094bf4</task-id> <tool-use-id>toolu_011PZwJmEqWnRd7zWjx5XLW5</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/87...
+
+### Work done
+- 114 passed (+3), validation clean. Install + commit + push:
+- Pushed (`e6b2781..315d415`). You were right - the note states the finding, not the pixels. It's now its own `explain` stage that reads the insight artifact + plan, **never the render**, and runs in parallel with build...
+
+<!-- claude-session:fb930fbc-7913-4e91-8ec2-90fd8d74c823:end -->
