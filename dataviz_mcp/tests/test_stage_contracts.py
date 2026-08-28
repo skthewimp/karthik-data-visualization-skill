@@ -27,22 +27,31 @@ def _all_stages():
             yield name, stage
 
 
+_CONSTRUCT_TAIL = ("insight", "select", "idea", "build", "execution")
+
+
 def test_pipelines_have_expected_stage_order() -> None:
-    assert tuple(s.stage_id for s in sc.REPAIR_PIPELINE) == (
-        "diagnose",
-        "select",
-        "build",
-        "refine",
-    )
+    assert tuple(s.stage_id for s in sc.REPAIR_PIPELINE) == ("diagnose", *_CONSTRUCT_TAIL)
     assert tuple(s.stage_id for s in sc.STORY_PIPELINE) == (
         "discover",
         "contract",
         "clean",
-        "facts",
-        "select",
-        "build",
-        "refine",
+        *_CONSTRUCT_TAIL,
     )
+
+
+def test_both_front_halves_share_one_construct_tail() -> None:
+    """The literal coalescing: the post-insight stages are the SAME objects in both."""
+    for stage_id in ("select", "idea", "build", "execution"):
+        assert sc.stage("repair", stage_id) is sc.stage("story", stage_id)
+    # insight is parameterised only by the artifact that feeds it; everything else matches.
+    repair_insight = sc.stage("repair", "insight")
+    story_insight = sc.stage("story", "insight")
+    assert repair_insight.skills == story_insight.skills == ("karthik-evidence-builder",)
+    assert repair_insight.instructions == story_insight.instructions
+    assert repair_insight.output_schema is story_insight.output_schema is sc.INSIGHT_SCHEMA
+    assert repair_insight.input_schema is sc.DIAGNOSE_SCHEMA
+    assert story_insight.input_schema is sc.CLEAN_SCHEMA
 
 
 def test_diagnose_stage_carries_only_its_skills() -> None:
@@ -111,12 +120,20 @@ def test_stage_adapter_includes_guardrails_and_focus() -> None:
     assert revision is None or revision.strip()
 
 
-def test_facts_stage_is_a_named_placeholder() -> None:
-    facts = sc.stage("story", "facts")
-    assert facts.skills == ()
-    bundle, sources = sc.stage_skill_bundle(facts, repository_root=REPO_ROOT)
-    assert sources == ()
-    assert bundle == ""
+def test_insight_stage_has_a_real_skill() -> None:
+    """The old skill-less facts placeholder is gone: insight loads the evidence builder."""
+    insight = sc.stage("story", "insight")
+    assert insight.skills == ("karthik-evidence-builder",)
+    _bundle, sources = sc.stage_skill_bundle(insight, repository_root=REPO_ROOT)
+    assert sources == ("karthik-evidence-builder/codex/SKILL.md",)
+
+
+def test_insight_names_the_headline_claim_before_build() -> None:
+    """The headline is decided at insight, not improvised at build."""
+    props = sc.INSIGHT_SCHEMA["properties"]
+    assert "headline_claim" in props
+    assert "headline_claim" in sc.INSIGHT_SCHEMA["required"]
+    assert "candidate_annotations" in props
 
 
 def test_missing_builder_choice_raises() -> None:
@@ -164,7 +181,7 @@ def test_select_carries_exact_lookup_decision_upstream() -> None:
 
 def test_acceptance_checks_split_fidelity_from_external_validation() -> None:
     """Every check declares whether it is answerable in-run or needs external ground truth."""
-    for schema in (sc.SELECT_SCHEMA, sc.REPAIR_PIPELINE[1].output_schema):
+    for schema in (sc.SELECT_SCHEMA, sc.stage("repair", "select").output_schema):
         item = schema["properties"]["acceptance_checks"]["items"]
         assert "validation_type" in item["required"]
         assert item["properties"]["validation_type"]["enum"] == [
@@ -176,13 +193,24 @@ def test_acceptance_checks_split_fidelity_from_external_validation() -> None:
 def test_missing_external_validation_never_blocks_delivery() -> None:
     """An unavailable external validation is disclosed in a footnote, not a blocking failure."""
     build = " ".join(sc.stage("repair", "build").instructions.split())
-    refine = " ".join(sc.stage("repair", "refine").instructions.split())
+    execution = " ".join(sc.stage("repair", "execution").instructions.split())
     # Build delivers and discloses rather than demanding the missing source.
     assert "DELIVERED regardless" in build
     assert "external_validation" in build
-    # Refine reserves `blocked` for a genuine inability to produce any artifact.
-    assert "residual_limitations" in refine
-    assert "Reserve the ``blocked`` verdict" in refine
+    # Execution reserves `blocked` for a genuine inability to produce any artifact.
+    assert "residual_limitations" in execution
+    assert "Reserve the ``blocked`` verdict" in execution
+
+
+def test_no_construct_stage_hardcodes_an_iteration_cap() -> None:
+    """Iteration budget is the driver's, not a fixed pass count baked into a stage."""
+    for pipeline_name, stage in _all_stages():
+        text = stage.instructions.lower()
+        assert "cap the loop at two passes" not in text
+        assert "cap at two passes" not in text
+    # The execution gate says so explicitly.
+    execution = sc.stage("repair", "execution").instructions
+    assert "driver's budget" in execution
 
 
 def test_only_select_stages_declare_routing_fields() -> None:

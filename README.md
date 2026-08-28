@@ -38,9 +38,9 @@ Installing the skills does not register the MCP server. For the full workflow, c
 - Both adapters emit the same artifact, specification, layout, inspection, review-view, and manifest bundle. Coverage limitations remain explicit in the inspection report.
 - Tables are gated on the same footing: call `render_and_inspect_chart` with `content="table"` on an `.R` source that returns a gtable (`gridExtra::tableGrob` or `gt::as_gtable`). It renders through the same `ragg` path - no headless Chrome - capturing every cell's text, font size, and background fill at its exact bounding box. Decimal-point alignment and in-cell overflow stay a visual read, and the inspection report says so.
 
-This repo contains eighteen related skills, coordinated as a context-sensitive visualization workflow:
+This repo contains twenty-two related skills, coordinated as a context-sensitive visualization workflow:
 
-1. **`dataviz-fix`** - the staged repair orchestrator (diagnose+extract -> select -> build -> refine): extract intent and data from the source, choose a form cold, rebuild, run one downstream critique-checker loop, and improve it from user feedback. Each stage is a separate call carrying only its own skills.
+1. **`dataviz-fix`** - the repair front half (diagnose+extract): recover intent and data from the source, then hand into the shared construct process (`dataviz-construct`). Each stage is a separate call carrying only its own skills.
 2. **`dataviz-brief`** - intent-extraction rules that open a repair: key messages and required content, explicit drops, audience, constraints, keep-notes, and the edit-vs-redesign decision.
 3. **`dataviz-extract`** - vision rules for reading the full period-by-category data table out of a chart image, so the repair rebuilds from data rather than tracing the picture.
 4. **`dataviz-eval`** - artifact and creator-system evaluation rules for separate blind review, scoped send/revise/redesign decisions, failure analysis, and regression benchmarks.
@@ -49,7 +49,7 @@ This repo contains eighteen related skills, coordinated as a context-sensitive v
 7. **`karthik-powerpoint-style`** - slide and deck rules for making PowerPoint-style presentations in Karthik's analytical, claim-first style.
 8. **`dataviz-critique`** - chart critique and redesign rules for diagnosing existing visuals using the question-data-visual trifecta plus Karthik's clarity-first standards, then proposing better alternatives.
 9. **`karthik-analysis-planner`** - analysis-contract rules for turning fuzzy natural-language questions into operational definitions, denominators, comparisons, metrics, caveats, and falsifiers before evidence-building.
-10. **`dataviz-orchestrator`** - the staged dataset-to-story orchestrator (discover -> contract -> clean -> facts -> select -> build -> refine) for turning a dataset, loose question, and audience into an analysed, styled, critiqued visual story. Each stage is a separate call carrying only its own skills.
+10. **`dataviz-orchestrator`** - the creation front half (discover -> contract -> clean) for turning a dataset, loose question, and audience into a brief-and-data, then hand into the shared construct process (`dataviz-construct`). Each stage is a separate call carrying only its own skills.
 11. **`dataset-question-generator`** - upstream skill for profiling raw datasets and generating fresh, visualisable questions before planning or charting.
 12. **`karthik-data-cleaning`** - data-cleaning rules for Karthik-style exploratory analysis: inspect, clean in context, inspect again, and avoid generic unsupervised fixes.
 13. **`chart-annotations`** - annotation rules for deciding what a chart should mark, which competing candidate wins, how the label is worded, and where it sits.
@@ -58,8 +58,12 @@ This repo contains eighteen related skills, coordinated as a context-sensitive v
 16. **`karthik-table-style`** - table-craft rules for when the chosen form is a table: emphasis as scarce ink, decimal-point alignment, precision keyed to variance, content-sized columns, minimal rules, tabular figures, and deliberately-scoped conditional formatting.
 17. **`dataviz-color`** - colour-selection rules for a specific graph: pick and assign series colours from a brand or default palette, honour an installed brand skill or in-context style first, and validate for contrast, colour-vision-deficiency, and grayscale. Backed by the `recommend_colours` and `validate_palette` MCP tools.
 18. **`dataviz-precision`** - significant-digit rules for chart and table numbers: derive a uniform rounding place from the column's spread (max minus min), never fabricate precision. Backed by the `recommend_precision` MCP tool.
+19. **`dataviz-construct`** - the shared terminal process both creation and repair hand into: insight -> select -> idea -> build -> execution, run as a driver-budgeted find-fix-redo loop. Ideas are checked before the render, execution after.
+20. **`karthik-evidence-builder`** - the insight stage: compute the facts and name the single headline claim plus candidate annotation claims, from the data, before a form is chosen. Fills what used to be a skill-less "facts" placeholder.
+21. **`dataviz-idea-critique`** - the pre-render gate: is the data right, the expression right, the insight right, and honest - judged on the plan and data before the chart is built, routing back to insight or select.
+22. **`dataviz-execution`** - the post-render gate: geometry, overlap, labels, colour, precision, and ink on the built export, leaning on `render_and_inspect_chart`. Distinct from `dataviz-critique`, which reviews a chart standalone.
 
-The split is deliberate. The orchestrator routes the work and preserves handoffs; it does not duplicate every specialist procedure. Planning defines the analytical claim and evidence contract. Cleaning establishes provenance, grain, and data validity. Question generation proposes supported questions. Selection chooses an encoding for the task - a chart or a well-formatted table. Construction implements it, with `karthik-data-visualization` owning chart craft and `karthik-table-style` owning table craft. Annotation adds supported context. Explanation communicates the result at calibrated strength. Critique diagnoses interpretive failures. Repair manages bounded revisions and reusable lessons. Evaluation independently verifies semantic, visual, evidentiary, and delivery outcomes.
+The split is deliberate. Creation and repair are two front halves that both hand into one shared construct process (`dataviz-construct`): the two orchestrators route only their own front-half work and preserve handoffs; they do not duplicate the terminal process. Planning defines the analytical claim and evidence contract. Cleaning establishes provenance, grain, and data validity. Question generation proposes supported questions. Inside construct, the insight stage names the headline claim and candidate marks from the data before a form is chosen; the idea gate checks the data, expression, and insight before anything is rendered; selection chooses an encoding for the task - a chart or a well-formatted table; construction implements it, with `karthik-data-visualization` owning chart craft and `karthik-table-style` owning table craft; the execution gate checks geometry, colour, precision, and ink on the rendered export. Ideas are judged before the render, execution after, and how many revision passes each gate runs is the driver's budget. Annotation adds supported context. Explanation communicates the result at calibrated strength. Critique diagnoses interpretive failures in a standalone chart. Evaluation independently verifies semantic, visual, evidentiary, and delivery outcomes.
 
 ## Repository layout
 
@@ -117,6 +121,18 @@ The split is deliberate. The orchestrator routes the work and preserves handoffs
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── dataviz-precision/               # Significant digits for chart and table numbers
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataviz-construct/               # Shared terminal process: insight -> select -> idea -> build -> execution
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── karthik-evidence-builder/        # Insight stage: facts + headline claim before a form is chosen
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataviz-idea-critique/           # Pre-render gate: data / expression / insight / honesty
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataviz-execution/               # Post-render gate: geometry, colour, precision, ink
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── tester/                          # Local repair-loop case console

@@ -55,14 +55,17 @@ The intellectual stages remain unchanged:
 intake
 → analysis contract
 → data preparation
-→ facts table
+→ insight (facts + headline claim + candidate annotations)
 → chart selection
+→ idea critique (pre-render gate: data / expression / insight / honesty)
 → chart spec
 → render bundle
-→ deterministic inspection of the exact PNG
+→ execution critique (post-render gate; deterministic inspection of the exact PNG)
 → delivery
 → narrow repair from user feedback when required
 ```
+
+Creation and repair share this tail from `insight` onward (`dataviz-construct`); they differ only in the front half that reaches it (a dataset, or a diagnosed source image).
 
 When the chosen renderer is supported, pass the exact deliverable through the metadata-producing adapter and then exact-artifact inspection. When the appropriate renderer is not supported, inspect the exact export visually and keep missing geometry marked unknown. Use independent evaluation only for an explicit audit, high-risk decision, or benchmark. Metadata availability must not force a weaker visual implementation or suppress a valid artifact.
 

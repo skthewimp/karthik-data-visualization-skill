@@ -1,5 +1,71 @@
 # Devlog
 
+## 2026-08-28 - Coalesce creation and repair into one construct process
+
+### Context
+
+Prompt (paraphrased, PII stripped): the dataviz-fix and dataviz-create workflows should
+coalesce into one workflow after the front half figures out what to do / change - the graph
+construction part is shared. And in that shared workflow, run two rounds of iteration: first
+whether the graph is appropriate / conveys the right message / has the right data, then a
+second round for semantics, overlaps, execution - in that order. A follow-up reframed it: one
+shared process (`dataviz-construct`), with separate skills for the *ideas* (is the data right,
+the expression right) and the *execution*; ideas can run before the chart is constructed;
+whether it loops 0/2 times is the harness's call, not ours - our job is to define the skills
+and process. Two more constraints: do not touch `dataviz-critique` (still needed standalone
+and at the repair diagnose step); and the headline/annotation insight generation had to become
+an explicit pre-build step (build `karthik-evidence-builder`, the long-standing facts gap).
+
+### What I found
+
+Exploration confirmed both pipelines already converged on `select -> build -> refine`
+(`dataviz_mcp/stage_contracts.py`), duplicated as prose in `dataviz-fix` and
+`dataviz-orchestrator`. The single `refine` stage mixed substance (question-data-visual,
+message) with craft (overlap, ink) and hardcoded a two-pass cap. Insight for headlines lived
+in a skill-less `facts` stage (create) or was recovered, not computed (repair); the headline
+claim and annotations were decided late, at build, by `chart-annotations`, with nothing
+validating pre-render that the claimed insight was supported.
+
+### What I did
+
+- **`dataviz_mcp/stage_contracts.py`:** replaced the two `... -> select -> build -> refine`
+  tails with one shared construct tail `insight -> select -> idea -> build -> execution`.
+  `select`/`idea`/`build`/`execution` are single shared `Stage` objects spliced into both
+  pipelines via `_construct_tail(...)`; only `insight` is parameterised by its input schema
+  (`DIAGNOSE_SCHEMA` for repair, `CLEAN_SCHEMA` for story). Added `INSIGHT_SCHEMA` (facts +
+  `headline_claim` + `candidate_annotations`, supersedes `FACTS_SCHEMA`), `IDEA_CRITIQUE_SCHEMA`
+  (verdict + four judgements + issues with `route_back`), and `EXECUTION_SCHEMA` (renamed from
+  `REFINE_SCHEMA`). Removed the two-pass cap from the adapter text and stated the budget is the
+  driver's.
+- **Four new skills** (each `claude`/`codex` byte-identical + folder README): `dataviz-construct`
+  (shared process doc), `karthik-evidence-builder` (insight stage), `dataviz-idea-critique`
+  (pre-render gate), `dataviz-execution` (post-render gate).
+- **Edited skills:** `dataviz-fix` and `dataviz-orchestrator` reduced to their front halves,
+  handing into `dataviz-construct`; the 2-pass cap removed. `chart-annotations` now receives
+  the headline claim and candidate marks from the insight stage (body edit applied to both
+  variants, preserving each frontmatter). `dataviz-critique` untouched, as instructed.
+- **Tests:** updated `dataviz_mcp/tests/test_stage_contracts.py` for the new stage ids and
+  schemas; added `test_both_front_halves_share_one_construct_tail`,
+  `test_insight_stage_has_a_real_skill`, `test_insight_names_the_headline_claim_before_build`,
+  and `test_no_construct_stage_hardcodes_an_iteration_cap`. Full suite: 107 passed.
+- **Docs:** root `README.md` (18 -> 22 skills, front-half framing, tree), `dataviz_mcp/README.md`,
+  `docs/mcp.md` generation sequence, `docs/skills/{dataviz-fix,dataviz-orchestrator}.md`, the
+  docs indexes, four new `docs/skills/*.md` pages, and this plan in `docs/plans/`. Historical
+  CHANGELOG/DEVLOG/plan/design entries were left as the record they are.
+
+### Design decisions
+
+- **Ideas before execution, as separate skills.** The idea gate is judged from the plan and
+  the data (no render needed), so it runs first and cheapest; the execution gate needs pixels,
+  so it runs after build. Splitting them into two skills keeps each context lean and matches the
+  per-stage-call model.
+- **Insight is an explicit pre-build stage.** For the idea gate to check "is this the right
+  insight" before rendering, the headline claim and candidate annotations must exist before
+  build - so `karthik-evidence-builder` produces them, and `chart-annotations` words/places what
+  it named rather than originating the claim.
+- **No hardcoded pass count.** Each gate is a `find -> fix -> redo` unit; the harness owns how
+  many times it runs.
+
 ## 2026-08-27 - Make the house rules bind when a weaker model runs the repair loop
 
 ### Context

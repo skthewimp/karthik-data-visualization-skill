@@ -33,8 +33,8 @@ Exception: a chart designed to travel alone with no title bar or surrounding tex
 
 ## Workflow
 
-1. Write the one-sentence claim the chart must support.
-2. Enumerate annotation candidates from the chart's geometry.
+1. Take the one-sentence claim the chart must support. In the construct pipeline this is the **headline claim** from the insight stage (`karthik-evidence-builder`), and the marks worth considering arrive as its `candidate_annotations` (each a claim tied to the datum that supports it) - your job is to rank, word, and place them, not to originate a different claim. Standalone, write the claim yourself.
+2. Enumerate annotation candidates from the chart's geometry, folding in any `candidate_annotations` the insight stage supplied.
 3. Run the concentration check.
 4. Rank candidates by relevance to the chart's claim, evidentiary strength, reader payoff, and visual salience.
 5. Select only as many as the chart can support without competing claims; there is no universal count.
@@ -178,4 +178,4 @@ Fix and re-render. Do not declare done from code inspection.
 
 ## Relationship to other skills
 
-Use `dataviz-selector` first if the chart form is still open. Use `karthik-data-visualization` for palette, typography, and the surrounding chart style. Use `dataviz-critique` when reviewing someone else's annotated chart. Use `dataviz-fix` when the whole chart enters a repair loop. `dataviz-orchestrator` calls this skill at the charting step.
+Use `dataviz-selector` first if the chart form is still open. Use `karthik-data-visualization` for palette, typography, and the surrounding chart style. Use `dataviz-critique` when reviewing someone else's annotated chart. Use `dataviz-fix` when the whole chart enters a repair loop. In the construct pipeline (`dataviz-construct`), the headline claim and the candidate marks are decided upstream at the insight stage (`karthik-evidence-builder`); this skill is loaded at build to rank, word, and place them.

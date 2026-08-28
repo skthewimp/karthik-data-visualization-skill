@@ -12,6 +12,10 @@ Human-facing guides for the public skills.
 - [`dataviz-critique.md`](dataviz-critique.md) - explains the chart critique skill and trifecta-based review workflow.
 - [`karthik-analysis-planner.md`](karthik-analysis-planner.md) - explains the analysis-contract skill for defining questions before evidence-building.
 - [`dataviz-orchestrator.md`](dataviz-orchestrator.md) - explains the end-to-end dataset-to-visual-story workflow skill.
+- [`dataviz-construct.md`](dataviz-construct.md) - explains the shared terminal process both creation and repair hand into: insight, select, idea-critique, build, execution-critique.
+- [`karthik-evidence-builder.md`](karthik-evidence-builder.md) - explains the insight stage: compute the facts and name the headline claim plus candidate annotations before a form is chosen.
+- [`dataviz-idea-critique.md`](dataviz-idea-critique.md) - explains the pre-render idea gate: is the data, expression, insight, and honesty right before the chart is built.
+- [`dataviz-execution.md`](dataviz-execution.md) - explains the post-render execution gate: geometry, overlap, colour, precision, and ink on the built export.
 - [`dataset-question-generator.md`](dataset-question-generator.md) - explains the raw-dataset-to-question-generation skill.
 - [`karthik-data-cleaning.md`](karthik-data-cleaning.md) - explains the context-sensitive exploratory data-cleaning skill.
 - [`chart-annotations.md`](chart-annotations.md) - explains the chart-annotation skill: what to mark, how to rank, how to word it, where to place it.

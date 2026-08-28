@@ -7,11 +7,18 @@ See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation a
 ## Staged pipeline contract
 
 `dataviz_mcp.stage_contracts` is the provider-neutral, staged contract another
-application can reuse. It defines two pipelines - `REPAIR_PIPELINE` (image in:
-diagnose -> select -> build -> refine) and `STORY_PIPELINE` (dataset to story:
-discover -> contract -> clean -> facts -> select -> build -> refine) - as ordered
-`Stage` objects. Each stage names the smallest skill subset it needs, the artifact it
-receives, the artifact it emits, and a focused adapter. Handoffs are **structured text**
+application can reuse. Two front halves feed one shared terminal process
+(`dataviz-construct`): `REPAIR_PIPELINE` (image in: `diagnose`, then the construct tail)
+and `STORY_PIPELINE` (dataset to story: `discover -> contract -> clean`, then the construct
+tail). The shared tail is `insight -> select -> idea -> build -> execution`, and its
+`select`, `idea`, `build`, and `execution` stages are the *same* `Stage` objects in both
+pipelines - the literal coalescing of the two old `select -> build -> refine` tails. Only
+`insight` differs, and only in the artifact it reads. `insight` names the headline claim and
+candidate annotations before a form is chosen (`karthik-evidence-builder`); `idea` is the
+pre-render gate (`dataviz-idea-critique`); `execution` is the post-render gate
+(`dataviz-execution`). How many revision passes either gate runs is the driver's budget, not
+a fixed cap. Each stage names the smallest skill subset it needs, the artifact it receives,
+the artifact it emits, and a focused adapter. Handoffs are **structured text**
 (markdown sections per content field, plus a small `routing` block of `key: value` lines at
 the branch points), not strict JSON - so the pipeline runs on cheaper / open-weight models
 too. `dataviz_mcp.handoff` parses the routing block leniently and also accepts a plain JSON
@@ -25,10 +32,11 @@ the context rot the old single-creator all-skills bundle caused. `build_stage_ad
 prepends the shared guardrails and the stage's focused instructions to that bundle.
 
 The build stage's builder skill (`karthik-data-visualization` for a chart,
-`karthik-table-style` for a table) is chosen from the previous stage's `builder` routing key;
+`karthik-table-style` for a table) is chosen from the select stage's `builder` routing key;
 `chart-annotations`, `chart-explainer`, `dataviz-color`, and `dataviz-precision` load only
 when the select artifact's routing block asks for them (parsed via
-`dataviz_mcp.handoff.parse_routing`).
+`dataviz_mcp.handoff.parse_routing`). The build stage asserts the headline claim named at
+`insight` and places the candidate annotations it supplied.
 `build_stage_adapter` also exposes the repository revision for reproducibility.
 
 ## Requirements and installation

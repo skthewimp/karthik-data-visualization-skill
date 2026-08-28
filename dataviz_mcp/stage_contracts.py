@@ -19,12 +19,22 @@ valid JSON. The per-stage ``output_schema`` below is retained as the machine-rea
 *content checklist* - what an artifact must contain - not as a JSON wire format; the routing
 parser also accepts a plain JSON object, so strong-model output still works.
 
-Two pipelines:
+Two front halves feed one shared terminal process (``dataviz-construct``):
 
-* :data:`REPAIR_PIPELINE` - image in, repaired artifact out: diagnose -> select -> build ->
-  refine.
-* :data:`STORY_PIPELINE` - raw dataset to visual story: discover -> contract -> clean ->
-  facts -> select -> build -> refine.
+* :data:`REPAIR_PIPELINE` - image in: ``diagnose`` (diagnose+extract), then the shared
+  construct tail.
+* :data:`STORY_PIPELINE` - raw dataset in: ``discover -> contract -> clean``, then the
+  shared construct tail.
+
+The construct tail is ``insight -> select -> idea -> build -> execution``. Its
+``select``, ``idea``, ``build`` and ``execution`` stages are the *same* stage objects in
+both pipelines (see :data:`_SELECT_STAGE`, :data:`_IDEA_STAGE`, :data:`_BUILD_STAGE`,
+:data:`_EXECUTION_STAGE`); only ``insight`` differs, and only in the artifact it reads
+(a prepared dataset for story, a recovered data table for repair). ``insight`` names the
+headline claim and candidate annotations before any form is chosen; ``idea`` is the
+pre-render gate (is the data / expression / insight right); ``execution`` is the
+post-render gate (geometry, overlap, ink). How many revision passes either gate runs is the
+driver's budget, not a fixed cap in this module or in a skill.
 
 The skills stay the source of truth for chart judgement; this module owns only the
 sequence, the per-stage skill subset, and the handoff schemas.
@@ -426,10 +436,10 @@ _NUMBER_DISPLAY_GROUPS = {
 
 
 # --------------------------------------------------------------------------- #
-# Repair pipeline schemas.
+# Front-half schemas (repair diagnose; story discover/contract/clean).
 # --------------------------------------------------------------------------- #
 
-# Stage 1 output: the brief and the recovered data, merged. Diagnose + extract run cold,
+# Repair front half: the brief and the recovered data, merged. Diagnose + extract run cold,
 # before any form is chosen. This carries what the chart must SAY and CARRY, not how it
 # should look.
 DIAGNOSE_SCHEMA: dict[str, object] = {
@@ -458,149 +468,6 @@ DIAGNOSE_SCHEMA: dict[str, object] = {
     ],
     "additionalProperties": False,
 }
-
-# Stage 2 output: the form chosen cold from the brief, plus the build plan. ``builder``
-# decides which builder skill the build stage loads.
-SELECT_SCHEMA: dict[str, object] = {
-    "type": "object",
-    "properties": {
-        "builder": {"type": "string", "enum": ["chart", "table"]},
-        "needs_annotations": {"type": "boolean"},
-        "needs_explainer": {"type": "boolean"},
-        "needs_color_plan": {"type": "boolean"},
-        "needs_precision_plan": {"type": "boolean"},
-        "number_display_groups": _NUMBER_DISPLAY_GROUPS,
-        "design": _DESIGN,
-        "layout_plan": _LAYOUT_PLAN,
-        "acceptance_checks": _ACCEPTANCE_CHECKS,
-    },
-    "required": [
-        "builder",
-        "needs_annotations",
-        "needs_explainer",
-        "needs_color_plan",
-        "needs_precision_plan",
-        "number_display_groups",
-        "design",
-        "layout_plan",
-        "acceptance_checks",
-    ],
-    "additionalProperties": False,
-}
-
-# What the builder actually applied, so palette and precision choices are auditable and
-# an exact-precision override can never be silent - every number format states its reason.
-_RECOMMENDATIONS_USED = {
-    "type": "object",
-    "description": (
-        "The palette and per-display-group number formats actually applied. Records what "
-        "was used, not what was merely recommended, so overrides are traceable."
-    ),
-    "properties": {
-        "palette": {
-            "type": "object",
-            "properties": {
-                "colours": _STRING_ARRAY,
-                "focal": {"type": ["string", "null"]},
-                "background": {"type": "string"},
-            },
-            "required": ["colours"],
-            "additionalProperties": False,
-        },
-        "number_formats": {
-            "type": "array",
-            "description": (
-                "One entry per numeric display group shown (each axis, each numeric column). "
-                "exact_override mirrors the select stage's number_display_groups."
-                "exact_lookup_required for that group - the builder obeys the upstream flag "
-                "rather than re-deciding from prose. A group with an exact-digit override sets "
-                "exact_override true and states why in reason - an exact override cannot be "
-                "recorded without its justification."
-            ),
-            "items": {
-                "type": "object",
-                "properties": {
-                    "display_group": {"type": "string"},
-                    "role": {"type": "string"},
-                    "recommended_place": {"type": ["integer", "null"]},
-                    "exact_override": {"type": "boolean"},
-                    "reason": {"type": "string", "minLength": 1},
-                },
-                "required": ["display_group", "role", "exact_override", "reason"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    "required": ["number_formats"],
-    "additionalProperties": False,
-}
-
-# Stage 3 output: the built artifact and the maker's own inspection of the exact export.
-BUILD_SCHEMA: dict[str, object] = {
-    "type": "object",
-    "properties": {
-        "artifact_path": {"type": "string"},
-        "builder_used": {"type": "string", "enum": ["chart", "table"]},
-        "form_built": {
-            "type": "string",
-            "minLength": 1,
-            "description": (
-                "The form this build implements, carried from the select stage's "
-                "design.chart_form (e.g. 'small multiples', 'slopegraph', 'table'). A "
-                "bounded-edit, which keeps the source form on purpose, records the retained "
-                "form and that it was retained (e.g. 'retained source form (bounded edit)'). "
-                "Gives the stage-4 flow check a concrete field to read: a build with no "
-                "recorded form decision is a skipped-stage-2 violation, not a shortcut."
-            ),
-        },
-        "render_code_path": {"type": "string"},
-        "delivery_condition": {"type": "string"},
-        "self_inspection": {"type": "string"},
-        "acceptance_results": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "result": {"type": "string", "enum": ["pass", "fail", "unknown"]},
-                    "evidence": {"type": "string"},
-                },
-                "required": ["id", "result", "evidence"],
-                "additionalProperties": False,
-            },
-        },
-        "open_issues": _STRING_ARRAY,
-        "recommendations_used": _RECOMMENDATIONS_USED,
-    },
-    "required": [
-        "artifact_path",
-        "builder_used",
-        "form_built",
-        "delivery_condition",
-        "self_inspection",
-        "acceptance_results",
-    ],
-    "additionalProperties": False,
-}
-
-# Stage 4 output: the checker verdict on the exact export and the delivered artifact.
-REFINE_SCHEMA: dict[str, object] = {
-    "type": "object",
-    "properties": {
-        "verdict": {"type": "string", "enum": ["deliver", "revise", "blocked"]},
-        "summary": {"type": "string"},
-        "artifact_path": {"type": "string"},
-        "changes_made": _STRING_ARRAY,
-        "residual_limitations": _STRING_ARRAY,
-    },
-    "required": ["verdict", "summary", "artifact_path", "changes_made", "residual_limitations"],
-    "additionalProperties": False,
-}
-
-
-# --------------------------------------------------------------------------- #
-# Story pipeline schemas.
-# --------------------------------------------------------------------------- #
 
 DISCOVER_SCHEMA: dict[str, object] = {
     "type": "object",
@@ -664,7 +531,40 @@ CLEAN_SCHEMA: dict[str, object] = {
     "additionalProperties": False,
 }
 
-FACTS_SCHEMA: dict[str, object] = {
+
+# --------------------------------------------------------------------------- #
+# Construct-tail schemas (insight -> select -> idea -> build -> execution).
+# --------------------------------------------------------------------------- #
+
+# The candidate marks the insight stage names for the chart. The build stage (via
+# chart-annotations) does the wording, ranking, and placement; here the *claim* and its
+# supporting data are decided, so the idea gate can check them before anything is drawn.
+_CANDIDATE_ANNOTATIONS = {
+    "type": "array",
+    "description": (
+        "Marks worth considering, each a claim tied to the data that supports it. May be "
+        "empty - not every chart earns an on-chart mark. The build stage words and places "
+        "them; it does not originate the claim."
+    ),
+    "items": {
+        "type": "object",
+        "properties": {
+            "claim": {"type": "string"},
+            "anchor": {
+                "type": "string",
+                "description": "The datum, series, period, or region the mark points at.",
+            },
+            "why_it_clears_the_bar": {"type": "string"},
+        },
+        "required": ["claim", "anchor"],
+        "additionalProperties": False,
+    },
+}
+
+# Insight stage output: the evidence AND the chosen headline claim + candidate annotations,
+# decided before any form is chosen. Supersedes the old skill-less FACTS placeholder - the
+# headline the chart asserts is now computed here, from the data, not improvised at build.
+INSIGHT_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
         "facts": {
@@ -682,20 +582,200 @@ FACTS_SCHEMA: dict[str, object] = {
                 "additionalProperties": False,
             },
         },
-        "candidate_claims": _STRING_ARRAY,
+        "headline_claim": {
+            "type": "string",
+            "description": (
+                "The single key insight the chart exists to assert, from the data - the "
+                "claim the title should make. Where the evidence was recovered from a "
+                "source chart, computed freshly from the data, not inherited from what the "
+                "source asserted."
+            ),
+        },
+        "candidate_annotations": _CANDIDATE_ANNOTATIONS,
+        "caveats": _STRING_ARRAY,
     },
-    "required": ["facts"],
+    "required": ["facts", "headline_claim"],
+    "additionalProperties": False,
+}
+
+# Select stage output: the form chosen from the claim and data, plus the build plan.
+# ``builder`` decides which builder skill the build stage loads.
+SELECT_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "builder": {"type": "string", "enum": ["chart", "table"]},
+        "needs_annotations": {"type": "boolean"},
+        "needs_explainer": {"type": "boolean"},
+        "needs_color_plan": {"type": "boolean"},
+        "needs_precision_plan": {"type": "boolean"},
+        "number_display_groups": _NUMBER_DISPLAY_GROUPS,
+        "design": _DESIGN,
+        "layout_plan": _LAYOUT_PLAN,
+        "acceptance_checks": _ACCEPTANCE_CHECKS,
+    },
+    "required": [
+        "builder",
+        "needs_annotations",
+        "needs_explainer",
+        "needs_color_plan",
+        "needs_precision_plan",
+        "number_display_groups",
+        "design",
+        "layout_plan",
+        "acceptance_checks",
+    ],
+    "additionalProperties": False,
+}
+
+# Idea stage output: the pre-render gate's verdict on the plan. Each issue says whether it
+# routes back to the insight stage (wrong/missing claim or evidence) or the select stage
+# (wrong form). No form is drawn until this gate is satisfied within the driver's budget.
+IDEA_CRITIQUE_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "verdict": {"type": "string", "enum": ["proceed", "revise", "blocked"]},
+        "summary": {"type": "string"},
+        "data_right": {"type": "string"},
+        "expression_right": {"type": "string"},
+        "insight_right": {"type": "string"},
+        "honest_and_complete": {"type": "string"},
+        "issues": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "severity": {"type": "string", "enum": ["fatal", "major", "minor"]},
+                    "problem": {"type": "string"},
+                    "fix": {"type": "string"},
+                    "route_back": {"type": "string", "enum": ["insight", "select", "none"]},
+                },
+                "required": ["severity", "problem", "fix", "route_back"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["verdict", "summary", "issues"],
+    "additionalProperties": False,
+}
+
+# What the builder actually applied, so palette and precision choices are auditable and
+# an exact-precision override can never be silent - every number format states its reason.
+_RECOMMENDATIONS_USED = {
+    "type": "object",
+    "description": (
+        "The palette and per-display-group number formats actually applied. Records what "
+        "was used, not what was merely recommended, so overrides are traceable."
+    ),
+    "properties": {
+        "palette": {
+            "type": "object",
+            "properties": {
+                "colours": _STRING_ARRAY,
+                "focal": {"type": ["string", "null"]},
+                "background": {"type": "string"},
+            },
+            "required": ["colours"],
+            "additionalProperties": False,
+        },
+        "number_formats": {
+            "type": "array",
+            "description": (
+                "One entry per numeric display group shown (each axis, each numeric column). "
+                "exact_override mirrors the select stage's number_display_groups."
+                "exact_lookup_required for that group - the builder obeys the upstream flag "
+                "rather than re-deciding from prose. A group with an exact-digit override sets "
+                "exact_override true and states why in reason - an exact override cannot be "
+                "recorded without its justification."
+            ),
+            "items": {
+                "type": "object",
+                "properties": {
+                    "display_group": {"type": "string"},
+                    "role": {"type": "string"},
+                    "recommended_place": {"type": ["integer", "null"]},
+                    "exact_override": {"type": "boolean"},
+                    "reason": {"type": "string", "minLength": 1},
+                },
+                "required": ["display_group", "role", "exact_override", "reason"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["number_formats"],
+    "additionalProperties": False,
+}
+
+# Build stage output: the built artifact and the maker's own inspection of the exact export.
+BUILD_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "artifact_path": {"type": "string"},
+        "builder_used": {"type": "string", "enum": ["chart", "table"]},
+        "form_built": {
+            "type": "string",
+            "minLength": 1,
+            "description": (
+                "The form this build implements, carried from the select stage's "
+                "design.chart_form (e.g. 'small multiples', 'slopegraph', 'table'). A "
+                "bounded-edit, which keeps the source form on purpose, records the retained "
+                "form and that it was retained (e.g. 'retained source form (bounded edit)'). "
+                "Gives the execution gate a concrete field to read: a redesign build with no "
+                "recorded form decision is a skipped-select violation, not a shortcut."
+            ),
+        },
+        "render_code_path": {"type": "string"},
+        "delivery_condition": {"type": "string"},
+        "self_inspection": {"type": "string"},
+        "acceptance_results": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "result": {"type": "string", "enum": ["pass", "fail", "unknown"]},
+                    "evidence": {"type": "string"},
+                },
+                "required": ["id", "result", "evidence"],
+                "additionalProperties": False,
+            },
+        },
+        "open_issues": _STRING_ARRAY,
+        "recommendations_used": _RECOMMENDATIONS_USED,
+    },
+    "required": [
+        "artifact_path",
+        "builder_used",
+        "form_built",
+        "delivery_condition",
+        "self_inspection",
+        "acceptance_results",
+    ],
+    "additionalProperties": False,
+}
+
+# Execution stage output: the post-render craft checker's verdict and the delivered
+# artifact. Replaces the old ``refine`` stage; the idea gate now owns the substance check.
+EXECUTION_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "verdict": {"type": "string", "enum": ["deliver", "revise", "blocked"]},
+        "summary": {"type": "string"},
+        "artifact_path": {"type": "string"},
+        "changes_made": _STRING_ARRAY,
+        "residual_limitations": _STRING_ARRAY,
+    },
+    "required": ["verdict", "summary", "artifact_path", "changes_made", "residual_limitations"],
     "additionalProperties": False,
 }
 
 
 # --------------------------------------------------------------------------- #
-# Stage adapter texts.
+# Front-half stage adapter texts.
 # --------------------------------------------------------------------------- #
 
 _REPAIR_DIAGNOSE = """You are the diagnose-and-extract stage of a static chart repair. You
 receive the source image and any repair request. Do not create a chart and do not choose a
-form - the form question belongs to the next stage, run cold. Your job is to state what the
+form - the form question belongs to a later stage, run cold. Your job is to state what the
 replacement must say and carry, and to recover the underlying data.
 
 Run the brief cold: extract the key messages and the required content for each, name
@@ -706,71 +786,6 @@ encodes (colour is data). Inventory the source, diagnose the whole chart includi
 neighbouring zones, and list what must be preserved unchanged. Difficulty of recovery is
 never grounds to drop a message or a category; put uncertain values and unreadable labels in
 the limitations, keep the categories."""
-
-_REPAIR_SELECT = """You are the form-selection stage of a static chart repair. You receive
-the diagnose artifact (messages, required content, recovered data, preservation
-requirements) - not the image. Choose the form cold: the source chart's form is not an input
-and gets no vote. Pick the simplest form that makes the key messages easiest to see and
-hardest to misread for the stated audience and medium; more than one chart is allowed when a
-single form cannot carry every message. A table is a valid cold verdict when the intent is
-exact lookup or the values are not commensurable on one scale - set ``builder`` to ``table``
-in that case, otherwise ``chart``. Set ``needs_annotations`` and ``needs_explainer`` from
-whether the plan genuinely calls for on-chart marks or accompanying prose. Set
-``design.colour_groups`` to the palette size - the **maximum number of series that share a
-single panel** and must be told apart by colour. This is a property of the form, not the total
-category count: N lines, stacks, or slices in one panel need N; small multiples with k lines per
-panel need k (the same k colours reused across panels); small multiples with one line per panel,
-direct labels, or position carrying identity need 0; focal-plus-grey needs 1. Set
-``needs_color_plan`` true when ``colour_groups`` is 1 or more (a
-colour must still be chosen against brand and background) and false when it is 0. Set
-``needs_precision_plan`` true whenever numeric values are
-shown (axis ticks, data labels, or table cells). When it is true, enumerate
-``number_display_groups`` - one entry per axis, numeric column, or labelled numeric series -
-and decide ``exact_lookup_required`` for each HERE: true only for identifiers or a genuine
-exact-lookup requirement, false (the spread rule) otherwise, with a reason either way. The
-build stage obeys this flag rather than re-deciding it. Produce the design,
-the layout plan under the declared delivery condition, and an observable acceptance check for
-every fatal or major problem and every preservation requirement. Tag each acceptance check
-with ``validation_type``: ``source_fidelity`` when it can be checked inside the run (the
-artifact matches the source, the recovered data, or the plan), ``external_validation`` when
-it needs ground truth outside the run (an exact denominator, an authoritative dataset, a
-methodology to verify against). Do not make delivery contingent on an external validation -
-those are disclosed, not blocking."""
-
-_REPAIR_BUILD = """You are the build stage of a static chart repair. You receive the source,
-the diagnose artifact, and the select artifact (form, build plan, acceptance checks). Build
-the deliverable exactly to the plan, carrying every key message with its required content.
-Use the builder skill supplied for the chosen builder (chart or table). Honour every prompt
-constraint - requested chart type, annotations, wording, brand or style preferences. Apply
-the installed writing or brand-style skill, if one exists in this environment, to every
-reader-facing phrase; if none is installed, apply the prompt's stated preferences. Render
-one real artifact through the project's renderer, then inspect that exact export at its
-delivery size and correct consequential clipping, collision, hierarchy, comparison,
-labelling, colour, content, or prompt-compliance defects before returning. For every numeric
-display group, take ``exact_override`` straight from the select stage's
-``exact_lookup_required`` for that group - do not re-decide it - and record each format in
-``recommendations_used.number_formats`` with its reason. Record each acceptance check as pass,
-fail, or unknown against observed evidence. A ``source_fidelity`` check is answerable here.
-An ``external_validation`` check whose ground truth (an exact denominator, dataset, or
-methodology) is not available in this run is recorded as ``unknown``, its gap stated plainly
-in ``open_issues`` so it can surface as a chart footnote, and the artifact is DELIVERED
-regardless - an unavailable external validation is a disclosure, never a reason to withhold
-the chart or to demand the missing source. A valid artifact must
-not be withheld because an optional reviewer is unavailable."""
-
-_REPAIR_REFINE = """You are the refine-and-deliver stage of a static chart repair. You
-receive the source, the plan, and the built candidate at its delivery size. Act as a checker,
-not a designer: do not re-derive the messages or reopen the form unless the candidate
-genuinely fails a message. Confirm the candidate carries the intent (every key message with
-its required content, prompt constraints honoured, nothing key silently dropped) and is
-mechanically and semantically sound at delivery size. Consolidate any fatal or major defects
-into one focused revision, re-render, and re-inspect the changed regions and their
-neighbours; stop as soon as no fatal or major defect remains. Deliver the best valid
-candidate with a plain summary and any residual limitation. An acceptance check left
-``unknown`` because its ``external_validation`` ground truth was unavailable is not a defect
-and never a reason to withhold: carry it into ``residual_limitations`` as a footnote and still
-return ``deliver``. Reserve the ``blocked`` verdict for a genuine inability to produce any
-valid artifact at all - never for a missing external denominator, dataset, or methodology."""
 
 _STORY_DISCOVER = """You are the discovery stage of dataset-to-story work. You receive a
 dataset and any question or context. Inspect the data and propose visualisable stories before
@@ -789,34 +804,117 @@ transformation visible. Report the transformations, validation results, provenan
 remaining limitations. Do not invent fields or values; if the data cannot answer the
 question, say so and return to the contract."""
 
-_STORY_FACTS = """You are the evidence stage. You receive the analysis contract and the
-prepared data. Compute the facts that answer the question - values, comparisons, and
-uncertainty - from the data, not from priors. Do not chart. (No dedicated skill exists for
-this stage yet; apply the contract and prepared-data notes directly.)"""
 
-_STORY_SELECT = """You are the form-selection stage of dataset-to-story work. You receive the
-analysis contract and the facts. Choose the simplest form that makes the claim easiest to see
-and hardest to misread for the stated audience and medium. A table is a valid verdict for
-exact lookup or non-commensurable values - set ``builder`` to ``table``, otherwise ``chart``.
-Set ``needs_annotations`` and ``needs_explainer`` from the plan. Set ``design.colour_groups``
-to the palette size - the **maximum number of series that share a single panel** and must be
-told apart by colour, a property of the form, not the total category count: N lines, stacks, or
-slices in one panel need N; small multiples with k lines per panel need k (the same k colours
-reused across panels); small multiples with one line per panel, direct labels, or position
-carrying identity need 0; focal-plus-grey needs 1. Set
-``needs_color_plan`` true when ``colour_groups`` is 1 or more and false when it is 0. Set
-``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels,
-or table cells). When it is true, enumerate ``number_display_groups`` - one per axis, numeric
-column, or labelled numeric series - and decide ``exact_lookup_required`` for each here (true
-only for identifiers or a genuine exact-lookup requirement, false otherwise, with a reason);
-the builder obeys this flag. Produce the design, layout
-plan, and acceptance checks. Tag each acceptance check with ``validation_type``:
-``source_fidelity`` when checkable inside the run, ``external_validation`` when it needs
-ground truth outside the run. An external validation is disclosed, never blocking."""
+# --------------------------------------------------------------------------- #
+# Construct-tail stage adapter texts. One process, shared by both front halves.
+# --------------------------------------------------------------------------- #
 
-_STORY_BUILD = _REPAIR_BUILD.replace("of a static chart repair", "of dataset-to-story work")
+_CONSTRUCT_INSIGHT = """You are the insight stage of the dataviz construct process - the
+first stage of the shared tail both dataset-to-story and chart-repair work hand into. You
+receive the evidence available for this chart: either a prepared dataset with an analysis
+contract (dataset-to-story), or a data table recovered from a source image plus its brief
+(repair). Compute the facts that answer the question - values, comparisons, uncertainty -
+from the data, not from priors. Then name the single headline claim the chart should assert
+(the key insight the title will make), and list any candidate annotation claims worth
+marking, each tied to the datum that supports it (leave the list empty when nothing earns a
+mark). Where the evidence was recovered from a source chart, compute the claim freshly from
+the recovered data rather than inheriting whatever the source asserted. Do not choose a form
+and do not render: wording and placement of the headline and annotations are finalised later
+at build; here you decide the substance the idea gate will check. Put anything the evidence
+cannot support in caveats, and never manufacture a claim to create drama - an honest,
+exploratory, or null result is a valid headline."""
 
-_STORY_REFINE = _REPAIR_REFINE.replace("of a static chart repair", "of dataset-to-story work")
+_CONSTRUCT_SELECT = """You are the form-selection stage of the dataviz construct process. You
+receive the facts and the headline claim, plus the analysis contract (story) or diagnose
+brief (repair). Choose the simplest form that makes the claim easiest to see and hardest to
+misread for the stated audience and medium; more than one chart is allowed when a single form
+cannot carry every message. Where the chart is a repair of an existing image, the source
+chart's form is not an input and gets no vote - select the form cold from the claim and data.
+A table is a valid verdict when the intent is exact lookup or the values are not commensurable
+on one scale - set ``builder`` to ``table`` in that case, otherwise ``chart``. Set
+``needs_annotations`` and ``needs_explainer`` from whether the plan genuinely calls for
+on-chart marks or accompanying prose. Set ``design.colour_groups`` to the palette size - the
+**maximum number of series that share a single panel** and must be told apart by colour. This
+is a property of the form, not the total category count: N lines, stacks, or slices in one
+panel need N; small multiples with k lines per panel need k (the same k colours reused across
+panels); small multiples with one line per panel, direct labels, or position carrying identity
+need 0; focal-plus-grey needs 1. Set ``needs_color_plan`` true when ``colour_groups`` is 1 or
+more (a colour must still be chosen against brand and background) and false when it is 0. Set
+``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels, or
+table cells). When it is true, enumerate ``number_display_groups`` - one entry per axis,
+numeric column, or labelled numeric series - and decide ``exact_lookup_required`` for each
+HERE: true only for identifiers or a genuine exact-lookup requirement, false (the spread rule)
+otherwise, with a reason either way. The build stage obeys this flag rather than re-deciding
+it. Produce the design, the layout plan under the declared delivery condition, and an
+observable acceptance check for every fatal or major problem and every preservation
+requirement. Tag each acceptance check with ``validation_type``: ``source_fidelity`` when it
+can be checked inside the run (the artifact matches the source, the recovered data, or the
+plan), ``external_validation`` when it needs ground truth outside the run (an exact
+denominator, an authoritative dataset, a methodology to verify against). Do not make delivery
+contingent on an external validation - those are disclosed, not blocking."""
+
+_CONSTRUCT_IDEA = """You are the idea-critique stage of the dataviz construct process - the
+pre-render gate. You receive the plan: the facts, the headline claim, the candidate
+annotations, and the selected form. You do NOT receive a rendered chart, and that is the
+point - judge the idea before it is drawn, because a wrong chart is cheapest to catch here.
+Answer four questions against the evidence. Is the DATA right: do the facts actually support
+the claim, and are the denominator, grain, comparison, time window, and uncertainty sound?
+Is the EXPRESSION right: is the selected form the right vehicle for this claim, or will it
+mislead, hide the comparison, or invite a wrong first read? Is the INSIGHT right: is the
+headline claim the key thing to say and is it supported, and are the candidate annotations
+the right marks rather than clutter or restatements of the obvious? Is it HONEST and
+COMPLETE: is anything key silently dropped, and does the claim's strength match the evidence?
+Return a verdict - ``proceed``, ``revise``, or ``blocked`` - with each issue's severity, a
+concrete fix, and whether it routes back to the insight stage (wrong or missing claim or
+evidence) or the select stage (wrong form). Do not defer everything to 'see how it renders';
+resolve on the evidence what the evidence can resolve. Never return ``blocked`` for a missing
+external validation - that is disclosed downstream, not a reason to stop."""
+
+_CONSTRUCT_BUILD = """You are the build stage of the dataviz construct process. You receive
+the plan (facts, headline claim, candidate annotations, and the select artifact with its
+form, build plan, and acceptance checks) and, for a repair, the source image. Build the
+deliverable exactly to the plan, carrying every message with its required content. Use the
+builder skill supplied for the chosen builder (chart or table). Assert the headline claim in
+the title, and word and place the candidate annotations the insight stage named - do not
+originate a different claim here. Honour every prompt constraint - requested chart type,
+annotations, wording, brand or style preferences. Apply the installed writing or brand-style
+skill, if one exists in this environment, to every reader-facing phrase; if none is
+installed, apply the prompt's stated preferences. Render one real artifact through the
+project's renderer, then inspect that exact export at its delivery size and correct
+consequential clipping, collision, hierarchy, comparison, labelling, colour, content, or
+prompt-compliance defects before returning. For every numeric display group, take
+``exact_override`` straight from the select stage's ``exact_lookup_required`` for that group -
+do not re-decide it - and record each format in ``recommendations_used.number_formats`` with
+its reason. Record each acceptance check as pass, fail, or unknown against observed evidence.
+A ``source_fidelity`` check is answerable here. An ``external_validation`` check whose ground
+truth (an exact denominator, dataset, or methodology) is not available in this run is recorded
+as ``unknown``, its gap stated plainly in ``open_issues`` so it can surface as a chart
+footnote, and the artifact is DELIVERED regardless - an unavailable external validation is a
+disclosure, never a reason to withhold the chart or to demand the missing source. A valid
+artifact must not be withheld because an optional reviewer is unavailable. For a
+``bounded-edit`` the source form is kept on purpose: apply the named edit to the source form,
+record the retained form in ``form_built``, and re-render."""
+
+_CONSTRUCT_EXECUTION = """You are the execution-critique stage of the dataviz construct
+process - the post-render gate. You receive the built candidate at its delivery size and the
+plan. Check the RENDERING, not the idea (the idea gate owns substance): clipping, collisions,
+label-to-mark association, typography hierarchy, duplicated scaffolding, colour contrast and
+grayscale / CVD survival, the numbers' precision as displayed, and any ink that carries no
+data, label, or necessary context (the eraser test). Use ``render_and_inspect_chart`` when
+available; otherwise render locally, inspect visually, and say deterministic inspection was
+unavailable. Before judging a redesign build, confirm it carries a recorded cold form
+decision; a redesign candidate that is a tidied re-render of the source form with no form
+choice behind it is a flow violation - route it back to the select stage. Consolidate the
+defects you find into one focused revision, re-render, and re-inspect the changed regions and
+their neighbours. If the render reveals that the idea itself is wrong, route back to the idea
+gate rather than patching pixels. How many revision passes to run is the driver's budget, not
+a fixed number in this stage: exit as soon as no fatal or major defect remains. Deliver the
+best valid candidate with a plain summary and any residual limitation. An acceptance check
+left ``unknown`` because its ``external_validation`` ground truth was unavailable is not a
+defect and never a reason to withhold: carry it into ``residual_limitations`` as a footnote
+and still return ``deliver``. Reserve the ``blocked`` verdict for a genuine inability to
+produce any valid artifact at all - never for a missing external denominator, dataset, or
+methodology."""
 
 
 # --------------------------------------------------------------------------- #
@@ -839,6 +937,83 @@ _SELECT_ROUTING_FIELDS = (
     "needs_precision_plan",
 )
 
+_BUILD_CONDITIONAL_SKILLS = {
+    "chart-annotations": "select.needs_annotations",
+    "chart-explainer": "select.needs_explainer",
+    "dataviz-color": "select.needs_color_plan",
+    "dataviz-precision": "select.needs_precision_plan",
+}
+
+# The shared construct tail. ``select``, ``idea``, ``build`` and ``execution`` are the same
+# stage objects in both pipelines - the literal coalescing of the two old ``select -> build
+# -> refine`` tails into one process. Only ``insight`` is built per pipeline, because it
+# reads a different upstream artifact (a prepared dataset for story, a recovered data table
+# for repair); everything else about it - skills, instructions, output - is identical.
+
+_SELECT_STAGE = Stage(
+    stage_id="select",
+    title="Select the form",
+    skills=("dataviz-selector",),
+    input_schema=INSIGHT_SCHEMA,
+    output_schema=SELECT_SCHEMA,
+    instructions=_CONSTRUCT_SELECT,
+    routing_fields=_SELECT_ROUTING_FIELDS,
+)
+
+_IDEA_STAGE = Stage(
+    stage_id="idea",
+    title="Critique the idea",
+    skills=("dataviz-idea-critique",),
+    input_schema=SELECT_SCHEMA,
+    output_schema=IDEA_CRITIQUE_SCHEMA,
+    instructions=_CONSTRUCT_IDEA,
+)
+
+_BUILD_STAGE = Stage(
+    stage_id="build",
+    title="Build",
+    skills=(),
+    builder_skills=_BUILDER_SKILLS,
+    conditional_skills=dict(_BUILD_CONDITIONAL_SKILLS),
+    input_schema=SELECT_SCHEMA,
+    output_schema=BUILD_SCHEMA,
+    instructions=_CONSTRUCT_BUILD,
+)
+
+_EXECUTION_STAGE = Stage(
+    stage_id="execution",
+    title="Critique the execution",
+    skills=("dataviz-execution",),
+    conditional_skills={"dataviz-eval": "explicit audit or high-risk decision"},
+    input_schema=BUILD_SCHEMA,
+    output_schema=EXECUTION_SCHEMA,
+    instructions=_CONSTRUCT_EXECUTION,
+)
+
+
+def _insight_stage(input_schema: dict[str, object]) -> Stage:
+    """The construct tail's entry stage, parameterised by the artifact that feeds it."""
+    return Stage(
+        stage_id="insight",
+        title="Find the insight",
+        skills=("karthik-evidence-builder",),
+        input_schema=input_schema,
+        output_schema=INSIGHT_SCHEMA,
+        instructions=_CONSTRUCT_INSIGHT,
+    )
+
+
+def _construct_tail(insight_input_schema: dict[str, object]) -> tuple[Stage, ...]:
+    """``insight -> select -> idea -> build -> execution`` for one front half."""
+    return (
+        _insight_stage(insight_input_schema),
+        _SELECT_STAGE,
+        _IDEA_STAGE,
+        _BUILD_STAGE,
+        _EXECUTION_STAGE,
+    )
+
+
 REPAIR_PIPELINE: tuple[Stage, ...] = (
     Stage(
         stage_id="diagnose",
@@ -848,39 +1023,7 @@ REPAIR_PIPELINE: tuple[Stage, ...] = (
         output_schema=DIAGNOSE_SCHEMA,
         instructions=_REPAIR_DIAGNOSE,
     ),
-    Stage(
-        stage_id="select",
-        title="Select the form",
-        skills=("dataviz-selector",),
-        input_schema=DIAGNOSE_SCHEMA,
-        output_schema=SELECT_SCHEMA,
-        instructions=_REPAIR_SELECT,
-        routing_fields=_SELECT_ROUTING_FIELDS,
-    ),
-    Stage(
-        stage_id="build",
-        title="Build",
-        skills=(),
-        builder_skills=_BUILDER_SKILLS,
-        conditional_skills={
-            "chart-annotations": "select.needs_annotations",
-            "chart-explainer": "select.needs_explainer",
-            "dataviz-color": "select.needs_color_plan",
-            "dataviz-precision": "select.needs_precision_plan",
-        },
-        input_schema=SELECT_SCHEMA,
-        output_schema=BUILD_SCHEMA,
-        instructions=_REPAIR_BUILD,
-    ),
-    Stage(
-        stage_id="refine",
-        title="Inspect and revise",
-        skills=("dataviz-critique",),
-        conditional_skills={"dataviz-eval": "explicit audit or high-risk decision"},
-        input_schema=BUILD_SCHEMA,
-        output_schema=REFINE_SCHEMA,
-        instructions=_REPAIR_REFINE,
-    ),
+    *_construct_tail(DIAGNOSE_SCHEMA),
 )
 
 STORY_PIPELINE: tuple[Stage, ...] = (
@@ -908,45 +1051,5 @@ STORY_PIPELINE: tuple[Stage, ...] = (
         output_schema=CLEAN_SCHEMA,
         instructions=_STORY_CLEAN,
     ),
-    Stage(
-        stage_id="facts",
-        title="Build evidence",
-        skills=(),  # karthik-evidence-builder gap: placeholder until the skill exists.
-        input_schema=CLEAN_SCHEMA,
-        output_schema=FACTS_SCHEMA,
-        instructions=_STORY_FACTS,
-    ),
-    Stage(
-        stage_id="select",
-        title="Select the form",
-        skills=("dataviz-selector",),
-        input_schema=FACTS_SCHEMA,
-        output_schema=SELECT_SCHEMA,
-        instructions=_STORY_SELECT,
-        routing_fields=_SELECT_ROUTING_FIELDS,
-    ),
-    Stage(
-        stage_id="build",
-        title="Build",
-        skills=(),
-        builder_skills=_BUILDER_SKILLS,
-        conditional_skills={
-            "chart-annotations": "select.needs_annotations",
-            "chart-explainer": "select.needs_explainer",
-            "dataviz-color": "select.needs_color_plan",
-            "dataviz-precision": "select.needs_precision_plan",
-        },
-        input_schema=SELECT_SCHEMA,
-        output_schema=BUILD_SCHEMA,
-        instructions=_STORY_BUILD,
-    ),
-    Stage(
-        stage_id="refine",
-        title="Inspect and revise",
-        skills=("dataviz-critique",),
-        conditional_skills={"dataviz-eval": "explicit audit or high-risk decision"},
-        input_schema=BUILD_SCHEMA,
-        output_schema=REFINE_SCHEMA,
-        instructions=_STORY_REFINE,
-    ),
+    *_construct_tail(CLEAN_SCHEMA),
 )
