@@ -1222,3 +1222,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Fair - let me separate what I actually verified from what I inferred. **Evidence (verified this session):** - Your log fields are `mode: prompted_repair`, `source_assessment`, `recommendation`, `build_decisions`, `pre...
 
 <!-- claude-session:aac159d2-3b6b-4db4-b518-c8e3b1a866e9:end -->
+
+<!-- claude-session:ee9a9607-2333-4906-8527-1fd1e283204e:start -->
+## 2026-08-27 19:36 IST | Claude session `ee9a9607-233`
+
+### User prompts
+> one more failure. here are the logs that have been captured in the website flow. and i'm pasting the input and output after this. why did this 1. pick small multiples b y day of week? i expected one single line; 2. no...
+> i'm wondering if this is a good time to bring back the evals layer and the loop. maybe we should use all the examples so far (and maybe construct a few more) to look at failure poihnts and thne do the evals. or should...
+> remember i wanted to redo the dataviz eval - since it was looking at the wrong things.
+
+### Work done
+- Seed found: `../luna-eval-private/dataviz-eval-first-principles.md`. Reading it so the redo builds on it, not around it.
+- Read the seed (`dataviz-eval-first-principles.md`). It already scopes your redo — and it changes the answer to your last question. Key tension to surface: ## The seed says eval is the *wrong layer* for these failures...
+
+<!-- claude-session:ee9a9607-2333-4906-8527-1fd1e283204e:end -->
