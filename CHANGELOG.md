@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Harden the construct tail for a weak-model harness
+
+Follow-ups to the construct coalescing, aimed at running the pipeline on cheaper / open-weight models that cannot be trusted to hold large contexts or remember an artifact from two stages back. Each closes a route by which the machine contract relied on a smart agent's memory.
+
+- **The insight artifact is threaded explicitly across the idea gate.** The `idea` stage emits a critique, not a plan, so `build` cannot read the stage before it for what to draw - it needs the `insight` artifact (headline claim, candidate annotations) that reached `select` two stages back. A mechanical harness feeding each stage only its predecessor's output would drop the headline claim at the gate and improvise the title at build again. New `Stage.also_reads`; `idea` and `build` both declare `also_reads=("insight",)`.
+- **Precision is resolved once and only applied at build - `dataviz-precision` is no longer carried into the build call.** The one precision judgment (exact digits vs the spread rule) is already decided at `select` per display group, and the precision of numbers inside claim text is decided at `insight`. The format itself is a deterministic function of the values and that flag (`recommend_precision`), resolved by the driver between select and build. Build applies the resolved format and reproduces claim-text numbers verbatim - it decides nothing about precision - so the 773-word skill body stops riding in the fattest call. `needs_precision_plan` now triggers the resolve step, not a skill load. `karthik-table-style` applies the resolved per-column format; `karthik-evidence-builder` states each value to the precision the evidence supports.
+- **Build conditionals are builder-specific: on-chart annotations can never enter a table build.** The builder skill already swapped by `select.builder` (`karthik-data-visualization` for a chart, `karthik-table-style` for a table, never both); now the *conditionals* differ too. `chart-annotations` places marks at data coordinates a render defines, meaningless for a table, so it is a chart-only conditional (`Stage.builder_conditional_skills`) and cannot be dragged into a table build. `chart-explainer` and `dataviz-color` stay builder-agnostic.
+
 ### Coalesce creation and repair into one construct process, split into idea and execution gates
 
 Creation (`dataviz-orchestrator`) and repair (`dataviz-fix`) already converged on the same `select -> build -> refine` tail, duplicated as prose in both skills and as two near-identical stage tuples. This change makes that tail **one shared process** both front halves hand into, and splits the single `refine` stage - which conflated substance and craft - into two gates that run in order. The number of revision passes each gate runs is now the driver's / harness's budget, not a fixed cap baked into a skill.

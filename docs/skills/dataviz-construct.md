@@ -14,12 +14,16 @@ insight -> select -> idea -> build -> execution
 1. **Insight** (`karthik-evidence-builder`) - compute the facts and name the **headline claim** plus candidate annotation claims, from the data, before a form is chosen.
 2. **Select** (`dataviz-selector`) - choose the simplest form that makes the claim easiest to see and hardest to misread. For a repair, choose it cold; the source form gets no vote.
 3. **Idea-critique** (`dataviz-idea-critique`) - the pre-render gate: is the data right, the expression right, the insight right, and honest? Route back to insight or select until it holds.
-4. **Build** (`karthik-data-visualization` or `karthik-table-style`, plus `chart-annotations` / `chart-explainer` / `dataviz-color` / `dataviz-precision` when asked) - assert the headline claim in the title, place the annotation claims insight named, and render one real artifact.
+4. **Build** - one builder skill by `select.builder`: `karthik-data-visualization` (chart) or `karthik-table-style` (table), never both. A chart may also load `chart-annotations` (on-chart marks - chart-only, never a table); either builder may load `chart-explainer` or `dataviz-color` when asked. Assert the headline claim in the title, place the annotation claims insight named, and render one real artifact. Number precision is resolved upstream (see below) and only applied here.
 5. **Execution-critique** (`dataviz-execution`) - the post-render gate: geometry, overlap, labels, colour, precision, ink.
 
 ## Two gates, in order
 
 The idea gate runs **before** the chart is drawn; the execution gate runs **after**. There is no sense fixing label overlaps on a chart that is the wrong chart. Ideas can be judged from the plan and the data - an LLM does not need the render to know the form cannot carry the claim - so that check comes first; execution can only be judged from pixels, so it comes second. Substance before craft.
+
+## Precision is resolved once, applied everywhere
+
+Number precision is not a build judgment. **Decision**: the exact-digits-vs-spread call is made at `select` (one `exact_lookup_required` flag per display group), and the precision of numbers inside claim text (headline, annotations) is set at `insight` where the value is computed. **Resolution**: the actual format is a deterministic function of the values and that flag - `recommend_precision`, run by the driver between select and build (`needs_precision_plan` is its trigger, not a skill-load signal). **Application**: build applies the resolved format to axes, labels, and table cells, and reproduces claim-text numbers verbatim. `dataviz-precision` is therefore not carried into the build call - build decides nothing about precision. In a table the same resolved per-column format is what `karthik-table-style` aligns to.
 
 ## The plan carries across the gate
 

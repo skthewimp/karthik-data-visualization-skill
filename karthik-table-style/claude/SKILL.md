@@ -59,7 +59,10 @@ precision than the data supports, is not finished.
   size becomes a small bar chart.
 - **Precision keyed to variance, in both directions.** To compute the digits for a
   column, use `dataviz-precision` (the `recommend_precision` MCP tool), which derives
-  the uniform rounding place from the column's spread; the rule is stated here.
+  the uniform rounding place from the column's spread; the rule is stated here. When
+  this table is built inside the construct pipeline, each column's format is already
+  resolved upstream and handed to you - apply the given per-column format and align to
+  it; do not re-derive the place.
   Precision is significant
   digits, not decimal places. Show the number that resolves the smallest
   meaningful difference in the column - which cuts to the *left* of the decimal

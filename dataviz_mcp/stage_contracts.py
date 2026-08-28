@@ -96,7 +96,11 @@ class Stage:
     (``"chart"`` / ``"table"``) to the skills that build stage loads instead - resolved
     from the previous stage's ``builder`` output. ``conditional_skills`` maps a skill name
     to a plain-language condition; the driver loads it only when that condition holds
-    (e.g. the plan asks for annotations).
+    (e.g. the plan asks for an explainer). ``builder_conditional_skills`` is the same, but
+    keyed by builder first: a conditional that applies to only one builder. On-chart
+    annotations are meaningless for a table, so ``chart-annotations`` is a chart-only
+    conditional and can never be dragged into a table build - the build call differs by what
+    is being built, not just in the one builder skill.
 
     ``input_schema`` is the artifact the previous stage hands directly forward.
     ``also_reads`` names *earlier* stages whose artifacts this stage ALSO consumes - the
@@ -117,6 +121,7 @@ class Stage:
     instructions: str
     builder_skills: dict[str, tuple[str, ...]] = field(default_factory=dict)
     conditional_skills: dict[str, str] = field(default_factory=dict)
+    builder_conditional_skills: dict[str, dict[str, str]] = field(default_factory=dict)
     routing_fields: tuple[str, ...] = ()
     also_reads: tuple[str, ...] = ()
 
@@ -149,8 +154,11 @@ class Stage:
                     f"{sorted(self.builder_skills)}; got {builder!r}"
                 )
             names.extend(chosen)
+        loadable = dict(self.conditional_skills)
+        if self.builder_conditional_skills:
+            loadable.update(self.builder_conditional_skills.get(builder or "", {}))
         for name in active_conditions:
-            if name in self.conditional_skills and name not in names:
+            if name in loadable and name not in names:
                 names.append(name)
         # Preserve order, drop accidental duplicates.
         seen: dict[str, None] = {}
@@ -864,8 +872,10 @@ more (a colour must still be chosen against brand and background) and false when
 table cells). When it is true, enumerate ``number_display_groups`` - one entry per axis,
 numeric column, or labelled numeric series - and decide ``exact_lookup_required`` for each
 HERE: true only for identifiers or a genuine exact-lookup requirement, false (the spread rule)
-otherwise, with a reason either way. The build stage obeys this flag rather than re-deciding
-it. Produce the design, the layout plan under the declared delivery condition, and an
+otherwise, with a reason either way. This flag is the whole precision *decision*; the actual
+format (how many digits) is then resolved deterministically downstream by ``recommend_precision``
+from the group's values and this flag, and the build stage only applies it - so decide the flag
+carefully here. Produce the design, the layout plan under the declared delivery condition, and an
 observable acceptance check for every fatal or major problem and every preservation
 requirement. Tag each acceptance check with ``validation_type``: ``source_fidelity`` when it
 can be checked inside the run (the artifact matches the source, the recovered data, or the
@@ -902,9 +912,13 @@ skill, if one exists in this environment, to every reader-facing phrase; if none
 installed, apply the prompt's stated preferences. Render one real artifact through the
 project's renderer, then inspect that exact export at its delivery size and correct
 consequential clipping, collision, hierarchy, comparison, labelling, colour, content, or
-prompt-compliance defects before returning. For every numeric display group, take
-``exact_override`` straight from the select stage's ``exact_lookup_required`` for that group -
-do not re-decide it - and record each format in ``recommendations_used.number_formats`` with
+prompt-compliance defects before returning. Make no precision decision here. For every numeric
+display group (each axis, label, or table column), apply the resolved number format for that
+group - the format from ``recommend_precision`` keyed to the group's values and the select
+stage's ``exact_lookup_required`` flag, supplied by the driver, or produced by calling the tool
+here if it is available. Numbers that appear inside claim text - the headline and the candidate
+annotations - carry the precision the insight stage already gave them: reproduce them as stated,
+do not re-round them. Record each applied format in ``recommendations_used.number_formats`` with
 its reason. Record each acceptance check as pass, fail, or unknown against observed evidence.
 A ``source_fidelity`` check is answerable here. An ``external_validation`` check whose ground
 truth (an exact denominator, dataset, or methodology) is not available in this run is recorded
@@ -947,8 +961,13 @@ _BUILDER_SKILLS = {
 }
 
 # The scalars the driver must parse from the select artifact to route the build stage: which
-# builder skill to load and which conditional build skills (annotations, explainer, colour,
-# precision) to open. Everything else in the artifact is content read by the next LLM.
+# builder skill to load and which conditional build skills (annotations, explainer, colour)
+# to open. ``needs_precision_plan`` still rides here, but it no longer loads a skill body: it
+# signals that numbers are shown, so the driver resolves each display group's format with the
+# ``recommend_precision`` MCP tool (a deterministic function of the values plus the select
+# stage's ``exact_lookup_required`` flag) and hands the resolved formats to build. Build
+# applies them - it makes no precision decision - so ``dataviz-precision`` is not carried into
+# the build call. Everything else in the artifact is content read by the next LLM.
 _SELECT_ROUTING_FIELDS = (
     "builder",
     "needs_annotations",
@@ -957,11 +976,18 @@ _SELECT_ROUTING_FIELDS = (
     "needs_precision_plan",
 )
 
+# Builder-agnostic build conditionals: an explainer or a colour plan can apply to a chart or
+# a colour-formatted table alike, when the plan asks for them.
 _BUILD_CONDITIONAL_SKILLS = {
-    "chart-annotations": "select.needs_annotations",
     "chart-explainer": "select.needs_explainer",
     "dataviz-color": "select.needs_color_plan",
-    "dataviz-precision": "select.needs_precision_plan",
+}
+
+# Builder-specific build conditionals. On-chart annotations are placed at data coordinates the
+# render defines; a table has no such marks, so ``chart-annotations`` is chart-only and can
+# never enter a table build.
+_BUILD_BUILDER_CONDITIONAL_SKILLS = {
+    "chart": {"chart-annotations": "select.needs_annotations"},
 }
 
 # The shared construct tail. ``select``, ``idea``, ``build`` and ``execution`` are the same
@@ -998,6 +1024,10 @@ _BUILD_STAGE = Stage(
     skills=(),
     builder_skills=_BUILDER_SKILLS,
     conditional_skills=dict(_BUILD_CONDITIONAL_SKILLS),
+    builder_conditional_skills={
+        builder: dict(conds)
+        for builder, conds in _BUILD_BUILDER_CONDITIONAL_SKILLS.items()
+    },
     input_schema=SELECT_SCHEMA,
     output_schema=BUILD_SCHEMA,
     instructions=_CONSTRUCT_BUILD,

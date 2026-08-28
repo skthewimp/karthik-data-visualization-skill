@@ -29,6 +29,12 @@ peer, a whole), and the uncertainty around them. Every fact is a `claim + value`
 comparison and uncertainty where they exist. Do not chart, and do not reach past what the
 data supports - a fact you cannot compute from the evidence is a caveat, not a fact.
 
+State each `value` to the precision the evidence supports - the smallest difference that
+actually matters, no more - and never fabricate precision to sound sharp ("up 23%", not
+"up 23.4%", unless the tenth is real and meaningful). Numbers you state in the headline or a
+candidate annotation are reproduced verbatim downstream; their precision is decided here,
+not re-rounded at build.
+
 ## Name the headline claim
 
 Pick the **single** claim the chart exists to assert - the one the title will make. It is the

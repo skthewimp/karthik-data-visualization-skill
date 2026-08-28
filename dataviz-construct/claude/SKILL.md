@@ -36,13 +36,33 @@ forward. Loading every skill into one context rots it.
 3. **Idea-critique** - `dataviz-idea-critique`. The **pre-render gate**: is the data right, the
    expression right, the insight right, and honest? Route back to `insight` (wrong claim or
    evidence) or `select` (wrong form) until the idea holds.
-4. **Build** - `karthik-data-visualization` (chart) or `karthik-table-style` (table), plus
-   `chart-annotations` / `chart-explainer` / `dataviz-color` / `dataviz-precision` when the
-   select artifact asks for them. Assert the headline claim in the title; word and place the
-   annotation claims the insight stage named. Render one real artifact.
+4. **Build** - one builder skill, chosen by `select.builder`: `karthik-data-visualization` for
+   a chart or `karthik-table-style` for a table, never both. The build call differs by what is
+   built: a chart may also load `chart-annotations` (on-chart marks - chart-only, never a
+   table), and either builder may load `chart-explainer` or `dataviz-color` when the plan asks.
+   Assert the headline claim in the title; word and place the annotation claims the insight
+   stage named. Render one real artifact.
 5. **Execution-critique** - `dataviz-execution`. The **post-render gate**: geometry, overlap,
    labels, colour, precision, ink. Route back to `build`, or - rarely - to `idea` if the render
    shows the idea itself is wrong.
+
+## Precision is resolved once, applied everywhere - never re-decided at build
+
+Number precision is not a build judgment. It splits three ways so a weak build model decides
+nothing about it:
+
+- **Decision.** The only judgment - exact digits (an identifier or verbatim lookup) versus the
+  spread rule - is made at **select**, one `exact_lookup_required` flag per display group.
+  Numbers that live inside claim text (the headline, an annotation) get their precision at
+  **insight**, where the value is computed to the precision the evidence supports.
+- **Resolution.** The actual format is a deterministic function of the group's values and that
+  flag: `recommend_precision`. The driver runs it between select and build (or build calls the
+  tool) and hands the resolved format forward. `needs_precision_plan` is the trigger for this,
+  not a signal to load a precision skill.
+- **Application.** Build applies the resolved format to every axis, label, and table cell, and
+  reproduces claim-text numbers verbatim. `dataviz-precision` is therefore **not** carried into
+  the build call - build makes no precision decision. In a table the same resolved
+  per-column format is what `karthik-table-style` aligns to.
 
 ## The plan carries across the gate
 

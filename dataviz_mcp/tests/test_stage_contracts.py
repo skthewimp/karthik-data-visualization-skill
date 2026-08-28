@@ -77,6 +77,8 @@ def test_every_stage_bundles_only_named_skills(pipeline_name, stage) -> None:
     # Resolve a builder for build stages so bundling is well-defined.
     builder = "chart" if stage.builder_skills else None
     active = tuple(stage.conditional_skills)  # exercise all conditionals at once
+    if builder:
+        active = active + tuple(stage.builder_conditional_skills.get(builder, {}))
     names = set(stage.skill_names(builder=builder, active_conditions=active))
     _bundle, sources = sc.stage_skill_bundle(
         stage, builder=builder, active_conditions=active, repository_root=REPO_ROOT
@@ -108,6 +110,35 @@ def test_build_conditionals_load_only_when_active() -> None:
         build.skill_names(builder="chart", active_conditions=("chart-annotations",))
     )
     assert "chart-annotations" in with_ann
+
+
+def test_annotations_are_chart_only_never_dragged_into_a_table_build() -> None:
+    """The build call differs by what is built: on-chart marks can't enter a table build."""
+    build = sc.stage("story", "build")
+    # Even asked for, chart-annotations does not load for a table - a table has no on-chart
+    # marks, so the skill is not offered to that builder at all.
+    table = set(build.skill_names(builder="table", active_conditions=("chart-annotations",)))
+    assert "chart-annotations" not in table
+    assert "karthik-table-style" in table
+    assert "karthik-data-visualization" not in table
+    # The same request loads it for a chart.
+    chart = set(build.skill_names(builder="chart", active_conditions=("chart-annotations",)))
+    assert "chart-annotations" in chart
+
+
+def test_precision_skill_is_not_carried_into_build() -> None:
+    """Precision is resolved deterministically upstream; build applies, never re-decides."""
+    build = sc.stage("story", "build")
+    for builder in ("chart", "table"):
+        loaded = set(
+            build.skill_names(
+                builder=builder,
+                active_conditions=("dataviz-precision", "dataviz-color", "chart-explainer"),
+            )
+        )
+        assert "dataviz-precision" not in loaded
+    # The signal survives - needs_precision_plan still tells the driver to resolve formats.
+    assert "needs_precision_plan" in sc.SELECT_SCHEMA["properties"]
 
 
 def test_stage_adapter_includes_guardrails_and_focus() -> None:
