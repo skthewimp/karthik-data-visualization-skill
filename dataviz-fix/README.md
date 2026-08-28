@@ -4,7 +4,7 @@ The **repair front half**: image in, repaired artifact out. Use it when the task
 
 `dataviz-fix` owns one stage of its own - **diagnose+extract** - and then hands into the shared construct process (`dataviz-construct`) that both repair and dataset-to-story creation use: **diagnose+extract -> [ insight -> select -> idea -> build -> execution ]**. Each stage is a separate call carrying only its own skills plus a compact artifact handed forward; that per-stage scoping is the fix for context rot. The machine-readable contract - exact skill subset and handoff schema per stage - is `dataviz_mcp/stage_contracts.py:REPAIR_PIPELINE` (the diagnose stage plus the shared construct tail).
 
-The path is **forward design, not critique-plus-patch**: extract the intent (`dataviz-brief`) and the data (`dataviz-extract`) from the source, then in the construct tail compute the insight freshly (`karthik-evidence-builder`), choose a form cold (`dataviz-selector`, source form gets no vote), check the idea before rendering (`dataviz-idea-critique`), build with the builder skill the select stage picks, and check the render (`dataviz-execution`). How many revision passes either gate runs is the driver's budget; a blind `dataviz-eval` reviewer runs only for an audit or high-risk decision. User feedback drives later revisions.
+The path is **forward design, not critique-plus-patch**: extract the intent (`dataviz-brief`) and the data (`dataviz-extract`) from the source, then in the construct tail compute the insight freshly (`karthik-evidence-builder`), choose a form cold (`dataviz-selector`, source form gets no vote), check the idea before rendering (`dataviz-idea-critique`), build with the builder skill the select stage picks, and check the render (`dataviz-execution`). How many revision passes either gate runs is the driver's budget. User feedback drives later revisions.
 
 ## Design principles
 
@@ -22,7 +22,6 @@ The path is **forward design, not critique-plus-patch**: extract the intent (`da
 - Checks the idea before rendering with `dataviz-idea-critique` (data, expression, insight, honesty), routing back to insight or select.
 - Rebuilds as a real PNG, SVG, or PDF with `karthik-data-visualization`, carrying every key message with its required content (which may take more than one chart, whole plus parts). Asserts the headline claim in the title and, via `chart-annotations`, ranks, words, and places the candidate marks the insight stage named.
 - Checks the render with `dataviz-execution` (geometry, overlap, colour, precision, ink), confirming a redesign build carries a cold form decision; the number of passes is the driver's budget.
-- Spawns one blind `dataviz-eval` reviewer on the converged candidate for an audit or high-risk decision; skips it for a purely literal or cosmetic edit.
 - Falls back to direct rendering and visual inspection when MCP inspection is unavailable.
 - Iterates from short user feedback without restarting the chart each time.
 - Records a reusable skill lesson after acceptance only when the miss reveals a general rule or tool defect.
@@ -36,7 +35,7 @@ The path is **forward design, not critique-plus-patch**: extract the intent (`da
 
 ## Relationship to other skills
 
-`dataviz-fix` is the repair front half. It opens with `dataviz-brief` (intent), `dataviz-extract` (data), and `dataviz-critique` (source diagnosis), then hands into the shared construct process (`dataviz-construct`): `karthik-evidence-builder` (insight), `dataviz-selector` (form, chosen cold), `dataviz-idea-critique` (pre-render gate), `karthik-data-visualization` / `karthik-table-style` and `chart-annotations` (build), and `dataviz-execution` (post-render gate) - plus the installed writing or brand-style skill when one is available. `dataviz-eval` is the single independent reviewer spawned once for an audit; the case manager is an optional audited path, not a default release gate.
+`dataviz-fix` is the repair front half. It opens with `dataviz-brief` (intent), `dataviz-extract` (data), and `dataviz-critique` (source diagnosis), then hands into the shared construct process (`dataviz-construct`): `karthik-evidence-builder` (insight), `dataviz-selector` (form, chosen cold), `dataviz-idea-critique` (pre-render gate), `karthik-data-visualization` / `karthik-table-style` and `chart-annotations` (build), and `dataviz-execution` (post-render gate) - plus the installed writing or brand-style skill when one is available. The case manager is an optional audited path, not a default release gate.
 
 ## Edit rule
 

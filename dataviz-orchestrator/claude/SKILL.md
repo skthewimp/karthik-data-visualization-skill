@@ -76,9 +76,8 @@ Pass the cleaned data and contract into `dataviz-construct` and run its tail:
   `builder` field; add `chart-annotations` / `chart-explainer` / `dataviz-color` /
   `dataviz-precision` when the select artifact asks for them. Assert the headline claim in the
   title and place the annotation claims insight named.
-- **Execution-critique** - load `dataviz-execution` (add `dataviz-eval` only for an explicit
-  audit, high-risk decision, or benchmark). The post-render gate: geometry, overlap, colour,
-  precision, ink.
+- **Execution-critique** - load `dataviz-execution`. The post-render gate: geometry, overlap,
+  colour, precision, ink.
 
 How many revision passes either gate runs is the driver's budget. See `dataviz-construct` for
 the shared tail in full.

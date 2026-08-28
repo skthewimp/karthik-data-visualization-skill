@@ -1,6 +1,6 @@
 # dataviz-orchestrator
 
-The staged orchestrator for the full dataset-to-visual-story loop: raw data in, visual story out. It is the coordinating skill, not a replacement for the more focused skills. It runs as an ordered sequence of separate calls - discover, contract, clean, facts, select, build, refine - each carrying only the skills that stage needs plus a compact artifact handed forward from the previous stage. That per-stage scoping is what keeps a long pipeline from rotting a single context. For repairing an existing chart from an image, use `dataviz-fix` (the repair orchestrator) instead.
+The creation front half for the dataset-to-visual-story loop: raw data in, visual story out. It is the coordinating skill for the front half, not a replacement for the more focused skills. It runs as an ordered sequence of separate calls - discover, contract, clean - and then hands into the shared construct process (`dataviz-construct`), whose tail is insight, select, idea, build, execution. Each call carries only the skills that stage needs plus a compact artifact handed forward; that per-stage scoping is what keeps a long pipeline from rotting a single context. For repairing an existing chart from an image, use `dataviz-fix` (the repair front half) instead - it feeds the same construct tail.
 
 The machine-readable contract - exact skill subset and JSON handoff schema per stage - is `dataviz_mcp/stage_contracts.py:STORY_PIPELINE`.
 
@@ -10,13 +10,19 @@ Use it when the request is broader than “pick a chart” or “clean this plot
 
 One skill loaded per call, artifact passed forward:
 
+Front half (owned by this skill):
+
 - **discover** - `dataset-question-generator` for candidate stories from a raw dataset.
 - **contract** - `karthik-analysis-planner` for definitions, denominator, metric, comparison, and falsifiers.
 - **clean** - `karthik-data-cleaning` for contextual inspection, cleaning, reshaping, joins, and validation.
-- **facts** - no dedicated skill yet (`karthik-evidence-builder` is a known gap); compute evidence from the prepared data.
+
+Construct tail (shared with repair, via `dataviz-construct`):
+
+- **insight** - `karthik-evidence-builder` computes the facts and names the headline claim + candidate annotations before a form is chosen.
 - **select** - `dataviz-selector` for chart form and encodings, and the chart-vs-table `builder` choice.
+- **idea** - `dataviz-idea-critique`, the pre-render gate (data / expression / insight / honesty).
 - **build** - `karthik-data-visualization` (chart) or `karthik-table-style` (table), plus `chart-annotations` / `chart-explainer` when the plan asks.
-- **refine** - `dataviz-critique` for the checker loop; `dataviz-eval` only for an explicit audit.
+- **execution** - `dataviz-execution`, the post-render gate (geometry, overlap, colour, precision, ink).
 
 ## Files
 

@@ -984,7 +984,6 @@ _EXECUTION_STAGE = Stage(
     stage_id="execution",
     title="Critique the execution",
     skills=("dataviz-execution",),
-    conditional_skills={"dataviz-eval": "explicit audit or high-risk decision"},
     input_schema=BUILD_SCHEMA,
     output_schema=EXECUTION_SCHEMA,
     instructions=_CONSTRUCT_EXECUTION,

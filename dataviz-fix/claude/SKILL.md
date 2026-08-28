@@ -130,7 +130,6 @@ evidence when available, and record feedback and acceptance.
 
 - **MCP failure:** fall back to direct local rendering and disclose the missing deterministic
   inspection.
-- **Eval subagent failure:** deliver the inspected candidate as unreviewed and say so.
 - **External resource constraint:** deliver the best candidate and name the unresolved issue.
 - **Renderer failure with no artifact:** report the concrete error and return any earlier valid
   candidate.

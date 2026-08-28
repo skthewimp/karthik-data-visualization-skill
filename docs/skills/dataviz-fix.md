@@ -31,7 +31,7 @@ Run `dataviz-brief` on the image and prompt for the key messages and required co
 - **Build** constructs the deliverable, carrying every key message with its required content, honouring every prompt constraint.
 - **Execution-critique** (`dataviz-execution`) checks the rendered export - geometry, overlap, colour, precision, ink - and confirms a redesign build carries a cold form decision (a tidied re-render of the source form routes back to select).
 
-How many revision passes either gate runs is the driver's budget, not a fixed pass count. For an explicit audit or high-risk decision, the execution gate may spawn one blind `dataviz-eval` read on the converged candidate. See `dataviz-construct` for the shared tail in full.
+How many revision passes either gate runs is the driver's budget, not a fixed pass count. See `dataviz-construct` for the shared tail in full.
 
 ## Tables
 

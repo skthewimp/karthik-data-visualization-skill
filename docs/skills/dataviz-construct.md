@@ -15,7 +15,7 @@ insight -> select -> idea -> build -> execution
 2. **Select** (`dataviz-selector`) - choose the simplest form that makes the claim easiest to see and hardest to misread. For a repair, choose it cold; the source form gets no vote.
 3. **Idea-critique** (`dataviz-idea-critique`) - the pre-render gate: is the data right, the expression right, the insight right, and honest? Route back to insight or select until it holds.
 4. **Build** (`karthik-data-visualization` or `karthik-table-style`, plus `chart-annotations` / `chart-explainer` / `dataviz-color` / `dataviz-precision` when asked) - assert the headline claim in the title, place the annotation claims insight named, and render one real artifact.
-5. **Execution-critique** (`dataviz-execution`, plus a blind `dataviz-eval` for an audit) - the post-render gate: geometry, overlap, labels, colour, precision, ink.
+5. **Execution-critique** (`dataviz-execution`) - the post-render gate: geometry, overlap, labels, colour, precision, ink.
 
 ## Two gates, in order
 

@@ -40,10 +40,9 @@ forward. Loading every skill into one context rots it.
    `chart-annotations` / `chart-explainer` / `dataviz-color` / `dataviz-precision` when the
    select artifact asks for them. Assert the headline claim in the title; word and place the
    annotation claims the insight stage named. Render one real artifact.
-5. **Execution-critique** - `dataviz-execution` (add `dataviz-eval` for an explicit audit or
-   high-risk decision). The **post-render gate**: geometry, overlap, labels, colour, precision,
-   ink. Route back to `build`, or - rarely - to `idea` if the render shows the idea itself is
-   wrong.
+5. **Execution-critique** - `dataviz-execution`. The **post-render gate**: geometry, overlap,
+   labels, colour, precision, ink. Route back to `build`, or - rarely - to `idea` if the render
+   shows the idea itself is wrong.
 
 ## Two gates, in order
 
