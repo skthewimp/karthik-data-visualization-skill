@@ -4,18 +4,21 @@ The shared terminal process both chart creation and chart repair hand into. Each
 
 ```text
 insight -> select -> idea -> build -> execution
+                                \-> explain   (off the finding, when the exhibit ships with prose)
 ```
 
 - **Creation** hands in after `clean`; **repair** hands in after `diagnose+extract`.
 - A repair **`bounded-edit`** (a literal change that keeps the source form) skips `insight -> select -> idea` and goes straight to `build -> execution`.
+- **`explain`** is off the render path: it writes the accompanying note from the finding and the plan, needs no chart, and runs in parallel with build/execution when the plan ships with prose.
 
 ## The stages
 
 1. **Insight** (`karthik-evidence-builder`) - compute the facts and name the **headline claim** plus candidate annotation claims, from the data, before a form is chosen.
 2. **Select** (`dataviz-selector`) - choose the simplest form that makes the claim easiest to see and hardest to misread. For a repair, choose it cold; the source form gets no vote.
 3. **Idea-critique** (`dataviz-idea-critique`) - the pre-render gate: is the data right, the expression right, the insight right, and honest? Route back to insight or select until it holds.
-4. **Build** - one builder skill by `select.builder`: `karthik-data-visualization` (chart) or `karthik-table-style` (table), never both. A chart may also load `chart-annotations` (on-chart marks - chart-only, never a table); either builder may load `chart-explainer` when asked. Assert the headline claim in the title, place the annotation claims insight named, and render one real artifact. Colour and precision are decided at select and resolved by a tool (see below), only applied here.
+4. **Build** - one builder skill by `select.builder`: `karthik-data-visualization` (chart) or `karthik-table-style` (table), never both. A chart may also load `chart-annotations` (on-chart marks - chart-only, never a table); that is the only conditional skill build carries. Assert the headline claim in the title, place the annotation claims insight named, and render one real artifact. Colour, precision, and the explainer note load no skill here - colour and precision are decided at select and resolved by a tool (see below), the note is written off the render path by the explain stage.
 5. **Execution-critique** (`dataviz-execution`) - the post-render gate: geometry, overlap, labels, colour, precision, ink.
+6. **Explain** (`chart-explainer`, only when `select.needs_explainer`) - the short note beside the exhibit, written from the finding and the plan, not the render; runs in parallel with build/execution, never in the build call.
 
 ## Two gates, in order
 

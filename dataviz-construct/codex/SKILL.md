@@ -13,6 +13,7 @@ into a finished chart.
 
 ```text
 insight -> select -> idea -> build -> execution
+                                \-> explain   (off the finding, when the exhibit ships with prose)
 ```
 
 - **Creation** hands in after `clean`.
@@ -20,6 +21,9 @@ insight -> select -> idea -> build -> execution
 - A repair **`bounded-edit`** (a literal, self-contained change that keeps the source form -
   "recolour series 3", "fix the axis labels") skips `insight -> select -> idea` and goes
   straight to `build -> execution`, because the claim and the form are unchanged on purpose.
+- **`explain`** is not on the render path. It writes the accompanying note from the finding and
+  the plan, needs no chart, and runs in parallel with build/execution - only when the plan ships
+  with prose.
 
 ## The stages
 
@@ -39,13 +43,18 @@ forward. Loading every skill into one context rots it.
 4. **Build** - one builder skill, chosen by `select.builder`: `karthik-data-visualization` for
    a chart or `karthik-table-style` for a table, never both. The build call differs by what is
    built: a chart may also load `chart-annotations` (on-chart marks - chart-only, never a
-   table), and either builder may load `chart-explainer` when the plan asks. Colour and
-   precision load no skill here - both are decided at select and resolved by a tool (see below).
+   table). That is the only conditional skill build carries. Colour, precision, and the
+   explainer note load no skill here - colour and precision are decided at select and resolved
+   by a tool (see below), and the note is written off the render path by the explain stage.
    Assert the headline claim in the title; word and place the annotation claims the insight
    stage named. Render one real artifact.
 5. **Execution-critique** - `dataviz-execution`. The **post-render gate**: geometry, overlap,
    labels, colour, precision, ink. Route back to `build`, or - rarely - to `idea` if the render
    shows the idea itself is wrong.
+6. **Explain** (`chart-explainer`, only when `select.needs_explainer`) - the short note that
+   travels beside the exhibit. Written from the finding (the insight artifact) and the plan, not
+   from the render - so it needs no chart and runs in parallel with build/execution, not inside
+   the build call. A null result is an honest note.
 
 ## Colour and precision are decided at select, resolved by a tool, only applied at build
 

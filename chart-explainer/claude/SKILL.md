@@ -16,6 +16,8 @@ Two situations trigger it. Either an exhibit already exists and needs narrating,
 
 This is not text on the chart. This is not a critique of the chart. It is the narration that makes a finished exhibit legible to someone reading it cold.
 
+The note states the finding, not what the pixels look like, so it does not need the rendered chart - the data, the claim, and the caveat are enough. In the construct pipeline this runs as its own `explain` stage off the finding (the insight artifact) and the plan, in parallel with build and execution, never inside the render-bound build call.
+
 ## The two-line contract
 
 Use the shortest explanation that makes the exhibit understandable in its delivery context. Two lines can be a useful compact default, but it is not a universal limit.

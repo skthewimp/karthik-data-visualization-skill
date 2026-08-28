@@ -27,7 +27,7 @@ def _all_stages():
             yield name, stage
 
 
-_CONSTRUCT_TAIL = ("insight", "select", "idea", "build", "execution")
+_CONSTRUCT_TAIL = ("insight", "select", "idea", "build", "execution", "explain")
 
 
 def test_pipelines_have_expected_stage_order() -> None:
@@ -42,7 +42,7 @@ def test_pipelines_have_expected_stage_order() -> None:
 
 def test_both_front_halves_share_one_construct_tail() -> None:
     """The literal coalescing: the post-insight stages are the SAME objects in both."""
-    for stage_id in ("select", "idea", "build", "execution"):
+    for stage_id in ("select", "idea", "build", "execution", "explain"):
         assert sc.stage("repair", stage_id) is sc.stage("story", stage_id)
     # insight is parameterised only by the artifact that feeds it; everything else matches.
     repair_insight = sc.stage("repair", "insight")
@@ -124,6 +124,22 @@ def test_annotations_are_chart_only_never_dragged_into_a_table_build() -> None:
     # The same request loads it for a chart.
     chart = set(build.skill_names(builder="chart", active_conditions=("chart-annotations",)))
     assert "chart-annotations" in chart
+
+
+def test_explainer_is_a_render_independent_stage_not_a_build_skill() -> None:
+    """The note is written from the finding, not the pixels - so it never rides in build."""
+    build = sc.stage("story", "build")
+    for builder in ("chart", "table"):
+        loaded = set(
+            build.skill_names(builder=builder, active_conditions=("chart-explainer",))
+        )
+        assert "chart-explainer" not in loaded
+    explain = sc.stage("story", "explain")
+    assert explain.skills == ("chart-explainer",)
+    # Reads the plan (select) and the finding (insight); never the build/render artifact.
+    assert explain.input_schema is sc.SELECT_SCHEMA
+    assert explain.also_reads == ("insight",)
+    assert "build" not in explain.also_reads
 
 
 def test_precision_and_colour_skills_are_not_carried_into_build() -> None:

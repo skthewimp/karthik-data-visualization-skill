@@ -26,10 +26,12 @@ Two front halves feed one shared terminal process (``dataviz-construct``):
 * :data:`STORY_PIPELINE` - raw dataset in: ``discover -> contract -> clean``, then the
   shared construct tail.
 
-The construct tail is ``insight -> select -> idea -> build -> execution``. Its
-``select``, ``idea``, ``build`` and ``execution`` stages are the *same* stage objects in
-both pipelines (see :data:`_SELECT_STAGE`, :data:`_IDEA_STAGE`, :data:`_BUILD_STAGE`,
-:data:`_EXECUTION_STAGE`); only ``insight`` differs, and only in the artifact it reads
+The construct tail is ``insight -> select -> idea -> build -> execution``, with an
+``explain`` stage that writes the accompanying note off the finding (not the render) and so
+runs beside build rather than inside it. Its ``select``, ``idea``, ``build``, ``execution``
+and ``explain`` stages are the *same* stage objects in both pipelines (see
+:data:`_SELECT_STAGE`, :data:`_IDEA_STAGE`, :data:`_BUILD_STAGE`, :data:`_EXECUTION_STAGE`,
+:data:`_EXPLAIN_STAGE`); only ``insight`` differs, and only in the artifact it reads
 (a prepared dataset for story, a recovered data table for repair). ``insight`` names the
 headline claim and candidate annotations before any form is chosen; ``idea`` is the
 pre-render gate (is the data / expression / insight right); ``execution`` is the
@@ -863,6 +865,30 @@ EXECUTION_SCHEMA: dict[str, object] = {
     "additionalProperties": False,
 }
 
+# Explain stage output: the short prose that travels BESIDE the exhibit (an email's two lines,
+# a figure's caption, a Slack note). Written from the finding - not the pixels - so it never
+# rides in the render-bound build call. Produced only when the plan ships with prose.
+EXPLAIN_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "note": {
+            "type": "string",
+            "description": (
+                "The accompanying note: a lead stating what the exhibit shows (with a number "
+                "anchor when it helps) plus at most one qualification or implication. A null "
+                "result is a valid, honest note - say the exhibit shows nothing rather than "
+                "manufacturing a finding."
+            ),
+        },
+        "delivery_context": {
+            "type": "string",
+            "description": "Where the note travels - email body, notebook caption, message.",
+        },
+    },
+    "required": ["note"],
+    "additionalProperties": False,
+}
+
 
 # --------------------------------------------------------------------------- #
 # Front-half stage adapter texts.
@@ -1034,6 +1060,22 @@ and still return ``deliver``. Reserve the ``blocked`` verdict for a genuine inab
 produce any valid artifact at all - never for a missing external denominator, dataset, or
 methodology."""
 
+_CONSTRUCT_EXPLAIN = """You are the explain stage of the dataviz construct process. You write
+the short prose that travels BESIDE the exhibit - the two lines in an email above the chart,
+the caption under a figure in a notebook, the sentence in a message carrying it. You do NOT
+receive the rendered chart and do not need it: the note states the finding, not what the
+pixels look like. You receive the finding (the insight artifact - the headline claim, the
+facts, the candidate annotations, the caveats) and the plan (the select artifact - the
+audience, medium, and delivery context). Write the note from those. Lead with what the exhibit
+shows and what it supports, with a quantitative anchor when it improves understanding; add at
+most one qualification or implication (a contrast, a consequence, or a caveat) when the reader
+needs it - never two payoffs. Reuse the numbers exactly as the insight stage stated them; do
+not re-round. If the evidence supports no finding, say so plainly - a null result is an honest
+note, and manufacturing drama from a chart that shows nothing is the failure this stage exists
+to prevent. This stage runs only when the plan ships with prose (``needs_explainer``); because
+it needs no render, the driver may run it any time after the idea gate, in parallel with build
+and execution - it is not part of the build call."""
+
 
 # --------------------------------------------------------------------------- #
 # Pipelines.
@@ -1045,16 +1087,17 @@ _BUILDER_SKILLS = {
 }
 
 # The scalars the driver must parse from the select artifact to route the build stage: which
-# builder skill to load and which conditional build skill (explainer) to open.
-# ``needs_precision_plan`` and ``needs_color_plan`` still ride here, but neither loads a skill
-# body any more: each signals that the driver must run a deterministic MCP tool and hand the
-# result to build, which only applies it.
+# builder skill to load, plus flags that route work AWAY from the build call:
 #   * ``needs_precision_plan`` -> ``recommend_precision`` per display group (from its values and
 #     the select stage's ``exact_lookup_required`` flag) -> ``dataviz-precision`` not carried.
 #   * ``needs_color_plan`` -> ``recommend_colours`` from the select stage's ``colour_plan``
 #     (available colours, groups, focal, semantic hints) -> ``dataviz-color`` not carried.
-# The colour and precision judgments are made at select; the mechanics are tools; build applies.
-# Everything else in the artifact is content read by the next LLM.
+#   * ``needs_explainer`` -> the separate render-independent ``explain`` stage writes the note
+#     from the finding + plan -> ``chart-explainer`` not carried into build.
+# Colour and precision judgments are made at select and resolved by tools; the explainer note is
+# made from the finding, not the render. Build applies pixels only. ``needs_annotations`` is the
+# one flag that still loads a skill into build (chart-only), because on-chart marks are placed at
+# render coordinates. Everything else in the artifact is content read by the next LLM.
 _SELECT_ROUTING_FIELDS = (
     "builder",
     "needs_annotations",
@@ -1063,10 +1106,10 @@ _SELECT_ROUTING_FIELDS = (
     "needs_precision_plan",
 )
 
-# Builder-agnostic build conditionals: an explainer can accompany a chart or a table alike.
-_BUILD_CONDITIONAL_SKILLS = {
-    "chart-explainer": "select.needs_explainer",
-}
+# No builder-agnostic build conditionals remain: colour, precision, and the explainer note are
+# all resolved off the build call now. Only the chart-only annotations skill loads into build,
+# via _BUILD_BUILDER_CONDITIONAL_SKILLS below.
+_BUILD_CONDITIONAL_SKILLS: dict[str, str] = {}
 
 # Builder-specific build conditionals. On-chart annotations are placed at data coordinates the
 # render defines; a table has no such marks, so ``chart-annotations`` is chart-only and can
@@ -1075,9 +1118,9 @@ _BUILD_BUILDER_CONDITIONAL_SKILLS = {
     "chart": {"chart-annotations": "select.needs_annotations"},
 }
 
-# The shared construct tail. ``select``, ``idea``, ``build`` and ``execution`` are the same
-# stage objects in both pipelines - the literal coalescing of the two old ``select -> build
-# -> refine`` tails into one process. Only ``insight`` is built per pipeline, because it
+# The shared construct tail. ``select``, ``idea``, ``build``, ``execution`` and ``explain`` are
+# the same stage objects in both pipelines - the literal coalescing of the two old ``select ->
+# build -> refine`` tails into one process. Only ``insight`` is built per pipeline, because it
 # reads a different upstream artifact (a prepared dataset for story, a recovered data table
 # for repair); everything else about it - skills, instructions, output - is identical.
 
@@ -1131,6 +1174,19 @@ _EXECUTION_STAGE = Stage(
     instructions=_CONSTRUCT_EXECUTION,
 )
 
+_EXPLAIN_STAGE = Stage(
+    stage_id="explain",
+    title="Explain the exhibit",
+    skills=("chart-explainer",),
+    # Reads the plan (select) and the finding (insight) - NOT the build/render. The note is
+    # written from the finding, so this stage needs no rendered chart and can run in parallel
+    # with build/execution. Runs only when the plan ships with prose (select.needs_explainer).
+    input_schema=SELECT_SCHEMA,
+    output_schema=EXPLAIN_SCHEMA,
+    instructions=_CONSTRUCT_EXPLAIN,
+    also_reads=("insight",),
+)
+
 
 def _insight_stage(input_schema: dict[str, object]) -> Stage:
     """The construct tail's entry stage, parameterised by the artifact that feeds it."""
@@ -1145,13 +1201,18 @@ def _insight_stage(input_schema: dict[str, object]) -> Stage:
 
 
 def _construct_tail(insight_input_schema: dict[str, object]) -> tuple[Stage, ...]:
-    """``insight -> select -> idea -> build -> execution`` for one front half."""
+    """``insight -> select -> idea -> build -> execution`` (+ ``explain``) for one front half.
+
+    ``explain`` is last in the tuple but reads only the plan and the finding, never the render,
+    so a driver runs it in parallel with build/execution and only when ``needs_explainer``.
+    """
     return (
         _insight_stage(insight_input_schema),
         _SELECT_STAGE,
         _IDEA_STAGE,
         _BUILD_STAGE,
         _EXECUTION_STAGE,
+        _EXPLAIN_STAGE,
     )
 
 
