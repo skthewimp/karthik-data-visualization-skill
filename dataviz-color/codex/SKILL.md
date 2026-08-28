@@ -10,7 +10,7 @@ metadata:
 
 Own the colour decision for one visualization: which colours to use and how to assign them to this chart's series or categories. This is a *decision for the specific graph*, not a palette look-up. Even when a brand palette or a set of recommended colours already exists, a chart with N series and a given background still needs a call on which of them to use and how to assign them. Do not design the chart's form, write its annotations, or set its number precision - those belong to `karthik-data-visualization`, `chart-annotations`, and `dataviz-precision`.
 
-The mechanical checks live in the dataviz MCP: `recommend_colours`, `validate_palette`, `extract_palette_from_image`. Use them; keep the judgement here.
+The mechanical checks live in the dataviz MCP: `recommend_colours`, `validate_palette`, `extract_palette_from_image`. Use them; keep the judgement here. When colour is decided inside the construct pipeline, that judgement (available source, focal series, semantic meaning) is made at the `select` stage as a compact `colour_plan`, the palette is then resolved by `recommend_colours` and applied at build - so this full skill is the standalone authority and the source that decision distils, not a body loaded into the build call.
 
 ## 1. Where the available colours come from (precedence, higher wins)
 

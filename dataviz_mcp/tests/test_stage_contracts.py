@@ -126,8 +126,8 @@ def test_annotations_are_chart_only_never_dragged_into_a_table_build() -> None:
     assert "chart-annotations" in chart
 
 
-def test_precision_skill_is_not_carried_into_build() -> None:
-    """Precision is resolved deterministically upstream; build applies, never re-decides."""
+def test_precision_and_colour_skills_are_not_carried_into_build() -> None:
+    """Both are decided at select and resolved by a tool; build applies, never re-decides."""
     build = sc.stage("story", "build")
     for builder in ("chart", "table"):
         loaded = set(
@@ -137,8 +137,26 @@ def test_precision_skill_is_not_carried_into_build() -> None:
             )
         )
         assert "dataviz-precision" not in loaded
-    # The signal survives - needs_precision_plan still tells the driver to resolve formats.
-    assert "needs_precision_plan" in sc.SELECT_SCHEMA["properties"]
+        assert "dataviz-color" not in loaded
+    # The signals survive - needs_*_plan still tell the driver to resolve format / palette.
+    props = sc.SELECT_SCHEMA["properties"]
+    assert "needs_precision_plan" in props
+    assert "needs_color_plan" in props
+
+
+def test_select_carries_the_colour_decision_not_the_hexes() -> None:
+    """The colour plan (source, focal, semantic meaning) is decided at select, resolved later."""
+    colour_plan = sc.SELECT_SCHEMA["properties"]["colour_plan"]
+    assert "colour_plan" in sc.SELECT_SCHEMA["required"]
+    props = colour_plan["properties"]
+    assert set(props) == {
+        "available_source",
+        "available_colours",
+        "focal_series",
+        "semantic_assignments",
+    }
+    # available_source is the one required call; the rest are populated only when colour has work.
+    assert colour_plan["required"] == ["available_source"]
 
 
 def test_stage_adapter_includes_guardrails_and_focus() -> None:

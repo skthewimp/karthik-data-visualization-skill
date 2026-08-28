@@ -39,30 +39,36 @@ forward. Loading every skill into one context rots it.
 4. **Build** - one builder skill, chosen by `select.builder`: `karthik-data-visualization` for
    a chart or `karthik-table-style` for a table, never both. The build call differs by what is
    built: a chart may also load `chart-annotations` (on-chart marks - chart-only, never a
-   table), and either builder may load `chart-explainer` or `dataviz-color` when the plan asks.
+   table), and either builder may load `chart-explainer` when the plan asks. Colour and
+   precision load no skill here - both are decided at select and resolved by a tool (see below).
    Assert the headline claim in the title; word and place the annotation claims the insight
    stage named. Render one real artifact.
 5. **Execution-critique** - `dataviz-execution`. The **post-render gate**: geometry, overlap,
    labels, colour, precision, ink. Route back to `build`, or - rarely - to `idea` if the render
    shows the idea itself is wrong.
 
-## Precision is resolved once, applied everywhere - never re-decided at build
+## Colour and precision are decided at select, resolved by a tool, only applied at build
 
-Number precision is not a build judgment. It splits three ways so a weak build model decides
-nothing about it:
+Neither is a build judgment. Each splits three ways so a weak build model decides nothing about
+it and the two heaviest skill bodies (`dataviz-color`, `dataviz-precision`) never enter the
+build call:
 
-- **Decision.** The only judgment - exact digits (an identifier or verbatim lookup) versus the
-  spread rule - is made at **select**, one `exact_lookup_required` flag per display group.
-  Numbers that live inside claim text (the headline, an annotation) get their precision at
-  **insight**, where the value is computed to the precision the evidence supports.
-- **Resolution.** The actual format is a deterministic function of the group's values and that
-  flag: `recommend_precision`. The driver runs it between select and build (or build calls the
-  tool) and hands the resolved format forward. `needs_precision_plan` is the trigger for this,
-  not a signal to load a precision skill.
-- **Application.** Build applies the resolved format to every axis, label, and table cell, and
-  reproduces claim-text numbers verbatim. `dataviz-precision` is therefore **not** carried into
-  the build call - build makes no precision decision. In a table the same resolved
-  per-column format is what `karthik-table-style` aligns to.
+- **Decision (at `select`, and for claim-text numbers at `insight`).** *Precision*: the only
+  judgment - exact digits versus the spread rule - is one `exact_lookup_required` flag per
+  display group; numbers inside the headline or an annotation get their precision at `insight`,
+  where the value is computed. *Colour*: the `colour_plan` names the available source
+  (brand skill / prompt / source-extracted / accessibility default), the focal series, and any
+  semantic meaning a series carries - decided at select as compact fields, not by loading the
+  colour skill there. `colour_groups` and `colour_role` are already select's too.
+- **Resolution (a deterministic tool).** `recommend_precision` turns values + the flag into a
+  format; `recommend_colours` turns the colour_plan into an ordered palette, checked by
+  `validate_palette`. The driver runs these between select and build (or build calls them).
+  `needs_precision_plan` / `needs_color_plan` are the triggers - not signals to load a skill.
+- **Application (at `build`).** Build applies the resolved format to every axis, label, and
+  table cell (reproducing claim-text numbers verbatim), and assigns the resolved palette in its
+  order. It re-decides neither. In a table the same resolved per-column format is what
+  `karthik-table-style` aligns to. `dataviz-execution` still re-checks colour contrast and
+  CVD/grayscale on the render as the post-build safety net.
 
 ## The plan carries across the gate
 

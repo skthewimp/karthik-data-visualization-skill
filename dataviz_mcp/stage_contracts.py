@@ -462,6 +462,71 @@ _NUMBER_DISPLAY_GROUPS = {
     },
 }
 
+# The colour DECISION is made HERE, at form selection, and carried forward - so build only
+# applies a palette, it never picks hues. Like precision, the judgment lives at select and the
+# mechanics are a deterministic tool (recommend_colours / validate_palette) run downstream; the
+# 1400-word dataviz-color body is not loaded into the hot path. Populated only when
+# needs_color_plan is true (colour_groups >= 1); a trivial plan when colour carries no identity.
+_COLOUR_PLAN = {
+    "type": "object",
+    "description": (
+        "The colour plan decided at selection: where the available colours come from, which "
+        "series is focal, and any semantic colour meaning. Resolved into an actual ordered "
+        "palette downstream by recommend_colours; build applies that palette and does not "
+        "re-pick hues. A trivial plan (available_source only) is fine when colour_groups is 0."
+    ),
+    "properties": {
+        "available_source": {
+            "type": "string",
+            "enum": ["brand-skill", "prompt", "source-extracted", "accessibility-default"],
+            "description": (
+                "Where the available colour set comes from, highest precedence first: an "
+                "installed brand/style skill, colours supplied in the prompt, colours "
+                "extracted from the source image (repair, via extract_palette_from_image), or "
+                "accessibility defaults (Okabe-Ito / ColorBrewer / viridis) when none exists."
+            ),
+        },
+        "available_colours": {
+            **_STRING_ARRAY,
+            "description": (
+                "The available hexes or named colours when the source is brand, prompt, or "
+                "source-extracted. Empty for accessibility-default (the tool picks them)."
+            ),
+        },
+        "focal_series": {
+            "type": ["string", "null"],
+            "description": (
+                "The one series carrying the focal colour for focal-plus-grey; null when every "
+                "series genuinely competes for attention (colour_role decides which applies)."
+            ),
+        },
+        "semantic_assignments": {
+            "type": "array",
+            "description": (
+                "Series that carry a colour meaning this audience already holds - a loss that "
+                "reads red, a party or brand colour. Usually EMPTY; reach for it only when the "
+                "meaning is shared by THIS audience and would not collapse under CVD. A soft "
+                "hue_family lets the tool keep brand/accessibility shaping the exact shade; a "
+                "hard colour pins it. Provide an alternate as an away-kit for a likely clash."
+            ),
+            "items": {
+                "type": "object",
+                "properties": {
+                    "series": {"type": "string"},
+                    "hue_family": {"type": "string"},
+                    "colour": {"type": "string"},
+                    "alternate": {"type": "string"},
+                    "reason": {"type": "string", "minLength": 1},
+                },
+                "required": ["series", "reason"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["available_source"],
+    "additionalProperties": False,
+}
+
 
 # --------------------------------------------------------------------------- #
 # Front-half schemas (repair diagnose; story discover/contract/clean).
@@ -637,6 +702,7 @@ SELECT_SCHEMA: dict[str, object] = {
         "needs_color_plan": {"type": "boolean"},
         "needs_precision_plan": {"type": "boolean"},
         "number_display_groups": _NUMBER_DISPLAY_GROUPS,
+        "colour_plan": _COLOUR_PLAN,
         "design": _DESIGN,
         "layout_plan": _LAYOUT_PLAN,
         "acceptance_checks": _ACCEPTANCE_CHECKS,
@@ -648,6 +714,7 @@ SELECT_SCHEMA: dict[str, object] = {
         "needs_color_plan",
         "needs_precision_plan",
         "number_display_groups",
+        "colour_plan",
         "design",
         "layout_plan",
         "acceptance_checks",
@@ -867,8 +934,19 @@ is a property of the form, not the total category count: N lines, stacks, or sli
 panel need N; small multiples with k lines per panel need k (the same k colours reused across
 panels); small multiples with one line per panel, direct labels, or position carrying identity
 need 0; focal-plus-grey needs 1. Set ``needs_color_plan`` true when ``colour_groups`` is 1 or
-more (a colour must still be chosen against brand and background) and false when it is 0. Set
-``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels, or
+more and false when it is 0. When it is true, decide the ``colour_plan`` HERE so build only
+applies a palette: name ``available_source`` (an installed brand/style skill if one exists,
+else colours supplied in the prompt, else - for a repair - colours extracted from the source
+image, else accessibility defaults), listing ``available_colours`` for the first three; set
+``focal_series`` for focal-plus-grey or null when every series competes; and record in
+``semantic_assignments`` only a series that carries a colour meaning THIS audience already holds
+(a loss reading red, a party or brand colour) as a soft ``hue_family`` (or a hard ``colour`` for
+a fixed brand), with an ``alternate`` away-kit and a one-line reason - leaving it empty
+otherwise, which is the common case, and standing down when the meaning is not shared here or a
+red/green polarity would collapse under colour-vision deficiency. This is the whole colour
+*decision*; the ordered palette is resolved deterministically downstream by ``recommend_colours``
+and checked by ``validate_palette``, and build applies it - you decide the plan, not the hexes.
+Set ``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels, or
 table cells). When it is true, enumerate ``number_display_groups`` - one entry per axis,
 numeric column, or labelled numeric series - and decide ``exact_lookup_required`` for each
 HERE: true only for identifiers or a genuine exact-lookup requirement, false (the spread rule)
@@ -912,7 +990,13 @@ skill, if one exists in this environment, to every reader-facing phrase; if none
 installed, apply the prompt's stated preferences. Render one real artifact through the
 project's renderer, then inspect that exact export at its delivery size and correct
 consequential clipping, collision, hierarchy, comparison, labelling, colour, content, or
-prompt-compliance defects before returning. Make no precision decision here. For every numeric
+prompt-compliance defects before returning. Make no colour decision here: apply the ordered
+palette resolved from the select stage's ``colour_plan`` by ``recommend_colours`` (supplied by
+the driver, or produced by calling the tool with the plan's available colours, ``colour_groups``,
+background, focal, and semantic hints), assign it in the palette's order, and record what you
+applied in ``recommendations_used.palette``. If ``validate_palette`` flags a contrast or
+adjacency problem, correct it against the plan; do not re-pick hues from scratch. Make no
+precision decision here. For every numeric
 display group (each axis, label, or table column), apply the resolved number format for that
 group - the format from ``recommend_precision`` keyed to the group's values and the select
 stage's ``exact_lookup_required`` flag, supplied by the driver, or produced by calling the tool
@@ -961,13 +1045,16 @@ _BUILDER_SKILLS = {
 }
 
 # The scalars the driver must parse from the select artifact to route the build stage: which
-# builder skill to load and which conditional build skills (annotations, explainer, colour)
-# to open. ``needs_precision_plan`` still rides here, but it no longer loads a skill body: it
-# signals that numbers are shown, so the driver resolves each display group's format with the
-# ``recommend_precision`` MCP tool (a deterministic function of the values plus the select
-# stage's ``exact_lookup_required`` flag) and hands the resolved formats to build. Build
-# applies them - it makes no precision decision - so ``dataviz-precision`` is not carried into
-# the build call. Everything else in the artifact is content read by the next LLM.
+# builder skill to load and which conditional build skill (explainer) to open.
+# ``needs_precision_plan`` and ``needs_color_plan`` still ride here, but neither loads a skill
+# body any more: each signals that the driver must run a deterministic MCP tool and hand the
+# result to build, which only applies it.
+#   * ``needs_precision_plan`` -> ``recommend_precision`` per display group (from its values and
+#     the select stage's ``exact_lookup_required`` flag) -> ``dataviz-precision`` not carried.
+#   * ``needs_color_plan`` -> ``recommend_colours`` from the select stage's ``colour_plan``
+#     (available colours, groups, focal, semantic hints) -> ``dataviz-color`` not carried.
+# The colour and precision judgments are made at select; the mechanics are tools; build applies.
+# Everything else in the artifact is content read by the next LLM.
 _SELECT_ROUTING_FIELDS = (
     "builder",
     "needs_annotations",
@@ -976,11 +1063,9 @@ _SELECT_ROUTING_FIELDS = (
     "needs_precision_plan",
 )
 
-# Builder-agnostic build conditionals: an explainer or a colour plan can apply to a chart or
-# a colour-formatted table alike, when the plan asks for them.
+# Builder-agnostic build conditionals: an explainer can accompany a chart or a table alike.
 _BUILD_CONDITIONAL_SKILLS = {
     "chart-explainer": "select.needs_explainer",
-    "dataviz-color": "select.needs_color_plan",
 }
 
 # Builder-specific build conditionals. On-chart annotations are placed at data coordinates the
