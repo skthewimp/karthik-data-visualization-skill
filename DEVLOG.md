@@ -1316,3 +1316,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed (`e6b2781..315d415`). You were right - the note states the finding, not the pixels. It's now its own `explain` stage that reads the insight artifact + plan, **never the render**, and runs in parallel with build...
 
 <!-- claude-session:fb930fbc-7913-4e91-8ec2-90fd8d74c823:end -->
+
+<!-- claude-session:3c738231-b329-41e1-baf7-a8187bd65160:start -->
+## 2026-08-28 14:19 IST | Claude session `3c738231-b32`
+
+### User prompts
+> this is a live example fromyseterdya. on the hcart fixing stage - which we added in today - this is a good example of what to catch. is it wired proerly to catch something like this? [Image #4]
+
+### Work done
+- Real deterministic collision detection exists (inspection.py: `text_text_collisions`, `text_mark_collisions`). But it needs per-element bbox metadata. Checking whether the renderer actually emits that — else it silent...
+- ## Verdict: half-wired. The rule catches it; the deterministic net doesn't cover this render type. **What IS wired (good):** 1. Execution gate skill explicitly lists this defect — `dataviz-execution` Geometry check: *...
+
+<!-- claude-session:3c738231-b329-41e1-baf7-a8187bd65160:end -->
