@@ -1328,3 +1328,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - ## Verdict: half-wired. The rule catches it; the deterministic net doesn't cover this render type. **What IS wired (good):** 1. Execution gate skill explicitly lists this defect — `dataviz-execution` Geometry check: *...
 
 <!-- claude-session:3c738231-b329-41e1-baf7-a8187bd65160:end -->
+
+<!-- claude-session:6762c11a-a5f9-4732-91a7-a061738a785d:start -->
+## 2026-08-28 14:22 IST | Claude session `6762c11a-a5f`
+
+### User prompts
+> inspect the dataviz-fix and datviz-orchestrator skills. how are tehy doing in the balance between MCPs and skills? assuming we'll be using weak / open weight LLMs, don't want to load too much judgment into skills that...
+> ok how do we patch this? if we have MCPs for rendering and inspecting charts, how do we maek sure they get used?
+> this is too verbose. i don't understadn. what exactly is the problem we are fixing here?
+
+### Work done
+- Committing and pushing.
+- Done. Pushed. What changed so the execution gate must use the MCP: 1. **Contract (`EXECUTION_SCHEMA`)** — new required `inspection` block: `geometry_source` + the numbers only the inspector produces (min text pt, over...
+
+<!-- claude-session:6762c11a-a5f9-4732-91a7-a061738a785d:end -->
