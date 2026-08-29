@@ -1367,3 +1367,4 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Rates found — **sol $5/$30, luna $0.20/$1.20** per 1M in/out. Sol is **25× luna on both**. Per one chart run (50k in / 12k out): | Scenario | Cost/run | vs all-luna | vs all-sol | |---|---|---|---| | 100% sol | **$0.6...
 
 <!-- claude-session:2512ce59-17bd-44bc-a567-1b208e4e7aaf:end -->
+
