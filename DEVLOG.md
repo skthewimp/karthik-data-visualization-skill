@@ -1368,4 +1368,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:2512ce59-17bd-44bc-a567-1b208e4e7aaf:end -->
 
+<!-- claude-session:31c7e4d6-182c-4876-a37d-36f8a709e031:start -->
+## 2026-08-29 09:23 IST | Claude session `31c7e4d6-182`
 
+### User prompts
+> i've changed the downstream harness to make plpts exclusively using ggplot2. now, weaker LLMs arent that greaet at this, so I"m wondering if I can help them wiht this. look through this computer - there is a very larg...
+> forget style - that's already covered. i'm talking about implementation. and only look at 2019+ code.
+
+### Work done
+- Plan updated with the corrected, 2019+-evidence-based idiom set. The linter rules inherit from the corrected anti-idiom table ("one rule per anti-idiom above"), and the fixtures still hold. Re-exiting for approval.
+- Stored. Plan sits at `~/.claude/plans/mighty-sniffing-book.md` — persists across sessions, nothing runs. Recap for when you pick it up: **skill `karthik-ggplot-style`** (2019+ implementation idioms — patchwork, `%>%`,...
+
+<!-- claude-session:31c7e4d6-182c-4876-a37d-36f8a709e031:end -->
