@@ -1380,3 +1380,14 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Stored. Plan sits at `~/.claude/plans/mighty-sniffing-book.md` — persists across sessions, nothing runs. Recap for when you pick it up: **skill `karthik-ggplot-style`** (2019+ implementation idioms — patchwork, `%>%`,...
 
 <!-- claude-session:31c7e4d6-182c-4876-a37d-36f8a709e031:end -->
+
+<!-- claude-session:e9c69206-33a2-443d-9353-6383344e176e:start -->
+## 2026-08-29 15:56 IST | Claude session `e9c69206-33a`
+
+### User prompts
+> how do we decide right now in dataviz-selector whether it needs to be a table or a graph?
+
+### Work done
+- Question answer, no plan needed. Decision lives in `dataviz-selector/{claude,codex}/SKILL.md` under **## Table or chart?** (lines 31-38), plus a supporting note in `references/selection-prior.md`. **How it decides now...
+
+<!-- claude-session:e9c69206-33a2-443d-9353-6383344e176e:end -->
