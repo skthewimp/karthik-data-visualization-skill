@@ -25,7 +25,7 @@ skills and agent    question, evidence, chart choice, visual judgement, release 
 MCP capabilities    deterministic rendering, exact-file hashes, geometry checks, comparison
 ```
 
-Installing the skills does not register the MCP server. For the full workflow, complete both parts of [the quick start](#quick-start): install the client-specific skills and register the local stdio server.
+Installing the skills does not register the MCP server. Posit Assistant uses the Claude-compatible surface under `~/.posit/assistant/skills`. For the full workflow, complete both parts of [the quick start](#quick-start): install the client-specific skills and register the local stdio server.
 
 ### Renderer policy
 

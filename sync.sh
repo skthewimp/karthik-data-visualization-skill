@@ -26,10 +26,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -h|--help)
       cat <<'EOF'
-Usage: ./sync.sh [--no-pull] [--validate-only] [--surface all|codex|claude]
+Usage: ./sync.sh [--no-pull] [--validate-only] [--surface all|codex|claude|posit]
 
 Pull latest changes and install the public data visualization skills to
-~/.codex/skills or ~/.claude/skills.
+~/.codex/skills, ~/.claude/skills, or ~/.posit/assistant/skills.
 EOF
       exit 0
       ;;

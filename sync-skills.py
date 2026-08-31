@@ -19,7 +19,8 @@ except ImportError:
 ROOT = Path(__file__).resolve().parent
 EXCLUDE_DIRS = {".git", "dist", "__pycache__", "docs"}
 SOURCE_SURFACES = ("codex", "claude")
-DEFAULT_INSTALL_SURFACES = SOURCE_SURFACES
+INSTALL_SURFACES = ("codex", "claude", "posit")
+DEFAULT_INSTALL_SURFACES = INSTALL_SURFACES
 SCRIPT_REFERENCE_RE = re.compile(r"scripts/([A-Za-z0-9_.-]+\.(?:py|sh|js|R))")
 
 
@@ -105,6 +106,9 @@ def install(skills: list[Path], surfaces: tuple[str, ...] = DEFAULT_INSTALL_SURF
             copy_tree(skill / "codex", home / ".codex" / "skills" / skill.name)
         if "claude" in surfaces:
             copy_tree(skill / "claude", home / ".claude" / "skills" / skill.name)
+        if "posit" in surfaces:
+            # Posit Assistant consumes the Claude-compatible SKILL.md surface.
+            copy_tree(skill / "claude", home / ".posit" / "assistant" / "skills" / skill.name)
 
 
 def main() -> int:
@@ -112,7 +116,7 @@ def main() -> int:
     parser.add_argument("--validate-only", action="store_true", help="validate skill metadata without installing")
     parser.add_argument(
         "--surface",
-        choices=("all", "codex", "claude"),
+        choices=("all", "codex", "claude", "posit"),
         default="all",
         help="which surface to install after validation",
     )
