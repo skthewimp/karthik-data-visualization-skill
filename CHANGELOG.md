@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### `recommend_text_placement` can shrink a cramped label and recommend a portrait flip
+
+Placement had two escalations when a movable block would not fit - move it, or tighten its wrap - and then gave up to hand-review. Two more, both build-phase (this tool runs after the words exist; nothing is asked of `recommend_layout`, whose dims other harnesses already own):
+
+- **Shrink toward a legibility floor before tightening the wrap.** A movable block with no clear spot at full size now steps its font down (largest that fits) toward `min_font_pt` (default 8pt, the inspector's floor, never below) and re-searches for a clear spot, returning `suggested_font_pt`. A shrink can never manufacture an undersized-text defect. Fixed roles (title/subtitle/caption/footer) never shrink.
+- **Recommend a portrait flip when landscape stays cramped.** When text is still unresolvable on a landscape canvas after moving and shrinking, the tool returns a canvas-level `suggested_orientation: "portrait"` and a swapped `suggested_canvas`. Advisory only - it cannot move the data marks, so a later build stage flips the canvas, re-renders, and re-runs placement against the new mark geometry. `dataviz_mcp/text_fit.py`, `dataviz_mcp/server.py`; documented in `dataviz-construct` (both copies) and `docs/mcp.md`.
+
 ### Two more eraser-test flags, and the layout tool stops recommending slanted ticks
 
 A canonical-example run showed a weak model reproduce three style bans the tools never checked: rotated x-axis labels, an external legend, and colour that only restated the facet. Two were unenforced, one was actively mis-advised.

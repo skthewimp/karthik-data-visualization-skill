@@ -253,6 +253,7 @@ def create_server() -> Any:
         obstacles: list[dict[str, Any]] | None = None,
         max_annotation_width_frac: float = 0.32,
         edge_margin_px: float | None = None,
+        min_font_pt: float = 8.0,
     ) -> dict[str, Any]:
         """Wrap a chart's text to fit and move colliding annotations to the nearest clear spot.
 
@@ -260,9 +261,13 @@ def create_server() -> Any:
         canvas is fixed. Each ``blocks`` item is ``{id, text, role, font_pt?, anchor:{x,y}}``
         in canvas px; title/subtitle/footer/caption are wrapped but never moved, annotations
         are movable. ``obstacles`` are the data marks' bounding boxes in canvas px - annotations
-        are always de-collided against them, not only against other text. Returns each block's
-        wrapped text, predicted bbox, and a moved ``suggested_anchor`` / tighter
-        ``suggested_wrap`` where needed. It fits the annotations already chosen; it invents none.
+        are always de-collided against them, not only against other text. A movable block with
+        no clear spot at full size is shrunk toward ``min_font_pt`` (the legibility floor) before
+        the wrap is tightened. Returns each block's wrapped text, predicted bbox, and a moved
+        ``suggested_anchor`` / smaller ``suggested_font_pt`` / tighter ``suggested_wrap`` where
+        needed, plus a canvas-level ``suggested_orientation`` / ``suggested_canvas`` when a
+        landscape canvas stays too cramped and a portrait flip would help. It fits the
+        annotations already chosen; it invents none.
         """
         return recommend_text_placement_core(
             width_px,
@@ -272,6 +277,7 @@ def create_server() -> Any:
             obstacles,
             max_annotation_width_frac,
             edge_margin_px,
+            min_font_pt,
         )
 
     return server

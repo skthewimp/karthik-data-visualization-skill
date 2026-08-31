@@ -97,8 +97,13 @@ deterministic tools remove the guess.
   annotations are written and their anchors chosen, `recommend_text_placement` wraps every block
   to fit its room and moves any annotation that would collide with another label, the canvas
   edge, **or a data mark** to the nearest clear spot - pass the marks' bounding boxes as
-  `obstacles` so annotation-vs-data is de-collided every time, not just text-vs-text. It returns
-  the wrap and the moved anchor; the model still owns which annotation to show and what it says.
+  `obstacles` so annotation-vs-data is de-collided every time, not just text-vs-text. A block with
+  no clear spot at full size is shrunk toward the legibility floor (`min_font_pt`) before its wrap
+  is tightened, so a cramped label returns a `suggested_font_pt`; and when a landscape canvas
+  stays unresolvable it returns a `suggested_orientation: "portrait"` and swapped
+  `suggested_canvas` for a later build stage to flip, re-render, and re-run. It returns the wrap,
+  the moved anchor, the smaller size, and the flip; the model still owns which annotation to show
+  and what it says.
 - **Backward check (at `execution`).** `inspect_rendered_chart` now reports the fix vectors for
   what it finds - per-edge `overflow_px` / `grow_margin_px`, `separation_needed_px`,
   `panel_heights_px`, and a `geometry_summary` whose `suggested_dims` is computed by the same

@@ -1,5 +1,33 @@
 # Devlog
 
+## 2026-08-31 - Placement gains font-shrink and a portrait-flip recommendation
+
+### Context
+
+Prompt (paraphrased): in the piece that looks at labels and suggests repositioning - does it
+also resize labels? And it should recommend flipping the canvas to portrait when that makes
+things easier. Both belong in `recommend_text_placement` (the build-phase MCP that takes all the
+text), not in `recommend_layout`: layout's dims are disregarded downstream and other harnesses
+already own orientation, whereas the flip can be applied later, in the build phase where wrapping
+is decided.
+
+### What I changed
+
+- **Resize.** The collision ladder was move -> tighten-wrap -> hand-review; font size was read
+  once and never reduced. Added a shrink step between move and tighten: step the font down
+  (largest that fits) toward `min_font_pt` (default 8pt, the inspector's legibility floor, never
+  below) and re-search for a clear spot; return `suggested_font_pt`. Only movable roles shrink.
+- **Portrait.** After the loop, if any block stayed unresolvable on a landscape canvas, return a
+  canvas-level `suggested_orientation: "portrait"` and swapped `suggested_canvas`. Honest about
+  its limits: the tool can't move the data marks, so it recommends the flip rather than verifying
+  it - a later build stage re-renders portrait and re-runs placement against the new geometry.
+
+### Notes
+
+- 156/156 MCP tests pass; new fixtures cover a window only a shrunk box fits, the floor never
+  being breached, an unresolvable landscape recommending portrait, and a clean chart recommending
+  no flip.
+
 ## 2026-08-31 - Enforce three style bans the canonical run exposed
 
 ### Context

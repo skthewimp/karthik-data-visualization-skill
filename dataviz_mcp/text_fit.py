@@ -81,6 +81,35 @@ def _search_clear(
     return None
 
 
+def _shrink_to_fit(
+    text: str,
+    font_pt: float,
+    dpi: float,
+    avail: float,
+    min_font_pt: float,
+    blockers: list[dict[str, Any]],
+    anchor: tuple[float, float],
+    width: float,
+    height: float,
+    margin: float,
+) -> Optional[tuple[float, tuple[float, float], str, float, float]]:
+    """Step the font down toward ``min_font_pt`` (largest first) until the block finds a clear
+    spot - at its anchor if the smaller box now fits, else at the nearest clear position. Returns
+    ``(font_pt, (x, y), wrapped, box_w, box_h)`` for the least shrink that fits, or ``None``."""
+    ax, ay = anchor
+    candidate = font_pt - 1.0
+    while candidate >= min_font_pt:
+        wrapped, box_w, box_h = _wrap(text, candidate, dpi, avail)
+        bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
+        if not _hits_any(bbox, blockers):
+            return candidate, (ax, ay), wrapped, box_w, box_h
+        found = _search_clear(bbox, blockers, width, height, margin, step=line_px(candidate, dpi))
+        if found is not None:
+            return candidate, found, wrapped, box_w, box_h
+        candidate -= 1.0
+    return None
+
+
 def recommend_text_placement(
     width_px: int,
     height_px: int,
@@ -89,6 +118,7 @@ def recommend_text_placement(
     obstacles: list[dict[str, Any]] | None = None,
     max_annotation_width_frac: float = 0.32,
     edge_margin_px: Optional[float] = None,
+    min_font_pt: float = 8.0,
 ) -> dict[str, Any]:
     """Wrap every text block to fit and move colliding annotations to the nearest clear spot.
 
@@ -101,14 +131,20 @@ def recommend_text_placement(
             px. Annotations are always de-collided against these, not only text-vs-text.
         max_annotation_width_frac: widest an annotation box may wrap to, as a fraction of width.
         edge_margin_px: canvas margin; defaults to 3% of width.
+        min_font_pt: legibility floor a movable block may shrink to when no clear spot is found
+            at full size; never smaller, so a shrink can never create an undersized-text defect.
 
     Returns per-block ``wrapped_text``, ``wrap_width_chars``, predicted ``bbox``, and, when it
-    moved or re-wrapped a block, ``suggested_anchor`` / ``suggested_wrap`` plus a warning.
+    moved, shrank, or re-wrapped a block, ``suggested_anchor`` / ``suggested_font_pt`` /
+    ``suggested_wrap`` plus a warning. When landscape text stays unresolvable, a canvas-level
+    ``suggested_orientation: "portrait"`` and swapped ``suggested_canvas`` recommend a flip for a
+    later build stage to apply and re-run against.
     """
     obstacles = list(obstacles or [])
     margin = float(edge_margin_px) if edge_margin_px is not None else round(0.03 * width_px)
     placed: list[dict[str, Any]] = []
     results: list[dict[str, Any]] = []
+    unresolved = 0
 
     ordered = sorted(blocks, key=lambda b: 0 if b.get("role") in FIXED_ROLES else 1)
     for block in ordered:
@@ -117,9 +153,11 @@ def recommend_text_placement(
         movable = role not in FIXED_ROLES
         anchor = block.get("anchor") or {"x": margin, "y": margin}
         ax, ay = float(anchor.get("x", margin)), float(anchor.get("y", margin))
+        orig_ax, orig_ay = ax, ay
         warnings: list[str] = []
         suggested_anchor: Optional[dict[str, int]] = None
         suggested_wrap: Optional[str] = None
+        suggested_font_pt: Optional[float] = None
 
         if movable:
             avail = min(max_annotation_width_frac * width_px, width_px - ax - margin)
@@ -152,12 +190,28 @@ def recommend_text_placement(
                         "overlapped a data mark or another label; moved to the nearest clear spot"
                     )
                 else:
-                    tight, tw, th = _wrap(block.get("text", ""), font_pt, dpi, avail * 0.6)
-                    wrapped, bbox["width"], bbox["height"] = tight, tw, th
-                    suggested_wrap = tight
-                    warnings.append(
-                        "no clear spot within range; tightened the wrap - review placement by hand"
+                    shrunk = _shrink_to_fit(
+                        block.get("text", ""), font_pt, dpi, avail, min_font_pt,
+                        blockers, (ax, ay), width_px, height_px, margin,
                     )
+                    if shrunk is not None:
+                        font_pt, (ax, ay), wrapped, bw, bh = shrunk
+                        bbox = {"x": ax, "y": ay, "width": bw, "height": bh}
+                        suggested_font_pt = round(font_pt, 1)
+                        if (round(ax), round(ay)) != (round(orig_ax), round(orig_ay)):
+                            suggested_anchor = {"x": round(ax), "y": round(ay)}
+                        warnings.append(
+                            f"no clear spot at full size; shrank to {font_pt:.0f}pt to fit"
+                        )
+                    else:
+                        tight, tw, th = _wrap(block.get("text", ""), font_pt, dpi, avail * 0.6)
+                        wrapped, bbox["width"], bbox["height"] = tight, tw, th
+                        suggested_wrap = tight
+                        unresolved += 1
+                        warnings.append(
+                            "no clear spot even at the minimum legible size; tightened the wrap "
+                            "- review placement by hand"
+                        )
         elif _hits_any(bbox, placed):
             warnings.append(
                 "overlaps another fixed text block; widen its band or shorten the text"
@@ -172,12 +226,25 @@ def recommend_text_placement(
                 "wrap_width_chars": max(1, int(avail / char_px(font_pt, dpi))),
                 "bbox": {k: round(v, 1) for k, v in bbox.items()},
                 "suggested_anchor": suggested_anchor,
+                "suggested_font_pt": suggested_font_pt,
                 "suggested_wrap": suggested_wrap,
                 "warnings": warnings,
             }
         )
 
+    # Portrait recommendation: if text stayed unresolvable on a landscape canvas even after
+    # moving and shrinking, more height than width would likely place it. Advisory only - the
+    # tool cannot move the data marks, so a later build stage flips the canvas, re-renders, and
+    # re-runs this against the new obstacle geometry.
+    suggested_orientation: Optional[str] = None
+    suggested_canvas: Optional[dict[str, int]] = None
+    if unresolved and width_px > height_px:
+        suggested_orientation = "portrait"
+        suggested_canvas = {"width_px": height_px, "height_px": width_px, "dpi": dpi}
+
     return {
         "canvas": {"width_px": width_px, "height_px": height_px, "dpi": dpi},
         "placements": results,
+        "suggested_orientation": suggested_orientation,
+        "suggested_canvas": suggested_canvas,
     }

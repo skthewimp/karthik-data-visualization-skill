@@ -54,6 +54,58 @@ def test_annotation_near_the_edge_is_nudged_inward():
     assert placement["bbox"]["y"] + placement["bbox"]["height"] <= 700
 
 
+def test_label_is_shrunk_when_no_clear_spot_exists_at_full_size():
+    # Obstacles leave only a small top-right window: a 14pt box cannot fit it, an 8pt one can.
+    walls = [
+        {"x": 0, "y": 0, "width": 240, "height": 200},
+        {"x": 240, "y": 40, "width": 60, "height": 160},
+    ]
+    result = recommend_text_placement(
+        300, 200, 144,
+        blocks=[{"id": "a", "role": "label", "text": "peak", "anchor": {"x": 250, "y": 15}, "font_pt": 14}],
+        obstacles=walls,
+        min_font_pt=8.0,
+    )
+    placement = _by_id(result, "a")
+    assert placement["suggested_font_pt"] is not None
+    assert 8.0 <= placement["suggested_font_pt"] < 14.0
+
+
+def test_shrink_never_goes_below_the_legibility_floor():
+    walls = [{"x": 0, "y": 0, "width": 300, "height": 200}]  # entire canvas blocked
+    result = recommend_text_placement(
+        300, 200, 144,
+        blocks=[{"id": "a", "role": "label", "text": "unavoidable overlap here", "anchor": {"x": 20, "y": 20}, "font_pt": 14}],
+        obstacles=walls,
+        min_font_pt=8.0,
+    )
+    placement = _by_id(result, "a")
+    # Nothing fits even at the floor: it falls through to a tightened wrap, never a sub-floor font.
+    if placement["suggested_font_pt"] is not None:
+        assert placement["suggested_font_pt"] >= 8.0
+
+
+def test_unresolvable_landscape_recommends_portrait_flip():
+    walls = [{"x": 0, "y": 0, "width": 400, "height": 200}]  # whole landscape canvas blocked
+    result = recommend_text_placement(
+        400, 200, 144,
+        blocks=[{"id": "a", "role": "label", "text": "does not fit anywhere at all", "anchor": {"x": 20, "y": 20}}],
+        obstacles=walls,
+    )
+    assert result["suggested_orientation"] == "portrait"
+    assert result["suggested_canvas"] == {"width_px": 200, "height_px": 400, "dpi": 144}
+
+
+def test_clean_placement_recommends_no_flip():
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{"id": "a", "role": "annotation", "text": "peak", "anchor": {"x": 400, "y": 300}}],
+        obstacles=[],
+    )
+    assert result["suggested_orientation"] is None
+    assert result["suggested_canvas"] is None
+
+
 def test_fixed_roles_are_wrapped_but_never_given_a_moved_anchor():
     result = recommend_text_placement(
         1200, 700, 144,
