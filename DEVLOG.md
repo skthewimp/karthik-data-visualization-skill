@@ -1618,3 +1618,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Installed all skills to local Claude + Codex copies. Done — changes committed, pushed, and live locally.
 
 <!-- claude-session:52b681c8-834c-442d-997a-ae38083f52b2:end -->
+
+<!-- claude-session:ceba26f0-757c-421b-bf42-0ecdd8cefe3f:start -->
+## 2026-08-31 22:09 IST | Claude session `ceba26f0-757`
+
+### User prompts
+> titles are getting wrapped randomly.why is thishappening? [Image #1]
+> check the text placement MCP. that should be guiding it. not deterministic wrapping. if it's fixed at 40, needs tobe undeon. is it inthis skills +MCP thing or downstream?
+
+### Work done
+- Title not random - wrap at fixed pixel width. "Bollywood's male-lead age mix shifted older" wider than wrap box → breaks after "shifted". Deterministic, keys on box width not word logic. Common causes in these rendere...
+- Checked. Not the MCP. Nothing to undo there. **text_fit MCP (`recommend_text_placement`) does NOT hardcode 40.** For a fixed block (title role, `movable=False`), `text_fit.py:182`: ``` avail = width_px - 2 * margin ``...
+
+<!-- claude-session:ceba26f0-757c-421b-bf42-0ecdd8cefe3f:end -->
