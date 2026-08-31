@@ -106,6 +106,30 @@ def test_clean_placement_recommends_no_flip():
     assert result["suggested_canvas"] is None
 
 
+def test_moved_label_gets_a_leader_line_back_to_its_point():
+    anchor = {"x": 400, "y": 300}
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{"id": "a", "role": "label", "text": "36%", "anchor": anchor}],
+        obstacles=[{"x": 390, "y": 290, "width": 120, "height": 60}],
+    )
+    placement = _by_id(result, "a")
+    assert placement["suggested_anchor"] is not None  # it moved
+    leader = placement["leader_line"]
+    assert leader is not None
+    assert leader["to"] == {"x": anchor["x"], "y": anchor["y"]}  # points back to the mark
+    assert any("leader line" in w for w in placement["warnings"])
+
+
+def test_unmoved_label_has_no_leader_line():
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{"id": "a", "role": "label", "text": "36%", "anchor": {"x": 400, "y": 300}}],
+        obstacles=[],
+    )
+    assert _by_id(result, "a")["leader_line"] is None
+
+
 def test_fixed_roles_are_wrapped_but_never_given_a_moved_anchor():
     result = recommend_text_placement(
         1200, 700, 144,

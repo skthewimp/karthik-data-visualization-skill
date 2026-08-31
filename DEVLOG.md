@@ -1,5 +1,37 @@
 # Devlog
 
+## 2026-08-31 - Leader lines for displaced labels, and the selector stops endorsing dot plots
+
+### Context
+
+Prompt (paraphrased): reviewed a fresh canonical-examples run. Mostly happy, geometry now fixed.
+Remaining gripes - some data labels sit away from their points; dot plots read poorly for
+categorical-vs-numerical comparisons (want bars, or a slopegraph); small multiples on a shared
+scale hide the shape of the small curves. Which skills/MCPs fix this?
+
+The scope tightened over a few turns: label fix goes in the text-placement MCP as a leader line
+(not the selector); the selector should drop dot-plot endorsements while keeping dumbbells and
+scatter; slopegraphs are not two-period-only and must label both ends and show every value; add
+the small-multiples shared-vs-free scale rule. No new invented guardrails.
+
+### What I changed
+
+- **Leader line.** De-collision already moves a colliding label to the nearest clear spot, but a
+  moved label then floats unpaired. `recommend_text_placement` now returns `leader_line`
+  (`{from,to}`, box perimeter to the original anchor) for any movable block that ends up off its
+  anchor, plus a warning. The builder draws the thin connector - ggrepel's segment.
+  `dataviz_mcp/text_fit.py`, `dataviz_mcp/server.py`.
+- **Selector.** Removed dot plots from the two-point, composition, and magnitude-channel
+  guidance; kept dumbbells, paired bars, and scatter. Generalised slopegraphs past two periods
+  (label both ends, show every value). Added the shared-vs-free scale decision to the
+  small-multiples bullet. `dataviz-selector` (both copies).
+
+### Notes
+
+Half the friction was mine - jumped toward running tests before the edit set was complete and
+before reading `AGENTS.md`. Publish (tests/sync/commit) is the final step, run once when the
+change is done, not mid-way.
+
 ## 2026-08-31 - Placement gains font-shrink and a portrait-flip recommendation
 
 ### Context

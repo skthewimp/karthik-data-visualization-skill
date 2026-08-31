@@ -55,6 +55,19 @@ def _hits_any(bbox: dict[str, float], blockers: list[dict[str, Any]]) -> bool:
     return any(boxes_overlap(bbox, other) for other in blockers)
 
 
+def _leader_line(bbox: dict[str, float], anchor: tuple[float, float]) -> dict[str, dict[str, float]]:
+    """A thin connector from the label box back to the point it names.
+
+    Starts at the point on the box perimeter nearest the anchor (clamp the anchor onto the
+    box), ends at the anchor. Drawn by the builder so a displaced label still pairs with its
+    mark - ggrepel's segment.
+    """
+    ax, ay = anchor
+    fx = min(max(ax, bbox["x"]), bbox["x"] + bbox["width"])
+    fy = min(max(ay, bbox["y"]), bbox["y"] + bbox["height"])
+    return {"from": {"x": round(fx, 1), "y": round(fy, 1)}, "to": {"x": round(ax, 1), "y": round(ay, 1)}}
+
+
 def _search_clear(
     bbox: dict[str, float],
     blockers: list[dict[str, Any]],
@@ -136,7 +149,10 @@ def recommend_text_placement(
 
     Returns per-block ``wrapped_text``, ``wrap_width_chars``, predicted ``bbox``, and, when it
     moved, shrank, or re-wrapped a block, ``suggested_anchor`` / ``suggested_font_pt`` /
-    ``suggested_wrap`` plus a warning. When landscape text stays unresolvable, a canvas-level
+    ``suggested_wrap`` plus a warning. A movable block that ends up off its original anchor also
+    gets a ``leader_line`` (``{from, to}`` in canvas px) for the builder to draw as a thin
+    connector, so a de-collided label still pairs with the mark it names. When landscape text
+    stays unresolvable, a canvas-level
     ``suggested_orientation: "portrait"`` and swapped ``suggested_canvas`` recommend a flip for a
     later build stage to apply and re-run against.
     """
@@ -217,6 +233,11 @@ def recommend_text_placement(
                 "overlaps another fixed text block; widen its band or shorten the text"
             )
 
+        leader_line: Optional[dict[str, dict[str, float]]] = None
+        if movable and (round(ax), round(ay)) != (round(orig_ax), round(orig_ay)):
+            leader_line = _leader_line(bbox, (orig_ax, orig_ay))
+            warnings.append("moved off its point; draw a thin leader line to keep the pairing")
+
         placed.append(dict(bbox))
         results.append(
             {
@@ -228,6 +249,7 @@ def recommend_text_placement(
                 "suggested_anchor": suggested_anchor,
                 "suggested_font_pt": suggested_font_pt,
                 "suggested_wrap": suggested_wrap,
+                "leader_line": leader_line,
                 "warnings": warnings,
             }
         )

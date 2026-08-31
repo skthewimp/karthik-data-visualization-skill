@@ -265,7 +265,9 @@ def create_server() -> Any:
         no clear spot at full size is shrunk toward ``min_font_pt`` (the legibility floor) before
         the wrap is tightened. Returns each block's wrapped text, predicted bbox, and a moved
         ``suggested_anchor`` / smaller ``suggested_font_pt`` / tighter ``suggested_wrap`` where
-        needed, plus a canvas-level ``suggested_orientation`` / ``suggested_canvas`` when a
+        needed. A movable block that ends up off its original anchor also gets a ``leader_line``
+        (``{from, to}`` in canvas px) to draw as a thin connector so the label still pairs with
+        its mark. Plus a canvas-level ``suggested_orientation`` / ``suggested_canvas`` when a
         landscape canvas stays too cramped and a portrait flip would help. It fits the
         annotations already chosen; it invents none.
         """

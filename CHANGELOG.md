@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Displaced labels get a leader line, and the selector drops dot plots
+
+A fresh canonical-example run left two things a weak model kept reproducing: a moved data label that floats between neighbouring series (so `36%` and `24%` no longer pair with their points), and dot plots chosen for categorical-vs-numerical comparisons that read worse than bars or a slopegraph.
+
+- **`recommend_text_placement` returns a `leader_line` for any label moved off its point.** De-collision already moves a colliding label to the nearest clear spot, but nothing told the builder to reconnect it. A movable block that ends up off its original anchor now returns `leader_line` (`{from,to}` in canvas px, box-perimeter to the anchor) plus a warning - ggrepel's segment - so a displaced label still pairs with its mark. `dataviz_mcp/text_fit.py`, `dataviz_mcp/server.py`; documented in `docs/mcp.md`.
+- **`dataviz-selector` no longer endorses dot plots, and slopegraphs carry more than two periods.** Removed dot plots from the two-point, composition, and magnitude-channel guidance (dumbbells, paired bars, and scatter stay - a dot as a categorical-vs-numerical mark does not). Slopegraphs are now stated to carry several ordered positions as one labelled line per category, labelling both end columns and showing every value. The small-multiples bullet gained the missing shared-vs-free decision: free per-panel scales when each panel's shape or turning points are the message and magnitudes differ enough that a shared scale flattens the small series, a shared scale only when comparing levels across panels is the claim. `dataviz-selector` (both copies).
+
 ### `recommend_text_placement` can shrink a cramped label and recommend a portrait flip
 
 Placement had two escalations when a movable block would not fit - move it, or tighten its wrap - and then gave up to hand-review. Two more, both build-phase (this tool runs after the words exist; nothing is asked of `recommend_layout`, whose dims other harnesses already own):
