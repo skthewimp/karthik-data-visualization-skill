@@ -1464,3 +1464,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Read cases + grepped coverage. Text-placement failures (case 02/03/04 clipping) already addressed. Five *other* recurring failures, ranked by how often they bit: ## 1. Over-labelling every value → collision (case 04,...
 
 <!-- claude-session:70c97a15-c607-4407-b97b-7ff870a3bd18:end -->
+
+<!-- claude-session:da94dd90-b18f-47b9-a821-6ea5b2f28474:start -->
+## 2026-08-31 12:58 IST | Claude session `da94dd90-b18`
+
+### User prompts
+> free_y is normal ggplot terminology: facet_wrap(..., scales = "free_y") But recommend_layout accepts only: fixed free The model naturally emitted free_y. The website validator rejected the entire resolver- input objec...
+> also look through @canonical-examples.pdf and see what the failuers there are . this s BEFORE we fixed the text placement etc (that run didn't run properly due to this free_y failure). figure out what we need to fxi b...
+
+### Work done
+- Let me check what these failure codes (R1, R2, D1, F2, I1, V1) mean in the eval framework:
+- Read all 5 cases + failure-code defs + confirmed the two code gaps. Diagnosis: ## The through-line Cases 03/04/05 are **faceted small-multiples** — exactly where the model emits `free_y`. The fallback reverted them to...
+- Touched files: `sync-skills.py`
+- sync-skills.py | 8 ++++++--
+
+<!-- claude-session:da94dd90-b18f-47b9-a821-6ea5b2f28474:end -->
