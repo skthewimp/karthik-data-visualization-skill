@@ -97,6 +97,40 @@ def _slot_floor(filled: bool) -> float:
     return FILLED_SLOT_PX if filled else POINT_SLOT_PX
 
 
+def _normalize_facet_scales(value: Any) -> tuple[str, bool, Optional[str]]:
+    """Read the ggplot ``scales=`` vocabulary tolerantly, not literally.
+
+    The upstream model naturally emits the geom's own words - ``free``, ``free_x``,
+    ``free_y``, ``free_both`` - not this tool's binary. Sizing only cares about one thing:
+    is the *y* axis free, so each panel grows its own left axis band? That is true for
+    ``free`` / ``free_y`` / ``free_both`` and false for ``fixed`` / ``free_x``. We return
+    the canonical value alongside so the caller keeps the axis-specific choice for the
+    renderer; only a genuinely unrecognised value degrades - to ``fixed`` with a warning,
+    never a silent drop.
+
+    Returns ``(canonical, y_free, warning)``.
+    """
+    token = str(value).strip().lower().replace("-", "_") if value is not None else ""
+    canonical = {
+        "": "fixed",
+        "fixed": "fixed",
+        "none": "fixed",
+        "free": "free",
+        "free_both": "free",
+        "both": "free",
+        "free_x": "free_x",
+        "free_y": "free_y",
+        "x": "free_x",
+        "y": "free_y",
+    }.get(token)
+    if canonical is None:
+        return "fixed", False, (
+            f"facet_scales={value!r} is not a recognised scales value "
+            "(fixed / free / free_x / free_y): treating as fixed."
+        )
+    return canonical, canonical in ("free", "free_y"), None
+
+
 def recommend_layout(
     x_slots: int = 0,
     y_slots: int = 0,
@@ -126,7 +160,9 @@ def recommend_layout(
         filled_marks: True when each slot renders a width-occupying mark (bar/tile/column),
             False for points / line vertices. The only geom property sizing needs.
         n_panels: facet count; a grid multiplies both axes.
-        facet_scales: "fixed" or "free" - free reserves a per-panel axis band.
+        facet_scales: the ggplot ``scales=`` value - fixed / free / free_x / free_y
+            (free_both accepted). A free *y* axis reserves a per-panel left axis band;
+            the canonical value is echoed back as ``facet_scales`` for the renderer.
         n_direct_labels: direct labels across the chart; drives a crowding warning only.
         title_lines / subtitle_lines / footer_lines: text bands to reserve vertical room for.
         x_labels: whether the x-axis carries text tick labels (drives the rotate check).
@@ -143,6 +179,10 @@ def recommend_layout(
     max_h = float(profile["max_height_px"])
     warnings: list[str] = []
 
+    facet_scales_canonical, y_scales_free, scales_warning = _normalize_facet_scales(facet_scales)
+    if scales_warning:
+        warnings.append(scales_warning)
+
     bands = (
         _band_px(title_lines, "title", dpi)
         + _band_px(subtitle_lines, "subtitle", dpi)
@@ -156,7 +196,7 @@ def recommend_layout(
 
     # Width comes from the x-slot demand (or a pleasant base); floored, then it fixes the aspect.
     panel_plot_w = max(MIN_PANEL_W if n_panels > 1 else base_w * 0.6, x_slots * slot_px)
-    left_band = axis_band + (FREE_AXIS_BAND if (n_panels > 1 and facet_scales == "free") else 0.0)
+    left_band = axis_band + (FREE_AXIS_BAND if (n_panels > 1 and y_scales_free) else 0.0)
     width = max(base_w, ncol * (panel_plot_w + left_band) + (ncol - 1) * PANEL_GUTTER)
 
     # Plot height: y-slot demand when the axis is discrete, else a pleasant aspect off the final
@@ -218,6 +258,7 @@ def recommend_layout(
         "dpi": int(dpi),
         "facet_ncol": ncol,
         "facet_nrow": nrow,
+        "facet_scales": facet_scales_canonical,
         "rotate_x_labels": rotate_x_labels,
         "reserved_band_px": round(bands, 1),
         "warnings": warnings,

@@ -206,8 +206,10 @@ def create_server() -> Any:
         ``discrete_slots x per_slot_floor`` px; a continuous axis (0 slots) takes a pleasant
         aspect. ``y_slots`` grows height directly (labels stack); ``x_slots`` grows width and,
         when labels still won't fit, triggers rotation. Faceting multiplies via a grid. Set
-        ``filled_marks`` for bar/tile/column slots. Overflow past the profile ceiling is
-        warned, never squashed. Call at select, before build; feed the dims into the renderer
+        ``filled_marks`` for bar/tile/column slots. ``facet_scales`` takes the ggplot
+        ``scales=`` value directly (fixed / free / free_x / free_y); a free y-axis reserves
+        a per-panel band and the canonical value is echoed back. Overflow past the profile
+        ceiling is warned, never squashed. Call at select, before build; feed the dims into the renderer
         and into ``recommend_text_placement``. It sizes the box, never picks the chart.
         """
         return recommend_layout_core(

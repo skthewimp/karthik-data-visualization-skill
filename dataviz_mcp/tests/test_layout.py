@@ -43,6 +43,33 @@ def test_free_scales_widen_the_faceted_canvas():
     assert free["width_px"] >= fixed["width_px"]
 
 
+def test_free_y_is_read_like_free_not_silently_dropped():
+    # free_y frees the y-axis, so it must reserve the same per-panel band as free -
+    # and strictly more width than a fixed grid (x_slots push width past the base).
+    free = recommend_layout(n_panels=6, x_slots=15, filled_marks=True, facet_scales="free")
+    free_y = recommend_layout(n_panels=6, x_slots=15, filled_marks=True, facet_scales="free_y")
+    fixed = recommend_layout(n_panels=6, x_slots=15, filled_marks=True, facet_scales="fixed")
+    assert free_y["width_px"] == free["width_px"] > fixed["width_px"]
+    assert free_y["facet_scales"] == "free_y"  # axis-specific value preserved
+    assert free_y["warnings"] == []
+
+
+def test_free_x_leaves_the_y_axis_band_alone():
+    # free_x frees only the x-axis; no per-panel left band is reserved.
+    free_x = recommend_layout(n_panels=6, x_slots=15, filled_marks=True, facet_scales="free_x")
+    fixed = recommend_layout(n_panels=6, x_slots=15, filled_marks=True, facet_scales="fixed")
+    assert free_x["width_px"] == fixed["width_px"]
+    assert free_x["facet_scales"] == "free_x"
+
+
+def test_unrecognised_scales_degrade_to_fixed_with_a_warning():
+    result = recommend_layout(n_panels=6, x_slots=15, filled_marks=True, facet_scales="loose")
+    fixed = recommend_layout(n_panels=6, x_slots=15, filled_marks=True, facet_scales="fixed")
+    assert result["facet_scales"] == "fixed"
+    assert result["width_px"] == fixed["width_px"]
+    assert any("scales" in w for w in result["warnings"])
+
+
 def test_long_x_labels_trigger_rotation():
     assert recommend_layout(x_slots=15, x_labels=True, longest_x_label_chars=20)["rotate_x_labels"]
     assert not recommend_layout(x_slots=15, x_labels=True, longest_x_label_chars=2)["rotate_x_labels"]
