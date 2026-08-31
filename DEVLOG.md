@@ -1452,3 +1452,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Checked - it's already covered, generally, and better than a facet check would be. The idea gate's **EXPRESSION** question (`dataviz-idea-critique`): > "Is the selected form the right vehicle for *this* claim, or will...
 
 <!-- claude-session:35a3234c-c0e3-438b-aaaa-33a7f0c97712:end -->
+
+<!-- claude-session:70c97a15-c607-4407-b97b-7ff870a3bd18:start -->
+## 2026-08-31 11:50 IST | Claude session `70c97a15-c60`
+
+### User prompts
+> look at @canonical-examples.pdf . that will show you where the current harness works well or not. the text placement stuff has gone in (and yet to gbe integrated there, this is before that). what else should we change...
+
+### Work done
+- Skills: `dataviz-critique`, `dataviz-selector`, `dataviz-precision`, `chart-annotations`, `dataviz-execution` — reviewing harness output against skill guidance. Read 5 cases. Text-placement issues (case 02 clipped cal...
+- Read cases + grepped coverage. Text-placement failures (case 02/03/04 clipping) already addressed. Five *other* recurring failures, ranked by how often they bit: ## 1. Over-labelling every value → collision (case 04,...
+
+<!-- claude-session:70c97a15-c607-4407-b97b-7ff870a3bd18:end -->
