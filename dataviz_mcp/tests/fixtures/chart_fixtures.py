@@ -146,6 +146,21 @@ def incomplete_direct_labels():
     }
 
 
+def all_marks_labelled():
+    fig, ax, x, y = _base()
+    for index in range(len(x)):
+        label = ax.text(x[index], y[index] + 0.3, f"{y[index]:.1f}", fontsize=8)
+        label.set_gid(f"label:point-{index}")
+    return fig, {
+        "fixture": "all_marks_labelled",
+        "inspection_contract": {
+            "direct_labels": [
+                {"axes_id": None, "role": "label", "expected_count": len(x)}
+            ]
+        },
+    }
+
+
 COFFEE_YEARS = np.arange(2016, 2026)
 COFFEE_PRICES = np.array([1.45, 1.38, 1.24, 1.12, 1.28, 2.31, 2.27, 1.89, 2.72, 3.05])
 

@@ -116,6 +116,7 @@ Inspection reports the original five codes plus hierarchy, mark, delivery, contr
 | `DELIVERY_TEXT_TOO_SMALL` | Text is below the configured delivery-scale size | Medium |
 | `LOW_TEXT_CONTRAST` | Text contrast misses the practical delivery target | Medium |
 | `DIRECT_LABELS_INCOMPLETE` | A declared repeated-panel/direct-label count is incomplete | High |
+| `REDUNDANT_VALUE_AXIS` | Every mark is directly labelled yet the numeric value axis still renders ticks - duplicate ink | Low |
 
 `passes_geometry_checks` is true only when metadata is present, supported checks are complete, and no high- or medium-severity defect remains.
 

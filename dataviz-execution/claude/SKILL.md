@@ -48,6 +48,11 @@ elements, `separation_needed_px` on colliding labels, and `panel_heights_px` /
 nudging by eye; for colliding annotations, feed the marks back through `recommend_text_placement`
 instead of hand-placing them.
 
+A `REDUNDANT_VALUE_AXIS` flag (low severity, so it never blocks) is the eraser test made
+mechanical: when every mark carries its own value label, the numeric value axis ticks and
+gridlines are duplicate ink - drop them unless the axis still earns its place with a zero
+baseline or a scale reference. Category (non-numeric) ticks are never flagged.
+
 ## Flow check before craft
 
 Before judging a **redesign** candidate, confirm the build carries a recorded cold form

@@ -170,6 +170,27 @@ def _series_hits_bbox(series: dict[str, Any], bbox: dict[str, Any], padding: flo
     )
 
 
+def _looks_numeric(text: str) -> bool:
+    """True when a tick label reads as a number (so it duplicates a direct value label).
+
+    Category tick labels (names) are never redundant; only the numeric value axis is. Strips
+    the usual money/percent/thousands decoration before testing.
+    """
+    stripped = text.strip()
+    if not stripped:
+        return False
+    for token in ("$", "€", "£", "%", ",", " ", "+", "−"):
+        stripped = stripped.replace(token, "")
+    stripped = stripped.lstrip("-")
+    if stripped.endswith(("k", "K", "m", "M", "b", "B")):
+        stripped = stripped[:-1]
+    try:
+        float(stripped)
+        return True
+    except ValueError:
+        return False
+
+
 def _defect(
     code: str,
     severity: str,
@@ -242,6 +263,7 @@ def inspect_rendered_chart(
     low_contrast_elements: list[dict[str, Any]] = []
     undersized_text: list[dict[str, Any]] = []
     direct_label_coverage: list[dict[str, Any]] = []
+    redundant_value_axis: list[dict[str, Any]] = []
     minimum_text_margin_px: float | None = None
     plot_utilization_ratio: float | None = None
     occupied_utilization_ratio: float | None = None
@@ -524,6 +546,33 @@ def inspect_rendered_chart(
                         f"{axes_id or 'shared chart'} has {observed} of {expected} required {role}s",
                     )
                 )
+    if metadata is not None:
+        # Redundant value axis: when every mark carries its own value label, the numeric axis
+        # ticks duplicate that ink. Category ticks (non-numeric) still name marks, so only
+        # numeric ticks flag - and it is a suggestion (low), not a blocking defect.
+        labels_complete = any(
+            item.get("complete") and item.get("expected_count", 0) > 0
+            for item in direct_label_coverage
+        )
+        if labels_complete:
+            numeric_ticks = [
+                element
+                for element in metadata.get("elements", [])
+                if element.get("role") == "tick_label" and _looks_numeric(element.get("text", ""))
+            ]
+            if numeric_ticks:
+                ids = [element["id"] for element in numeric_ticks]
+                redundant_value_axis.append({"element_ids": ids, "tick_count": len(ids)})
+                defects.append(
+                    _defect(
+                        "REDUNDANT_VALUE_AXIS",
+                        "low",
+                        ids,
+                        "Every mark is directly labelled; the numeric value axis duplicates the "
+                        "labels - consider dropping its ticks and gridlines (eraser test).",
+                    )
+                )
+
     coverage = metadata.get("coverage", {}) if metadata else {}
     unsupported_marks = coverage.get("unsupported_non_line_mark_count", 0)
     coverage_limitations = coverage.get("limitations", [])
@@ -602,6 +651,7 @@ def inspect_rendered_chart(
         "undersized_text": undersized_text,
         "low_contrast_elements": low_contrast_elements,
         "direct_label_coverage": direct_label_coverage,
+        "redundant_value_axis": redundant_value_axis,
         "minimum_text_margin_px": minimum_text_margin_px,
         "plot_utilization_ratio": plot_utilization_ratio,
         "occupied_utilization_ratio": occupied_utilization_ratio,

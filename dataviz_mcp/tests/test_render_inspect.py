@@ -248,3 +248,21 @@ def test_table_content_rejects_non_r_source(tmp_path: Path) -> None:
             str(tmp_path / "bad-table"),
             content="table",
         )
+
+
+def _codes(report: dict) -> set:
+    return {defect["code"] for defect in report["defects"]}
+
+
+def test_redundant_value_axis_flagged_when_every_mark_is_labelled(tmp_path: Path) -> None:
+    _, report = render(tmp_path, "all_marks_labelled")
+    assert "REDUNDANT_VALUE_AXIS" in _codes(report)
+    assert report["redundant_value_axis"]
+    # A suggestion, not a blocker: it must not fail the geometry gate.
+    assert all(item["severity"] != "high" for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
+
+
+def test_no_redundant_axis_without_direct_labels(tmp_path: Path) -> None:
+    _, report = render(tmp_path, "clean_chart")
+    assert "REDUNDANT_VALUE_AXIS" not in _codes(report)
+    assert report["redundant_value_axis"] == []

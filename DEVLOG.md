@@ -39,6 +39,14 @@ obstacles), and `inspection.py` widened to schema v3 with per-edge `overflow_px`
 resolution points documented in `dataviz-construct` and the fix vectors in `dataviz-execution`
 (both `{claude,codex}` copies). 20 new tests; full suite 131 green.
 
+Follow-up the same day: a `REDUNDANT_VALUE_AXIS` inspection check (backward only, since it needs
+the render metadata). When direct-label coverage is complete yet numeric axis ticks still
+render, they are duplicate ink - the eraser test made mechanical. The `tick_label` role does not
+carry x/y, so the clean discriminator is the tick *text*: numeric ticks are the value axis
+(flag), category ticks name marks (keep). Low severity so it never blocks - a zero baseline can
+still earn the axis. 2 tests + a fixture; suite 133 green. Facet-scale-for-insight parked for a
+later pass.
+
 ## 2026-08-28 - Coalesce creation and repair into one construct process
 
 ### Context
