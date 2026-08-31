@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Two more eraser-test flags, and the layout tool stops recommending slanted ticks
+
+A canonical-example run showed a weak model reproduce three style bans the tools never checked: rotated x-axis labels, an external legend, and colour that only restated the facet. Two were unenforced, one was actively mis-advised.
+
+- **`recommend_layout` never recommends rotation.** The style bans slanted ticks, but the layout tool set `rotate_x_labels = True` whenever labels overflowed their slot - telling a weak model to do the banned thing. It now keeps `rotate_x_labels` at `False` and, on overflow, warns to keep labels horizontal and abbreviate, thin to every-Nth tick, or widen the slot - never rotate. `dataviz_mcp/layout.py`.
+- **New `EXTERNAL_LEGEND` and `REDUNDANT_COLOUR` inspection checks (both low, non-blocking).** The eraser test made mechanical for the other two round-trips. Colour is duplicate ink when it only restates a grouping the plot already encodes another way - one series per facet, one fill per named bar, or series that already carry direct labels; a legend is a round-trip whenever the series are already named on the plot by direct labels (however many share the panel), facet titles, or category ticks. Both stay silent when colour or a legend genuinely carries what no other channel does: several series crossing one panel with no direct labels, or a focal-plus-grey highlight (fewer fills than bars). Line series now carry their `colour` in the render metadata so redundancy is judged by value. `dataviz_mcp/rendering.py`, `dataviz_mcp/inspection.py`; documented in `dataviz-execution` (both copies) and `docs/mcp.md`.
+
 ### Three canonical-example failures moved out of the model and into the tools
 
 The canonical-example harness (five source charts run end to end) left three failure modes that a weak model kept reproducing because the judgment lived in prose, not in a deterministic check. Each is now a tool that computes the answer, with a one-line pointer from the skill - the same content-vs-mechanism split the geometry and precision tools already use.

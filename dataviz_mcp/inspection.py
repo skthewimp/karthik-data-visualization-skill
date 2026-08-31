@@ -290,6 +290,8 @@ def inspect_rendered_chart(
     undersized_text: list[dict[str, Any]] = []
     direct_label_coverage: list[dict[str, Any]] = []
     redundant_value_axis: list[dict[str, Any]] = []
+    external_legend: list[dict[str, Any]] = []
+    redundant_colour: list[dict[str, Any]] = []
     minimum_text_margin_px: float | None = None
     plot_utilization_ratio: float | None = None
     occupied_utilization_ratio: float | None = None
@@ -600,6 +602,94 @@ def inspect_rendered_chart(
                 )
 
     if metadata is not None:
+        # Redundant colour and external legend: colour or a legend that only restates a
+        # grouping the plot already encodes another way - a facet title, a category-axis tick,
+        # or a direct label. Both are fine when they carry what no other channel does (several
+        # series sharing one panel with no direct labels); they are duplicate ink once every
+        # series or bar is already named on the plot. Direct labelling of a series always makes
+        # its legend redundant, however many series share the panel. Both are eraser-test
+        # suggestions (low), never blocking - the precise trigger, not the severity, keeps
+        # legitimate charts (many crossing lines with no labels; a focal-plus-grey highlight)
+        # silent.
+        all_elements = metadata.get("elements", [])
+        all_series = [s for s in metadata.get("series", []) if s.get("role") == "series"]
+        bar_marks = [m for m in metadata.get("marks", []) if m.get("fill")]
+        legends_meta = [lg for lg in metadata.get("legends", []) if lg.get("bbox")]
+
+        axes_with_direct_label = {
+            el.get("axes_id")
+            for el in all_elements
+            if el.get("role") == "label" and el.get("axes_id")
+        }
+        series_axes = [s.get("axes_id") for s in all_series if s.get("axes_id")]
+        distinct_series_axes = set(series_axes)
+        one_series_per_facet = (
+            len(distinct_series_axes) > 1
+            and len(all_series) > 1
+            and all(series_axes.count(axes_id) == 1 for axes_id in distinct_series_axes)
+        )
+        series_colours = {s.get("colour") for s in all_series if s.get("colour")}
+        series_axes_labelled = bool(series_axes) and distinct_series_axes <= axes_with_direct_label
+
+        # Bars: colour restates the category axis when every bar carries its own fill and the
+        # axis already ticks each one by name. A focal-plus-grey highlight (fewer fills than
+        # bars) is meaningful emphasis and stays silent. Tick labels are not tagged per-axes, so
+        # count the category (non-numeric) ticks across the chart.
+        category_tick_count = sum(
+            el.get("role") == "tick_label" and not _looks_numeric(el.get("text", ""))
+            for el in all_elements
+        )
+        bar_colour_redundant_axes: list[str] = []
+        for axes_id in {m.get("axes_id") for m in bar_marks if m.get("axes_id")}:
+            axes_bars = [m for m in bar_marks if m.get("axes_id") == axes_id]
+            fills = {m.get("fill") for m in axes_bars}
+            if (
+                len(fills) >= 2
+                and len(fills) == len(axes_bars)
+                and category_tick_count >= len(fills)
+            ):
+                bar_colour_redundant_axes.append(axes_id)
+
+        colour_redundant = (
+            (one_series_per_facet and len(series_colours) >= 2)
+            or bool(bar_colour_redundant_axes)
+            or (len(all_series) > 1 and len(series_colours) >= 2 and series_axes_labelled)
+        )
+        if colour_redundant:
+            ids = [s["id"] for s in all_series] + [
+                m["id"] for m in bar_marks if m.get("axes_id") in bar_colour_redundant_axes
+            ]
+            redundant_colour.append({"element_ids": ids})
+            defects.append(
+                _defect(
+                    "REDUNDANT_COLOUR",
+                    "low",
+                    ids,
+                    "Colour only restates a grouping the facet, category axis, or direct labels "
+                    "already show - drop it (or reserve it for one focal series) (eraser test).",
+                )
+            )
+
+        legend_redundant = (
+            one_series_per_facet
+            or bool(bar_colour_redundant_axes)
+            or series_axes_labelled
+        )
+        if legends_meta and legend_redundant:
+            ids = [lg["id"] for lg in legends_meta]
+            external_legend.append({"element_ids": ids})
+            defects.append(
+                _defect(
+                    "EXTERNAL_LEGEND",
+                    "low",
+                    ids,
+                    "The series are already named on the plot (direct labels, facet titles, or "
+                    "category ticks); the external legend is a round-trip - label them in place "
+                    "and drop it (eraser test).",
+                )
+            )
+
+    if metadata is not None:
         underfill = _underfill_defect(occupied_utilization_ratio, bool(undersized_text))
         if underfill is not None:
             defects.append(underfill)
@@ -683,6 +773,8 @@ def inspect_rendered_chart(
         "low_contrast_elements": low_contrast_elements,
         "direct_label_coverage": direct_label_coverage,
         "redundant_value_axis": redundant_value_axis,
+        "external_legend": external_legend,
+        "redundant_colour": redundant_colour,
         "minimum_text_margin_px": minimum_text_margin_px,
         "plot_utilization_ratio": plot_utilization_ratio,
         "occupied_utilization_ratio": occupied_utilization_ratio,

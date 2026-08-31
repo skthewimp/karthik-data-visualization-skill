@@ -266,3 +266,38 @@ def test_no_redundant_axis_without_direct_labels(tmp_path: Path) -> None:
     _, report = render(tmp_path, "clean_chart")
     assert "REDUNDANT_VALUE_AXIS" not in _codes(report)
     assert report["redundant_value_axis"] == []
+
+
+def test_one_series_per_facet_flags_colour_and_legend(tmp_path: Path) -> None:
+    _, report = render(tmp_path, "coloured_facets_with_legend")
+    codes = _codes(report)
+    assert "REDUNDANT_COLOUR" in codes
+    assert "EXTERNAL_LEGEND" in codes
+    assert report["redundant_colour"] and report["external_legend"]
+    # Eraser-test suggestions, never blocking.
+    assert all(
+        item["severity"] == "low"
+        for item in report["defects"]
+        if item["code"] in {"REDUNDANT_COLOUR", "EXTERNAL_LEGEND"}
+    )
+
+
+def test_rainbow_bars_flag_colour_and_legend(tmp_path: Path) -> None:
+    _, report = render(tmp_path, "rainbow_bars_with_legend")
+    codes = _codes(report)
+    assert "REDUNDANT_COLOUR" in codes
+    assert "EXTERNAL_LEGEND" in codes
+
+
+def test_focal_highlight_keeps_colour_and_stays_silent(tmp_path: Path) -> None:
+    _, report = render(tmp_path, "focal_bar_highlight")
+    codes = _codes(report)
+    assert "REDUNDANT_COLOUR" not in codes
+    assert "EXTERNAL_LEGEND" not in codes
+
+
+def test_clean_chart_has_no_colour_or_legend_flags(tmp_path: Path) -> None:
+    _, report = render(tmp_path, "clean_chart")
+    codes = _codes(report)
+    assert "REDUNDANT_COLOUR" not in codes
+    assert "EXTERNAL_LEGEND" not in codes

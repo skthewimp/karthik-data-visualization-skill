@@ -53,6 +53,16 @@ mechanical: when every mark carries its own value label, the numeric value axis 
 gridlines are duplicate ink - drop them unless the axis still earns its place with a zero
 baseline or a scale reference. Category (non-numeric) ticks are never flagged.
 
+An `EXTERNAL_LEGEND` flag and a `REDUNDANT_COLOUR` flag (both low, non-blocking) are the same
+eraser test for the other two round-trips. Colour is duplicate ink when it only restates a
+grouping the plot already encodes another way - one series per facet, one fill per named bar, or
+series that already carry direct labels; drop it, or reserve it for a single focal series. A
+legend is a round-trip whenever the series are already named on the plot - by direct labels
+(however many lines share the panel), facet titles, or category ticks - so label them in place
+and remove it. Both stay silent when colour or a legend genuinely carries what no other channel
+does: several series crossing one panel with no direct labels, or a focal-plus-grey highlight
+(fewer fills than bars). The trigger, not the severity, is what keeps those honest.
+
 An `UNDERFILLED_CANVAS` flag (from the measured `occupied_utilization_ratio`) is the opposite
 failure: the canvas is mostly empty. On its own it is a low suggestion - a single big number is
 allowed to sit in space - but paired with undersized text it turns medium, the empty-and-tiny

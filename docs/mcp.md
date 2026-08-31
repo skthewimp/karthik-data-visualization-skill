@@ -117,6 +117,8 @@ Inspection reports the original five codes plus hierarchy, mark, delivery, contr
 | `LOW_TEXT_CONTRAST` | Text contrast misses the practical delivery target | Medium |
 | `DIRECT_LABELS_INCOMPLETE` | A declared repeated-panel/direct-label count is incomplete | High |
 | `REDUNDANT_VALUE_AXIS` | Every mark is directly labelled yet the numeric value axis still renders ticks - duplicate ink | Low |
+| `REDUNDANT_COLOUR` | Colour only restates a grouping the facet, category axis, or direct labels already show (one series per facet, one fill per named bar, or labelled series) - focal-plus-grey stays silent | Low |
+| `EXTERNAL_LEGEND` | A legend round-trips series the plot already names via direct labels, facet titles, or category ticks | Low |
 | `UNDERFILLED_CANVAS` | The canvas carries too little ink for its size (`occupied_utilization_ratio` below threshold) - mostly empty layout | Low, or Medium when text is also undersized |
 
 `passes_geometry_checks` is true only when metadata is present, supported checks are complete, and no high- or medium-severity defect remains.

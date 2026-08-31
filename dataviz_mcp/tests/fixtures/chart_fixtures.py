@@ -161,6 +161,35 @@ def all_marks_labelled():
     }
 
 
+def coloured_facets_with_legend():
+    fig, axes = plt.subplots(1, 2, figsize=(8, 4.5), dpi=100)
+    x = np.arange(10)
+    (north,) = axes[0].plot(x, x, color="#245b78", linewidth=2, label="North")
+    north.set_gid("series:north")
+    (south,) = axes[1].plot(x, x[::-1], color="#c8102e", linewidth=2, label="South")
+    south.set_gid("series:south")
+    axes[0].set_title("North")
+    axes[1].set_title("South")
+    axes[0].legend()
+    return fig, {"fixture": "coloured_facets_with_legend"}
+
+
+def rainbow_bars_with_legend():
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    categories = ["A", "B", "C"]
+    bars = ax.bar(categories, [2, 4, 3], color=["#245b78", "#c8102e", "#e0a458"])
+    ax.legend(bars, categories)
+    return fig, {"fixture": "rainbow_bars_with_legend"}
+
+
+def focal_bar_highlight():
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    categories = ["A", "B", "C", "D"]
+    grey = "#c9ccce"
+    ax.bar(categories, [2, 3, 5, 1], color=[grey, grey, "#245b78", grey])
+    return fig, {"fixture": "focal_bar_highlight"}
+
+
 COFFEE_YEARS = np.arange(2016, 2026)
 COFFEE_PRICES = np.array([1.45, 1.38, 1.24, 1.12, 1.28, 2.31, 2.27, 1.89, 2.72, 3.05])
 

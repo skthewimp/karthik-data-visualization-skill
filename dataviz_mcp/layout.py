@@ -223,16 +223,17 @@ def recommend_layout(
         )
         height = max_h
 
-    # Horizontal x labels crowd: rotate rather than clip when they exceed their slot.
+    # Horizontal x labels crowd: the style bans slanted ticks, so never recommend rotation -
+    # keep them horizontal and thin, abbreviate, or widen instead. rotate_x_labels stays False.
     rotate_x_labels = False
     if x_labels and longest_x_label_chars > 0 and x_slots > 0:
         slot = (width / ncol - left_band) / max(1, x_slots)
         label_w = longest_x_label_chars * char_px(FONT_PT["axis"], dpi)
-        rotate_x_labels = label_w > slot
-        if rotate_x_labels:
+        if label_w > slot:
             warnings.append(
                 f"x tick labels (~{longest_x_label_chars} chars) exceed their {slot:.0f}px "
-                "slot: rotate or abbreviate them."
+                "slot: keep them horizontal and abbreviate, thin to every-Nth tick, or widen "
+                "the slot - do not rotate."
             )
 
     labels_per_panel = n_direct_labels / max(1, n_panels)

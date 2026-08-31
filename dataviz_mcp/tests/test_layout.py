@@ -70,9 +70,13 @@ def test_unrecognised_scales_degrade_to_fixed_with_a_warning():
     assert any("scales" in w for w in result["warnings"])
 
 
-def test_long_x_labels_trigger_rotation():
-    assert recommend_layout(x_slots=15, x_labels=True, longest_x_label_chars=20)["rotate_x_labels"]
-    assert not recommend_layout(x_slots=15, x_labels=True, longest_x_label_chars=2)["rotate_x_labels"]
+def test_crowded_x_labels_never_recommend_rotation():
+    crowded = recommend_layout(x_slots=15, x_labels=True, longest_x_label_chars=20)
+    assert crowded["rotate_x_labels"] is False
+    assert any("do not rotate" in w for w in crowded["warnings"])
+    roomy = recommend_layout(x_slots=15, x_labels=True, longest_x_label_chars=2)
+    assert roomy["rotate_x_labels"] is False
+    assert not any("do not rotate" in w for w in roomy["warnings"])
 
 
 def test_title_bands_reserve_vertical_space():

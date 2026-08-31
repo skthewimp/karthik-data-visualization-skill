@@ -1,5 +1,39 @@
 # Devlog
 
+## 2026-08-31 - Enforce three style bans the canonical run exposed
+
+### Context
+
+Prompt (paraphrased): the canonical-examples gallery still shows model output with tiny
+bordered facets, misplaced labels, wasted grey bands, slanted axis labels, an external legend,
+and needless colour on a single-series-per-facet chart - do any skills need fixing? The ugly
+charts are the graded subject (a weak model's `exact published PNG`), not the skills rendering;
+the harness already flags the geometry ones. But three style bans lived only in prose: slanted
+ticks, external legends, and redundant colour.
+
+### What I changed
+
+- **A - slanted labels.** `recommend_layout` was *recommending* the banned thing: it set
+  `rotate_x_labels = True` on overflow. Now it stays `False` and the overflow warning points at
+  horizontal remedies (abbreviate / thin to every-Nth / widen). Test rewritten to lock in "never
+  rotate".
+- **B - external legend + redundant colour.** Two new low, non-blocking inspection flags built
+  on the same principle, generalised past the immediate case: a legend is redundant when the
+  series are already named on the plot (direct labels - however many lines - facet titles, or
+  category ticks); colour is redundant when it is 1:1 with a channel already encoding the
+  grouping (facet, category axis, direct labels). The precise trigger, not the severity, keeps
+  legit charts silent - many crossing unlabelled lines keep their legend, a focal-plus-grey bar
+  highlight keeps its colour (fewer fills than bars). Line series now export their `colour` so
+  the check compares by value.
+
+### Notes
+
+- A separate finding (text placement not applied to Case 5) traced to the website repo
+  (`public_site/runner.py` drops role `label` before calling the placement MCP; the R-emit step
+  ignores `suggested_anchor`). The placement MCP is correct - `label` is already a movable role -
+  so nothing changed here. Left for the website repo.
+- 152/152 MCP tests pass, including new fixtures for both flags and their silent cases.
+
 ## 2026-08-31 - Forward geometry tools: size and place before the render clips
 
 ### Context

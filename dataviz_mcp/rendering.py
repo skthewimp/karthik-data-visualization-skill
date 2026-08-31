@@ -229,6 +229,7 @@ def _collect_layout(figure: Figure, artifact: dict[str, Any]) -> dict[str, Any]:
                     "id": series_id,
                     "role": role,
                     "axes_id": axes_ids[axes],
+                    "colour": _colour(line.get_color()),
                     "bbox": {
                         "x": min(xs),
                         "y": min(ys),
