@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Three canonical-example failures moved out of the model and into the tools
+
+The canonical-example harness (five source charts run end to end) left three failure modes that a weak model kept reproducing because the judgment lived in prose, not in a deterministic check. Each is now a tool that computes the answer, with a one-line pointer from the skill - the same content-vs-mechanism split the geometry and precision tools already use.
+
+- **New `recommend_labels` - selects which points to label, so "keep every value" stops meaning "print every value".** A request to keep every visible value is a request to *preserve* every value in the data (reconstructable, in a table or note), not to stamp a label on every point - which collides into a repeated-value pile-up (the seven-series small-multiples case). Given each series' ordered `values`, it claims endpoints and extremes first, then fills a per-series budget with the largest step-to-step changes, and returns the indices to ink with a reason each. It selects points, not placement; feed the anchors to `recommend_text_placement`. `chart-annotations` (both copies) points at it from Step 5. `dataviz_mcp/labels.py`.
+- **`recommend_precision` will not let a nonzero value display as `0`.** When a value far smaller than the column spread would round away at the uniform place - a small unit cost beside large counts, a lone focal annotation (the mobile-lookup case showed `$0.019` as `$0.0`) - the tool refines the place just enough to keep the smallest nonzero value one significant digit, never coarser than the spread place and never finer than the source digits carry, and returns `zero_collapse_prevented: true`. A displayed `0` now always means the value is zero. `dataviz-precision` (both copies) documents the guard. `dataviz_mcp/precision.py`.
+- **New `UNDERFILLED_CANVAS` inspection check - the opposite of squashed.** Keyed to the already-measured `occupied_utilization_ratio`: below threshold the canvas is mostly empty (the five sparse dot panels that should have been the requested table). A low suggestion on its own - a single big number is allowed to sit in space - it escalates to medium when text is also undersized, the empty-and-tiny layout whose fix is a denser view or the requested table. `dataviz-execution` (both copies) documents it. `dataviz_mcp/inspection.py`.
+
 ### Two forward geometry tools + fix vectors, so a weak model sizes and places before it clips
 
 The staged pipeline caught clipped titles, squashed facets, and colliding annotations only *after* render, in `inspect_rendered_chart` - leaving a weak model to burn its revision budget guessing new dimensions. Geometry is mechanism, not build judgment; these move it out of the model, the same split colour and precision already got. No hard gates - the harness owns iteration.

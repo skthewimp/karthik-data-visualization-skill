@@ -53,6 +53,11 @@ mechanical: when every mark carries its own value label, the numeric value axis 
 gridlines are duplicate ink - drop them unless the axis still earns its place with a zero
 baseline or a scale reference. Category (non-numeric) ticks are never flagged.
 
+An `UNDERFILLED_CANVAS` flag (from the measured `occupied_utilization_ratio`) is the opposite
+failure: the canvas is mostly empty. On its own it is a low suggestion - a single big number is
+allowed to sit in space - but paired with undersized text it turns medium, the empty-and-tiny
+layout that should be a denser view or the table the request asked for.
+
 ## Flow check before craft
 
 Before judging a **redesign** candidate, confirm the build carries a recorded cold form

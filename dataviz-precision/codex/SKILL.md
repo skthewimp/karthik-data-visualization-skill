@@ -32,6 +32,7 @@ If you know the smallest difference that actually matters (`d`), pass `smallest_
 - **Round every value in a column to the same place.** Uniform digit-length down a column lets length itself read as magnitude, and lets the decimal points align.
 - **Do not show precision the data cannot support**, and never manufacture it to fill space. Precision is a data decision, not a layout one.
 - **Never round toward rounder-sounding numbers** - round to the place the spread dictates, not to whatever looks tidy.
+- **A displayed `0` must mean the value is zero.** When a value far smaller than the spread would round away at the column place (a small unit cost beside large counts, a lone focal annotation), `recommend_precision` refines the place just enough to keep that value one significant digit and returns `zero_collapse_prevented: true`. It never lets a nonzero value print as `0`.
 
 ## Precedence: the spread rule is the default; exact digits are the exception
 

@@ -83,6 +83,8 @@ Maintain a clear primary focus, but size the annotation set to the density, medi
 
 Orienting labels are a separate class and do not count against the cap: series names, period labels, axis units, a legend replacement. They must still be collision-checked against the claim annotations - a period label sitting on top of the primary annotation is the same defect as two annotations overlapping.
 
+**"Keep every value" preserves data, not ink.** A request to keep every visible value means every value must survive in the chart's data - reconstructable, in a table or note - not that every point gets a printed label. Stamping a label on all of them collides into a repeated-value pile-up; that is the failure, not the fix. On a multi-series or small-multiples chart, call `recommend_labels(series, max_labels_per_series)` for the points that earn ink - endpoints, extremes, and the largest changes - and leave the rest in the data.
+
 ## Step 6: writing the label
 
 **Every number and every comparative word in a label must be computed, never typed.**

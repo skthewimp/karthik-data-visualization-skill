@@ -191,6 +191,32 @@ def _looks_numeric(text: str) -> bool:
         return False
 
 
+def _underfill_defect(
+    occupied_ratio: float | None,
+    has_undersized_text: bool,
+    threshold: float = 0.30,
+) -> dict[str, Any] | None:
+    """Flag a canvas that carries too little ink for its size - the "empty dot panels" failure.
+
+    Keyed to ``occupied_utilization_ratio`` (already measured): the fraction of the canvas any
+    element, mark, series, or legend actually covers. Below ``threshold`` the layout is mostly
+    empty. It escalates to ``medium`` when text is also undersized - empty *and* tiny is the
+    mobile-table redesign case, where the answer is a denser layout or the requested table; on
+    its own it is a ``low`` suggestion, since a single big number can legitimately be sparse.
+    """
+    if occupied_ratio is None or occupied_ratio >= threshold:
+        return None
+    severity = "medium" if has_undersized_text else "low"
+    return _defect(
+        "UNDERFILLED_CANVAS",
+        severity,
+        [],
+        f"Only {occupied_ratio:.0%} of the canvas carries ink; the layout is mostly empty - "
+        "size marks and text to the space, use a denser layout, or the requested table.",
+        {"occupied_utilization_ratio": occupied_ratio, "threshold": threshold},
+    )
+
+
 def _defect(
     code: str,
     severity: str,
@@ -572,6 +598,11 @@ def inspect_rendered_chart(
                         "labels - consider dropping its ticks and gridlines (eraser test).",
                     )
                 )
+
+    if metadata is not None:
+        underfill = _underfill_defect(occupied_utilization_ratio, bool(undersized_text))
+        if underfill is not None:
+            defects.append(underfill)
 
     coverage = metadata.get("coverage", {}) if metadata else {}
     unsupported_marks = coverage.get("unsupported_non_line_mark_count", 0)

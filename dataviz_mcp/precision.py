@@ -35,6 +35,17 @@ def _exact_decimals(numbers: Sequence[float], cap: int = 10) -> int:
     return decimals
 
 
+def _parses_zero(shown: str) -> bool:
+    """True when a formatted value reads as plain zero after stripping money/percent/separators."""
+    stripped = shown
+    for token in ("$", "€", "£", "%", ",", " ", "+", "−"):
+        stripped = stripped.replace(token, "")
+    try:
+        return float(stripped) == 0.0
+    except ValueError:
+        return False
+
+
 def recommend_precision(
     values: Sequence[float],
     role: str = "axis",
@@ -117,13 +128,38 @@ def recommend_precision(
 
     preview = [{"value": value, "shown": _format_value(value, place)} for value in numbers]
     decimals = max(0, -place)
-    place_word = _place_word(place)
 
+    # Zero-collapse guard: a nonzero value must never display as plain 0. This bites when a
+    # value far smaller than the spread is shown (a small unit cost beside large counts, or a
+    # single focal annotation); the coarse spread place would round it to "0". Refine the place
+    # just enough to keep the smallest nonzero value one significant digit - never coarser than
+    # the spread place, never finer than the source digits actually carry. Honest, not silent.
+    zero_collapse_prevented = False
+    nonzero = [value for value in numbers if value != 0]
+    if nonzero and any(
+        item["value"] != 0 and _parses_zero(item["shown"]) for item in preview
+    ):
+        smallest = min(abs(value) for value in nonzero)
+        refined = max(min(place, _floor_log10(smallest)), -_exact_decimals(numbers))
+        if refined < place:
+            place = refined
+            step = 10.0 ** place
+            sig_digits = max(1, (_floor_log10(largest) - place + 1) if largest > 0 else 1)
+            decimals = max(0, -place)
+            preview = [{"value": value, "shown": _format_value(value, place)} for value in numbers]
+            zero_collapse_prevented = True
+
+    place_word = _place_word(place)
     rationale = (
         f"{role}: {basis} -> round every value to the {place_word} "
         f"({sig_digits} significant digit(s), {decimals} decimal place(s)). "
         "Uniform place across the column; no precision the spread cannot support."
     )
+    if zero_collapse_prevented:
+        rationale += (
+            " Refined finer than the spread place: a nonzero value would otherwise display as 0, "
+            "which is a fabricated zero - the smallest nonzero value now keeps a significant digit."
+        )
 
     return {
         "role": role,
@@ -135,6 +171,7 @@ def recommend_precision(
         "smallest_resolved_difference": step,
         "preview": preview,
         "exact_override": False,
+        "zero_collapse_prevented": zero_collapse_prevented,
         "rationale": rationale,
     }
 

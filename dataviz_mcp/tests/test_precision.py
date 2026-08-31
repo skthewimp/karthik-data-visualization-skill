@@ -1,6 +1,25 @@
 from dataviz_mcp.precision import recommend_precision
 
 
+def test_nonzero_value_never_collapses_to_zero():
+    # A small unit cost beside large counts: the spread place would round it to "0".
+    result = recommend_precision([1653, 0.019], role="label")
+    shown = {p["value"]: p["shown"] for p in result["preview"]}
+    assert float(shown[0.019].replace(",", "")) != 0.0
+    assert result["zero_collapse_prevented"] is True
+
+
+def test_no_zero_collapse_flag_when_all_values_resolve():
+    result = recommend_precision([12483, 9210, 15040])
+    assert result["zero_collapse_prevented"] is False
+
+
+def test_zero_collapse_guard_never_exceeds_source_digits():
+    result = recommend_precision([1000, 0.5], role="label")
+    # 0.5 needs one decimal; the guard must not invent digits beyond the source.
+    assert result["decimals"] <= 1
+
+
 def test_precision_derived_from_range_not_individual_values():
     result = recommend_precision([12483, 9210, 15040])
     # range ~5830 -> two sig figs of the range -> round to hundreds.

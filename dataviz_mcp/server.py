@@ -4,6 +4,7 @@ from typing import Any
 
 from .comparison import compare_chart_artifacts as compare_core
 from .inspection import inspect_rendered_chart as inspect_core
+from .labels import recommend_labels as recommend_labels_core
 from .layout import recommend_layout as recommend_layout_core
 from .text_fit import recommend_text_placement as recommend_text_placement_core
 from .palette import (
@@ -226,6 +227,22 @@ def create_server() -> Any:
             longest_x_label_chars,
             delivery_profile,
         )
+
+    @server.tool()
+    async def recommend_labels(
+        series: list[dict[str, Any]],
+        max_labels_per_series: int = 4,
+    ) -> dict[str, Any]:
+        """Recommend which points on each series to label directly, within a budget.
+
+        "Keep every visible value" means preserve every value in the data (table/note), not
+        print every value as ink - stamping all of them collides and is unreadable. Pass one
+        entry per series ``{id, values:[...]}`` in order; it claims endpoints and extremes
+        first, then fills the budget with the largest step-to-step changes. Returns per-series
+        ``label_indices`` and ``reasons``. It selects points, not placement - feed the chosen
+        anchors to ``recommend_text_placement`` to wrap and de-collide them.
+        """
+        return recommend_labels_core(series, max_labels_per_series)
 
     @server.tool()
     async def recommend_text_placement(

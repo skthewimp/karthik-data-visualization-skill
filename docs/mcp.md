@@ -117,6 +117,7 @@ Inspection reports the original five codes plus hierarchy, mark, delivery, contr
 | `LOW_TEXT_CONTRAST` | Text contrast misses the practical delivery target | Medium |
 | `DIRECT_LABELS_INCOMPLETE` | A declared repeated-panel/direct-label count is incomplete | High |
 | `REDUNDANT_VALUE_AXIS` | Every mark is directly labelled yet the numeric value axis still renders ticks - duplicate ink | Low |
+| `UNDERFILLED_CANVAS` | The canvas carries too little ink for its size (`occupied_utilization_ratio` below threshold) - mostly empty layout | Low, or Medium when text is also undersized |
 
 `passes_geometry_checks` is true only when metadata is present, supported checks are complete, and no high- or medium-severity defect remains.
 
@@ -128,6 +129,7 @@ Two deterministic tools size the canvas and place the text *before* the render, 
 
 - `recommend_layout` returns `width_px x height_px x dpi`, a facet grid, x-label rotation, and reserved title/subtitle/footer bands from the chart's shape expressed as counts (`x_slots` / `y_slots`, `filled_marks`, `n_panels`, line counts). Sizing is one rule - each axis needs `slots x per_slot_floor` px, a continuous axis takes a pleasant aspect, faceting multiplies via an aspect-fill grid, `y_slots` grows height while `x_slots` grows width and then triggers rotation. Demand past the delivery ceiling is warned, never squashed. No regime enum, no count thresholds.
 - `recommend_text_placement` wraps every text block to fit its room and moves any annotation that would collide with another label, the canvas edge, or a data mark (passed as `obstacles`) to the nearest clear spot. Fixed roles (title/subtitle/footer/caption) are wrapped but never moved; annotations return a moved `suggested_anchor` or a tighter `suggested_wrap`.
+- `recommend_labels` selects *which* points on each series to label directly, within a per-series budget: endpoints and extremes first, then the largest step-to-step changes. "Keep every value" is a request to preserve every value in the data (table/note), not to print every value as ink - stamping all of them collides. It selects points, not placement; feed the chosen anchors to `recommend_text_placement`. `dataviz_mcp/labels.py`.
 
 Current collision coverage is deliberately honest:
 
@@ -170,6 +172,7 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 | `dataviz_mcp/inspection.py` | Exact-artifact geometry checks, defect report, and fix vectors |
 | `dataviz_mcp/layout.py` | Forward canvas sizing (`recommend_layout`) and shared geometry primitives |
 | `dataviz_mcp/text_fit.py` | Forward text wrapping and annotation de-collision (`recommend_text_placement`) |
+| `dataviz_mcp/labels.py` | Direct-label point selection within a budget (`recommend_labels`) |
 | `dataviz_mcp/comparison.py` | Hash-validated revision comparison |
 | `dataviz_mcp/server.py` | Stdio MCP surface (render, inspect, compare, and the recommend_* resolution tools) |
 | `dataviz_mcp/review_views.py` | Full, delivery, panel, hierarchy, and dense-placement views |
