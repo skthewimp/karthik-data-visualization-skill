@@ -1438,3 +1438,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Question answer, no plan needed. Decision lives in `dataviz-selector/{claude,codex}/SKILL.md` under **## Table or chart?** (lines 31-38), plus a supporting note in `references/selection-prior.md`. **How it decides now...
 
 <!-- claude-session:e9c69206-33a2-443d-9353-6383344e176e:end -->
+
+<!-- claude-session:35a3234c-c0e3-438b-aaaa-33a7f0c97712:start -->
+## 2026-08-31 09:29 IST | Claude session `35a3234c-c0e`
+
+### User prompts
+> We recently discussed in a in a notebook or something or another chat about how we need to come up with some an arc or GG plot guidelines to create good data visualizations based on the data visualization skills that...
+> no wait. we got past some of those issues. here are the diagnoses from the latest run: | Case | Job | Pipeline result | Source-grounded review | Time | Est. token cost | Main finding | |---|---|---|---|---:|---:|---|...
+> so how can we solve this at the skill / tool level? forget number of iterations / hard gates etc. that's for the harness to figure out.
+
+### Work done
+- Agreed - a `FLAT_PANELS` check or a facet-scale tool is exactly the trap again. "Facet scale wrong" isn't its own thing; it's one instance of a general question that has nothing to do with facets: **Does the chosen en...
+- Checked - it's already covered, generally, and better than a facet check would be. The idea gate's **EXPRESSION** question (`dataviz-idea-critique`): > "Is the selected form the right vehicle for *this* claim, or will...
+
+<!-- claude-session:35a3234c-c0e3-438b-aaaa-33a7f0c97712:end -->
