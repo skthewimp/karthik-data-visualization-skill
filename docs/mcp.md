@@ -119,6 +119,15 @@ Inspection reports the original five codes plus hierarchy, mark, delivery, contr
 
 `passes_geometry_checks` is true only when metadata is present, supported checks are complete, and no high- or medium-severity defect remains.
 
+Every geometry defect now also carries its fix vector, so a revision is a number rather than a guess: clipped elements report per-edge `overflow_px` and `grow_margin_px`; colliding labels report `separation_needed_px`; `panel_heights_px` and `min_panel_height_px` expose squashed facets; and a `geometry_summary` block ranks the worst offenders and computes `suggested_dims` from the same `layout.py` math the forward sizing tool uses. Forward and backward geometry share one vocabulary.
+
+## Forward geometry (size and place before render)
+
+Two deterministic tools size the canvas and place the text *before* the render, so a weak model does not clip, squash, or collide in the first pass and then spend its revision budget guessing dimensions. Both are mechanism only - they never choose the chart or write the annotation.
+
+- `recommend_layout` returns `width_px x height_px x dpi`, a facet grid, x-label rotation, and reserved title/subtitle/footer bands from the chart's shape expressed as counts (`x_slots` / `y_slots`, `filled_marks`, `n_panels`, line counts). Sizing is one rule - each axis needs `slots x per_slot_floor` px, a continuous axis takes a pleasant aspect, faceting multiplies via an aspect-fill grid, `y_slots` grows height while `x_slots` grows width and then triggers rotation. Demand past the delivery ceiling is warned, never squashed. No regime enum, no count thresholds.
+- `recommend_text_placement` wraps every text block to fit its room and moves any annotation that would collide with another label, the canvas edge, or a data mark (passed as `obstacles`) to the nearest clear spot. Fixed roles (title/subtitle/footer/caption) are wrapped but never moved; annotations return a moved `suggested_anchor` or a tighter `suggested_wrap`.
+
 Current collision coverage is deliberately honest:
 
 - Matplotlib text, lines, bars, patches, points, and common collections are supported;
@@ -157,9 +166,11 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 | Path | Responsibility |
 |---|---|
 | `dataviz_mcp/rendering.py` | Trusted builder execution and metadata-first render bundle |
-| `dataviz_mcp/inspection.py` | Exact-artifact geometry checks and defect report |
+| `dataviz_mcp/inspection.py` | Exact-artifact geometry checks, defect report, and fix vectors |
+| `dataviz_mcp/layout.py` | Forward canvas sizing (`recommend_layout`) and shared geometry primitives |
+| `dataviz_mcp/text_fit.py` | Forward text wrapping and annotation de-collision (`recommend_text_placement`) |
 | `dataviz_mcp/comparison.py` | Hash-validated revision comparison |
-| `dataviz_mcp/server.py` | Five-tool stdio MCP surface |
+| `dataviz_mcp/server.py` | Stdio MCP surface (render, inspect, compare, and the recommend_* resolution tools) |
 | `dataviz_mcp/review_views.py` | Full, delivery, panel, hierarchy, and dense-placement views |
 | `dataviz-fix/*/scripts/case_manager.py` | Versioned case state and inspection/evaluation binding |
 | `tester/local_runner.py` | Staged repair cycle (diagnose/select/build), inspection, and blind review |

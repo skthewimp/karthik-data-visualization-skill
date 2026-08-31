@@ -98,6 +98,20 @@ stay as text. The weak-model lever here is not relocation, it's shape:
   worked example over three abstract clauses.
 - Files: the three skills' `{claude,codex}` copies, kept identical.
 
+### W5. Forward geometry tools - size and place before render (landed 2026-08-31)
+
+A class of weak-model failure the earlier workstreams did not name: the model sized the canvas
+and placed the text by eye, so the first render clipped titles, squashed facets, and collided
+annotations - and the inspector caught it only afterwards, too late for a small revision budget.
+The mechanical half moved into two forward tools, siblings to `recommend_precision` /
+`recommend_colours`: `recommend_layout` sizes a clip-safe `width x height x dpi` + facet grid
+from the chart's shape as counts (one rule, no regimes, no thresholds), and
+`recommend_text_placement` wraps and de-collides the text - against other labels, the edge, and
+the data marks - once the canvas is fixed. `inspect_rendered_chart` gained the matching backward
+fix vectors (`overflow_px`, `separation_needed_px`, `suggested_dims`) from the same math. This is
+the trap held correctly: geometry is mechanism, so it became code; the model still owns the form,
+the message, and which annotation to show.
+
 ## Sequencing
 
 W1 and W2 first - they convert the two worst failure classes from "hope the model complies"

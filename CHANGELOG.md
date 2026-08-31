@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Two forward geometry tools + fix vectors, so a weak model sizes and places before it clips
+
+The staged pipeline caught clipped titles, squashed facets, and colliding annotations only *after* render, in `inspect_rendered_chart` - leaving a weak model to burn its revision budget guessing new dimensions. Geometry is mechanism, not build judgment; these move it out of the model, the same split colour and precision already got. No hard gates - the harness owns iteration.
+
+- **New `recommend_layout` - sizes a clip-safe canvas before build.** Returns `width_px x height_px x dpi`, a facet grid, x-label rotation, and reserved title/subtitle/footer bands from the chart's *shape as counts*, not a chart-type table: `x_slots` / `y_slots` (discrete positions per axis, 0 = continuous), `filled_marks` (bar/tile vs point/line), `n_panels`, line counts. One rule - each axis needs `slots x per_slot_floor` px, a continuous axis takes a pleasant aspect, faceting multiplies via an aspect-fill grid, `y_slots` grows height (labels stack) while `x_slots` grows width toward a density floor and then triggers rotation (a property of horizontal text, not a regime). Demand past the delivery ceiling is *warned*, never squashed. No regime enum, no count thresholds. It sizes the box; it never picks the chart. `dataviz_mcp/layout.py`.
+- **New `recommend_text_placement` - wraps and de-collides text on the fixed canvas.** After the title/subtitle/caption/annotations are written, it wraps each block to fit its room and moves any annotation that collides with another label, the canvas edge, **or a data mark** to the nearest clear spot (ring search); marks are passed as `obstacles`, so annotation-vs-data is de-collided every time, not just text-vs-text. Fixed roles are wrapped, never moved. Returns wrapped text, predicted bbox, and a moved `suggested_anchor` / tighter `suggested_wrap`. It fits the annotations already chosen; it invents none. `dataviz_mcp/text_fit.py`.
+- **`inspect_rendered_chart` now returns fix vectors, not just defects (schema v3).** Each clip carries per-edge `overflow_px` and `grow_margin_px`; each label collision carries `separation_needed_px`; new `panel_heights_px` / `min_panel_height_px` expose squash; and a `geometry_summary` block ranks the worst offenders and computes `suggested_dims` from the same `layout.py` math - so a revision reads "grow the top by 14px" instead of an eyeballed nudge. Forward and backward geometry now share one vocabulary.
+- **`dataviz-construct` and `dataviz-execution` document the two resolution points and the fix vectors** (both `{claude,codex}` copies). Layout resolved at `select` and applied at `build`; text placement at `build` after the words exist; the inspector's `suggested_dims` applied at `execution`.
+
 ### Harden the construct tail for a weak-model harness
 
 Follow-ups to the construct coalescing, aimed at running the pipeline on cheaper / open-weight models that cannot be trusted to hold large contexts or remember an artifact from two stages back. Each closes a route by which the machine contract relied on a smart agent's memory.

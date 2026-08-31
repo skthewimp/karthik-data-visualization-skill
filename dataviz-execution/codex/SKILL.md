@@ -40,6 +40,14 @@ leave the measured numbers empty, and report geometry as **unknown** - never as 
 from the tool or be marked unknown. Never describe an incomplete check as complete or fabricate
 metadata.
 
+When the inspector flags a geometry defect it also hands you the fix vector, so a revision is a
+number, not a guess: `geometry_summary.suggested_dims` (a grown `width_px`/`height_px` from the
+same math `recommend_layout` uses), per-edge `overflow_px` / `grow_margin_px` on clipped
+elements, `separation_needed_px` on colliding labels, and `panel_heights_px` /
+`min_panel_height_px` for squashed facets. Apply the suggested dims and re-render rather than
+nudging by eye; for colliding annotations, feed the marks back through `recommend_text_placement`
+instead of hand-placing them.
+
 ## Flow check before craft
 
 Before judging a **redesign** candidate, confirm the build carries a recorded cold form

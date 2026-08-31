@@ -27,6 +27,8 @@ def test_stdio_server_exposes_renderer_probe_and_backend_neutral_workflow() -> N
         "validate_palette",
         "extract_palette_from_image",
         "recommend_precision",
+        "recommend_layout",
+        "recommend_text_placement",
     }
 
 
@@ -115,4 +117,6 @@ asyncio.run(main())
         "validate_palette",
         "extract_palette_from_image",
         "recommend_precision",
+        "recommend_layout",
+        "recommend_text_placement",
     }

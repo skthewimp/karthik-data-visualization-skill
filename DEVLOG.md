@@ -1,5 +1,44 @@
 # Devlog
 
+## 2026-08-31 - Forward geometry tools: size and place before the render clips
+
+### Context
+
+Prompt (paraphrased): a weak-model run still produces charts that clip the title/footer,
+squash many facets into a shallow canvas, and collide annotations - and with a small revision
+budget the model can't guess its way back. The fix belongs at the skill/tool level, not in
+harness gates. Two ideas emerged: a tool that sizes the canvas from the data/shape before the
+render, and - once dimensions, title, subtitle, caption and annotation anchors are known - a
+tool that recommends efficient text wrapping and moves annotations that would collide,
+including against the data.
+
+### What I found
+
+`inspect_rendered_chart` already *detects* every one of these (clip, collision, utilization),
+but only after render - so the model burned iterations guessing new dims. The gap was a
+*forward* tool (the missing sibling to `recommend_precision` / `recommend_colours`) and,
+inside inspection, a fix vector telling the model *how much* to change, not just what's wrong.
+
+Mining ~416 ggplot files corrected the sizing model twice: it is regime-*driven* input but not
+regime-*named* output (an early `_classify` with `n_x >= 40` thresholds was the enumerated-case
+anti-pattern and got cut), and Karthik never hand-sets margins - so the tool returns
+`width x height x dpi` + facet grid, not a margins dict. `coord_flip` (80 uses) showed the real
+principle: orientation decides which axis absorbs a count, so sizing is one rule -
+`slots x per_slot_floor` per axis, `y_slots` grows height (labels stack), `x_slots` grows width
+then rotates (labels crowd) - with two documented legibility floors (filled vs point marks),
+no regimes, no thresholds.
+
+### What I built
+
+`dataviz_mcp/layout.py` (`recommend_layout` + shared geometry primitives + a backward
+`suggest_dims_for_overflow`), `dataviz_mcp/text_fit.py` (`recommend_text_placement`: greedy wrap
++ ring-search de-collision against text, edges, and data marks - marks always passed as
+obstacles), and `inspection.py` widened to schema v3 with per-edge `overflow_px` /
+`grow_margin_px`, `separation_needed_px`, `panel_heights_px`, and a `geometry_summary` whose
+`suggested_dims` reuses the layout math. Both tools registered in `server.py`; the two
+resolution points documented in `dataviz-construct` and the fix vectors in `dataviz-execution`
+(both `{claude,codex}` copies). 20 new tests; full suite 131 green.
+
 ## 2026-08-28 - Coalesce creation and repair into one construct process
 
 ### Context

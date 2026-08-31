@@ -79,6 +79,31 @@ build call:
   `karthik-table-style` aligns to. `dataviz-execution` still re-checks colour contrast and
   CVD/grayscale on the render as the post-build safety net.
 
+## Canvas size and text placement are resolved by tools, not eyeballed
+
+Geometry is mechanism, not build judgment - the same split as colour and precision. A weak model
+that guesses canvas dimensions clips titles, squashes facets, and collides annotations; two
+deterministic tools remove the guess.
+
+- **Canvas (at `select`, applied at `build`).** `recommend_layout` sizes a clip-safe
+  `width_px x height_px x dpi`, a facet grid, and the x-label rotation from the chart's *shape*
+  expressed as counts - `x_slots` / `y_slots` (discrete positions per axis, 0 = continuous),
+  `filled_marks` (bar/tile vs point/line), `n_panels`, and the title/subtitle/footer line
+  counts. It is one rule over counts, not a table of chart types: each axis needs
+  `slots x per_slot_floor` px, a continuous axis takes a pleasant aspect, faceting multiplies via
+  a grid, and any demand past the delivery ceiling is *warned*, never squashed. Feed its dims
+  straight into `render_and_inspect_chart`. It sizes the box; it never picks the chart.
+- **Text (at `build`, after the words exist).** Once the title, subtitle, caption, and
+  annotations are written and their anchors chosen, `recommend_text_placement` wraps every block
+  to fit its room and moves any annotation that would collide with another label, the canvas
+  edge, **or a data mark** to the nearest clear spot - pass the marks' bounding boxes as
+  `obstacles` so annotation-vs-data is de-collided every time, not just text-vs-text. It returns
+  the wrap and the moved anchor; the model still owns which annotation to show and what it says.
+- **Backward check (at `execution`).** `inspect_rendered_chart` now reports the fix vectors for
+  what it finds - per-edge `overflow_px` / `grow_margin_px`, `separation_needed_px`,
+  `panel_heights_px`, and a `geometry_summary` whose `suggested_dims` is computed by the same
+  layout math - so a weak model reads "grow the top by 14px" instead of judging by eye.
+
 ## The plan carries across the gate
 
 The tail is not a straight pipe. `insight` names the headline claim and the candidate

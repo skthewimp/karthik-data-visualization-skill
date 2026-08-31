@@ -4,6 +4,8 @@ from typing import Any
 
 from .comparison import compare_chart_artifacts as compare_core
 from .inspection import inspect_rendered_chart as inspect_core
+from .layout import recommend_layout as recommend_layout_core
+from .text_fit import recommend_text_placement as recommend_text_placement_core
 from .palette import (
     extract_palette_from_image as extract_palette_core,
     recommend_colours as recommend_colours_core,
@@ -181,6 +183,76 @@ def create_server() -> Any:
         """
         return recommend_precision_core(
             values, role, target_steps, smallest_meaningful_difference, exact
+        )
+
+    @server.tool()
+    async def recommend_layout(
+        x_slots: int = 0,
+        y_slots: int = 0,
+        filled_marks: bool = False,
+        n_panels: int = 1,
+        facet_scales: str = "fixed",
+        n_direct_labels: int = 0,
+        title_lines: int = 1,
+        subtitle_lines: int = 0,
+        footer_lines: int = 0,
+        x_labels: bool = False,
+        longest_x_label_chars: int = 0,
+        delivery_profile: str = "chat",
+    ) -> dict[str, Any]:
+        """Size a clip-safe canvas (width/height/dpi), facet grid, and x-label rotation.
+
+        Sizing is one rule over counts, not a table of chart types: each axis needs
+        ``discrete_slots x per_slot_floor`` px; a continuous axis (0 slots) takes a pleasant
+        aspect. ``y_slots`` grows height directly (labels stack); ``x_slots`` grows width and,
+        when labels still won't fit, triggers rotation. Faceting multiplies via a grid. Set
+        ``filled_marks`` for bar/tile/column slots. Overflow past the profile ceiling is
+        warned, never squashed. Call at select, before build; feed the dims into the renderer
+        and into ``recommend_text_placement``. It sizes the box, never picks the chart.
+        """
+        return recommend_layout_core(
+            x_slots,
+            y_slots,
+            filled_marks,
+            n_panels,
+            facet_scales,
+            n_direct_labels,
+            title_lines,
+            subtitle_lines,
+            footer_lines,
+            x_labels,
+            longest_x_label_chars,
+            delivery_profile,
+        )
+
+    @server.tool()
+    async def recommend_text_placement(
+        width_px: int,
+        height_px: int,
+        dpi: int,
+        blocks: list[dict[str, Any]],
+        obstacles: list[dict[str, Any]] | None = None,
+        max_annotation_width_frac: float = 0.32,
+        edge_margin_px: float | None = None,
+    ) -> dict[str, Any]:
+        """Wrap a chart's text to fit and move colliding annotations to the nearest clear spot.
+
+        Call inside build after the title/subtitle/caption/annotations are written and the
+        canvas is fixed. Each ``blocks`` item is ``{id, text, role, font_pt?, anchor:{x,y}}``
+        in canvas px; title/subtitle/footer/caption are wrapped but never moved, annotations
+        are movable. ``obstacles`` are the data marks' bounding boxes in canvas px - annotations
+        are always de-collided against them, not only against other text. Returns each block's
+        wrapped text, predicted bbox, and a moved ``suggested_anchor`` / tighter
+        ``suggested_wrap`` where needed. It fits the annotations already chosen; it invents none.
+        """
+        return recommend_text_placement_core(
+            width_px,
+            height_px,
+            dpi,
+            blocks,
+            obstacles,
+            max_annotation_width_frac,
+            edge_margin_px,
         )
 
     return server

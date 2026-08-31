@@ -6,9 +6,10 @@ from typing import Any, Iterable
 
 from .artifacts import raster_info, read_json, sha256_file, write_json
 from .color_math import _contrast_ratio
+from .layout import MIN_PANEL_H, suggest_dims_for_overflow
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def _edges(bbox: dict[str, Any]) -> tuple[float, float, float, float]:
@@ -70,6 +71,27 @@ def _contains(container: dict[str, Any], inner: dict[str, Any], tolerance: float
         and i_right <= c_right + tolerance
         and i_bottom <= c_bottom + tolerance
     )
+
+
+def _overflow(container: dict[str, Any], inner: dict[str, Any]) -> dict[str, float]:
+    """Per-edge overflow (px) of ``inner`` past ``container`` - the fix vector for a clip."""
+    c_left, c_top, c_right, c_bottom = _edges(container)
+    i_left, i_top, i_right, i_bottom = _edges(inner)
+    return {
+        "left": round(max(0.0, c_left - i_left), 2),
+        "top": round(max(0.0, c_top - i_top), 2),
+        "right": round(max(0.0, i_right - c_right), 2),
+        "bottom": round(max(0.0, i_bottom - c_bottom), 2),
+    }
+
+
+def _separation_needed(first: dict[str, Any], second: dict[str, Any]) -> float:
+    """Smallest px move that clears an overlap between two boxes (least-penetration axis)."""
+    a_left, a_top, a_right, a_bottom = _edges(first)
+    b_left, b_top, b_right, b_bottom = _edges(second)
+    overlap_w = min(a_right, b_right) - max(a_left, b_left)
+    overlap_h = min(a_bottom, b_bottom) - max(a_top, b_top)
+    return round(max(0.0, min(overlap_w, overlap_h)), 2)
 
 
 def _margin(container: dict[str, Any], inner: dict[str, Any]) -> float:
@@ -223,10 +245,14 @@ def inspect_rendered_chart(
     minimum_text_margin_px: float | None = None
     plot_utilization_ratio: float | None = None
     occupied_utilization_ratio: float | None = None
+    panel_heights_px: list[float] = []
+    min_panel_height_px: float | None = None
 
     if metadata is not None:
         canvas = metadata["canvas"]
         plot_areas = {item["id"]: item["bbox"] for item in metadata.get("plot_areas", [])}
+        panel_heights_px = [round(float(bbox["height"]), 1) for bbox in plot_areas.values()]
+        min_panel_height_px = min(panel_heights_px) if panel_heights_px else None
         elements = metadata.get("elements", [])
         annotations = [item for item in elements if item.get("role") == "annotation"]
         series = [item for item in metadata.get("series", []) if item.get("role") == "series"]
@@ -246,11 +272,17 @@ def inspect_rendered_chart(
         for element in elements:
             bbox = element["bbox"]
             if not _contains(canvas, bbox):
+                overflow = _overflow(canvas, bbox)
                 record = {
                     "id": element["id"],
                     "role": element["role"],
                     "bbox": bbox,
                     "canvas_margin_px": round(_margin(canvas, bbox), 3),
+                    "overflow_px": overflow,
+                    "grow_margin_px": {
+                        "width": round(overflow["left"] + overflow["right"], 2),
+                        "height": round(overflow["top"] + overflow["bottom"], 2),
+                    },
                 }
                 out_of_bounds_elements.append(record)
                 defects.append(
@@ -347,6 +379,7 @@ def inspect_rendered_chart(
                 record = {
                     "annotations": [first["id"], second["id"]],
                     "intersection_area_px2": round(area, 3),
+                    "separation_needed_px": _separation_needed(first["bbox"], second["bbox"]),
                 }
                 label_label_collisions.append(record)
                 defects.append(
@@ -401,6 +434,7 @@ def inspect_rendered_chart(
                     "elements": [first["id"], second["id"]],
                     "roles": [first.get("role"), second.get("role")],
                     "intersection_area_px2": round(area, 3),
+                    "separation_needed_px": _separation_needed(first["bbox"], second["bbox"]),
                 }
                 text_text_collisions.append(record)
                 defects.append(
@@ -508,6 +542,40 @@ def inspect_rendered_chart(
     if metadata is not None and not checks_complete and not unsupported_marks and coverage_limitations:
         limitations.append("Renderer geometry coverage is incomplete for a full mechanical pass")
     blocking = [item for item in defects if item["severity"] in ("high", "medium")]
+
+    # Turn the measured overflow and squash into a single fix vector the caller can apply.
+    edge_overflow = {"top": 0.0, "bottom": 0.0, "left": 0.0, "right": 0.0}
+    for element in out_of_bounds_elements:
+        for edge, value in element["overflow_px"].items():
+            edge_overflow[edge] = max(edge_overflow[edge], value)
+    squashed = (
+        min_panel_height_px is not None and min_panel_height_px < MIN_PANEL_H
+    )
+    suggested_dims = None
+    if any(edge_overflow.values()) or squashed:
+        suggested_dims = suggest_dims_for_overflow(
+            artifact["width"],
+            artifact["height"],
+            top_overflow_px=edge_overflow["top"],
+            bottom_overflow_px=edge_overflow["bottom"],
+            left_overflow_px=edge_overflow["left"],
+            right_overflow_px=edge_overflow["right"],
+            min_panel_height_px=min_panel_height_px,
+        )
+    severity_rank = {"high": 0, "medium": 1, "low": 2}
+    worst_offenders = [
+        {"code": item["code"], "severity": item["severity"], "element_ids": item["element_ids"]}
+        for item in sorted(defects, key=lambda d: severity_rank.get(d["severity"], 3))[:3]
+    ]
+    geometry_summary = {
+        "clip_px_max": round(max(edge_overflow.values()), 2) if out_of_bounds_elements else 0.0,
+        "edge_overflow_px": edge_overflow,
+        "min_panel_height_px": min_panel_height_px,
+        "panels_squashed": squashed,
+        "worst_offenders": worst_offenders,
+        "suggested_dims": suggested_dims,
+    }
+
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "artifact": artifact,
@@ -537,6 +605,9 @@ def inspect_rendered_chart(
         "minimum_text_margin_px": minimum_text_margin_px,
         "plot_utilization_ratio": plot_utilization_ratio,
         "occupied_utilization_ratio": occupied_utilization_ratio,
+        "panel_heights_px": panel_heights_px,
+        "min_panel_height_px": min_panel_height_px,
+        "geometry_summary": geometry_summary,
         "defects": defects,
         "limitations": limitations,
     }
