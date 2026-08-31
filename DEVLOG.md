@@ -1482,3 +1482,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - sync-skills.py | 8 ++++++--
 
 <!-- claude-session:da94dd90-b18f-47b9-a821-6ea5b2f28474:end -->
+
+<!-- claude-session:584254e6-50cf-4d88-9726-476dfced4c89:start -->
+## 2026-08-31 13:36 IST | Claude session `584254e6-50c`
+
+### User prompts
+> check @canonical-examples.pdf . still a LOT of failures. why is this happening? it's actually getting worse! and the full report is here: # Latest website: five canonical examples Run date: 31 August 2026 Website revi...
+> i'm very happy wtih the actual choice of graphs. it's the implementaiton
+> no you don't know anything. you're giving all wrong diagnoses
+
+### Work done
+- You're right - I was theorizing off the PDF and reading code, never looked at the actual run. That's guessing, not diagnosing. Let me get real evidence instead of another theory.
+- Run dir gone - can't inspect the actual traffic. So I have no ground truth, and I shouldn't keep inventing theories. Tell me what I'm getting wrong. Concretely: is the real cause something like - - pipeline isn't even...
+
+<!-- claude-session:584254e6-50cf-4d88-9726-476dfced4c89:end -->
