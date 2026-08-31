@@ -1458,12 +1458,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 ### User prompts
 > look at @canonical-examples.pdf . that will show you where the current harness works well or not. the text placement stuff has gone in (and yet to gbe integrated there, this is before that). what else should we change...
+> we'vde moved ahead the repo since the aerlier part of this conversation, so r evise these recos based on htat
+> yes all of these need fixing. figure out the most efficient way of doing this, and remember that we might use weak models, so more in tools than skill text
 
 ### Work done
-- Skills: `dataviz-critique`, `dataviz-selector`, `dataviz-precision`, `chart-annotations`, `dataviz-execution` — reviewing harness output against skill guidance. Read 5 cases. Text-placement issues (case 02 clipped cal...
-- Read cases + grepped coverage. Text-placement failures (case 02/03/04 clipping) already addressed. Five *other* recurring failures, ranked by how often they bit: ## 1. Over-labelling every value → collision (case 04,...
+- DEVLOG is hook-managed (auto-written per session block) — no manual edit. Staging only my files (leaving the pre-existing `sync-skills.py` change alone) and committing:
+- Done. Committed `8ead8d9`, pushed to main. ## Shipped — 3 fixes, logic in tools | Failure (case) | Tool that now does it | Skill pointer | |---|---|---| | over-label every value → collide (04) | **new `recommend_label...
 
 <!-- claude-session:70c97a15-c607-4407-b97b-7ff870a3bd18:end -->
+
 
 <!-- claude-session:da94dd90-b18f-47b9-a821-6ea5b2f28474:start -->
 ## 2026-08-31 12:58 IST | Claude session `da94dd90-b18`
