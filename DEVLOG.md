@@ -1604,3 +1604,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Shipped. `3668ab5..3c82105` on `main`. **Both added to `recommend_text_placement` (build-phase tool):** 1. **Resize** — ladder is now move → **shrink toward 8pt floor** → tighten-wrap → hand-review. Returns `suggested...
 
 <!-- claude-session:6ddefe66-ce6a-4e6a-98ab-c56cb2c0aa00:end -->
+
+<!-- claude-session:52b681c8-834c-442d-997a-ae38083f52b2:start -->
+## 2026-08-31 20:42 IST | Claude session `52b681c8-834`
+
+### User prompts
+> see the new @canonical-examples.pdf . here are my issues. any skills / MCPs to fix? and make your own judments. actually i'm mostly happywith this. only issues are: 1.chart 1: some data labels are not adjacent to thei...
+> ok - chart 1 is MINOR. i'd just fix that in the text placement MCP, where we recommend that all labels be placed CLOSE to the points they represent, and if not, join by a thin line (like in ggrepel). second, remove do...
+> [Request interrupted by user]
+
+### Work done
+- You're right — issue 2 was **Case 02** (token share vs cost share, the paired dot plots), not Case 01. And that changes the picture: the selector edits I already made **do** address it. Case 02's paired dot plots are...
+- Installed all skills to local Claude + Codex copies. Done — changes committed, pushed, and live locally.
+
+<!-- claude-session:52b681c8-834c-442d-997a-ae38083f52b2:end -->
