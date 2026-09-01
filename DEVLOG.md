@@ -1872,3 +1872,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed `2ce5b39`. 18 tests green, validated, installed. ## What it does now `recommend_text_placement` gets a post-placement pass. It already receives both the annotations and the on-mark `data_label`s with positions,...
 
 <!-- claude-session:3c45bd2e-a80f-44f4-a78c-9a13963d1b8b:end -->
+
+<!-- claude-session:b6f11ead-9e24-43d1-abf3-ced4aa84581a:start -->
+## 2026-09-01 12:22 IST | Claude session `b6f11ead-9e2`
+
+### User prompts
+> this is in response to my comment taht charts that are being pr oduced using htis skill nowadays don't look "premium enough". one issue is - we might have too many labels. how do we resolve that here? this is the c om...
+> [Request interrupted by user]
+> dont do all of this. int he list above, fix 1 (add what earns a direct label in skill), 2 (rule on when axis needs to be dropped), 3 only. others less important
+
+### Work done
+- All changes trace to the task. Commit + push.
+- Done. Pushed `32494f5`, local == `origin/main`. New skill live and installed. ## What shipped **New `dataviz-aesthetic`** — post-render composition gate. Runs after execution clears defects, as one step-back-and-look-...
+
+<!-- claude-session:b6f11ead-9e24-43d1-abf3-ced4aa84581a:end -->
