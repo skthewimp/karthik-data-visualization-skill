@@ -1631,3 +1631,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Checked. Not the MCP. Nothing to undo there. **text_fit MCP (`recommend_text_placement`) does NOT hardcode 40.** For a fixed block (title role, `movable=False`), `text_fit.py:182`: ``` avail = width_px - 2 * margin ``...
 
 <!-- claude-session:ceba26f0-757c-421b-bf42-0ecdd8cefe3f:end -->
+
+<!-- claude-session:677536ba-f9da-4aff-a81f-3b97b9c38f98:start -->
+## 2026-09-01 10:50 IST | Claude session `677536ba-f9d`
+
+### User prompts
+> in a @dataviz-fix/ workflow, a stacked bar was wrongly chosen instead of multiple lines. i'm pasting below the reasoning for it. is there something in the dataviz slector skill that can be fixed os this doesn't happen...
+> [Request interrupted by user]
+> wait
+
+### Work done
+- All 158 pass, import clean. (inspection.py has no existing unit tests - it needs rendered artifacts - so I'm matching repo coverage rather than adding an isolated one; the new branch mirrors the already-working `legen...
+- Done. Committed + pushed. **The gap:** the inspector only flagged the *redundant* case - `EXTERNAL_LEGEND`/`REDUNDANT_COLOUR` (low, eraser-test) when a legend duplicates existing direct labels. The inverse - colour ca...
+
+<!-- claude-session:677536ba-f9da-4aff-a81f-3b97b9c38f98:end -->
