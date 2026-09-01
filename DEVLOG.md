@@ -1954,3 +1954,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed. `main` now matches `origin/main`. **Done — anti-crossing pass shipped.** `dataviz_mcp/text_fit.py` What it does: after all labels are placed, any pair of displaced movable labels whose leader lines cross trade...
 
 <!-- claude-session:4820239b-8003-4eb2-86d6-0ce5720debe5:end -->
+
+<!-- claude-session:945da497-160a-43bd-b68b-3e92af2471e0:start -->
+## 2026-09-01 18:57 IST | Claude session `945da497-160`
+
+### User prompts
+> one problem - feel like we're more aggressive in using small multiples ratehr than multiple lines. like there's a case with 4 lines which have been divided into small multiples which is overdoing it. way i think about...
+> ok no you are confusing. i'll look at these two as completely differnet points (smoothed lines nad facets), and i typically don't draw more than one (max 2) smooth line per graph./ default - one panel, directly labell...
+> correct. go on.
+
+### Work done
+- CHANGELOG + DEVLOG, then sync and push.
+- Pushed. Encoded only the ordering lesson: - **Small-multiple panels** (`dataviz-selector` + `karthik-data-visualization`, both copies): order by decreasing peak value or decreasing story importance, top-left → bottom-...
+
+<!-- claude-session:945da497-160a-43bd-b68b-3e92af2471e0:end -->
