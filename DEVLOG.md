@@ -2029,3 +2029,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Pushed. Both edits, both copies, synced + installed: 1. **Shared y** now triggered by *any* cross-panel comparison - levels **or** slopes/rates. Free scales narrowed to per-panel shape with no cross-panel read....
 
 <!-- claude-session:218aeedc-a773-4ea4-ae39-89a76948f5b1:end -->
+
+<!-- claude-session:af2047bf-4a94-4053-8b63-035e10cbf0ea:start -->
+## 2026-09-01 20:27 IST | Claude session `af2047bf-4a9`
+
+### User prompts
+> annotations here seem rather weak. is this a model issue? earlier using possibly stronger models i've got annotations like this: [Image #20]. and now i'm getting stuff like this: [Image #21]
+> causal is fine - we don't ahve that data here in the new place. it's the fact taht such weak annotations are being creatd in the first place. i don't think the checker is the right place to get rid o them
+> i made some changes on the website side and i still get this, including hte badly placed annotations: [Image #22]
+
+### Work done
+- Agree. Checker is post-hoc trim - catches mechanical id-level redundancy (`redundant_annotations`) after weak candidates already exist. Wrong lever. Two deeper problems it can't fix: 1. **Restatement that isn't litera...
+- Website change didn't take, and the annotation actually got worse. Three failures in this render: 1. **Fabricated series.** The dashed grey diagonal from 20% (1970s) up to ~58% (2020s), pinned to two grey ghost dots -...
+
+<!-- claude-session:af2047bf-4a94-4053-8b63-035e10cbf0ea:end -->
