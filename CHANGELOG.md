@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Selector: do not invent groupings to manufacture a claim
+
+A chart collapsed several distinct categories into one bucket to force a clean two-way crossover, discarding the categories that actually carried the shift. Naming the specific redundancy was not enough - the stronger, more general rule is about grouping itself.
+
+- **New Hard guardrail, `dataviz-selector` (both copies).** Merging categories into coarser buckets changes what the data says, so grouping needs a reason in the data or the question - a meaningful taxonomy, a domain threshold, a grain the audience reads in - never that the coarser cut produces a cleaner pattern. The standard licensed exception is rolling an immaterial long tail into an "Other" bucket: it groups what the claim is *not* about. The test: suspect when it merges the very categories the claim rests on to sharpen that claim; fine when it sets aside residual categories the claim does not depend on.
+
 ### Selector: small multiples need shared units, and one message stays one graph
 
 Two related failure modes the selector did not catch: a small-multiples grid whose panels carry different units (length beside currency beside a count), which reads as a valid side-by-side comparison but is not; and two graphs re-explaining what was one graph.

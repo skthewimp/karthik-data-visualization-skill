@@ -1985,3 +1985,19 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 ### Work done
 - Edited both SKILL.md copies, verified identical, ran `./sync.sh --no-pull`.
 - CHANGELOG entry added. Commit + push.
+
+## Session (2026-09-01): do not invent groupings to manufacture a claim
+
+### Prompt (paraphrased)
+- A recent output split one distribution into two panels (100% stacked bar + a lines panel), and the lines panel collapsed several categories into a single bucket to force a clean two-way crossover.
+- Beyond the two-panel redundancy (already covered), the stronger general rule: do not invent groupings just to make a point; you need a strong reason to group data.
+- "Other" is the important exception - grouping the residual you are *not* claiming about is fine.
+
+### Decisions
+- New Hard guardrail in `dataviz-selector` (both copies), placed right after the graphical-integrity guardrail (both are integrity rules).
+- Test encoded: suspect when a grouping merges the very categories the claim rests on to sharpen the claim; fine when it sets aside residual categories the claim does not depend on ("Other").
+- No example baked in; scope selector only.
+
+### Work done
+- Edited both SKILL.md copies, verified identical, ran `./sync.sh --no-pull`.
+- CHANGELOG entry added. Commit + push.
