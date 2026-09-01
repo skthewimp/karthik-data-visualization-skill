@@ -1886,3 +1886,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Pushed `32494f5`, local == `origin/main`. New skill live and installed. ## What shipped **New `dataviz-aesthetic`** — post-render composition gate. Runs after execution clears defects, as one step-back-and-look-...
 
 <!-- claude-session:b6f11ead-9e24-43d1-abf3-ced4aa84581a:end -->
+
+<!-- claude-session:eaa89029-a2ba-487f-9123-6ae626373144:start -->
+## 2026-09-01 13:26 IST | Claude session `eaa89029-a2b`
+
+### User prompts
+> input: [Image #10] ;output: [Image #11] . a few failures in the chart selection. 1. why 2 graphs here? 2. why even the s tackedchart? i would've just maybe drawn 4 lines. 3. why do wehave a Y axis here?
+> no don't render. think of what skills we need to fix here.
+> this is the logs from the run,if it helps you debug better : { "case_id": "2a81a87f78c24b3bb2861ec4ef91d503", "email": "karthik.shashidhar@gmail.com", "prompt": "", "created_at": "2026-09-01T09:54:35.306076+00:00", "c...
+
+### Work done
+- Fair. My reject rules were just this chart's failure encoded as triggers - exactly the [[no-hardcoded-cases-in-skill-rules]] trap. "Stacked+time→reject", "twin-panel identical values→reject" don't generalize; next fai...
+- Then capability floor is out. Luna can do the claim↔form check - it just didn't here. What's different about this path: `mode: automatic_critique`, no user prompt. Luna had to self-derive the claim, pick the form, *an...
+
+<!-- claude-session:eaa89029-a2ba-487f-9123-6ae626373144:end -->
