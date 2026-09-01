@@ -1,5 +1,34 @@
 # Devlog
 
+## 2026-09-01 - Selector: crowding-gated facets + separate smoothing rule
+
+### Context
+
+Feedback: the selector over-uses small multiples - it faceted ~4 lines that a single
+direct-labelled panel would carry fine. Separately, the selector had no notion of drawing a
+smoothed line (loess/regression) along a noisy series, or of points-as-scatter + smoothed trend
+instead of connect-the-dots.
+
+### Key correction from Karthik
+
+These are **two unrelated rules**, not one ladder. My first pass conflated them (crossing signal ->
+smooth *or* facet); Karthik rejected that. Facets are a crowding/overplot decision only. Smoothing
+is a point-density decision within a single series (none of the current corpus cases even have
+dense-enough series), and he draws at most 1-2 smooth lines per graph.
+
+### Decisions
+
+- **Rule A (facets):** default one panel, direct-labelled lines; escalate to small multiples only on
+  too-many-to-label or spaghetti overplot. Lines crossing / noisy shape is explicitly *not* a facet
+  trigger. Rewrote the "many comparable series" bullet; existing layout guidance now gated on "once
+  faceting is warranted".
+- **Rule B (smoothing):** new standalone bullet, point-density trigger, decoupled from series count
+  and faceting. Overlay-on-faint-raw or scatter-plus-trend; cap 1-2 smooths; show uncertainty, keep
+  turning points, mark extrapolation.
+- No enumerated counts anywhere (no-hardcoded-cases). KDV line 116 already gates facets on "crowded",
+  so no contradiction - left untouched.
+- Both claude+codex copies edited; `./sync.sh --no-pull` to install.
+
 ## 2026-09-01 - New dataviz-aesthetic composition gate
 
 ### Context

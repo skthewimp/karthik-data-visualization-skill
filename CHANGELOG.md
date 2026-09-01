@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Selector: gate small multiples on crowding, and add a separate dense-series smoothing rule
+
+The selector reached for small multiples too readily - faceting a handful of lines that a single direct-labelled panel would carry - and had no rule at all for overlaying or substituting a smoothed trend on a noisy series. The "many comparable series" bullet jumped straight to facet layout with no "when", and smoothing existed only as a narrow relationship-regression aside.
+
+- **Small multiples now gated on crowding, in `dataviz-selector` (both copies).** Default is a single panel with direct-labelled lines; move to small multiples only when that panel fails - too many series to direct-label, or lines overplotting into spaghetti. Series count and overplotting are the trigger; lines crossing or a noisy shape do not by themselves justify faceting. The existing facet-layout guidance now hangs off "once faceting is warranted".
+- **New standalone smoothing rule, `dataviz-selector` (both copies).** When a single series carries so many data points that connecting them all buries the trend, either overlay a smoothed trend (loess/regression) on the faint raw series or drop the connecting line and show points-as-scatter with the smoothed trend through them. Explicitly driven by point density within one series, unrelated to series count or the faceting decision. Cap ~1-2 smoothed lines per graph; show the smoother's uncertainty, keep real turning points, mark extrapolation as projection. General principle, no enumerated counts.
+
 ### New `dataviz-aesthetic` composition gate - makes charts read as premium, not styled-default
 
 Charts cleared of every rendering defect still read as busy, generic, styled-ggplot output - nobody owned the "does it look composed" judgement. Execution owns element-level defects, eval owns send/meaning, critique owns alternatives; composition had no home.
