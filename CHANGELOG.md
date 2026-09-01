@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### The selector no longer stands a time axis on its head or lollipops a magnitude
+
+A `dataviz-fix` run on Q1–Q4 metrics (a time series) produced small multiples with the quarters laid down the y-axis reading Q4-at-top to Q1-at-bottom - time climbing upward - and each value drawn as a dot on a hairline stem. Two mis-steps: the ranked-horizontal-bar layout got applied to an ordered/time axis (which is not a ranking to sort or flip), and a single-value magnitude was drawn as a lollipop instead of a bar.
+
+- **`dataviz-selector` gains two general rules.** (1) An intrinsically ordered category axis - time, stages, sizes, ranked bins - keeps its sequence order and natural reading direction (left-to-right, or top-to-bottom when vertical), never sorted by magnitude or inverted so the sequence climbs bottom-to-top; magnitude-sorting and the horizontal-bar layout are for nominal categories only, and the rule holds per panel inside small multiples. (2) A single value per category read as magnitude is a bar - the filled length is the cue - and a lollipop/dot-with-stem is reserved for many dense categories where the endpoint matters more than the filled length. General principles keyed on "ordered axis" and "single-value magnitude", no enumerated dataset. `dataviz-selector` (both copies); mirrored in `docs/skills/dataviz-selector.md`.
+
 ### `recommend_text_placement` stops shoving on-mark labels off their marks
 
 A stacked bar whose segment values (`44%`, `39%`, …) belong centred inside each segment was run through `recommend_text_placement` with the bars passed as `obstacles`. Every value was `role: "label"` = movable, so the tool did exactly what movable means: pushed all 16 off their bars, drew leader lines, and by retry clipped them off-canvas. The two free callouts on the same chart placed cleanly - proof it was the routing, not the geometry. A value the plotting layer already centred on its mark is position-fixed by the data, like a title, not a free annotation to de-collide.

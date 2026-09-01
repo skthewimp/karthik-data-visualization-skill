@@ -1,5 +1,32 @@
 # Devlog
 
+## 2026-09-01 - Selector: ordered/time axes keep their direction, magnitude gets bars
+
+### Context
+
+Prompt (paraphrased): a fix-workflow chart put Q1–Q4 (a time series) down the y-axis reading Q4
+at top to Q1 at bottom, and drew each value as a dot on a line. Inverting a time axis is wrong,
+and a bar beats the dot-with-line. What in the selector led to this?
+
+### Diagnosis
+
+Two selector gaps. The "Ranking: sorted horizontal bars" bullet had no guard excluding ordered
+axes, so a time series got read as a ranking - categories flipped onto y, sequence direction
+lost. And nothing steered a single-value-per-category magnitude toward bars, so a lollipop
+(dot + hairline stem) slipped through even after dot plots were dropped from magnitude guidance.
+
+### What I changed
+
+- **Ordered-axis rule.** An intrinsically ordered category axis (time, stages, sizes, ranked
+  bins) keeps its order and natural direction - left-to-right, or top-to-bottom if vertical -
+  never magnitude-sorted or inverted so time climbs upward. Magnitude-sorting and the
+  horizontal-bar layout are nominal-only. Holds per panel in small multiples.
+- **Bar-vs-lollipop rule.** A single value per category read as magnitude is a bar (filled length
+  is the cue, zero anchors it); a lollipop/dot-with-stem is reserved for many dense categories
+  where the endpoint matters more than the filled length.
+- Both in `dataviz-selector` (claude + codex), mirrored in `docs/skills/dataviz-selector.md`.
+  General principles, no enumerated dataset or chart type.
+
 ## 2026-09-01 - On-mark labels stop getting shoved off their marks
 
 ### Context

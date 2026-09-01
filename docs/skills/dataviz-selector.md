@@ -84,7 +84,9 @@ If the user asks for one of these, the skill should say it is not recommended an
 | S-curve/adoption/diffusion | Line with muted raw values, emphasized smoothed trend, and sparse labels for takeoff knee, acceleration/deceleration knees, plateau/peak, and temporary local extrema |
 | Slowing growth | Raw line + marked slowdown/knee + dotted earlier-growth projection |
 | Forecast miss | Actual vs forecast + ribbon/gap annotation |
-| Ranking | Sorted horizontal bars, axis from zero |
+| Ranking | Sorted horizontal bars, axis from zero (nominal categories only) |
+| Ordered/time category | Keep the sequence order and its natural direction (left-to-right, or top-to-bottom if vertical); never sort by magnitude or invert onto the y-axis so time climbs upward |
+| Single value per category, magnitude | Bars, not lollipops/dot-with-stem; reserve lollipops for many dense categories where the endpoint matters more than filled length |
 | Distribution/skew | Histogram, density, ECDF, boxplot, or violin |
 | Vote efficiency | Vote-share vs seat-share scatter |
 | Swing scenarios | Seat curves by swing, faceted by state |
