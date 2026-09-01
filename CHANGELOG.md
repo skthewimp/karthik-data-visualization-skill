@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Benign annotations get an operational value-add gate
+
+A `dataviz-fix` chart carried callouts like "Up 9.0 points", "highest output: 340 lines", and "Peak: 42% in 2000" - each restating a value a direct label already printed or a rank the geometry already showed. The rule against this existed in `karthik-evidence-builder` ("a mark that restates the obvious, or that the axis already shows, is clutter") but was a single soft sentence, and `chart-annotations` - the ranking gate - had no restatement reject at all, so benign candidates were ranked and kept.
+
+- **`karthik-evidence-builder` makes the value-add test operational.** An annotation adds value only when its content cannot be recovered from the marks the reader already sees - their direct labels, the axes, the title. Three benign patterns are named as general classes that never earn a mark alone (restating a labelled value; naming a rank the geometry already shows; restating a change two labelled endpoints already display), against what does earn one (a computed comparison, a cause/consequence, a threshold's meaning, outside context, attention to an easily-missed feature). `karthik-evidence-builder` (both copies); mirrored in `docs/skills/`.
+- **`chart-annotations` adds the reject step to the ranking gate.** New "value-add gate" in Step 3 - drop every candidate whose content is recoverable from a label, axis, title, or obvious rank *before* ranking; rank only the survivors. Step 4 and the pitfalls table updated to match. General principle keyed on "recoverable from the marks", no enumerated chart. `chart-annotations` (both copies); mirrored in `docs/skills/`.
+
 ### Years read as labels, not measurements; and the redundant-axis flag fires in facets
 
 A `dataviz-fix` run on a faceted shares-over-time chart printed the year axis as `1,970 2,000 2,030` (thousands separators on a year) and drew both a numeric value axis and a direct value label on every point in every panel - duplicate ink the inspector let through.

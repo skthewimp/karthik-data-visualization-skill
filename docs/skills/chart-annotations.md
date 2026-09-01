@@ -37,6 +37,8 @@ I have four things worth marking on this chart. Which do I keep?
 
 **Significance ladder.** Records and boundary breaches beat sustained departures, which beat events with visible effects, which beat persistence, which beats plain aggregates. Then two filters: keep one dominant frame, and never annotate a value the reader can read off the chart.
 
+**The value-add gate.** Before ranking, drop every candidate whose content can be recovered from the marks the reader already sees - their direct labels, the axes, the title. Restating a labelled value, naming a rank the geometry already shows ("highest" on the visibly tallest labelled mark), or restating a change two labelled endpoints already display ("up 9 points") never earns ink on its own. What survives is what the marks do not give: a computed comparison (a ratio, a multiple, a rank across many), a cause or consequence, a threshold's meaning, outside context, or attention pulled to a feature easy to miss. Rank only the survivors.
+
 **One primary, at most two supporting.** More than three surviving candidates means the chart is doing more than one job. Split it.
 
 **Wording constraints.** Under 18 words. One claim. Every number attached to its baseline and window in the same label. No causal verb without causal evidence. No report-speak - "just 1mm vs 58mm usual", not "a rainfall shortfall of 57mm against normal".

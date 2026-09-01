@@ -1,5 +1,33 @@
 # Devlog
 
+## 2026-09-01 - An operational gate for benign annotations
+
+### Context
+
+Prompt (paraphrased): the fix workflow keeps producing benign annotations ("Up 9.0 points",
+"highest output: 340 lines", "Peak: 42% in 2000"). I only want annotations that add value. How?
+
+### Diagnosis
+
+The rule existed but did not bind. `karthik-evidence-builder` (origination) said in one soft
+sentence that a mark "that restates the obvious, or that the axis already shows, is clutter" - too
+weak for a weak build model to operationalize. And `chart-annotations` (the ranking/keep gate) had
+no restatement reject at all: it ranked by "reader payoff" but never dropped a candidate that
+merely restated a visible label. So benign candidates slipped origination and were then ranked and
+kept.
+
+### What I changed
+
+- **Operational test, both skills.** An annotation adds value only when its content cannot be
+  recovered from the marks the reader already sees - direct labels, axes, title. Named three
+  general benign classes (restate a labelled value; name a rank the geometry shows; restate a
+  change two labelled endpoints show) against what earns a mark (a computed comparison, a
+  cause/consequence, a threshold's meaning, outside context, attention to an easy-to-miss feature).
+- **evidence-builder:** expanded the candidate-annotation rule into that test. Both copies + mirror.
+- **chart-annotations:** new "value-add gate" in Step 3 - reject restatements before ranking;
+  updated numbered Step 4 and added a pitfalls row. Both copies + mirror.
+- General principle keyed on "recoverable from the marks", no enumerated chart or phrase.
+
 ## 2026-09-01 - Years are labels; redundant-axis flag reaches into facets
 
 ### Context

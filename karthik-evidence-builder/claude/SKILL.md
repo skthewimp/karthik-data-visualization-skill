@@ -58,10 +58,26 @@ decomposition into one or several charts to selection.
 
 List the marks worth considering - each a **claim tied to the datum, series, period, or region
 that supports it**, with why it clears the bar. A mark earns its place only when it points at
-something a reader would otherwise miss or misread and the data backs it; a mark that restates
-the obvious, or that the axis already shows, is clutter. The list is often short and may be
-empty. You decide the *claim and its anchor*; the build stage words, ranks, and places the
-mark.
+something a reader would otherwise miss or misread and the data backs it.
+
+**The operational test: an annotation adds value only when its content cannot be recovered from
+the marks the reader already sees - their direct labels, the axes, and the title.** If removing
+the annotation loses nothing the reader could not read straight off the chart, it is clutter,
+not an annotation. Three benign patterns recur and never earn a mark on their own:
+
+- restating a value a direct label or axis tick already prints (a callout '42%' beside a point
+  already labelled 42%);
+- naming a rank or extreme the geometry already shows (a 'highest' or 'peak' callout on the
+  visibly tallest, already-labelled mark);
+- restating a change the two labelled endpoints already display ('up 9 points' when both ends
+  are labelled and the reader can subtract them).
+
+What *earns* a mark is what the marks do not give: a comparison the reader would otherwise have
+to compute (a ratio, a multiple, a rank across many series), a cause or a consequence, the
+meaning of a threshold crossed, context from outside the chart, or attention directed to a
+feature that is easy to miss (a crossover, an inflection, a quiet divergence). The list is often
+short and may be empty. You decide the *claim and its anchor*; the build stage words, ranks, and
+places the mark.
 
 ## Honesty and boundaries
 

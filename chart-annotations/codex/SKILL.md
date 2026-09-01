@@ -36,7 +36,7 @@ Exception: a chart designed to travel alone with no title bar or surrounding tex
 1. Take the one-sentence claim the chart must support. In the construct pipeline this is the **headline claim** from the insight stage (`karthik-evidence-builder`), and the marks worth considering arrive as its `candidate_annotations` (each a claim tied to the datum that supports it) - your job is to rank, word, and place them, not to originate a different claim. Standalone, write the claim yourself.
 2. Enumerate annotation candidates from the chart's geometry, folding in any `candidate_annotations` the insight stage supplied.
 3. Run the concentration check.
-4. Rank candidates by relevance to the chart's claim, evidentiary strength, reader payoff, and visual salience.
+4. Apply the value-add gate - drop candidates that only restate a label, axis, or obvious rank - then rank the survivors by relevance to the chart's claim, evidentiary strength, reader payoff, and visual salience.
 5. Select only as many as the chart can support without competing claims; there is no universal count.
 6. Write each label so it identifies the evidence and qualifies the claim appropriately.
 7. Place by proximity, with coordinates derived from the data; add a connector only if proximity fails.
@@ -67,6 +67,8 @@ Before annotating an aggregate or apparent feature, inspect how the evidence is 
 Rank candidates by relevance to the stated claim, evidentiary strength, interpretive value, and visual salience. Records, departures, events, persistence, gaps, and other features are candidate classes, not a fixed hierarchy.
 
 Distinguish observed description, exploratory signal, and inferential claim. Annotate a feature when it is relevant and accurately qualified; use uncertainty, sensitivity checks, or tentative wording when evidence is limited. If no feature clears the claim's evidentiary and communication bar, leave the chart unmarked and state the absence in the title or accompanying explanation.
+
+**The value-add gate: reject restatements before you rank.** An annotation earns ink only when its content cannot be recovered from the marks the reader already sees - their direct labels, the axes, and the title. Before ranking, drop every candidate that only: restates a value a direct label or axis tick already prints; names a rank or extreme the geometry already shows (a 'highest' or 'peak' callout on the visibly tallest, already-labelled mark); or restates a change two labelled endpoints already display ('up 9 points' when both ends are labelled). What survives the gate is what the marks do not give: a comparison the reader would have to compute (a ratio, a multiple, a rank across many), a cause or a consequence, the meaning of a threshold crossed, outside context, or attention pulled to a feature easy to miss (a crossover, an inflection). Rank only the survivors.
 
 ## Annotating derived features
 
@@ -167,6 +169,7 @@ Fix and re-render. Do not declare done from code inspection.
 | Label attached to the neighbouring row | Derive coordinates from the data, not by hand |
 | Largest wiggle in a noisy series promoted to a finding | Ask whether it survives a different sample; if it fails, mark nothing |
 | Callout announcing that nothing is happening | Put the absence in the title; leave the chart unmarked |
+| Callout restates a value or rank the label/geometry already shows | Drop it; annotate only what the marks do not give |
 | Bare year on a knee found by scanning | Word it as approximate, or validate first |
 | Fitted line louder than the observations | Chart argues for the model; requiet the fit |
 | Share language on a rank finding | Compute the share before writing the claim |
