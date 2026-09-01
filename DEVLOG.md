@@ -1,5 +1,41 @@
 # Devlog
 
+## 2026-09-01 - New dataviz-aesthetic composition gate
+
+### Context
+
+Feedback: pipeline charts don't look "premium enough". Beyond the label overload fix, we wanted a
+reusable *aesthetic review* run once a chart is produced - the five questions: what is seen first,
+is anything competing with it, does every box/rule/colour/bold phrase earn its place, is
+whitespace grouping or filling, does it look composed rather than styled ggplot output. Open
+question was whether it should also seed the planning/build phase.
+
+### What I found
+
+Mapped the existing post-render skills: `dataviz-execution` = element-level defects, `dataviz-eval`
+= send/revise/redesign + semantic meaning + benchmark, `dataviz-critique` = broad diagnosis +
+alternatives. None owned composition / first-read / "premium feel" - a real gap, so a dedicated
+skill is not a thin wrapper.
+
+### Decisions
+
+- **New standalone skill `dataviz-aesthetic`** (both forks confirmed with Karthik: new skill, and
+  seed build too). Standalone so both execution and the build phase point at one source instead of
+  duplicating the principles.
+- **Distinct lens, hard delineation.** Execution hunts defects element by element; aesthetic steps
+  back and reads the whole image, and explicitly never re-checks geometry/precision/CVD. Kept it
+  from collapsing into a second eraser-test section.
+- **Three wiring points.** (1) `dataviz-execution` runs the pass as its final step once defects are
+  clean; (2) construct `execution` stage bundles both skills in `stage_contracts.py` + instructions
+  mention it; (3) build intent seeded in `karthik-data-visualization` (decide the one focal element
+  before drawing) and a one-liner in `dataviz-selector` (form choice = what is seen first).
+- **No new folder README.** The sibling gates (execution, idea-critique, construct) have none;
+  matched them. Install-path lists in root README are already a stale partial subset that omits the
+  newer gates - left them rather than half-fix.
+- **No code logic change.** Only `stage_contracts.py` gained the skill in the execution bundle +
+  instruction text; `sync-skills.py` auto-discovers skill dirs, so no manifest edit. Full pytest
+  suite green (163).
+
 ## 2026-09-01 - Label ownership in the core skill; axis drops on the key labels
 
 ### Context

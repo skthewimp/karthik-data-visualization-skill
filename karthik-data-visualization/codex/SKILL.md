@@ -18,7 +18,7 @@ Workflow:
 3. Build from data outward: data first, direct labels second, annotations third, grids/axes last.
 4. Check graphical integrity: scales, baselines, proportional encoding, missing context, and any visual effect that exaggerates or understates the data effect.
 5. Apply the eraser test: remove any ink that does not carry data, labels, or necessary context.
-6. Render and inspect the exported image; if anything is clipped, overlapping, or misaligned, adjust labels, spacing, hierarchy, and source notes from the actual output, then render again. Confirm the export also meets the House visual defaults below.
+6. Render and inspect the exported image; if anything is clipped, overlapping, or misaligned, adjust labels, spacing, hierarchy, and source notes from the actual output, then render again. Confirm the export also meets the House visual defaults below. Once it is clean of defects, step back and read the whole image as a composition (use `dataviz-aesthetic`): one focal element seen first with nothing competing, every box/rule/colour/bold phrase earning its place, whitespace grouping rather than filling. A chart with no defects can still read as styled-default output; the composition pass is what makes it look premium.
 
 ## House visual defaults
 
@@ -86,7 +86,7 @@ The reader groups marks by perception before reading any label. Use those groupi
 - **Enclosure.** A light band, box, or shaded region says "these belong together" or "look here" more quietly than an arrow or a heavy outline. Reach for a restrained enclosure before louder marks.
 - **Figure-ground.** One focal element against muted context (the focal-colour-plus-grey rule below) works because the reader separates figure from ground before reading. Keep exactly one thing as figure; when two things compete to be seen first, neither is.
 
-Preattentive first read: exactly one channel should make the single most important thing pop without search - a lone hue, a size, a position. When several channels shout at once, the reader searches instead of seeing.
+Preattentive first read: exactly one channel should make the single most important thing pop without search - a lone hue, a size, a position. When several channels shout at once, the reader searches instead of seeing. Decide this one focal element before you draw - it is the composition the chart is built around, not a highlight added at the end - and verify after rendering that it is what the eye actually lands on first (the composition gate, `dataviz-aesthetic`, owns that post-render check).
 
 ## Colour system
 

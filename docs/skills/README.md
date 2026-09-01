@@ -16,6 +16,7 @@ Human-facing guides for the public skills.
 - [`karthik-evidence-builder.md`](karthik-evidence-builder.md) - explains the insight stage: compute the facts and name the headline claim plus candidate annotations before a form is chosen.
 - [`dataviz-idea-critique.md`](dataviz-idea-critique.md) - explains the pre-render idea gate: is the data, expression, insight, and honesty right before the chart is built.
 - [`dataviz-execution.md`](dataviz-execution.md) - explains the post-render execution gate: geometry, overlap, colour, precision, and ink on the built export.
+- [`dataviz-aesthetic.md`](dataviz-aesthetic.md) - explains the post-render composition gate: first read, single emphasis, earned ink, and intentional whitespace so the chart reads as composed rather than styled-default output.
 - [`dataset-question-generator.md`](dataset-question-generator.md) - explains the raw-dataset-to-question-generation skill.
 - [`karthik-data-cleaning.md`](karthik-data-cleaning.md) - explains the context-sensitive exploratory data-cleaning skill.
 - [`chart-annotations.md`](chart-annotations.md) - explains the chart-annotation skill: what to mark, how to rank, how to word it, where to place it.

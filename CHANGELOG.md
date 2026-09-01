@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### New `dataviz-aesthetic` composition gate - makes charts read as premium, not styled-default
+
+Charts cleared of every rendering defect still read as busy, generic, styled-ggplot output - nobody owned the "does it look composed" judgement. Execution owns element-level defects, eval owns send/meaning, critique owns alternatives; composition had no home.
+
+- **New skill `dataviz-aesthetic`.** A post-render composition gate run as one holistic step - step back and read the whole export at delivery size as a picture - answering five questions: what is seen first, is anything competing with it, does every box/rule/colour/bold phrase earn its place, is whitespace grouping or merely filling, and does it look composed rather than styled-default. It routes composition fixes back to build and never re-plots. Sharp delineation from `dataviz-execution`: it assumes the defects are clean and never re-checks geometry, precision, or CVD. No fixed emphasis count or banned-furniture list - the principle is one held emphasis and no unearned ink. Both copies; `docs/skills/dataviz-aesthetic.md`; listed in root and docs READMEs.
+- **Wired into the pipeline as the final execution step.** `dataviz-execution` now loads `dataviz-aesthetic` and runs the composition pass once defects are clean, before delivering; the construct `execution` stage bundles both skills (`dataviz_mcp/stage_contracts.py`) and its instructions name the pass.
+- **Composition intent seeded at planning/build.** `karthik-data-visualization` now says to decide the single focal element before drawing (not as an end-of-run highlight) and to run the composition read at inspection; `dataviz-selector` notes that choosing the form is choosing what the reader sees first. Premium by construction, verified by the gate.
+
 ### Direct-label editorial scope is owned by the core skill; axis drops on the key labels, not all
 
 Charts from the pipeline read busy and "not premium" - too many direct labels, and value axes kept even when the points that matter were already labelled. Two causes: nothing decided *what deserves a direct label* before `recommend_labels` filled its budget, and the redundant-axis principle was worded as if it needed *every* mark labelled.

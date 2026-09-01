@@ -104,6 +104,15 @@ bake a pass count into the work.
 If the render reveals that the *idea* is wrong (the form cannot carry the claim after all, the
 message does not land), route back to the idea gate rather than patching pixels.
 
+**Once the defects are clean, run the composition pass before delivering.** A chart with no
+remaining defects can still read as busy, generic, styled-default output. Load `dataviz-aesthetic`
+and apply its composition gate as the final step: step back from the whole export and check what
+is seen first, whether anything competes with it, whether every box, rule, colour, and bold
+phrase earns its place, whether whitespace groups rather than fills, and whether the result looks
+composed rather than defaulted. That gate owns composition and premium feel; this one owns
+defects, and the two do not re-check each other's territory. Route any composition fixes it names
+back through the same one-focused-revision loop.
+
 Deliver the best valid candidate with a plain summary and any residual limitation. An
 acceptance check left `unknown` because its external validation was unavailable is a footnote
 in `residual_limitations`, not a defect, and never a reason to withhold - still return

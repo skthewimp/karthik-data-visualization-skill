@@ -62,6 +62,7 @@ This repo contains twenty-two related skills, coordinated as a context-sensitive
 20. **`karthik-evidence-builder`** - the insight stage: compute the facts and name the single headline claim plus candidate annotation claims, from the data, before a form is chosen. Fills what used to be a skill-less "facts" placeholder.
 21. **`dataviz-idea-critique`** - the pre-render gate: is the data right, the expression right, the insight right, and honest - judged on the plan and data before the chart is built, routing back to insight or select.
 22. **`dataviz-execution`** - the post-render gate: geometry, overlap, labels, colour, precision, and ink on the built export, leaning on `render_and_inspect_chart`. Distinct from `dataviz-critique`, which reviews a chart standalone.
+23. **`dataviz-aesthetic`** - the post-render composition gate, run after execution clears the defects: step back and read the whole image - what is seen first, whether anything competes, whether every box/rule/colour/bold phrase earns its place, whether whitespace groups rather than fills - so the chart looks composed rather than styled-default. Owns premium feel; execution owns defects.
 
 The split is deliberate. Creation and repair are two front halves that both hand into one shared construct process (`dataviz-construct`): the two orchestrators route only their own front-half work and preserve handoffs; they do not duplicate the terminal process. Planning defines the analytical claim and evidence contract. Cleaning establishes provenance, grain, and data validity. Question generation proposes supported questions. Inside construct, the insight stage names the headline claim and candidate marks from the data before a form is chosen; the idea gate checks the data, expression, and insight before anything is rendered; selection chooses an encoding for the task - a chart or a well-formatted table; construction implements it, with `karthik-data-visualization` owning chart craft and `karthik-table-style` owning table craft; the execution gate checks geometry, colour, precision, and ink on the rendered export. Ideas are judged before the render, execution after, and how many revision passes each gate runs is the driver's budget. Annotation adds supported context. Explanation communicates the result at calibrated strength. Critique diagnoses interpretive failures in a standalone chart. Evaluation independently verifies semantic, visual, evidentiary, and delivery outcomes.
 
@@ -133,6 +134,9 @@ The split is deliberate. Creation and repair are two front halves that both hand
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── dataviz-execution/               # Post-render gate: geometry, colour, precision, ink
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── dataviz-aesthetic/               # Post-render composition gate: first read, emphasis, earned ink
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── tester/                          # Local repair-loop case console

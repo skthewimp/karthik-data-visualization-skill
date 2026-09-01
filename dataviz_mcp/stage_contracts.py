@@ -1117,7 +1117,13 @@ left ``unknown`` because its ``external_validation`` ground truth was unavailabl
 defect and never a reason to withhold: carry it into ``residual_limitations`` as a footnote
 and still return ``deliver``. Reserve the ``blocked`` verdict for a genuine inability to
 produce any valid artifact at all - never for a missing external denominator, dataset, or
-methodology."""
+methodology. Once the defects are clean, run the composition pass (``dataviz-aesthetic``,
+loaded with this stage) as the final step before delivering: step back from the whole export and
+check what is seen first, whether anything competes with it, whether every box/rule/colour/bold
+phrase earns its place, whether whitespace groups rather than fills, and whether it looks composed
+rather than styled-default - route composition fixes back through the same revision loop. That
+pass owns composition and premium feel; the defect checks above own rendering correctness, and
+the two do not re-check each other's territory."""
 
 _CONSTRUCT_EXPLAIN = """You are the explain stage of the dataviz construct process. You write
 the short prose that travels BESIDE the exhibit - the two lines in an email above the chart,
@@ -1227,7 +1233,7 @@ _BUILD_STAGE = Stage(
 _EXECUTION_STAGE = Stage(
     stage_id="execution",
     title="Critique the execution",
-    skills=("dataviz-execution",),
+    skills=("dataviz-execution", "dataviz-aesthetic"),
     input_schema=BUILD_SCHEMA,
     output_schema=EXECUTION_SCHEMA,
     instructions=_CONSTRUCT_EXECUTION,
