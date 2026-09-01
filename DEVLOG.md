@@ -1968,3 +1968,20 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed. Encoded only the ordering lesson: - **Small-multiple panels** (`dataviz-selector` + `karthik-data-visualization`, both copies): order by decreasing peak value or decreasing story importance, top-left → bottom-...
 
 <!-- claude-session:945da497-160a-43bd-b68b-3e92af2471e0:end -->
+
+## Session (2026-09-01): small-multiples unit rule + one-message-one-graph
+
+### Prompt (paraphrased)
+- Small multiples only when all graphs share units, else misleading (example: a grid mixing character length, dollars, and counts).
+- Do not use two graphs to convey one message; the only permissible case is decomposing a non-100% stacked bar into an overall total trend line plus per-component small multiples.
+- Asked for the specific rules, not a generic meta-principle; no hardcoded example.
+
+### Decisions
+- Encoded as two plain selector rules, no "two-currencies" abstraction, no reference to the source example.
+- Rule 1 hung off the existing small-multiples bullet, flagged as distinct from shared-vs-free scale (which is within one unit).
+- Rule 2 extended the existing "two panels, same grain and numbers" guardrail. Exception restricted to non-100% stacks - a 100% stack total is constant, a flat line that earns no graph.
+- Scope: `dataviz-selector` only (both copies). Not extended to idea-critique/execution.
+
+### Work done
+- Edited both SKILL.md copies, verified identical, ran `./sync.sh --no-pull`.
+- CHANGELOG entry added. Commit + push.

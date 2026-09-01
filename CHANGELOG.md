@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Selector: small multiples need shared units, and one message stays one graph
+
+Two related failure modes the selector did not catch: a small-multiples grid whose panels carry different units (length beside currency beside a count), which reads as a valid side-by-side comparison but is not; and two graphs re-explaining what was one graph.
+
+- **Small multiples require shared units, `dataviz-selector` (both copies).** Panels in a faceted grid must share one unit - the grid invites side-by-side comparison, and heterogeneous units make that comparison meaningless while the form implies it is valid. Different units → not small multiples: use a table or separate individually-labelled charts. Called out as distinct from the shared-vs-free scale choice, which only applies within a single unit.
+- **One message, one graph, `dataviz-selector` (both copies).** Extended the existing "two panels, same grain and numbers" guardrail to the softer case of a second view re-stating a message the first already carries. The one licensed pairing is decomposing a non-100% stacked bar into a total trend line plus per-component small multiples (total and mix are two different messages); explicitly excludes the 100% stack, whose constant total is a flat, information-free line that does not earn its own graph.
+
 ### Selector: gate small multiples on crowding, and add a separate dense-series smoothing rule
 
 The selector reached for small multiples too readily - faceting a handful of lines that a single direct-labelled panel would carry - and had no rule at all for overlaying or substituting a smoothed trend on a noisy series. The "many comparable series" bullet jumped straight to facet layout with no "when", and smoothing existed only as a narrow relationship-regression aside.
