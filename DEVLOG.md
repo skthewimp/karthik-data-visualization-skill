@@ -2001,3 +2001,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 ### Work done
 - Edited both SKILL.md copies, verified identical, ran `./sync.sh --no-pull`.
 - CHANGELOG entry added. Commit + push.
+
+<!-- claude-session:276f617e-658c-497b-995b-eef6f35ef0ed:start -->
+## 2026-09-01 19:19 IST | Claude session `276f617e-658`
+
+### User prompts
+> another thing - small multiples only when all graphs have the same units. else can be really misleading. like in this csae (showing both original and corrected). [Image #16] . the other (fairly important) thing - we d...
+> not generic. just put teh specifics. don't hardcode like you have here. discuss before committing
+> 1. yes, restrict to non100% stacked only. else we get a flat line getting its own graph which si pointless; 2. selector only
+
+### Work done
+- Good catch - "Other" is exactly the licensed case, and my draft wrongly used it as the example of the sin. Revised: > **Do not invent groupings to manufacture a claim.** Merging categories into coarser buckets (forcin...
+- Pushed. New Hard guardrail in `dataviz-selector` (both copies), synced, CHANGELOG + DEVLOG updated: **Do not invent groupings to manufacture a claim** - grouping needs a reason in the data or the question, never that...
+
+<!-- claude-session:276f617e-658c-497b-995b-eef6f35ef0ed:end -->
