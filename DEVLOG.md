@@ -1788,3 +1788,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Committed + pushed. **The gap:** the inspector only flagged the *redundant* case - `EXTERNAL_LEGEND`/`REDUNDANT_COLOUR` (low, eraser-test) when a legend duplicates existing direct labels. The inverse - colour ca...
 
 <!-- claude-session:677536ba-f9da-4aff-a81f-3b97b9c38f98:end -->
+
+<!-- claude-session:3c45bd2e-a80f-44f4-a78c-9a13963d1b8b:start -->
+## 2026-09-01 11:04 IST | Claude session `3c45bd2e-a80`
+
+### User prompts
+> we have some issues with @recommend_text_placement. this was for a stacked bar wwhere hte lables had to ON the boxes, but the labels were pushed out, and evetrything became malformed. here is the entire logs. i'm also...
+> [Image #6] i have a problem wtih this graph taht was again produced in the fix workflow. since the categories are q1:q4, it's basically a time series. and to invert axes for a time series is not correct. also , i don'...
+> [Image #7] another case - 1. we should ideally have free Y axes for this? or a slopegreaph rather than small multiples? 2. annotations aer both benign and distract. and possibly have too many significant digits. 3. we...
+
+### Work done
+- Now CHANGELOG + DEVLOG, then commit.
+- Pushed `2ce5b39`. 18 tests green, validated, installed. ## What it does now `recommend_text_placement` gets a post-placement pass. It already receives both the annotations and the on-mark `data_label`s with positions,...
+
+<!-- claude-session:3c45bd2e-a80f-44f4-a78c-9a13963d1b8b:end -->
