@@ -29,6 +29,19 @@ dense-enough series), and he draws at most 1-2 smooth lines per graph.
   so no contradiction - left untouched.
 - Both claude+codex copies edited; `./sync.sh --no-pull` to install.
 
+### Follow-up: panel/bar ordering (Quartz liquor small-multiples as the good example)
+
+Reviewed a food-share small-multiples output vs the Quartz "shots per week" chart. Verdict: the food
+chart's family (facets) was right and slopegraph was wrong (non-monotonic trajectories - peaks/dips -
+that a slopegraph would flatten to endpoint change). The one reusable lesson Karthik wanted encoded
+was **ordering**, not the free-scale critique.
+
+- Small-multiple panels: order by decreasing peak value or decreasing story importance, top-left to
+  bottom-right; if the key story isn't the biggest panel, thicken its line instead of reordering.
+  `dataviz-selector` + `karthik-data-visualization`, both copies.
+- Horizontal ranking bars: longest at top, descending - ordering is load-bearing. Vertical bars: less
+  order-sensitive but still order meaningfully. `dataviz-selector`, both copies.
+
 ## 2026-09-01 - New dataviz-aesthetic composition gate
 
 ### Context
