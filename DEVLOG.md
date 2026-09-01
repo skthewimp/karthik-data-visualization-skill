@@ -2015,3 +2015,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed. New Hard guardrail in `dataviz-selector` (both copies), synced, CHANGELOG + DEVLOG updated: **Do not invent groupings to manufacture a claim** - grouping needs a reason in the data or the question, never that...
 
 <!-- claude-session:276f617e-658c-497b-995b-eef6f35ef0ed:end -->
+
+<!-- claude-session:218aeedc-a773-4ea4-ae39-89a76948f5b1:start -->
+## 2026-09-01 19:57 IST | Claude session `218aeedc-a77`
+
+### User prompts
+> suddenly i'm wondering if scales=free_y for small multiples is actually a good idea.
+> i'm wondering - if the key claim is teh "slope" in multiple charts, is small multiples the rihgt idea at all?
+> so basically if small multiples, then we have shared Y only. there is no case now for free Y. and maybe we should tighten the small multiple selection as well - if it's a trend we need to show, may not be ideal to use...
+
+### Work done
+- Synced/installed. Commit + push.
+- Done. Pushed. Both edits, both copies, synced + installed: 1. **Shared y** now triggered by *any* cross-panel comparison - levels **or** slopes/rates. Free scales narrowed to per-panel shape with no cross-panel read....
+
+<!-- claude-session:218aeedc-a773-4ea4-ae39-89a76948f5b1:end -->
