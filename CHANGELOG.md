@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### `recommend_text_placement` flags an annotation that restates the data label beside it
+
+The value-add gate is a skill rule the build model must follow; nothing enforced it mechanically. The label-positioning tool already knows both the annotations and the on-mark `data_label`s and their positions, so it is the right place to catch the restatement subset.
+
+- **`recommend_text_placement` returns `redundant_annotations`.** A free annotation whose single data value (years/coordinates ignored) a nearby `data_label` already prints - a "Peak: 42%" beside a mark already labelled 42% - is recommended for removal, with a warning on the block and an entry `{id, restated_value, data_label_id}`. A comparison naming two values ("from 51% to 26%") or a computed delta whose number is on no label ("up 9 points") carries its own numbers and is never flagged. `dataviz_mcp/text_fit.py`, `dataviz_mcp/server.py`; documented in `docs/mcp.md`; `chart-annotations` points the gate at it; regression tests in `dataviz_mcp/tests/test_text_fit.py`.
+
 ### Benign annotations get an operational value-add gate
 
 A `dataviz-fix` chart carried callouts like "Up 9.0 points", "highest output: 340 lines", and "Peak: 42% in 2000" - each restating a value a direct label already printed or a rank the geometry already showed. The rule against this existed in `karthik-evidence-builder` ("a mark that restates the obvious, or that the axis already shows, is clutter") but was a single soft sentence, and `chart-annotations` - the ranking gate - had no restatement reject at all, so benign candidates were ranked and kept.

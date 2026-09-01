@@ -12,9 +12,29 @@ Mechanism only. It never invents an annotation - it fits the ones already chosen
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 from .layout import FONT_PT, boxes_overlap, char_px, line_px
+
+
+_NUMBER_RE = re.compile(r"-?\d[\d,]*(?:\.\d+)?")
+
+
+def _numbers(text: str) -> set[float]:
+    """Every numeric token in ``text`` as a float - `42%`, `$0.05`, `1,650`, `340` all parse."""
+    out: set[float] = set()
+    for token in _NUMBER_RE.findall(text or ""):
+        try:
+            out.add(float(token.replace(",", "")))
+        except ValueError:
+            continue
+    return out
+
+
+def _is_yearlike(value: float) -> bool:
+    """A four-digit integer in a plausible calendar range - a coordinate, not a measured value."""
+    return float(value).is_integer() and 1500 <= value <= 2200
 
 
 FIXED_ROLES = {"title", "subtitle", "footer", "caption"}
@@ -71,6 +91,16 @@ def _leader_line(bbox: dict[str, float], anchor: tuple[float, float]) -> dict[st
     fx = min(max(ax, bbox["x"]), bbox["x"] + bbox["width"])
     fy = min(max(ay, bbox["y"]), bbox["y"] + bbox["height"])
     return {"from": {"x": round(fx, 1), "y": round(fy, 1)}, "to": {"x": round(ax, 1), "y": round(ay, 1)}}
+
+
+def _center(bbox: dict[str, float]) -> tuple[float, float]:
+    """Centre point of a bbox."""
+    return bbox["x"] + bbox["width"] / 2, bbox["y"] + bbox["height"] / 2
+
+
+def _distance(a: tuple[float, float], b: tuple[float, float]) -> float:
+    """Euclidean distance between two points."""
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
 
 
 def _search_clear(
@@ -160,8 +190,13 @@ def recommend_text_placement(
     moved, shrank, or re-wrapped a block, ``suggested_anchor`` / ``suggested_font_pt`` /
     ``suggested_wrap`` plus a warning. A movable block that ends up off its original anchor also
     gets a ``leader_line`` (``{from, to}`` in canvas px) for the builder to draw as a thin
-    connector, so a de-collided label still pairs with the mark it names. When landscape text
-    stays unresolvable, a canvas-level
+    connector, so a de-collided label still pairs with the mark it names.
+
+    Returns a top-level ``redundant_annotations`` list (``{id, restated_value, data_label_id}``):
+    a free annotation whose single data value a nearby ``data_label`` already prints is clutter -
+    the value is on the chart twice - so it is recommended for removal, and the block also carries
+    a warning. A comparison naming two values or a computed delta whose number is on no label is
+    never flagged. When landscape text stays unresolvable, a canvas-level
     ``suggested_orientation: "portrait"`` and swapped ``suggested_canvas`` recommend a flip for a
     later build stage to apply and re-run against.
     """
@@ -266,6 +301,39 @@ def recommend_text_placement(
             }
         )
 
+    # Redundant-annotation check: a free annotation that only restates the value a data label
+    # already prints on the mark beside it is clutter - the value is on the chart twice. When an
+    # annotation carries a single data value (years/coordinates ignored) and a nearby data_label
+    # already shows that value, recommend dropping the annotation. A comparison that names two
+    # values ("from 51% to 26%") or a computed delta ("up 9 points", whose number is on no label)
+    # carries its own numbers and is never flagged - it adds what the labels do not.
+    redundant_annotations: list[dict[str, Any]] = []
+    data_labels = [
+        (_center(r["bbox"]), _numbers(r["wrapped_text"]), r["id"], r["wrapped_text"])
+        for r in results
+        if r["role"] in ON_MARK_ROLES
+    ]
+    if data_labels:
+        near = 0.2 * (width_px**2 + height_px**2) ** 0.5
+        for r in results:
+            if r["role"] in FIXED_ROLES or r["role"] in ON_MARK_ROLES:
+                continue
+            values = {n for n in _numbers(r["wrapped_text"]) if not _is_yearlike(n)}
+            if len(values) != 1:
+                continue
+            value = next(iter(values))
+            centre = _center(r["bbox"])
+            for dl_centre, dl_values, dl_id, dl_text in data_labels:
+                if value in dl_values and _distance(centre, dl_centre) <= near:
+                    r["warnings"].append(
+                        f"restates the data label '{dl_text.strip()}' beside it; drop the "
+                        "annotation - the value is already on the chart"
+                    )
+                    redundant_annotations.append(
+                        {"id": r["id"], "restated_value": value, "data_label_id": dl_id}
+                    )
+                    break
+
     # Portrait recommendation: if text stayed unresolvable on a landscape canvas even after
     # moving and shrinking, more height than width would likely place it. Advisory only - the
     # tool cannot move the data marks, so a later build stage flips the canvas, re-renders, and
@@ -279,6 +347,7 @@ def recommend_text_placement(
     return {
         "canvas": {"width_px": width_px, "height_px": height_px, "dpi": dpi},
         "placements": results,
+        "redundant_annotations": redundant_annotations,
         "suggested_orientation": suggested_orientation,
         "suggested_canvas": suggested_canvas,
     }

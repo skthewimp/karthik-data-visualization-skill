@@ -157,3 +157,46 @@ def test_fixed_roles_are_wrapped_but_never_given_a_moved_anchor():
     caption = _by_id(result, "cap")
     assert caption["suggested_anchor"] is None
     assert caption["wrap_width_chars"] > 0
+
+
+def test_annotation_restating_a_nearby_data_label_is_flagged_for_removal():
+    # A "Peak: 42% in 2000" callout beside a data label already showing 42% only restates it -
+    # recommend dropping it. The year 2000 is a coordinate, not a second data value.
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[
+            {"id": "dl", "role": "data_label", "text": "42.0%", "anchor": {"x": 500, "y": 300}},
+            {"id": "ann", "role": "annotation", "text": "Peak: 42% in 2000", "anchor": {"x": 540, "y": 330}},
+        ],
+    )
+    redundant = {item["id"] for item in result["redundant_annotations"]}
+    assert "ann" in redundant
+    assert any("restates the data label" in w for w in _by_id(result, "ann")["warnings"])
+
+
+def test_comparison_annotation_naming_two_values_is_not_flagged():
+    # "fell from 51% to 26%" names two values and states a change - it adds what the labels do
+    # not, so even with matching data labels nearby it is never flagged.
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[
+            {"id": "dl1", "role": "data_label", "text": "51%", "anchor": {"x": 300, "y": 300}},
+            {"id": "dl2", "role": "data_label", "text": "26%", "anchor": {"x": 340, "y": 320}},
+            {"id": "ann", "role": "annotation", "text": "fell from 51% to 26%", "anchor": {"x": 360, "y": 340}},
+        ],
+    )
+    assert result["redundant_annotations"] == []
+
+
+def test_delta_annotation_whose_number_is_on_no_label_is_not_flagged():
+    # "Up 9 points" restates a change; 9 is on no data label (endpoints are 14 and 23), so the
+    # mechanical check leaves it - the value-add judgement stays with the skill.
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[
+            {"id": "dl1", "role": "data_label", "text": "14%", "anchor": {"x": 300, "y": 300}},
+            {"id": "dl2", "role": "data_label", "text": "23%", "anchor": {"x": 340, "y": 320}},
+            {"id": "ann", "role": "annotation", "text": "Up 9 points", "anchor": {"x": 360, "y": 340}},
+        ],
+    )
+    assert result["redundant_annotations"] == []

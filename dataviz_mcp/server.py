@@ -271,9 +271,13 @@ def create_server() -> Any:
         ``suggested_anchor`` / smaller ``suggested_font_pt`` / tighter ``suggested_wrap`` where
         needed. A movable block that ends up off its original anchor also gets a ``leader_line``
         (``{from, to}`` in canvas px) to draw as a thin connector so the label still pairs with
-        its mark. Plus a canvas-level ``suggested_orientation`` / ``suggested_canvas`` when a
-        landscape canvas stays too cramped and a portrait flip would help. It fits the
-        annotations already chosen; it invents none.
+        its mark. A top-level ``redundant_annotations`` list flags any free annotation whose one
+        data value a nearby ``data_label`` already prints (a "Peak: 42%" beside a mark already
+        labelled 42%) and recommends dropping it - the value is on the chart twice; a comparison
+        naming two values or a delta whose number is on no label is never flagged. Plus a
+        canvas-level ``suggested_orientation`` / ``suggested_canvas`` when a landscape canvas stays
+        too cramped and a portrait flip would help. It fits the annotations already chosen; it
+        invents none.
         """
         return recommend_text_placement_core(
             width_px,

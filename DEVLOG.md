@@ -1,5 +1,28 @@
 # Devlog
 
+## 2026-09-01 - Mechanical restatement check in the label-positioning tool
+
+### Context
+
+Prompt (paraphrased): the benign-annotation catch should not be in execution - it belongs in the
+label-positioning tool. When a data label already exists and an annotation just restates it,
+recommend removing the annotation.
+
+### What I changed
+
+`recommend_text_placement` (`text_fit.py`) already receives both the annotations and the on-mark
+`data_label`s with their anchors, so it is the natural enforcement point. Added a post-placement
+pass: parse numeric tokens from each block; a free annotation carrying exactly one data value
+(years/coordinates excluded via a 1500-2200 integer test) whose value a `data_label` within ~20%
+of the canvas diagonal already prints is recommended for removal. Returns a top-level
+`redundant_annotations` (`{id, restated_value, data_label_id}`) plus a per-block warning.
+
+The single-value constraint is what keeps it honest: a comparison naming two values
+("from 51% to 26%") or a delta whose number is on no label ("up 9 points") is never flagged - those
+add what the labels do not. Server docstring, `docs/mcp.md`, and the `chart-annotations` value-add
+gate now point at it. Three regression tests (flag the restatement, spare the comparison, spare the
+delta).
+
 ## 2026-09-01 - An operational gate for benign annotations
 
 ### Context
