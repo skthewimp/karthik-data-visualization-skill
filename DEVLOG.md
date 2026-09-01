@@ -1,5 +1,39 @@
 # Devlog
 
+## 2026-09-01 - Label ownership in the core skill; axis drops on the key labels
+
+### Context
+
+Feedback: pipeline charts don't look "premium enough" - one cause is too many labels. The clean
+split (from the review comment): Select/Build decides *what deserves a label and why*;
+`recommend_labels` picks feasible indices within that scope; `recommend_text_placement` only
+places; execution confirms attachment and that unnecessary labels were removed. The placement
+tool must never independently add, delete, or rewrite labels. The editorial principle belongs in
+the core visualization skill. Related: we don't need *all* points labelled to drop an axis - key
+points labelled is enough.
+
+### What I changed (scope trimmed to fixes 1-3 on Karthik's call)
+
+- Core `karthik-data-visualization`: added the editorial-scope rule ("a direct label earns its
+  place; decide scope first") naming the five things that earn a label, and stating the tools pick
+  within scope and never widen/add/rewrite it. Relaxed the quantitative drop-unless test so the
+  axis goes once the reading-carrying marks are labelled, not once every point is.
+- `dataviz-execution`: reworded `REDUNDANT_VALUE_AXIS` to make the contract path (key set) the
+  primary trigger and the every-mark geometry path the conservative no-contract floor; extended the
+  eraser test to labels themselves.
+
+### Decisions
+
+- Scope owner = core skill only (not a new skill, not widening `chart-annotations` which stays
+  callout-only). Matches the comment: principle in core, enforced downstream.
+- Kept `recommend_labels` budget at 4/series - no hardcoded count change; the upstream editorial
+  gate does the trimming.
+- No `inspection.py` change: the contract path of `REDUNDANT_VALUE_AXIS` already fires on the
+  declared key set, so relaxing "every mark" was a wording fix, not code. The geometry fallback
+  stays strict because with no contract it can't tell a key mark from a filler one.
+- Deferred (Karthik: less important): tightening `recommend_labels`/`recommend_text_placement`
+  docstrings, and a mechanical over-label flag.
+
 ## 2026-09-01 - Mechanical restatement check in the label-positioning tool
 
 ### Context

@@ -26,7 +26,7 @@ Inspect the exact export at the declared delivery size and find every consequent
   red/green alone.
 - **Precision as displayed:** the number of digits shown matches the decided plan (the spread
   rule, or an exact-lookup override with its reason) - no fabricated or ragged precision.
-- **Eraser test:** remove any ink that carries no data, no label, and no necessary context.
+- **Eraser test:** remove any ink that carries no data, no label, and no necessary context - and this includes labels themselves. A direct label that only repeats a level or shape a labelled neighbour already shows is redundant ink; confirm the labels left on the plot are the editorial set (a series' identity, endpoints, the focal comparison, genuine exceptions, exact lookups) and not a value stamped on every point. Over-labelling is what makes a chart read busy and cheap.
 
 ## Rendering and inspection
 
@@ -53,12 +53,15 @@ data. Pass it as role `data_label` - wrapped, never moved - and never list its o
 shoves every one off its bar and clips them off-canvas.
 
 A `REDUNDANT_VALUE_AXIS` flag (low severity, so it never blocks) is the eraser test made
-mechanical: when every mark carries its own value label, the numeric value axis ticks and
-gridlines are duplicate ink - drop them unless the axis still earns its place with a zero
-baseline or a scale reference. Category (non-numeric) ticks are never flagged. It fires from a
-declared direct-label contract, and also - for a facet grid that labels every mark but declares
-nothing - from the mark geometry itself, once every mark-bearing panel carries a value label on
-each of its marks.
+mechanical: when the marks that carry the reading are directly labelled, the numeric value axis
+ticks and gridlines are duplicate ink - drop them unless the axis still earns its place with a
+zero baseline or a scale reference. You do not need every point labelled for the axis to go; it
+is redundant once the reader has no mark left to read off the scale. Category (non-numeric) ticks
+are never flagged. The flag fires from the declared direct-label contract - which names that key
+set, so a chart labelling only its endpoints and exceptions still trips it - and also, as a
+conservative floor for a facet grid that labels its marks but declares nothing, from the mark
+geometry itself, only once every mark-bearing panel carries a value label on each of its marks
+(with no contract the check cannot tell a key mark from a filler one, so it waits for all of them).
 
 An `EXTERNAL_LEGEND` flag and a `REDUNDANT_COLOUR` flag (both low, non-blocking) are the same
 eraser test for the other two round-trips. Colour is duplicate ink when it only restates a

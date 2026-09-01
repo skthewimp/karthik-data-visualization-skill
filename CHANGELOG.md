@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Direct-label editorial scope is owned by the core skill; axis drops on the key labels, not all
+
+Charts from the pipeline read busy and "not premium" - too many direct labels, and value axes kept even when the points that matter were already labelled. Two causes: nothing decided *what deserves a direct label* before `recommend_labels` filled its budget, and the redundant-axis principle was worded as if it needed *every* mark labelled.
+
+- **`karthik-data-visualization` owns "what earns a direct label".** New rule: a direct label is not the default for every point; decide the editorial scope first - a series' identity, an endpoint, the focal comparison, a genuine exception, or an exact lookup - and leave the rest in the data. The label tools pick feasible points *within* that scope and place them; they never widen, add, or rewrite it. Over-labelling named as the common reason a chart looks cheap. General principle, no enumerated counts. Both copies.
+- **Axis-drop rule relaxed to the key set.** The quantitative drop-unless test now reads: remove the value axis when the marks that carry the reading are labelled - you do not need every point labelled, only the ones the reader would otherwise read off the scale. `karthik-data-visualization` (both copies).
+- **`dataviz-execution` aligned.** `REDUNDANT_VALUE_AXIS` prose now states the flag fires from the declared direct-label contract (the key set, so labelling only endpoints/exceptions trips it), with the every-mark geometry path described as the conservative floor used only when nothing is declared. Eraser-test bullet extended to labels themselves: a label repeating a labelled neighbour's level/shape is redundant ink. No code change - the contract path already behaved this way. Both copies.
+
 ### `recommend_text_placement` flags an annotation that restates the data label beside it
 
 The value-add gate is a skill rule the build model must follow; nothing enforced it mechanically. The label-positioning tool already knows both the annotations and the on-mark `data_label`s and their positions, so it is the right place to catch the restatement subset.
