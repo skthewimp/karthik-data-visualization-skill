@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### The selector no longer reads "shares sum to 100%" as a vote for a stack
+
+A `dataviz-fix` run on age-composition shares chose a 100% stacked bar even though the headline and every annotation were component trajectories (one group up, two down, one stable) - exactly the comparisons a stack hides, since only its outer edges have a stable baseline. The routing rule already existed; it never fired because the reasoning treated "the parts total 100%" as evidence for a composition form.
+
+- **`dataviz-selector` now guards the data-property-to-form inversion.** The composition bullet states that a dataset being compositional (parts summing to a fixed total) is a property of the numbers, not a reason to choose a stack: decide the form from what the claim asks the reader to read, and route component-trajectory claims to lines/slopes/small multiples/grouped bars/tables even when the shares total 100%. General principle, no enumerated dataset or trigger. `dataviz-selector` (both copies); mirrored in `docs/skills/dataviz-selector.md`.
+
 ### Displaced labels get a leader line, and the selector drops dot plots
 
 A fresh canonical-example run left two things a weak model kept reproducing: a moved data label that floats between neighbouring series (so `36%` and `24%` no longer pair with their points), and dot plots chosen for categorical-vs-numerical comparisons that read worse than bars or a slopegraph.

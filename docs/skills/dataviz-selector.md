@@ -89,7 +89,7 @@ If the user asks for one of these, the skill should say it is not recommended an
 | Vote efficiency | Vote-share vs seat-share scatter |
 | Swing scenarios | Seat curves by swing, faceted by state |
 | Survey polarisation | Faceted response histograms |
-| Share substitution | 100% stacked bars/area only if broad mix is the story; use small multiples, grouped bars, lines, dots, or a table when intermediate or top components need precise comparison |
+| Share substitution | 100% stacked bars/area only if broad mix is the story; use small multiples, grouped bars, lines, dots, or a table when intermediate or top components need precise comparison. Compositional data (parts summing to 100%) is not a compositional claim - a claim about how components move over time is a set of trajectories and goes to lines/small multiples regardless of the fixed total |
 | Many series × time, compare trajectories | Small multiples or direct-labelled lines (reduce to top-N + explicit "other" if crowded). Put the trajectory on position, not on colour. |
 | Risk | Downside distributions, scenarios, utility curves |
 | Root cause | Waterfall if reconciled; otherwise ranked driver bars or action table |
