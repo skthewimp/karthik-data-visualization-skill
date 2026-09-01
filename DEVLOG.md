@@ -1900,3 +1900,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Then capability floor is out. Luna can do the claim↔form check - it just didn't here. What's different about this path: `mode: automatic_critique`, no user prompt. Luna had to self-derive the claim, pick the form, *an...
 
 <!-- claude-session:eaa89029-a2ba-487f-9123-6ae626373144:end -->
+
+<!-- claude-session:4820239b-8003-4eb2-86d6-0ce5720debe5:start -->
+## 2026-09-01 15:58 IST | Claude session `4820239b-800`
+
+### User prompts
+> label placement algo is comelely broken. check here: [Image #13]
+
+### Work done
+- All checks pass, no remote divergence, all 4 files are mine. Committing + pushing.
+- Pushed. `main` now matches `origin/main`. **Done — anti-crossing pass shipped.** `dataviz_mcp/text_fit.py` What it does: after all labels are placed, any pair of displaced movable labels whose leader lines cross trade...
+
+<!-- claude-session:4820239b-8003-4eb2-86d6-0ce5720debe5:end -->
