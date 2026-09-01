@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Years read as labels, not measurements; and the redundant-axis flag fires in facets
+
+A `dataviz-fix` run on a faceted shares-over-time chart printed the year axis as `1,970 2,000 2,030` (thousands separators on a year) and drew both a numeric value axis and a direct value label on every point in every panel - duplicate ink the inspector let through.
+
+- **`dataviz-precision` gains a "labels are not measurements" rule.** A value that names a position on an axis - a year (`2000`, not `2,000`), a quarter, a month number, a rank, a stage, any sequence/ID used as a coordinate - is a label, not a quantity: no thousands separator, no spread rounding, no forced decimals. It is not the exact-lookup override (which preserves the digits of a *quantity*); a temporal or ordinal coordinate is simply outside the spread rule, including when quoted in an annotation ("in 2000"). `dataviz-precision` (both copies); mirrored in `docs/skills/dataviz-precision.md`.
+- **`inspect_rendered_chart` now fires `REDUNDANT_VALUE_AXIS` in facet grids without a declared contract.** The check needed a caller-supplied `direct_labels` contract, so a facet grid that labelled every mark but declared nothing slipped through. It now also derives coverage from the mark geometry - grouping by axes, which marks and value labels carry reliably even where tick labels do not - and flags once every mark-bearing panel has a value label on each of its marks. Contract path unchanged; geometry path runs only when the contract found nothing, so no double-flag. `dataviz_mcp/inspection.py`; documented in `docs/mcp.md` and `dataviz-execution` (both copies); regression test + fixture in `dataviz_mcp/tests/`.
+
 ### The selector no longer stands a time axis on its head or lollipops a magnitude
 
 A `dataviz-fix` run on Q1–Q4 metrics (a time series) produced small multiples with the quarters laid down the y-axis reading Q4-at-top to Q1-at-bottom - time climbing upward - and each value drawn as a dot on a hairline stem. Two mis-steps: the ranked-horizontal-bar layout got applied to an ordered/time axis (which is not a ranking to sort or flip), and a single-value magnitude was drawn as a lollipop instead of a bar.

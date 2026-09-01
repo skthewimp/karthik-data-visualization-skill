@@ -55,7 +55,10 @@ shoves every one off its bar and clips them off-canvas.
 A `REDUNDANT_VALUE_AXIS` flag (low severity, so it never blocks) is the eraser test made
 mechanical: when every mark carries its own value label, the numeric value axis ticks and
 gridlines are duplicate ink - drop them unless the axis still earns its place with a zero
-baseline or a scale reference. Category (non-numeric) ticks are never flagged.
+baseline or a scale reference. Category (non-numeric) ticks are never flagged. It fires from a
+declared direct-label contract, and also - for a facet grid that labels every mark but declares
+nothing - from the mark geometry itself, once every mark-bearing panel carries a value label on
+each of its marks.
 
 An `EXTERNAL_LEGEND` flag and a `REDUNDANT_COLOUR` flag (both low, non-blocking) are the same
 eraser test for the other two round-trips. Colour is duplicate ink when it only restates a

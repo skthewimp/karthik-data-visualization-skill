@@ -161,6 +161,21 @@ def all_marks_labelled():
     }
 
 
+def faceted_bars_all_labelled():
+    # Two panels, every bar directly labelled with its value and a numeric y axis on each panel,
+    # but NO inspection_contract - the geometry fallback must still flag the redundant value axis
+    # per panel.
+    fig, axes = plt.subplots(1, 2, figsize=(8, 4.5), dpi=100)
+    heights = ([2, 4, 3], [5, 1, 4])
+    for panel, (ax, hs) in enumerate(zip(axes, heights)):
+        bars = ax.bar(["A", "B", "C"], hs, color="#245b78")
+        for index, (bar, value) in enumerate(zip(bars, hs)):
+            bar.set_gid(f"mark:p{panel}-bar{index}")
+            label = ax.text(bar.get_x() + bar.get_width() / 2, value + 0.2, f"{value}", fontsize=8)
+            label.set_gid(f"label:p{panel}-bar{index}")
+    return fig, {"fixture": "faceted_bars_all_labelled"}
+
+
 def coloured_facets_with_legend():
     fig, axes = plt.subplots(1, 2, figsize=(8, 4.5), dpi=100)
     x = np.arange(10)

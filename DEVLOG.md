@@ -1,5 +1,39 @@
 # Devlog
 
+## 2026-09-01 - Years are labels; redundant-axis flag reaches into facets
+
+### Context
+
+Prompt (paraphrased): a faceted shares-over-time fix-workflow chart had three problems - shared Y
+axes flattened the small categories (or it should have been a slopegraph), the annotations were
+benign and over-precise, and every panel showed both direct labels and a value axis. What went
+wrong, and is it the selector?
+
+### Diagnosis
+
+Three defects, three owners. (1) Shared-vs-free scale: the free-scale rule already exists in the
+selector (line 46) - a compliance miss, not a gap. (2) `2,000` for the year 2000 and `40.0%` /
+`9.0 points`: precision. The year is a real gap - the skill had no notion that a temporal/ordinal
+coordinate is a label, not a measured quantity; the `.0` is a build bypass of `recommend_precision`
+(the spread rule gives 0 decimals for shares spanning 1-42). (3) Direct labels + value axis:
+`REDUNDANT_VALUE_AXIS` exists but only fired from a caller-declared direct-label contract, which a
+faceted build did not supply.
+
+Karthik chose to fix the precision label rule and the faceted redundant-axis detection.
+
+### What I changed
+
+- **Precision.** New "labels are not measurements" section: years, quarters, ranks, stages, IDs
+  used as coordinates take no thousands separator, no spread rounding, no forced decimals -
+  outside the spread rule, distinct from the exact-lookup override. Both copies + docs mirror.
+- **Redundant-axis in facets.** `inspect_rendered_chart` gains a geometry fallback: when no
+  direct-label contract is declared, it groups marks and numeric value labels by axes (reliable
+  where tick `axes_id` is not) and fires once every mark-bearing panel labels each of its marks.
+  Contract path untouched; fallback runs only when the contract found nothing. New fixture
+  `faceted_bars_all_labelled` + regression test. `dataviz_mcp/inspection.py`.
+- Left for later (compliance, not gaps): benign annotations, the `.0` build bypass, and the
+  shared-vs-free scale application.
+
 ## 2026-09-01 - Selector: ordered/time axes keep their direction, magnitude gets bars
 
 ### Context

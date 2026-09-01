@@ -602,6 +602,58 @@ def inspect_rendered_chart(
                     )
                 )
 
+        # Geometry fallback for faceted charts. The contract check above needs a caller-declared
+        # direct_labels expectation; a facet grid that labels every point but declares nothing
+        # would slip through. When the contract found nothing, derive coverage from the marks
+        # themselves - grouping by axes, which marks and value labels carry reliably even where
+        # tick labels do not: a chart flags when every mark-bearing panel has a numeric value
+        # label on each of its marks. Runs only when the contract path found nothing, so a chart
+        # is never double-flagged.
+        if not redundant_value_axis:
+            elements = metadata.get("elements", [])
+            marks_per_axes: dict[Any, int] = {}
+            for mark in metadata.get("marks", []):
+                axes_id = mark.get("axes_id")
+                if axes_id is not None:
+                    marks_per_axes[axes_id] = marks_per_axes.get(axes_id, 0) + 1
+            value_labels_per_axes: dict[Any, int] = {}
+            for element in elements:
+                axes_id = element.get("axes_id")
+                if (
+                    axes_id is not None
+                    and element.get("role") == "label"
+                    and _looks_numeric(element.get("text", ""))
+                ):
+                    value_labels_per_axes[axes_id] = value_labels_per_axes.get(axes_id, 0) + 1
+            geometry_complete = (
+                bool(marks_per_axes)
+                and any(count >= 2 for count in marks_per_axes.values())
+                and all(
+                    value_labels_per_axes.get(axes_id, 0) >= count
+                    for axes_id, count in marks_per_axes.items()
+                )
+            )
+            if geometry_complete:
+                numeric_ticks = [
+                    element
+                    for element in elements
+                    if element.get("role") == "tick_label"
+                    and _looks_numeric(element.get("text", ""))
+                ]
+                if numeric_ticks:
+                    ids = [element["id"] for element in numeric_ticks]
+                    redundant_value_axis.append({"element_ids": ids, "tick_count": len(ids)})
+                    defects.append(
+                        _defect(
+                            "REDUNDANT_VALUE_AXIS",
+                            "low",
+                            ids,
+                            "Every mark is directly labelled on every panel; the numeric value "
+                            "axis duplicates the labels - drop its ticks and gridlines (eraser "
+                            "test).",
+                        )
+                    )
+
     if metadata is not None:
         # Redundant colour and external legend: colour or a legend that only restates a
         # grouping the plot already encodes another way - a facet title, a category-axis tick,

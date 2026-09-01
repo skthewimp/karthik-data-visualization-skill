@@ -18,6 +18,10 @@ For example, `{12483, 9210, 15040}` spans ~5830, so the place is hundreds and th
 
 The rule is the same for charts and tables; apply it per axis and per column, each with its own spread. In tables it works alongside `karthik-table-style` for decimal alignment and tabular figures.
 
+## Labels are not measurements
+
+A value that names a position on an axis rather than a quantity to compare - a year (`2000`, not `2,000`), a quarter, a month number, a rank, a stage, or any sequence/ID used as a coordinate - is a label, not a measurement. It takes no thousands separator, no spread rounding, and no forced decimals: a year axis reads `1970 2000 2030`, never `1,970` or `2000.0`. This is not the exact-digit override below (that preserves the digits of a quantity); a temporal or ordinal coordinate is simply outside the spread rule. `recommend_precision` governs the measured values plotted against these axes, not the axis positions - and the same holds for such a value quoted inside an annotation ("in 2000", not "in 2,000").
+
 ## Exact-digit override
 
 The spread rule is the default for every displayed number. It is overridden in one case only - **identifiers or a genuine exact-lookup requirement**, where a reader must read a value off verbatim. `recommend_precision(values, role, exact=True)` preserves every source digit and returns `exact_override: true`. The override is never silent: the reason for it is recorded in the build result's `recommendations_used.number_formats` entry, whose `reason` field is required.

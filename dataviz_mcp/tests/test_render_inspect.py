@@ -262,6 +262,20 @@ def test_redundant_value_axis_flagged_when_every_mark_is_labelled(tmp_path: Path
     assert all(item["severity"] != "high" for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
 
 
+def test_redundant_value_axis_flagged_per_panel_without_a_contract(tmp_path: Path) -> None:
+    # A faceted chart that labels every bar but declares no inspection_contract must still flag
+    # the redundant value axis, per panel, from geometry alone.
+    _, report = render(tmp_path, "faceted_bars_all_labelled")
+    assert "REDUNDANT_VALUE_AXIS" in _codes(report)
+    assert report["redundant_value_axis"]
+    # A suggestion, not a blocker.
+    assert all(
+        item["severity"] != "high"
+        for item in report["defects"]
+        if item["code"] == "REDUNDANT_VALUE_AXIS"
+    )
+
+
 def test_no_redundant_axis_without_direct_labels(tmp_path: Path) -> None:
     _, report = render(tmp_path, "clean_chart")
     assert "REDUNDANT_VALUE_AXIS" not in _codes(report)

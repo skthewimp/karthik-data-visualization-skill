@@ -42,6 +42,10 @@ An exact override is never silent. Whenever you leave the spread rule behind, **
 
 If an upstream decision has already marked a column as an identifier or exact-lookup, obey that mark and carry its stated reason forward - do not silently re-decide it at build time. Absent any such mark, the spread rule stands and the exact-vs-spread call is yours to make here. Carrying the decision as an explicit flag with its reason, rather than leaving it to be re-inferred from prose, is what lets a weaker downstream model apply it reliably.
 
+## Labels are not measurements: temporal and ordinal axes
+
+A third case sits outside the rule entirely. A value that names a position on the axis rather than a quantity to compare - a **year** (2000, not 2,000), a quarter, a month number, a rank, a stage, or any sequence/ID used as a coordinate - is a **label**, not a measurement. It takes no thousands separator, no spread rounding, and no forced decimal places: a year axis reads `1970 2000 2030`, never `1,970` or `2000.0`. This is not the exact-lookup override (that preserves the digits of a *quantity*); a temporal or ordinal coordinate is simply never a quantity the spread rule governs. `recommend_precision` is for the measured values plotted against these axes, not for the axis positions themselves. The same holds for such a value quoted inside an annotation ("in 2000", not "in 2,000").
+
 ## Charts and tables
 
 The rule is the same for both. On a chart it sets axis-tick and data-label formatting; in a table it sets each numeric column's rounding and, with `karthik-table-style`, the decimal alignment and tabular figures. Apply `recommend_precision` per axis and per column - each has its own spread.
