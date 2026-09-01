@@ -260,8 +260,12 @@ def create_server() -> Any:
         Call inside build after the title/subtitle/caption/annotations are written and the
         canvas is fixed. Each ``blocks`` item is ``{id, text, role, font_pt?, anchor:{x,y}}``
         in canvas px; title/subtitle/footer/caption are wrapped but never moved, annotations
-        are movable. ``obstacles`` are the data marks' bounding boxes in canvas px - annotations
-        are always de-collided against them, not only against other text. A movable block with
+        are movable. Role ``data_label`` is an on-mark label the plotting layer already centred
+        on its mark (a stacked-bar segment value, a point label): wrapped, never moved, and
+        exempt from obstacle de-collision - do NOT pass its own bar as an obstacle, or it will be
+        shoved off the segment it belongs on. ``obstacles`` are the data marks' bounding boxes in
+        canvas px - movable annotations are always de-collided against them, not only against
+        other text. A movable block with
         no clear spot at full size is shrunk toward ``min_font_pt`` (the legibility floor) before
         the wrap is tightened. Returns each block's wrapped text, predicted bbox, and a moved
         ``suggested_anchor`` / smaller ``suggested_font_pt`` / tighter ``suggested_wrap`` where

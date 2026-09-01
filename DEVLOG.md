@@ -1,5 +1,36 @@
 # Devlog
 
+## 2026-09-01 - On-mark labels stop getting shoved off their marks
+
+### Context
+
+Prompt (paraphrased): a stacked bar wanted its segment values ON the boxes, but
+`recommend_text_placement` pushed every label out and the graph became malformed. Full tool logs
+plus the rendered result attached. How to fix?
+
+### Diagnosis
+
+Misuse, not a tool bug. All 16 segment values (`44%`, `39%`, …) were passed as `role: "label"`
+= movable, with the bar segments passed as `obstacles`. A movable block's contract is "move it
+out of any obstacle to the nearest clear spot + leader line" - so the tool shoved every value off
+its bar, drew leaders, and by retry 4 clipped them off-canvas at x~2200. The two *free* callouts
+on the same chart placed cleanly every call - proof it was the routing, not the geometry. A value
+the plotting layer already centred inside a segment is position-fixed by the data, like a title,
+not a free annotation to de-collide.
+
+### What I changed
+
+- **New `data_label` role.** `ON_MARK_ROLES = {"data_label"}` joins the pinned set - wrapped,
+  never moved, no leader line, and never de-collided against obstacles - but wraps to the narrow
+  annotation band, not the full canvas width, so a short segment value never wraps like a title.
+  Only free callouts (annotation/label) still get obstacle de-collision. `dataviz_mcp/text_fit.py`,
+  `dataviz_mcp/server.py`.
+- **Guidance.** `dataviz-execution` (both copies), `docs/mcp.md`, and the tool docstrings now say:
+  tag on-mark values `data_label` and never list their own bar in `obstacles`. General principle
+  keyed on "plotting-layer-centred label", no enumerated chart type.
+- **Regression test.** `test_on_mark_data_label_stays_on_its_mark` - a `data_label` whose anchor
+  is covered by an obstacle stays put, no `suggested_anchor`, no `leader_line`, no warnings.
+
 ## 2026-08-31 - Leader lines for displaced labels, and the selector stops endorsing dot plots
 
 ### Context

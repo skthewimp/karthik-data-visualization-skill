@@ -18,6 +18,11 @@ from .layout import FONT_PT, boxes_overlap, char_px, line_px
 
 
 FIXED_ROLES = {"title", "subtitle", "footer", "caption"}
+# On-mark labels the plotting layer already centred on their mark (a stacked-bar segment value,
+# a point label). Their position is fixed by the data, so - like a title - they are wrapped but
+# never moved, and their own mark is never an obstacle to push them off. Only free callouts
+# (role annotation/label) are de-collided.
+ON_MARK_ROLES = {"data_label"}
 
 
 def _wrap(text: str, font_pt: float, dpi: float, avail_px: float) -> tuple[str, float, float]:
@@ -139,9 +144,13 @@ def recommend_text_placement(
         width_px / height_px / dpi: the fixed canvas from ``recommend_layout``.
         blocks: text blocks, each ``{id, text, role, font_pt?, anchor:{x,y}}`` in canvas px.
             role in {title, subtitle, footer, caption} is fixed (wrapped, never moved);
-            role annotation/label is movable.
+            role ``data_label`` is an on-mark label the plotting layer already centred on its
+            mark (a stacked-bar segment value, a point label) - also wrapped, never moved, and
+            never de-collided against its own mark; role annotation/label is movable.
         obstacles: bounding boxes ``{x, y, width, height}`` of the data marks/series in canvas
-            px. Annotations are always de-collided against these, not only text-vs-text.
+            px. Movable annotations are always de-collided against these, not only text-vs-text.
+            Do NOT pass a segment's own bar here for its ``data_label`` - an on-mark label belongs
+            inside its mark, so it is exempt from obstacle de-collision entirely.
         max_annotation_width_frac: widest an annotation box may wrap to, as a fraction of width.
         edge_margin_px: canvas margin; defaults to 3% of width.
         min_font_pt: legibility floor a movable block may shrink to when no clear spot is found
@@ -162,11 +171,12 @@ def recommend_text_placement(
     results: list[dict[str, Any]] = []
     unresolved = 0
 
-    ordered = sorted(blocks, key=lambda b: 0 if b.get("role") in FIXED_ROLES else 1)
+    pinned = FIXED_ROLES | ON_MARK_ROLES
+    ordered = sorted(blocks, key=lambda b: 0 if b.get("role") in pinned else 1)
     for block in ordered:
         role = block.get("role", "annotation")
         font_pt = float(block.get("font_pt") or FONT_PT.get(role, FONT_PT["annotation"]))
-        movable = role not in FIXED_ROLES
+        movable = role not in pinned
         anchor = block.get("anchor") or {"x": margin, "y": margin}
         ax, ay = float(anchor.get("x", margin)), float(anchor.get("y", margin))
         orig_ax, orig_ay = ax, ay
@@ -175,11 +185,13 @@ def recommend_text_placement(
         suggested_wrap: Optional[str] = None
         suggested_font_pt: Optional[float] = None
 
-        if movable:
+        if role in FIXED_ROLES:
+            avail = width_px - 2 * margin
+        else:
+            # movable annotations and pinned on-mark labels both wrap to a narrow band, not the
+            # full canvas width - an on-mark segment value must not wrap as if it were a title.
             avail = min(max_annotation_width_frac * width_px, width_px - ax - margin)
             avail = max(avail, char_px(font_pt, dpi) * 8)
-        else:
-            avail = width_px - 2 * margin
 
         wrapped, box_w, box_h = _wrap(block.get("text", ""), font_pt, dpi, avail)
         bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
@@ -228,7 +240,7 @@ def recommend_text_placement(
                             "no clear spot even at the minimum legible size; tightened the wrap "
                             "- review placement by hand"
                         )
-        elif _hits_any(bbox, placed):
+        elif role in FIXED_ROLES and _hits_any(bbox, placed):
             warnings.append(
                 "overlaps another fixed text block; widen its band or shorten the text"
             )

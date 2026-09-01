@@ -46,7 +46,11 @@ same math `recommend_layout` uses), per-edge `overflow_px` / `grow_margin_px` on
 elements, `separation_needed_px` on colliding labels, and `panel_heights_px` /
 `min_panel_height_px` for squashed facets. Apply the suggested dims and re-render rather than
 nudging by eye; for colliding annotations, feed the marks back through `recommend_text_placement`
-instead of hand-placing them.
+instead of hand-placing them. On-mark data labels are the exception: a value the plotting layer
+already centred on its mark (a stacked-bar segment value, a point label) is position-fixed by the
+data. Pass it as role `data_label` - wrapped, never moved - and never list its own bar in
+`obstacles`. Only free callouts get de-collided; feeding segment values through obstacle-avoidance
+shoves every one off its bar and clips them off-canvas.
 
 A `REDUNDANT_VALUE_AXIS` flag (low severity, so it never blocks) is the eraser test made
 mechanical: when every mark carries its own value label, the numeric value axis ticks and

@@ -29,6 +29,25 @@ def test_annotation_is_moved_off_a_data_mark():
     assert not boxes_overlap(placement["bbox"], obstacle)
 
 
+def test_on_mark_data_label_stays_on_its_mark():
+    # A stacked-bar segment value sits centred inside its segment. Its own bar is a data mark,
+    # but the label belongs there - it must be wrapped in place, never pushed off, never given a
+    # leader line, even though an obstacle covers its anchor.
+    segment = {"x": 380, "y": 280, "width": 140, "height": 100}
+    anchor = {"x": 400, "y": 300}
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{"id": "v", "role": "data_label", "text": "44%", "anchor": anchor}],
+        obstacles=[segment],
+    )
+    placement = _by_id(result, "v")
+    assert placement["suggested_anchor"] is None
+    assert placement["leader_line"] is None
+    assert placement["bbox"]["x"] == anchor["x"]
+    assert placement["bbox"]["y"] == anchor["y"]
+    assert not placement["warnings"]
+
+
 def test_two_annotations_are_separated_from_each_other():
     result = recommend_text_placement(
         1200, 700, 144,

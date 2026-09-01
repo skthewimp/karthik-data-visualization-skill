@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### `recommend_text_placement` stops shoving on-mark labels off their marks
+
+A stacked bar whose segment values (`44%`, `39%`, …) belong centred inside each segment was run through `recommend_text_placement` with the bars passed as `obstacles`. Every value was `role: "label"` = movable, so the tool did exactly what movable means: pushed all 16 off their bars, drew leader lines, and by retry clipped them off-canvas. The two free callouts on the same chart placed cleanly - proof it was the routing, not the geometry. A value the plotting layer already centred on its mark is position-fixed by the data, like a title, not a free annotation to de-collide.
+
+- **New `data_label` role - on-mark labels are wrapped but never moved, and never de-collided against their own mark.** `data_label` joins title/subtitle/footer/caption as pinned (wrapped in place, no leader line), but wraps to the narrow annotation band, not the full canvas width, so a short segment value never wraps like a title. Its own bar must not be passed as an obstacle. Only free callouts (role annotation/label) still get obstacle de-collision. General principle - any plotting-layer-centred label (stacked-bar segment value, point label), no enumerated chart type. `dataviz_mcp/text_fit.py`, `dataviz_mcp/server.py`; documented in `docs/mcp.md` and `dataviz-execution` (both copies); regression test in `dataviz_mcp/tests/test_text_fit.py`.
+
 ### The inspector blocks series that have no identity route at all
 
 A chart shipped with several colour-distinguished lines but no legend and no direct labels - the reader could not tell which line was which. The right fix was to label the lines. Nothing caught it: the inspector flagged a *redundant* legend (`EXTERNAL_LEGEND`, low) but had no check for the inverse, and its own comment declared "many crossing lines with no labels" a legitimate, silent case - which it is only when a legend keys the colour.
