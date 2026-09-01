@@ -103,6 +103,78 @@ def _distance(a: tuple[float, float], b: tuple[float, float]) -> float:
     return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
 
 
+def _segments_cross(
+    a: tuple[float, float], b: tuple[float, float],
+    c: tuple[float, float], d: tuple[float, float],
+) -> bool:
+    """True if open segment a-b properly crosses open segment c-d (shared endpoints don't count)."""
+    def orient(p, q, r) -> float:
+        return (r[1] - p[1]) * (q[0] - p[0]) - (q[1] - p[1]) * (r[0] - p[0])
+
+    d1, d2 = orient(c, d, a), orient(c, d, b)
+    d3, d4 = orient(a, b, c), orient(a, b, d)
+    return ((d1 > 0) != (d2 > 0)) and ((d3 > 0) != (d4 > 0))
+
+
+def _leader_endpoints(leader: dict[str, dict[str, float]]) -> tuple[tuple[float, float], tuple[float, float]]:
+    """The (from, to) points of a leader line as tuples."""
+    return (leader["from"]["x"], leader["from"]["y"]), (leader["to"]["x"], leader["to"]["y"])
+
+
+def _uncross_leaders(results: list[dict[str, Any]], obstacles: list[dict[str, Any]]) -> None:
+    """Swap positions of movable labels whose leader lines cross, when the swap is collision-free.
+
+    Each label is de-collided independently to its own nearest clear spot, so two labels naming
+    marks on opposite sides can land swapped - their leaders cross. Here we look at every pair of
+    displaced movable labels whose leaders cross and try trading their box positions: label A takes
+    B's spot and B takes A's. Each label keeps the mark it names, so the swap sends each back toward
+    its own point and uncrosses the pair - accepted only if both boxes stay clear of the obstacles
+    and every other placed box. Greedy, repeated to a fixed point; a swap that cannot be made clean
+    is left as-is."""
+    movers = [
+        r for r in results
+        if r.get("leader_line") and r["role"] not in (FIXED_ROLES | ON_MARK_ROLES)
+    ]
+    if len(movers) < 2:
+        return
+
+    def clear_at(box: dict[str, float], ignore: tuple[dict, dict]) -> bool:
+        others = [r["bbox"] for r in results if r not in ignore] + obstacles
+        return not _hits_any(box, others)
+
+    changed = True
+    guard = len(movers) ** 2 + 1
+    while changed and guard > 0:
+        changed = False
+        guard -= 1
+        for i in range(len(movers)):
+            for j in range(i + 1, len(movers)):
+                a, b = movers[i], movers[j]
+                a_from, a_to = _leader_endpoints(a["leader_line"])
+                b_from, b_to = _leader_endpoints(b["leader_line"])
+                if not _segments_cross(a_from, a_to, b_from, b_to):
+                    continue
+                a_box = {**a["bbox"], "x": b["bbox"]["x"], "y": b["bbox"]["y"]}
+                b_box = {**b["bbox"], "x": a["bbox"]["x"], "y": a["bbox"]["y"]}
+                if boxes_overlap(a_box, b_box):
+                    continue
+                if not (clear_at(a_box, (a, b)) and clear_at(b_box, (a, b))):
+                    continue
+                new_a_leader = _leader_line(a_box, a_to)
+                new_b_leader = _leader_line(b_box, b_to)
+                if _segments_cross(*_leader_endpoints(new_a_leader), *_leader_endpoints(new_b_leader)):
+                    continue  # swap did not actually uncross them
+                for block, box, leader in ((a, a_box, new_a_leader), (b, b_box, new_b_leader)):
+                    block["bbox"] = {k: round(v, 1) for k, v in box.items()}
+                    block["leader_line"] = leader
+                    block["suggested_anchor"] = {"x": round(box["x"]), "y": round(box["y"])}
+                    if not any("uncross" in w for w in block["warnings"]):
+                        block["warnings"].append(
+                            "swapped position with another label to uncross their leader lines"
+                        )
+                changed = True
+
+
 def _search_clear(
     bbox: dict[str, float],
     blockers: list[dict[str, Any]],
@@ -190,7 +262,11 @@ def recommend_text_placement(
     moved, shrank, or re-wrapped a block, ``suggested_anchor`` / ``suggested_font_pt`` /
     ``suggested_wrap`` plus a warning. A movable block that ends up off its original anchor also
     gets a ``leader_line`` (``{from, to}`` in canvas px) for the builder to draw as a thin
-    connector, so a de-collided label still pairs with the mark it names.
+    connector, so a de-collided label still pairs with the mark it names. After all labels are
+    placed, any pair of movable labels whose leader lines cross is swapped back - each label trades
+    position with the other so both point at their own mark again - whenever the swap keeps both
+    boxes clear of every mark and label; the swapped blocks carry an updated anchor, leader, and a
+    warning.
 
     Returns a top-level ``redundant_annotations`` list (``{id, restated_value, data_label_id}``):
     a free annotation whose single data value a nearby ``data_label`` already prints is clutter -
@@ -300,6 +376,11 @@ def recommend_text_placement(
                 "warnings": warnings,
             }
         )
+
+    # Un-cross leaders: labels are de-collided one at a time, so two can land on each other's side
+    # with crossing leader lines. Swap any such pair back when the swap stays clear of every mark
+    # and box - a pass over the final geometry, after all labels are placed.
+    _uncross_leaders(results, obstacles)
 
     # Redundant-annotation check: a free annotation that only restates the value a data label
     # already prints on the mark beside it is clutter - the value is on the chart twice. When an

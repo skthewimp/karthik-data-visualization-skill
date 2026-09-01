@@ -1,5 +1,28 @@
 from dataviz_mcp.layout import boxes_overlap
-from dataviz_mcp.text_fit import recommend_text_placement
+from dataviz_mcp.text_fit import (
+    _leader_endpoints,
+    _leader_line,
+    _segments_cross,
+    _uncross_leaders,
+    recommend_text_placement,
+)
+
+
+def _leaders_cross(a, b):
+    return _segments_cross(
+        *_leader_endpoints(a["leader_line"]), *_leader_endpoints(b["leader_line"])
+    )
+
+
+def _movable_with_leader(block_id, box, mark):
+    return {
+        "id": block_id,
+        "role": "annotation",
+        "bbox": dict(box),
+        "leader_line": _leader_line(box, mark),
+        "suggested_anchor": {"x": box["x"], "y": box["y"]},
+        "warnings": [],
+    }
 
 
 def _by_id(result, block_id):
@@ -157,6 +180,44 @@ def test_fixed_roles_are_wrapped_but_never_given_a_moved_anchor():
     caption = _by_id(result, "cap")
     assert caption["suggested_anchor"] is None
     assert caption["wrap_width_chars"] > 0
+
+
+def test_crossing_leaders_are_swapped_back_to_their_own_marks():
+    # Two labels landed on the wrong sides: the one naming the LOW mark sits at the top, the one
+    # naming the HIGH mark sits at the bottom, so their leaders cross (the bottom-right-panel bug).
+    # A collision-free swap sends each back toward its own mark and uncrosses them.
+    a = _movable_with_leader("q4", {"x": 120, "y": 80, "width": 200, "height": 50}, (600, 400))
+    b = _movable_with_leader("q3", {"x": 120, "y": 380, "width": 160, "height": 50}, (600, 80))
+    assert _leaders_cross(a, b)  # crossed before
+    _uncross_leaders([a, b], [])
+    assert not _leaders_cross(a, b)  # uncrossed after
+    assert a["bbox"]["y"] == 380 and b["bbox"]["y"] == 80  # they traded positions
+    assert a["suggested_anchor"] == {"x": 120, "y": 380}
+    assert any("uncross" in w for w in a["warnings"])
+
+
+def test_crossing_leaders_are_left_alone_when_the_swap_would_collide():
+    # Same crossing pair, but an obstacle sits exactly where each box would land after the swap.
+    # The swap is refused rather than trading one defect (a cross) for a worse one (an overlap).
+    a = _movable_with_leader("q4", {"x": 120, "y": 80, "width": 200, "height": 50}, (600, 400))
+    b = _movable_with_leader("q3", {"x": 120, "y": 380, "width": 160, "height": 50}, (600, 80))
+    blockers = [
+        {"x": 120, "y": 380, "width": 200, "height": 50},
+        {"x": 120, "y": 80, "width": 160, "height": 50},
+    ]
+    _uncross_leaders([a, b], blockers)
+    assert a["bbox"]["y"] == 80 and b["bbox"]["y"] == 380  # unchanged
+    assert not any("uncross" in w for w in a["warnings"])
+
+
+def test_non_crossing_leaders_are_left_in_place():
+    # Each label already sits on its own mark's side - nothing to swap.
+    a = _movable_with_leader("a", {"x": 120, "y": 80, "width": 160, "height": 50}, (600, 80))
+    b = _movable_with_leader("b", {"x": 120, "y": 380, "width": 160, "height": 50}, (600, 400))
+    assert not _leaders_cross(a, b)
+    _uncross_leaders([a, b], [])
+    assert a["bbox"]["x"] == 120 and a["bbox"]["y"] == 80
+    assert not any("uncross" in w for w in a["warnings"])
 
 
 def test_annotation_restating_a_nearby_data_label_is_flagged_for_removal():
