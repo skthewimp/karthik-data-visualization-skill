@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### The inspector blocks series that have no identity route at all
+
+A chart shipped with several colour-distinguished lines but no legend and no direct labels - the reader could not tell which line was which. The right fix was to label the lines. Nothing caught it: the inspector flagged a *redundant* legend (`EXTERNAL_LEGEND`, low) but had no check for the inverse, and its own comment declared "many crossing lines with no labels" a legitimate, silent case - which it is only when a legend keys the colour.
+
+- **`inspect_rendered_chart` gains `UNIDENTIFIED_SERIES` (high, blocking).** Two or more series distinguished only by colour, with no legend, no direct labels, and no per-facet naming, now block. The trigger keys on colour (≥2 distinct series colours) so a single focal series, a focal-plus-grey design, and series told apart by a channel the inspector does not read stay silent. The message names direct labels as the preferred fix, a legend as the fallback. `dataviz_mcp/inspection.py`; documented in `docs/mcp.md` and `dataviz-execution` (both copies).
+
 ### The selector no longer reads "shares sum to 100%" as a vote for a stack
 
 A `dataviz-fix` run on age-composition shares chose a 100% stacked bar even though the headline and every annotation were component trajectories (one group up, two down, one stable) - exactly the comparisons a stack hides, since only its outer edges have a stable baseline. The routing rule already existed; it never fired because the reasoning treated "the parts total 100%" as evidence for a composition form.

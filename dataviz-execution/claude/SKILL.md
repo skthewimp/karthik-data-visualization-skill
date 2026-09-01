@@ -63,6 +63,14 @@ and remove it. Both stay silent when colour or a legend genuinely carries what n
 does: several series crossing one panel with no direct labels, or a focal-plus-grey highlight
 (fewer fills than bars). The trigger, not the severity, is what keeps those honest.
 
+The `UNIDENTIFIED_SERIES` flag is the inverse failure, and it blocks (high). Colour can only
+carry identity for several series if something keys it: a legend, direct labels, or facet
+titles. Two or more series told apart by colour with none of those - no legend, no labels, no
+per-facet naming - leave the reader unable to say which series is which. Every series needs
+exactly one identity route: a redundant legend over already-labelled lines is an eraser-test
+nicety, but zero routes is a real read failure. The fix is to label the lines directly
+(preferred) rather than to add back a legend.
+
 An `UNDERFILLED_CANVAS` flag (from the measured `occupied_utilization_ratio`) is the opposite
 failure: the canvas is mostly empty. On its own it is a low suggestion - a single big number is
 allowed to sit in space - but paired with undersized text it turns medium, the empty-and-tiny

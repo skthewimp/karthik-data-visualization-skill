@@ -291,6 +291,7 @@ def inspect_rendered_chart(
     direct_label_coverage: list[dict[str, Any]] = []
     redundant_value_axis: list[dict[str, Any]] = []
     external_legend: list[dict[str, Any]] = []
+    unidentified_series: list[dict[str, Any]] = []
     redundant_colour: list[dict[str, Any]] = []
     minimum_text_margin_px: float | None = None
     plot_utilization_ratio: float | None = None
@@ -689,6 +690,34 @@ def inspect_rendered_chart(
                 )
             )
 
+        # Unidentified series: the inverse failure to EXTERNAL_LEGEND. Colour is carrying
+        # identity for two or more series, but there is no key for it - no legend, no direct
+        # labels, and no facet title to name them. The reader cannot tell which series is
+        # which, so this blocks (high), where a redundant legend is only an eraser-test
+        # suggestion. Trigger on colour specifically (>=2 distinct series colours) so a single
+        # focal series, a focal-plus-grey design, and series distinguished by a channel we do
+        # not read here stay silent. Direct labels are the preferred fix, a legend the fallback.
+        series_unidentified = (
+            len(all_series) >= 2
+            and len(series_colours) >= 2
+            and not legends_meta
+            and not series_axes_labelled
+            and not one_series_per_facet
+        )
+        if series_unidentified:
+            ids = [s["id"] for s in all_series]
+            unidentified_series.append({"element_ids": ids})
+            defects.append(
+                _defect(
+                    "UNIDENTIFIED_SERIES",
+                    "high",
+                    ids,
+                    "Two or more series are distinguished only by colour, with no legend and no "
+                    "direct labels - the reader cannot tell which series is which. Add a direct "
+                    "label to each series (preferred) or, failing that, a legend.",
+                )
+            )
+
     if metadata is not None:
         underfill = _underfill_defect(occupied_utilization_ratio, bool(undersized_text))
         if underfill is not None:
@@ -774,6 +803,7 @@ def inspect_rendered_chart(
         "direct_label_coverage": direct_label_coverage,
         "redundant_value_axis": redundant_value_axis,
         "external_legend": external_legend,
+        "unidentified_series": unidentified_series,
         "redundant_colour": redundant_colour,
         "minimum_text_margin_px": minimum_text_margin_px,
         "plot_utilization_ratio": plot_utilization_ratio,

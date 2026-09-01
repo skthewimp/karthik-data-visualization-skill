@@ -119,6 +119,7 @@ Inspection reports the original five codes plus hierarchy, mark, delivery, contr
 | `REDUNDANT_VALUE_AXIS` | Every mark is directly labelled yet the numeric value axis still renders ticks - duplicate ink | Low |
 | `REDUNDANT_COLOUR` | Colour only restates a grouping the facet, category axis, or direct labels already show (one series per facet, one fill per named bar, or labelled series) - focal-plus-grey stays silent | Low |
 | `EXTERNAL_LEGEND` | A legend round-trips series the plot already names via direct labels, facet titles, or category ticks | Low |
+| `UNIDENTIFIED_SERIES` | Two or more series are distinguished only by colour with no legend, direct labels, or facet titles - the reader cannot tell which is which; direct labels are the preferred fix | High |
 | `UNDERFILLED_CANVAS` | The canvas carries too little ink for its size (`occupied_utilization_ratio` below threshold) - mostly empty layout | Low, or Medium when text is also undersized |
 
 `passes_geometry_checks` is true only when metadata is present, supported checks are complete, and no high- or medium-severity defect remains.
