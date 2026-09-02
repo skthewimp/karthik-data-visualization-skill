@@ -2104,3 +2104,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Attacked the forcing function at all three layers, not just the wording. **Were we forcing annotations? Yes — structurally, in three places:** 1. **`needs_annotations` defaulted on vibes.** The selector set it f...
 
 <!-- claude-session:2c3f1bab-8c32-4855-b5ac-62621403c95c:end -->
+
+<!-- claude-session:52978d48-02cd-4697-bef7-0964c4149f0f:start -->
+## 2026-09-02 12:48 IST | Claude session `52978d48-02c`
+
+### User prompts
+> check these charts. [Image #2] (there are 2 from 2 runs, side by side for comparison). label placement is very off. like we don't need those dashes for hte series labels. they could ahve been put closer to the point....
+> one more thing - is there a hierarchy? data labels placed first. then things like category labels. FINALLY annotations.
+
+### Work done
+- All green. Commit + push (repo maintainer default + auto-push):
+- Fixed + pushed. Root cause and fix: **Bug (`recommend_text_placement`):** anchor was used as the box's top-left corner, drawn *on* the point. Point is an obstacle → box always overlaps → always bounced by ring-search...
+
+<!-- claude-session:52978d48-02cd-4697-bef7-0964c4149f0f:end -->
