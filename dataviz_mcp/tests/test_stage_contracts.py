@@ -266,7 +266,8 @@ def test_build_derives_text_placement_and_keeps_data_out_of_layout() -> None:
     build = " ".join(sc.stage("repair", "build").instructions.split())
     assert "presence of such blocks is the trigger" in build
     assert "every reader-facing text block whose words and anchor are already known" in build
-    assert "short font-relative line measure and a small line budget" in build
+    assert "series/category, on-mark data, and axis label" in build
+    assert "must not invent a universal character count" in build
     assert "compact key or footnote" in build
     assert "Never change a quantitative scale merely to reserve room" in build
     assert "never reserve the same room" in build

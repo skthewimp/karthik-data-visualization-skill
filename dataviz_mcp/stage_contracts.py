@@ -1107,11 +1107,12 @@ annotations - carry the precision the insight stage already gave them: reproduce
 do not re-round them. Record each applied format in ``recommendations_used.number_formats`` with
 its reason. Before the first render, pass every reader-facing text block whose words and anchor
 are already known to ``recommend_text_placement`` and apply its wrapping and placement; the
-presence of such blocks is the trigger, not a separately declared routing flag. Series/category
-and on-mark data labels use a short font-relative line measure and a small line budget, not a
-fraction of the canvas. If the tool returns ``curtailed: true``, use its ellipsized
-``wrapped_text`` only when the intact ``full_text`` is also supplied in a compact key or footnote;
-otherwise choose a form that carries the full name. Keep coordinate
+presence of such blocks is the trigger, not a separately declared routing flag. For every
+series/category, on-mark data, and axis label, decide and pass ``max_width_px`` and ``max_lines``
+from the delivery condition, density, and available region; the tool enforces that judgment and
+must not invent a universal character count. Set ``allow_curtail: true`` only when the intact
+``full_text`` will also appear in a compact key or footnote. Otherwise keep an over-budget label
+intact and revise the layout, wording, or form. Keep coordinate
 systems separate: a data scale represents the intended data domain, while titles, labels,
 annotations, legends, and their whitespace live in layout/screen coordinates. Never change a
 quantitative scale merely to reserve room for non-data content, and never reserve the same room

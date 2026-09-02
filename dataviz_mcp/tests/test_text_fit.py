@@ -4,8 +4,18 @@ from dataviz_mcp.text_fit import (
     _leader_line,
     _segments_cross,
     _uncross_leaders,
-    recommend_text_placement,
+    recommend_text_placement as _recommend_text_placement,
 )
+
+
+def recommend_text_placement(*args, **kwargs):
+    """Keep unrelated fixtures explicit enough for the label-budget API."""
+    blocks = kwargs.get("blocks") or (args[3] if len(args) > 3 else [])
+    for block in blocks:
+        if block.get("role") in {"label", "data_label", "axis_label"}:
+            block.setdefault("max_width_px", 180)
+            block.setdefault("max_lines", 3)
+    return _recommend_text_placement(*args, **kwargs)
 
 
 def _leaders_cross(a, b):
@@ -187,20 +197,26 @@ def test_series_label_wraps_to_a_short_measure_not_a_canvas_fraction():
             "role": "label",
             "text": "Milk and dairy excluding butter fresh milk equivalent",
             "anchor": {"x": 700, "y": 300},
+            "max_width_px": 280,
+            "max_lines": 3,
         }],
     )
     placement = _by_id(result, "s")
     lines = placement["wrapped_text"].split("\n")
     assert 1 < len(lines) <= 3
-    assert max(map(len, lines)) <= 24
     assert placement["curtailed"] is False
+    assert placement["over_line_budget"] is False
 
 
 def test_overlong_series_label_is_curtailed_and_preserved_for_a_key():
     full = " ".join(["internationally"] * 12)
     result = recommend_text_placement(
         1200, 700, 144,
-        blocks=[{"id": "s", "role": "label", "text": full, "anchor": {"x": 700, "y": 300}}],
+        blocks=[{
+            "id": "s", "role": "label", "text": full,
+            "anchor": {"x": 700, "y": 300}, "max_width_px": 150,
+            "max_lines": 3, "allow_curtail": True,
+        }],
     )
     placement = _by_id(result, "s")
     assert len(placement["wrapped_text"].split("\n")) == 3
@@ -218,12 +234,36 @@ def test_long_data_label_uses_the_same_readable_line_budget():
             "role": "data_label",
             "text": "Provisional estimate adjusted for seasonal variation",
             "anchor": {"x": 400, "y": 300},
+            "max_width_px": 230,
+            "max_lines": 3,
         }],
-        max_label_chars_per_line=20,
     )
     placement = _by_id(result, "d")
     assert 1 < len(placement["wrapped_text"].split("\n")) <= 3
-    assert max(map(len, placement["wrapped_text"].split("\n"))) <= 20
+
+
+def test_axis_label_uses_the_builder_supplied_measure_and_line_budget():
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{
+            "id": "tick", "role": "axis_label", "text": "Very long category name",
+            "anchor": {"x": 400, "y": 650}, "max_width_px": 90, "max_lines": 2,
+        }],
+    )
+    placement = _by_id(result, "tick")
+    assert len(placement["wrapped_text"].split("\n")) > 2
+    assert placement["over_line_budget"] is True
+    assert placement["curtailed"] is False
+
+
+def test_label_budget_is_required_instead_of_invented_by_the_tool():
+    import pytest
+
+    with pytest.raises(ValueError, match="must declare max_width_px and max_lines"):
+        _recommend_text_placement(
+            1200, 700, 144,
+            blocks=[{"id": "s", "role": "label", "text": "Cereals", "anchor": {"x": 1, "y": 1}}],
+        )
 
 
 def test_blocked_side_parks_on_another_side_still_without_a_leader():

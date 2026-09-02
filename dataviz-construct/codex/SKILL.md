@@ -111,10 +111,12 @@ repo's; read them as the mechanism, and apply the same checks visually when the 
 - **Known text triggers placement.** Before the first render, pass every reader-facing block whose
   words and anchor are already known to `recommend_text_placement` and use its returned wrapping
   and placement. Derive this work from the blocks themselves; do not rely on a separate optional
-  flag that can contradict the chosen design. Series/category and on-mark data labels use a short
-  font-relative line measure and a small line budget, not a fraction of the canvas. When the tool
-  returns `curtailed: true`, render its ellipsized `wrapped_text` only if the intact `full_text` is
-  also supplied in a compact key or footnote; otherwise choose a form that can carry the name.
+  flag that can contradict the chosen design. For every series/category, on-mark data, and axis
+  label, build decides and passes `max_width_px` and `max_lines` from the delivery condition,
+  density, and available region; the tool enforces that judgment instead of inventing a universal
+  character count. Set `allow_curtail: true` only when the intact `full_text` will also appear in
+  a compact key or footnote. Otherwise an over-budget label stays intact and routes to layout,
+  wording, or form revision.
 - **Keep coordinate systems separate.** Data scales represent the intended data domain. Titles,
   labels, annotations, legends, and their whitespace live in layout/screen coordinates. Never
   change a quantitative scale merely to reserve room for non-data content, and never reserve the

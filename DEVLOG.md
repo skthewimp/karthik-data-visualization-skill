@@ -21,11 +21,13 @@ failure remains only as regression motivation.
 ### Follow-up: labels need a reading-length budget
 
 Placement already wrapped text, but movable labels inherited the annotation width ceiling: 32% of
-the canvas. On a wide canvas that legitimised very long one-line series names. Series/category and
-on-mark data labels now use a font-relative readable measure (24 characters by default) and a
-three-line ceiling. Text beyond that ceiling is ellipsized only with `full_text` retained and a
-warning requiring a compact full-name key/footnote or a different form. Free annotations keep
-their separate canvas-relative allowance.
+the canvas. On a wide canvas that legitimised very long one-line series names. An intermediate fix
+replaced that with universal 24-character / three-line defaults; Karthik caught the same category
+error again—readable measure is a design judgment, not a constant. For every series/category,
+on-mark data, and axis label, build now passes `max_width_px` and `max_lines` from the delivery
+condition, density, and available region. The tool enforces those limits. Curtailment is explicit
+and retains `full_text`; otherwise an over-budget label stays intact and is reported for revision.
+Free annotations keep their separate canvas-relative allowance.
 
 ## 2026-09-01 - Selector: crowding-gated facets + separate smoothing rule
 

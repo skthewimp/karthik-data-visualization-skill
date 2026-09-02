@@ -41,11 +41,11 @@ def _is_yearlike(value: float) -> bool:
 
 
 FIXED_ROLES = {"title", "subtitle", "footer", "caption"}
-# On-mark labels the plotting layer already centred on their mark (a stacked-bar segment value,
-# a point label). Their position is fixed by the data, so - like a title - they are wrapped but
-# never moved, and their own mark is never an obstacle to push them off. Only free callouts
-# (role annotation/label) are de-collided.
-ON_MARK_ROLES = {"data_label"}
+# On-mark labels and axis labels the plotting layer already positioned. Their position is fixed,
+# so - like a title - they are wrapped but never moved. A data label's own mark is never an
+# obstacle to push it off. Only free callouts (role annotation/label) are de-collided.
+ON_MARK_ROLES = {"data_label", "axis_label"}
+LABEL_ROLES = {"label"} | ON_MARK_ROLES
 
 # Placement priority: least-free text claims its spot first and becomes an obstacle for the
 # freer text that follows. Fixed bands and on-mark data labels are pinned (tier 0/1); a
@@ -54,6 +54,7 @@ ON_MARK_ROLES = {"data_label"}
 _PLACEMENT_TIER = {
     "title": 0, "subtitle": 0, "footer": 0, "caption": 0,
     "data_label": 1,
+    "axis_label": 1,
     "label": 2,
     "annotation": 3,
 }
@@ -113,12 +114,16 @@ def _wrap_to_line_budget(
     dpi: float,
     avail_px: float,
     max_lines: int | None = None,
-) -> tuple[str, float, float, bool]:
-    """Wrap to the physical measure, then curtail only when the line budget is exhausted."""
+    allow_curtail: bool = False,
+) -> tuple[str, float, float, bool, bool]:
+    """Wrap to a chosen measure; curtail only when the caller explicitly permits it."""
     wrapped, box_w, box_h = _wrap(text, font_pt, dpi, avail_px)
     lines = wrapped.split("\n")
     if max_lines is None or len(lines) <= max_lines:
-        return wrapped, box_w, box_h, False
+        return wrapped, box_w, box_h, False, False
+
+    if not allow_curtail:
+        return wrapped, box_w, box_h, False, True
 
     cpl = max(1, int(avail_px / char_px(font_pt, dpi)))
     kept = lines[:max_lines]
@@ -131,6 +136,7 @@ def _wrap_to_line_budget(
         "\n".join(kept),
         longest * char_px(font_pt, dpi),
         len(kept) * line_px(font_pt, dpi),
+        True,
         True,
     )
 
@@ -281,23 +287,24 @@ def _shrink_to_fit(
     height: float,
     margin: float,
     max_lines: int | None = None,
-) -> Optional[tuple[float, tuple[float, float], str, float, float, bool]]:
+    allow_curtail: bool = False,
+) -> Optional[tuple[float, tuple[float, float], str, float, float, bool, bool]]:
     """Step the font down toward ``min_font_pt`` (largest first) until the block finds a clear
     spot - at its anchor if the smaller box now fits, else at the nearest clear position. Returns
-    ``(font_pt, (x, y), wrapped, box_w, box_h, curtailed)`` for the least shrink that fits, or
-    ``None``."""
+    ``(font_pt, (x, y), wrapped, box_w, box_h, curtailed, over_budget)`` for the least
+    shrink that fits, or ``None``."""
     ax, ay = anchor
     candidate = font_pt - 1.0
     while candidate >= min_font_pt:
-        wrapped, box_w, box_h, curtailed = _wrap_to_line_budget(
-            text, candidate, dpi, avail, max_lines
+        wrapped, box_w, box_h, curtailed, over_budget = _wrap_to_line_budget(
+            text, candidate, dpi, avail, max_lines, allow_curtail
         )
         bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
         if not _hits_any(bbox, blockers):
-            return candidate, (ax, ay), wrapped, box_w, box_h, curtailed
+            return candidate, (ax, ay), wrapped, box_w, box_h, curtailed, over_budget
         found = _search_clear(bbox, blockers, width, height, margin, step=line_px(candidate, dpi))
         if found is not None:
-            return candidate, found, wrapped, box_w, box_h, curtailed
+            return candidate, found, wrapped, box_w, box_h, curtailed, over_budget
         candidate -= 1.0
     return None
 
@@ -309,8 +316,6 @@ def recommend_text_placement(
     blocks: list[dict[str, Any]],
     obstacles: list[dict[str, Any]] | None = None,
     max_annotation_width_frac: float = 0.32,
-    max_label_chars_per_line: int = 24,
-    max_label_lines: int = 3,
     edge_margin_px: Optional[float] = None,
     min_font_pt: float = 8.0,
 ) -> dict[str, Any]:
@@ -328,7 +333,8 @@ def recommend_text_placement(
             in canvas px. role in {title, subtitle, footer, caption} is fixed (box at the anchor,
             wrapped, never moved); role ``data_label`` is an on-mark label the plotting layer
             already centred on its mark (a stacked-bar segment value) - box at the anchor, wrapped,
-            never moved, never de-collided against its own mark. role ``label`` (a category/series
+            never moved, never de-collided against its own mark. role ``axis_label`` is likewise
+            positioned by the plotting layer and wrapped without moving. role ``label`` (a category/series
             name) and ``annotation`` (a free callout) are movable: the anchor is the mark, and the
             box parks beside it. ``placement`` (one of right/above/below/left) sets the preferred
             side to try first (default right). ``anchors`` is an optional list of candidate marks
@@ -340,11 +346,12 @@ def recommend_text_placement(
             Do NOT pass a segment's own bar here for its ``data_label`` - an on-mark label belongs
             inside its mark, so it is exempt from obstacle de-collision entirely.
         max_annotation_width_frac: widest a free annotation box may wrap to, as a fraction of width.
-        max_label_chars_per_line: readable line measure for category/series and on-mark data
-            labels. Converted to pixels using each block's fixed font size, not canvas width.
-        max_label_lines: maximum lines for those labels. Text beyond the budget is curtailed with
-            an ellipsis and returned intact as ``full_text`` so the builder can provide a full-name
-            key or footnote. Free annotations and fixed title/caption bands are not curtailed.
+        For each category/series, on-mark data, or axis label, the block must also carry the
+            builder's readability judgment: ``max_width_px`` and ``max_lines``. The tool enforces
+            those physical limits; it does not invent a universal character count. Set
+            ``allow_curtail: true`` only when an ellipsis is acceptable and the intact name will
+            be supplied in a key or footnote. Otherwise an over-budget label stays intact and is
+            reported for redesign.
         edge_margin_px: canvas margin; defaults to 3% of width.
         min_font_pt: legibility floor a movable block may shrink to when no clear spot is found
             at full size; never smaller, so a shrink can never create an undersized-text defect.
@@ -369,10 +376,6 @@ def recommend_text_placement(
     ``suggested_orientation: "portrait"`` and swapped ``suggested_canvas`` recommend a flip for a
     later build stage to apply and re-run against.
     """
-    if max_label_chars_per_line < 1:
-        raise ValueError("max_label_chars_per_line must be greater than zero")
-    if max_label_lines < 1:
-        raise ValueError("max_label_lines must be greater than zero")
     obstacles = list(obstacles or [])
     margin = float(edge_margin_px) if edge_margin_px is not None else round(0.03 * width_px)
     placed: list[dict[str, Any]] = []
@@ -395,18 +398,30 @@ def recommend_text_placement(
         suggested_font_pt: Optional[float] = None
         leader_line: Optional[dict[str, dict[str, float]]] = None
         text = block.get("text", "")
-        is_compact_label = role in ({"label"} | ON_MARK_ROLES)
-        max_lines = max_label_lines if is_compact_label else None
+        is_compact_label = role in LABEL_ROLES
+        max_lines: int | None = None
+        label_width: float | None = None
+        allow_curtail = False
+        if is_compact_label:
+            if "max_width_px" not in block or "max_lines" not in block:
+                raise ValueError(
+                    f"{role} block {block.get('id')!r} must declare max_width_px and max_lines"
+                )
+            label_width = float(block["max_width_px"])
+            max_lines = int(block["max_lines"])
+            if label_width <= 0 or max_lines < 1:
+                raise ValueError("label max_width_px and max_lines must be greater than zero")
+            allow_curtail = bool(block.get("allow_curtail", False))
 
         if not movable:
             # Fixed bands and on-mark data labels: box origin at the anchor, wrapped, nudged in,
             # never de-collided or given a leader (a data label belongs on its mark).
             avail = (width_px - 2 * margin) if role in FIXED_ROLES else min(
-                char_px(font_pt, dpi) * max_label_chars_per_line,
+                label_width or (width_px - 2 * margin),
                 max(char_px(font_pt, dpi) * 8, width_px - ax - margin),
             )
-            wrapped, box_w, box_h, curtailed = _wrap_to_line_budget(
-                text, font_pt, dpi, avail, max_lines
+            wrapped, box_w, box_h, curtailed, over_budget = _wrap_to_line_budget(
+                text, font_pt, dpi, avail, max_lines, allow_curtail
             )
             bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
             nx, ny = _nudge_into_canvas(bbox, width_px, height_px, margin)
@@ -425,6 +440,7 @@ def recommend_text_placement(
                     "wrapped_text": wrapped,
                     "full_text": text,
                     "curtailed": curtailed,
+                    "over_line_budget": over_budget,
                     "wrap_width_chars": max(1, int(avail / char_px(font_pt, dpi))),
                     "bbox": {k: round(v, 1) for k, v in bbox.items()},
                     "suggested_anchor": None,
@@ -434,7 +450,10 @@ def recommend_text_placement(
                     "warnings": warnings + ([
                         "label exceeds the readable line budget; use the returned full_text in "
                         "a key or footnote"
-                    ] if curtailed else []),
+                    ] if curtailed else []) + ([
+                        "label exceeds the chosen line budget; keep the full text and revise the "
+                        "layout, wording, or form"
+                    ] if over_budget and not curtailed else []),
                 }
             )
             continue
@@ -446,10 +465,10 @@ def recommend_text_placement(
             char_px(font_pt, dpi) * 8,
             min(max_annotation_width_frac * width_px, width_px - 2 * margin),
         )
-        if is_compact_label:
-            avail = min(avail, char_px(font_pt, dpi) * max_label_chars_per_line)
-        wrapped, box_w, box_h, curtailed = _wrap_to_line_budget(
-            text, font_pt, dpi, avail, max_lines
+        if label_width is not None:
+            avail = min(avail, label_width)
+        wrapped, box_w, box_h, curtailed, over_budget = _wrap_to_line_budget(
+            text, font_pt, dpi, avail, max_lines, allow_curtail
         )
         if curtailed:
             warnings.append(
@@ -500,10 +519,10 @@ def recommend_text_placement(
                 # 3. Shrink toward the legibility floor, else tighten the wrap and flag for review.
                 shrunk = _shrink_to_fit(
                     text, font_pt, dpi, avail, min_font_pt,
-                    blockers, primary, width_px, height_px, margin, max_lines,
+                    blockers, primary, width_px, height_px, margin, max_lines, allow_curtail,
                 )
                 if shrunk is not None:
-                    font_pt, (cx, cy), wrapped, bw, bh, curtailed = shrunk
+                    font_pt, (cx, cy), wrapped, bw, bh, curtailed, over_budget = shrunk
                     bbox = {"x": cx, "y": cy, "width": bw, "height": bh}
                     suggested_font_pt = round(font_pt, 1)
                     suggested_anchor = {"x": round(cx), "y": round(cy)}
@@ -513,8 +532,8 @@ def recommend_text_placement(
                         "moved off its point; draw a thin leader line to keep the pairing"
                     )
                 else:
-                    tight, tw, th, curtailed = _wrap_to_line_budget(
-                        text, font_pt, dpi, avail * 0.6, max_lines
+                    tight, tw, th, curtailed, over_budget = _wrap_to_line_budget(
+                        text, font_pt, dpi, avail * 0.6, max_lines, allow_curtail
                     )
                     wrapped = tight
                     bbox = {"x": primary[0], "y": primary[1], "width": tw, "height": th}
@@ -530,6 +549,11 @@ def recommend_text_placement(
             warnings.append(
                 "label exceeds the readable line budget; use the returned full_text in a key or footnote"
             )
+        if over_budget and not curtailed:
+            warnings.append(
+                "label exceeds the chosen line budget; keep the full text and revise the layout, "
+                "wording, or form"
+            )
         placed.append(dict(bbox))
         results.append(
             {
@@ -538,6 +562,7 @@ def recommend_text_placement(
                 "wrapped_text": wrapped,
                 "full_text": text,
                 "curtailed": curtailed,
+                "over_line_budget": over_budget,
                 "wrap_width_chars": max(1, int(avail / char_px(font_pt, dpi))),
                 "bbox": {k: round(v, 1) for k, v in bbox.items()},
                 "suggested_anchor": suggested_anchor,

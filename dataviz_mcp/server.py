@@ -252,8 +252,6 @@ def create_server() -> Any:
         blocks: list[dict[str, Any]],
         obstacles: list[dict[str, Any]] | None = None,
         max_annotation_width_frac: float = 0.32,
-        max_label_chars_per_line: int = 24,
-        max_label_lines: int = 3,
         edge_margin_px: float | None = None,
         min_font_pt: float = 8.0,
     ) -> dict[str, Any]:
@@ -264,7 +262,8 @@ def create_server() -> Any:
         ``{id, text, role, font_pt?, anchor:{x,y}, placement?, anchors?}`` in canvas px. Text is
         placed in priority order so the least-free claims its spot first: data labels, then
         category/series labels, then free annotations. title/subtitle/footer/caption sit at their
-        anchor, wrapped, never moved. Role ``data_label`` is an on-mark label the plotting layer
+        anchor, wrapped, never moved. Role ``axis_label`` is a plotting-layer-positioned tick or
+        category label: wrapped, never moved. Role ``data_label`` is an on-mark label the plotting layer
         already centred on its mark (a stacked-bar segment value): wrapped, never moved, and exempt
         from obstacle de-collision - do NOT pass its own bar as an obstacle, or it will be shoved
         off the segment it belongs on. Role ``label`` (a category/series name) and ``annotation``
@@ -277,10 +276,10 @@ def create_server() -> Any:
         other text. Only when no adjacent spot exists at any of a label's marks does it travel to
         the nearest clear area (shrinking toward ``min_font_pt``, the legibility floor, if needed)
         and grow a ``leader_line`` (``{from, to}`` in canvas px) back to its point. Series/category
-        and on-mark data labels use a short readable line measure and at most
-        ``max_label_lines``; if the full text exceeds that budget, the result is ellipsized and
-        carries ``full_text`` plus ``curtailed: true`` so the builder can add a full-name key or
-        footnote. Returns each
+        and on-mark data labels, plus axis labels, must carry the builder's judgment as
+        ``max_width_px`` and ``max_lines`` on the block. Set ``allow_curtail: true`` only when an
+        ellipsis is acceptable and the intact name will appear in a key or footnote; otherwise an
+        over-budget label stays intact and is reported for redesign. Returns each
         block's wrapped text and final ``bbox`` (authoritative - the anchor was the mark), plus
         ``suggested_anchor`` / ``suggested_font_pt`` / ``suggested_wrap`` when it changed side, mark,
         or size. A label parked on its preferred side has none of those and no leader. When two
@@ -300,8 +299,6 @@ def create_server() -> Any:
             blocks,
             obstacles,
             max_annotation_width_frac=max_annotation_width_frac,
-            max_label_chars_per_line=max_label_chars_per_line,
-            max_label_lines=max_label_lines,
             edge_margin_px=edge_margin_px,
             min_font_pt=min_font_pt,
         )
