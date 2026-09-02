@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Negative shares and convergent small-series clusters (canonical-examples audit)
+
+Reviewing the canonical example set surfaced two more failures that shipped.
+
+- **`dataviz-idea-critique` (both copies).** The DATA question now runs a part-to-whole check: when the form or a label calls the values shares of a total, the components must be non-negative and reconcile to that total. A negative "share" or parts that do not sum to the whole means the quantity was mis-derived (a net or delta relabelled as a share) - the plan fails until it is named correctly or the composition framing dropped. (A paired share chart shipped with negative percentages under a "each measure totals 100%" subtitle.)
+- **`karthik-data-visualization` (both copies).** The shared-scale resolution rule gained a stop-point: labelling has a limit, and when several small series converge into a baseline cluster their labels collide as fast as the lines do. That is the signal to change the form (own panel/inset at a separating scale, or a table), never to stamp a value on every point of every line. (A seven-series line chart stamped every point and produced 60 measured label collisions.) This edit also restores a shared-scale bullet that the axis-range change below had inadvertently overwritten.
+
 ### Precision, label collisions, and over-long axes
 
 A repair of an integer-percent line chart surfaced four rule failures at once - fabricated decimals, a 0-100 axis for data that maxes at 44, and endpoint value labels clashing with series-name labels that the "never moved" rule refused to separate.

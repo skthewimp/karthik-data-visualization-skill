@@ -26,7 +26,12 @@ Answer each against the evidence, and be specific about what fails and why.
 - **Is the DATA right?** Do the facts actually support the headline claim? Check the
   denominator and universe, the grain, the comparison, the time window and baseline, selection
   effects, and whether the uncertainty is acknowledged. A claim resting on a proxy pretending
-  to be the real measure, or on a bad denominator, fails here.
+  to be the real measure, or on a bad denominator, fails here. A part-to-whole is a specific
+  check: when the form or a label calls the values shares of a total (they "total 100%"), the
+  components must be non-negative and reconcile to that total. A negative "share", or parts that
+  do not sum to the stated whole, means the quantity was mis-derived - a net, a delta, or a
+  difference relabelled as a share - and the plan fails here until the quantity is named
+  correctly or the composition framing is dropped.
 - **Is the EXPRESSION right?** Is the selected form the right vehicle for *this* claim, or will
   it mislead - hide the comparison the claim depends on, distort magnitudes, invite a wrong
   first read, or bury the message in a form no reader can follow (a deep stack for a per-series

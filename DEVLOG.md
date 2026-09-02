@@ -1,5 +1,30 @@
 # Devlog
 
+## 2026-09-02 - Canonical-examples audit: two more shipped failures
+
+Walked the five canonical example outputs. Cases 01 and 05 were the two already fixed earlier
+today (Bollywood axis/precision/labels; mixed-unit small multiples). Two new ones stood out:
+
+- Case 02 (token vs cost share): paired share bars carried negative percentages (cacheWrite
+  -4.2%, output -0.5%, input -0.8%) under a subtitle asserting "each measure totals 100%". A
+  share of a whole cannot be negative - the model relabelled a net/delta as a share and the
+  honesty gate let it through. Added a part-to-whole reconciliation check to idea-critique's DATA
+  question: components must be non-negative and sum to the stated total.
+- Case 04 (seven dietary series): the model stamped a value on every point of all seven lines,
+  and the four small series converging near the baseline produced 60 measured label collisions.
+  Existing rules already forbid stamping every point, but there was no stated stop-point for the
+  convergent-cluster case. Added one to the shared-scale bullet in karthik-data-visualization:
+  when small series converge, labelling cannot fix it - change the form (own panel/inset or
+  table).
+
+Case 03 (total line + per-model facets) embeds the aggregate "Total" as cell 1 of the component
+grid at a 10x scale. The total+breakdown pairing is licensed, so I flagged it but did not add a
+rule - the borderline layout call did not justify new general text.
+
+While adding the convergent-cluster stop-point I noticed the earlier axis-range edit had
+overwritten the shared-scale resolution bullet rather than adding beside it; restored it in the
+same change.
+
 ## 2026-09-02 - Four failures on one integer-percent line chart
 
 Karthik flagged a repaired Bollywood-age line chart with four problems: (1) a 0-100 y-axis when
