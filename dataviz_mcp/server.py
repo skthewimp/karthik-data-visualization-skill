@@ -263,10 +263,11 @@ def create_server() -> Any:
         placed in priority order so the least-free claims its spot first: data labels, then
         category/series labels, then free annotations. title/subtitle/footer/caption sit at their
         anchor, wrapped, never moved. Role ``axis_label`` is a plotting-layer-positioned tick or
-        category label: wrapped, never moved. Role ``data_label`` is an on-mark label the plotting layer
-        already centred on its mark (a stacked-bar segment value): wrapped, never moved, and exempt
-        from obstacle de-collision - do NOT pass its own bar as an obstacle, or it will be shoved
-        off the segment it belongs on. Role ``label`` (a category/series name) and ``annotation``
+        category label: wrapped, never moved. Role ``data_label`` is a value the plotting layer has
+        already positioned on its mark or at a deliberate fixed offset from it: wrapped, never
+        moved, and exempt from obstacle de-collision - do NOT pass its own mark as an obstacle, or
+        it will be shoved away from the placement it belongs on. Role ``label`` (a category/series
+        name) and ``annotation``
         (a free callout) are movable, and their ``anchor`` is the MARK they name: the box parks one
         small gap beside the mark - preferred side first (``placement`` = right/above/below/left,
         default right) - with no leader line. A ``label`` may pass ``anchors``, a list of candidate

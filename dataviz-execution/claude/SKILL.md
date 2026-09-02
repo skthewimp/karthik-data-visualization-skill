@@ -18,7 +18,9 @@ Inspect the exact export at the declared delivery size and find every consequent
 - **Geometry:** clipping, elements running off the canvas, misalignment, overlapping marks or
   text, collisions between labels, labels and axes, or panels.
 - **Association:** every label, value, and annotation clearly tied to the mark it belongs to;
-  no legend round-trips where a direct label would read.
+  no legend round-trips where a direct label would read. Direct values use one consistent small
+  offset and series names sit adjacent to their line; a connector is earned only by a genuinely
+  displaced label, not added as a decorative dash.
 - **Hierarchy and scaffolding:** the title, subtitle, and emphasis read in the intended order;
   no duplicated axes, redundant gridlines, or leftover default furniture.
 - **Colour:** sufficient contrast against the background, series distinguishable, and the
@@ -53,12 +55,12 @@ elements, `separation_needed_px` on colliding labels, and `panel_heights_px` /
 `min_panel_height_px` for squashed facets. Apply the suggested dims and re-render rather than
 nudging by eye; for colliding annotations, feed the marks back through `recommend_text_placement`
 instead of hand-placing them. On-mark data labels are the exception: a value the plotting layer
-already centred on its mark (a stacked-bar segment value, a point label) is position-fixed by the
-data. Pass it as role `data_label` - wrapped, never moved - and never list its own bar in
+already positioned on its mark or at a deliberate fixed offset from it is position-fixed by the
+data. Pass it as role `data_label` - wrapped, never moved - and never list its own mark in
 `obstacles`. Only free callouts get de-collided; feeding segment values through obstacle-avoidance
 shoves every one off its bar and clips them off-canvas.
 
-A `REDUNDANT_VALUE_AXIS` flag (low severity, so it never blocks) is the eraser test made
+A `REDUNDANT_VALUE_AXIS` flag (medium severity, so it requires revision) is the eraser test made
 mechanical: when the marks that carry the reading are directly labelled, the numeric value axis
 ticks and gridlines are duplicate ink - drop them unless the axis still earns its place with a
 zero baseline or a scale reference. You do not need every point labelled for the axis to go; it
@@ -68,6 +70,12 @@ set, so a chart labelling only its endpoints and exceptions still trips it - and
 conservative floor for a facet grid that labels its marks but declares nothing, from the mark
 geometry itself, only once every mark-bearing panel carries a value label on each of its marks
 (with no contract the check cannot tell a key mark from a filler one, so it waits for all of them).
+
+For label placement, reproduce the tool's result literally: draw a connector only when the
+returned block contains a `leader_line`. A selected point value is a fixed `data_label`, including
+when the plotting layer gives it a consistent small offset from the point; it is not a free
+annotation to repel. When several ordinary direct labels have travelled far enough to need
+leaders, treat the repeated callout pattern as a layout or label-set defect and revise it.
 
 An `EXTERNAL_LEGEND` flag and a `REDUNDANT_COLOUR` flag (both low, non-blocking) are the same
 eraser test for the other two round-trips. Colour is duplicate ink when it only restates a

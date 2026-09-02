@@ -258,8 +258,9 @@ def test_redundant_value_axis_flagged_when_every_mark_is_labelled(tmp_path: Path
     _, report = render(tmp_path, "all_marks_labelled")
     assert "REDUNDANT_VALUE_AXIS" in _codes(report)
     assert report["redundant_value_axis"]
-    # A suggestion, not a blocker: it must not fail the geometry gate.
-    assert all(item["severity"] != "high" for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
+    defect = next(item for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
+    assert defect["severity"] == "medium"
+    assert report["passes_geometry_checks"] is False
 
 
 def test_redundant_value_axis_flagged_per_panel_without_a_contract(tmp_path: Path) -> None:
@@ -268,12 +269,9 @@ def test_redundant_value_axis_flagged_per_panel_without_a_contract(tmp_path: Pat
     _, report = render(tmp_path, "faceted_bars_all_labelled")
     assert "REDUNDANT_VALUE_AXIS" in _codes(report)
     assert report["redundant_value_axis"]
-    # A suggestion, not a blocker.
-    assert all(
-        item["severity"] != "high"
-        for item in report["defects"]
-        if item["code"] == "REDUNDANT_VALUE_AXIS"
-    )
+    defect = next(item for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
+    assert defect["severity"] == "medium"
+    assert report["passes_geometry_checks"] is False
 
 
 def test_no_redundant_axis_without_direct_labels(tmp_path: Path) -> None:

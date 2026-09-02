@@ -331,9 +331,9 @@ def recommend_text_placement(
         width_px / height_px / dpi: the fixed canvas from ``recommend_layout``.
         blocks: text blocks, each ``{id, text, role, font_pt?, anchor:{x,y}, placement?, anchors?}``
             in canvas px. role in {title, subtitle, footer, caption} is fixed (box at the anchor,
-            wrapped, never moved); role ``data_label`` is an on-mark label the plotting layer
-            already centred on its mark (a stacked-bar segment value) - box at the anchor, wrapped,
-            never moved, never de-collided against its own mark. role ``axis_label`` is likewise
+            wrapped, never moved); role ``data_label`` is a value the plotting layer has already
+            positioned on its mark or at a deliberate fixed offset from it - box at the anchor,
+            wrapped, never moved, never de-collided against its own mark. role ``axis_label`` is likewise
             positioned by the plotting layer and wrapped without moving. role ``label`` (a category/series
             name) and ``annotation`` (a free callout) are movable: the anchor is the mark, and the
             box parks beside it. ``placement`` (one of right/above/below/left) sets the preferred
@@ -343,8 +343,8 @@ def recommend_text_placement(
             primary and the leader, if any, points there.
         obstacles: bounding boxes ``{x, y, width, height}`` of the data marks/series in canvas
             px. Movable labels are always parked clear of these, not only text-vs-text.
-            Do NOT pass a segment's own bar here for its ``data_label`` - an on-mark label belongs
-            inside its mark, so it is exempt from obstacle de-collision entirely.
+            Do NOT pass a data label's own mark here - its fixed on-mark or adjacent placement is
+            exempt from obstacle de-collision entirely.
         max_annotation_width_frac: widest a free annotation box may wrap to, as a fraction of width.
         For each category/series, on-mark data, or axis label, the block must also carry the
             builder's readability judgment: ``max_width_px`` and ``max_lines``. The tool enforces

@@ -1051,8 +1051,9 @@ Keep the quantitative coordinate mapping separate from the scaffolding drawn aro
 or fixed scale preserves comparable positions but does not require visible ticks, tick labels, an
 axis title, or gridlines. State both decisions in the design or layout plan. When direct labels on
 the reading-carrying marks supply the values the reader needs, keep the common domain and remove
-scaffolding that only repeats those labels; retain a component only for a named additional reading
-task such as estimating unlabelled marks, alignment, a meaningful baseline, or a threshold.
+scaffolding that only repeats those labels. An unlabelled supporting mark does not by itself earn
+an axis: retain a component only when the reader must estimate that mark's value, align values,
+read a meaningful baseline, or read a threshold; shape alone is already carried by the line.
 Set ``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels, or
 table cells). When it is true, enumerate ``number_display_groups`` - one entry per axis,
 numeric column, or labelled numeric series - and decide ``exact_lookup_required`` for each
@@ -1118,8 +1119,13 @@ series/category, on-mark data, and axis label, decide and pass ``max_width_px`` 
 from the delivery condition, density, and available region; the tool enforces that judgment and
 must not invent a universal character count. Set ``allow_curtail: true`` only when the intact
 ``full_text`` will also appear in a compact key or footnote. Otherwise keep an over-budget label
-intact and revise the layout, wording, or form. Keep coordinate
-systems separate: a data scale represents the intended data domain, while titles, labels,
+intact and revise the layout, wording, or form. Treat directly labelled point values as fixed
+``data_label`` blocks, using one consistent small offset from their marks, and series/category
+names as ``label`` blocks adjacent to their line or mark. Draw a connector only when the returned
+placement contains a ``leader_line`` - never add a decorative dash. If several ordinary direct
+labels need leaders, revise the label set, anchors, or layout rather than accepting a field of
+displaced callouts. Keep coordinate systems separate: a data scale represents the intended data
+domain, while titles, labels,
 annotations, legends, and their whitespace live in layout/screen coordinates. Never change a
 quantitative scale merely to reserve room for non-data content, and never reserve the same room
 in both the data domain and the physical layout. Record each acceptance check as pass, fail, or
@@ -1163,7 +1169,9 @@ check what is seen first, whether anything competes with it, whether every box/r
 phrase earns its place, whether whitespace groups rather than fills, and whether it looks composed
 rather than styled-default - route composition fixes back through the same revision loop. That
 pass owns composition and premium feel; the defect checks above own rendering correctness, and
-the two do not re-check each other's territory."""
+the two do not re-check each other's territory. Treat ``REDUNDANT_VALUE_AXIS`` as
+revision-required, not optional polish. A connector on an adjacent direct label is also redundant
+ink; require the builder to reproduce ``leader_line`` only when the placement result contains one."""
 
 _CONSTRUCT_EXPLAIN = """You are the explain stage of the dataviz construct process. You write
 the short prose that travels BESIDE the exhibit - the two lines in an email above the chart,

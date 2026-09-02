@@ -578,7 +578,8 @@ def inspect_rendered_chart(
     if metadata is not None:
         # Redundant value axis: when every mark carries its own value label, the numeric axis
         # ticks duplicate that ink. Category ticks (non-numeric) still name marks, so only
-        # numeric ticks flag - and it is a suggestion (low), not a blocking defect.
+        # numeric ticks flag. The trigger is conservative enough to require revision: the
+        # declared reading-carrying label set is complete, or every mark is labelled.
         labels_complete = any(
             item.get("complete") and item.get("expected_count", 0) > 0
             for item in direct_label_coverage
@@ -595,9 +596,9 @@ def inspect_rendered_chart(
                 defects.append(
                     _defect(
                         "REDUNDANT_VALUE_AXIS",
-                        "low",
+                        "medium",
                         ids,
-                        "Every mark is directly labelled; the numeric value axis duplicates the "
+                        "The reading-carrying marks are directly labelled; the numeric value axis duplicates the "
                         "labels - consider dropping its ticks and gridlines (eraser test).",
                     )
                 )
@@ -646,7 +647,7 @@ def inspect_rendered_chart(
                     defects.append(
                         _defect(
                             "REDUNDANT_VALUE_AXIS",
-                            "low",
+                            "medium",
                             ids,
                             "Every mark is directly labelled on every panel; the numeric value "
                             "axis duplicates the labels - drop its ticks and gridlines (eraser "

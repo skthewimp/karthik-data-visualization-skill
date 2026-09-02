@@ -268,10 +268,21 @@ def test_select_separates_scale_mapping_from_visible_scaffolding() -> None:
     assert "shared or fixed scale" in select
     assert "does not require visible ticks" in select
     assert "keep the common domain and remove scaffolding" in select
+    assert "unlabelled supporting mark does not by itself earn" in select
 
     skill = (REPO_ROOT / "dataviz-selector" / "codex" / "SKILL.md").read_text()
     assert "shared or fixed scale preserves comparable positions" in skill
     assert "State both decisions in the plan" in skill
+
+
+def test_build_and_execution_enforce_direct_label_placement() -> None:
+    build = " ".join(sc.stage("repair", "build").instructions.split())
+    execution = " ".join(sc.stage("repair", "execution").instructions.split())
+    assert "point values as fixed ``data_label`` blocks" in build
+    assert "Draw a connector only when" in build
+    assert "never add a decorative dash" in build
+    assert "``REDUNDANT_VALUE_AXIS`` as revision-required" in execution
+    assert "only when the placement result contains one" in execution
 
 
 def test_build_derives_text_placement_and_keeps_data_out_of_layout() -> None:
