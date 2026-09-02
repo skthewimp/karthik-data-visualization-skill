@@ -2043,3 +2043,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Website change didn't take, and the annotation actually got worse. Three failures in this render: 1. **Fabricated series.** The dashed grey diagonal from 20% (1970s) up to ~58% (2020s), pinned to two grey ghost dots -...
 
 <!-- claude-session:af2047bf-4a94-4053-8b63-035e10cbf0ea:end -->
+
+<!-- claude-session:0a6d0d5f-479c-4c3d-91d3-d56eafa5f0f9:start -->
+## 2026-09-01 21:01 IST | Claude session `0a6d0d5f-479`
+
+### User prompts
+> latest run of canonical set produced some really horrible charts. here is the logs: { "schema_version": 2, "experiment_id": "experiment", "content_retention": "metadata_and_fingerprints_only", "privacy": "Private audi...
+> [Request interrupted by user for tool use]
+
+### Work done
+- Charts seen. Real problems, per case + systemic. Caveman. **What broke, case by case:** - **01**: Input = "Men" table (implies Women table too). Output dropped gender entirely + floating annotation boxes + value label...
+
+<!-- claude-session:0a6d0d5f-479c-4c3d-91d3-d56eafa5f0f9:end -->
