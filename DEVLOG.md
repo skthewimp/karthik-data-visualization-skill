@@ -2077,3 +2077,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Fixed and shipped. **What changed:** the driverless fallback in `dataviz-construct` + `dataviz-fix` (claude + codex) no longer says "walk stages inline." It now says: if handed the skill directly **and** you can spawn...
 
 <!-- claude-session:4200f127-8e8b-404a-bd4e-738b14100a4a:end -->
+
+<!-- claude-session:13896fdc-f69b-438b-8e67-6d7a1a429f13:start -->
+## 2026-09-02 11:35 IST | Claude session `13896fdc-f69`
+
+### User prompts
+> i want to test the skills locally and see what regression happens here and hwat in the harness. cna you lok at openrouter.png in the downloads folder and fix it/
+> <task-notification> <task-id>abd7d0609b4a2c460</task-id> <tool-use-id>toolu_01RmSW6VgaxzvecKiB59rtqP</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/42...
+> <task-notification> <task-id>a2d6fa3428fe6bea4</task-id> <tool-use-id>toolu_01HBGoLjjctYyJuyWegAivVH</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/42...
+
+### Work done
+- It's not new, and it's in the package because it's **executable driver code, not skill content.** `stage_contracts.py` is a real Python module. It defines the staged pipelines (`REPAIR_PIPELINE`, `STORY_PIPELINE`, the...
+- Leaving it. Done for this session: skill guidance decoupled from your harness (visual read is now a real check; HTML/SVG a legit renderer), no R/Python regression, committed + pushed (`82ca2dd`). `stage_contracts.py`...
+
+<!-- claude-session:13896fdc-f69b-438b-8e67-6d7a1a429f13:end -->
