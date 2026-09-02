@@ -1,11 +1,14 @@
 """Wrap and de-collide a chart's text once the canvas is fixed.
 
 The forward companion to the collision and clip checks in ``inspection``: given the decided
-canvas and the text the build has written (title, subtitle, caption, annotations) plus the
-data marks each annotation points at, this wraps every block to fit its room and moves any
-annotation that would collide with another text block, the canvas edge, or a data mark to the
-nearest clear spot. It reports the wrap and the moved anchor; the model still owns which
-annotation to show and what it says.
+canvas and the text the build has written (title, subtitle, caption, labels, annotations) plus
+the data marks each label points at, this wraps every block to fit its room and parks every
+movable label just beside the mark it names - the anchor is the mark, not the box corner.
+Text is placed by priority (data labels, then category/series labels, then free annotations),
+so the least-free text claims its spot first. A label sits adjacent to its mark with no leader;
+only when no adjacent spot exists does it travel to the nearest clear area and grow a leader
+line back to its point. It reports the wrap and the parked position; the model still owns which
+label to show and what it says.
 
 Mechanism only. It never invents an annotation - it fits the ones already chosen.
 """
@@ -43,6 +46,43 @@ FIXED_ROLES = {"title", "subtitle", "footer", "caption"}
 # never moved, and their own mark is never an obstacle to push them off. Only free callouts
 # (role annotation/label) are de-collided.
 ON_MARK_ROLES = {"data_label"}
+
+# Placement priority: least-free text claims its spot first and becomes an obstacle for the
+# freer text that follows. Fixed bands and on-mark data labels are pinned (tier 0/1); a
+# category/series label is bound to a series but can slide along it (tier 2); a free annotation
+# has the most room, so it fits last into what is left (tier 3). Within a tier, input order.
+_PLACEMENT_TIER = {
+    "title": 0, "subtitle": 0, "footer": 0, "caption": 0,
+    "data_label": 1,
+    "label": 2,
+    "annotation": 3,
+}
+
+
+def _tier(role: str) -> int:
+    return _PLACEMENT_TIER.get(role, 3)
+
+
+def _direction_order(hint: Optional[str]) -> list[str]:
+    """The order to try parking a label around its mark. An explicit hint goes first, then the
+    default right -> above -> below -> left (right is the standard direct-label position)."""
+    base = ["right", "above", "below", "left"]
+    if hint in base:
+        return [hint] + [d for d in base if d != hint]
+    return base
+
+
+def _park(mark: tuple[float, float], direction: str, gap: float, w: float, h: float) -> tuple[float, float]:
+    """Top-left of a box sitting one ``gap`` beside ``mark`` in ``direction``, centred on the
+    mark along the perpendicular axis. The anchor is the mark; the label sits next to it."""
+    mx, my = mark
+    if direction == "right":
+        return mx + gap, my - h / 2
+    if direction == "left":
+        return mx - gap - w, my - h / 2
+    if direction == "above":
+        return mx - w / 2, my - gap - h
+    return mx - w / 2, my + gap  # below
 
 
 def _wrap(text: str, font_pt: float, dpi: float, avail_px: float) -> tuple[str, float, float]:
@@ -240,17 +280,29 @@ def recommend_text_placement(
     edge_margin_px: Optional[float] = None,
     min_font_pt: float = 8.0,
 ) -> dict[str, Any]:
-    """Wrap every text block to fit and move colliding annotations to the nearest clear spot.
+    """Wrap every text block to fit and park each movable label beside the mark it names.
+
+    Text is placed in priority order - data labels first, then category/series labels, then
+    free annotations - so the least-free text claims its spot and the freer text fits around it.
+    A movable label's ``anchor`` is the MARK it names: the box is parked one small gap beside the
+    mark (preferred side first), with no leader line. Only when no adjacent spot exists at any of
+    the label's marks does it travel to the nearest clear area and grow a leader back to its point.
 
     Args:
         width_px / height_px / dpi: the fixed canvas from ``recommend_layout``.
-        blocks: text blocks, each ``{id, text, role, font_pt?, anchor:{x,y}}`` in canvas px.
-            role in {title, subtitle, footer, caption} is fixed (wrapped, never moved);
-            role ``data_label`` is an on-mark label the plotting layer already centred on its
-            mark (a stacked-bar segment value, a point label) - also wrapped, never moved, and
-            never de-collided against its own mark; role annotation/label is movable.
+        blocks: text blocks, each ``{id, text, role, font_pt?, anchor:{x,y}, placement?, anchors?}``
+            in canvas px. role in {title, subtitle, footer, caption} is fixed (box at the anchor,
+            wrapped, never moved); role ``data_label`` is an on-mark label the plotting layer
+            already centred on its mark (a stacked-bar segment value) - box at the anchor, wrapped,
+            never moved, never de-collided against its own mark. role ``label`` (a category/series
+            name) and ``annotation`` (a free callout) are movable: the anchor is the mark, and the
+            box parks beside it. ``placement`` (one of right/above/below/left) sets the preferred
+            side to try first (default right). ``anchors`` is an optional list of candidate marks
+            for a ``label`` - it may sit beside any of them (e.g. any point along its line), since
+            adjacency, not the endpoint, is what identifies the series; the first candidate is the
+            primary and the leader, if any, points there.
         obstacles: bounding boxes ``{x, y, width, height}`` of the data marks/series in canvas
-            px. Movable annotations are always de-collided against these, not only text-vs-text.
+            px. Movable labels are always parked clear of these, not only text-vs-text.
             Do NOT pass a segment's own bar here for its ``data_label`` - an on-mark label belongs
             inside its mark, so it is exempt from obstacle de-collision entirely.
         max_annotation_width_frac: widest an annotation box may wrap to, as a fraction of width.
@@ -258,15 +310,17 @@ def recommend_text_placement(
         min_font_pt: legibility floor a movable block may shrink to when no clear spot is found
             at full size; never smaller, so a shrink can never create an undersized-text defect.
 
-    Returns per-block ``wrapped_text``, ``wrap_width_chars``, predicted ``bbox``, and, when it
-    moved, shrank, or re-wrapped a block, ``suggested_anchor`` / ``suggested_font_pt`` /
-    ``suggested_wrap`` plus a warning. A movable block that ends up off its original anchor also
-    gets a ``leader_line`` (``{from, to}`` in canvas px) for the builder to draw as a thin
-    connector, so a de-collided label still pairs with the mark it names. After all labels are
-    placed, any pair of movable labels whose leader lines cross is swapped back - each label trades
-    position with the other so both point at their own mark again - whenever the swap keeps both
-    boxes clear of every mark and label; the swapped blocks carry an updated anchor, leader, and a
-    warning.
+    Returns per-block ``wrapped_text``, ``wrap_width_chars``, and the final ``bbox`` (the box the
+    builder should draw - authoritative, since the anchor was the mark, not the box). A label
+    parked on its preferred side carries no ``suggested_anchor``, no ``leader_line`` and no
+    warning; one parked on an alternate side or mark carries ``suggested_anchor`` and a warning.
+    Only a label that found no adjacent spot and travelled to the nearest clear area (or shrank to
+    fit) gets a ``leader_line`` (``{from, to}`` in canvas px) for the builder to draw as a thin
+    connector back to its point, plus ``suggested_anchor`` / ``suggested_font_pt`` / ``suggested_wrap``
+    and a warning. After all labels are placed, any pair of movable labels whose leader lines cross
+    is swapped back - each label trades position with the other so both point at their own mark
+    again - whenever the swap keeps both boxes clear of every mark and label; the swapped blocks
+    carry an updated anchor, leader, and a warning.
 
     Returns a top-level ``redundant_annotations`` list (``{id, restated_value, data_label_id}``):
     a free annotation whose single data value a nearby ``data_label`` already prints is clutter -
@@ -283,83 +337,132 @@ def recommend_text_placement(
     unresolved = 0
 
     pinned = FIXED_ROLES | ON_MARK_ROLES
-    ordered = sorted(blocks, key=lambda b: 0 if b.get("role") in pinned else 1)
+    # Place by priority: data labels first, then category/series labels, then free annotations,
+    # so each tier becomes an obstacle the freer tier below it fits around.
+    ordered = sorted(blocks, key=lambda b: _tier(b.get("role", "annotation")))
     for block in ordered:
         role = block.get("role", "annotation")
         font_pt = float(block.get("font_pt") or FONT_PT.get(role, FONT_PT["annotation"]))
         movable = role not in pinned
         anchor = block.get("anchor") or {"x": margin, "y": margin}
         ax, ay = float(anchor.get("x", margin)), float(anchor.get("y", margin))
-        orig_ax, orig_ay = ax, ay
         warnings: list[str] = []
         suggested_anchor: Optional[dict[str, int]] = None
         suggested_wrap: Optional[str] = None
         suggested_font_pt: Optional[float] = None
+        leader_line: Optional[dict[str, dict[str, float]]] = None
+        text = block.get("text", "")
 
-        if role in FIXED_ROLES:
-            avail = width_px - 2 * margin
-        else:
-            # movable annotations and pinned on-mark labels both wrap to a narrow band, not the
-            # full canvas width - an on-mark segment value must not wrap as if it were a title.
-            avail = min(max_annotation_width_frac * width_px, width_px - ax - margin)
-            avail = max(avail, char_px(font_pt, dpi) * 8)
-
-        wrapped, box_w, box_h = _wrap(block.get("text", ""), font_pt, dpi, avail)
-        bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
-
-        nx, ny = _nudge_into_canvas(bbox, width_px, height_px, margin)
-        if (round(nx), round(ny)) != (round(ax), round(ay)):
-            warnings.append("would clip the canvas edge; nudged inward")
-            ax, ay = nx, ny
-            bbox["x"], bbox["y"] = ax, ay
-            if movable:
-                suggested_anchor = {"x": round(ax), "y": round(ay)}
-
-        if movable:
-            blockers = obstacles + placed
-            if _hits_any(bbox, blockers):
-                found = _search_clear(
-                    bbox, blockers, width_px, height_px, margin, step=line_px(font_pt, dpi)
+        if not movable:
+            # Fixed bands and on-mark data labels: box origin at the anchor, wrapped, nudged in,
+            # never de-collided or given a leader (a data label belongs on its mark).
+            avail = (width_px - 2 * margin) if role in FIXED_ROLES else max(
+                char_px(font_pt, dpi) * 8,
+                min(max_annotation_width_frac * width_px, width_px - ax - margin),
+            )
+            wrapped, box_w, box_h = _wrap(text, font_pt, dpi, avail)
+            bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
+            nx, ny = _nudge_into_canvas(bbox, width_px, height_px, margin)
+            if (round(nx), round(ny)) != (round(ax), round(ay)):
+                warnings.append("would clip the canvas edge; nudged inward")
+                bbox["x"], bbox["y"] = nx, ny
+            if role in FIXED_ROLES and _hits_any(bbox, placed):
+                warnings.append(
+                    "overlaps another fixed text block; widen its band or shorten the text"
                 )
-                if found is not None:
-                    ax, ay = found
-                    bbox["x"], bbox["y"] = ax, ay
-                    suggested_anchor = {"x": round(ax), "y": round(ay)}
+            placed.append(dict(bbox))
+            results.append(
+                {
+                    "id": block.get("id"),
+                    "role": role,
+                    "wrapped_text": wrapped,
+                    "wrap_width_chars": max(1, int(avail / char_px(font_pt, dpi))),
+                    "bbox": {k: round(v, 1) for k, v in bbox.items()},
+                    "suggested_anchor": None,
+                    "suggested_font_pt": None,
+                    "suggested_wrap": None,
+                    "leader_line": None,
+                    "warnings": warnings,
+                }
+            )
+            continue
+
+        # Movable label/annotation: the anchor is the MARK; park the box beside it. A category
+        # label may name several candidate marks along its series (`anchors`) - it can sit beside
+        # any of them, since adjacency, not the endpoint, is what proves which series it names.
+        avail = max(
+            char_px(font_pt, dpi) * 8,
+            min(max_annotation_width_frac * width_px, width_px - 2 * margin),
+        )
+        wrapped, box_w, box_h = _wrap(text, font_pt, dpi, avail)
+        raw_marks = block.get("anchors") or [anchor]
+        marks = [(float(m.get("x", ax)), float(m.get("y", ay))) for m in raw_marks]
+        primary = marks[0]
+        directions = _direction_order(block.get("placement"))
+        gap = max(4.0, round(0.3 * line_px(font_pt, dpi)))
+        blockers = obstacles + placed
+
+        # 1. Adjacency: try each mark x each direction; the first clear spot wins, no leader.
+        chosen: Optional[tuple[float, float, bool]] = None
+        for mi, mark in enumerate(marks):
+            for di, direction in enumerate(directions):
+                px, py = _park(mark, direction, gap, box_w, box_h)
+                cand = {"x": px, "y": py, "width": box_w, "height": box_h}
+                cx, cy = _nudge_into_canvas(cand, width_px, height_px, margin)
+                cand["x"], cand["y"] = cx, cy
+                if not _hits_any(cand, blockers):
+                    chosen = (cx, cy, mi == 0 and di == 0)
+                    break
+            if chosen is not None:
+                break
+
+        if chosen is not None:
+            cx, cy, is_home = chosen
+            bbox = {"x": cx, "y": cy, "width": box_w, "height": box_h}
+            if not is_home:
+                suggested_anchor = {"x": round(cx), "y": round(cy)}
+                warnings.append("parked beside its mark to clear other marks and labels")
+        else:
+            # 2. No adjacent spot at any mark: search farther from the primary mark and, when it
+            #    lands away from the mark, draw a leader so the pairing survives.
+            start = _park(primary, directions[0], gap, box_w, box_h)
+            bbox = {"x": start[0], "y": start[1], "width": box_w, "height": box_h}
+            found = _search_clear(
+                bbox, blockers, width_px, height_px, margin, step=line_px(font_pt, dpi)
+            )
+            if found is not None:
+                bbox["x"], bbox["y"] = found
+                suggested_anchor = {"x": round(found[0]), "y": round(found[1])}
+                warnings.append("no adjacent spot; moved to the nearest clear area")
+                leader_line = _leader_line(bbox, primary)
+                warnings.append("moved off its point; draw a thin leader line to keep the pairing")
+            else:
+                # 3. Shrink toward the legibility floor, else tighten the wrap and flag for review.
+                shrunk = _shrink_to_fit(
+                    text, font_pt, dpi, avail, min_font_pt,
+                    blockers, primary, width_px, height_px, margin,
+                )
+                if shrunk is not None:
+                    font_pt, (cx, cy), wrapped, bw, bh = shrunk
+                    bbox = {"x": cx, "y": cy, "width": bw, "height": bh}
+                    suggested_font_pt = round(font_pt, 1)
+                    suggested_anchor = {"x": round(cx), "y": round(cy)}
+                    warnings.append(f"no clear spot at full size; shrank to {font_pt:.0f}pt to fit")
+                    leader_line = _leader_line(bbox, primary)
                     warnings.append(
-                        "overlapped a data mark or another label; moved to the nearest clear spot"
+                        "moved off its point; draw a thin leader line to keep the pairing"
                     )
                 else:
-                    shrunk = _shrink_to_fit(
-                        block.get("text", ""), font_pt, dpi, avail, min_font_pt,
-                        blockers, (ax, ay), width_px, height_px, margin,
+                    tight, tw, th = _wrap(text, font_pt, dpi, avail * 0.6)
+                    wrapped = tight
+                    bbox = {"x": primary[0], "y": primary[1], "width": tw, "height": th}
+                    bbox["x"], bbox["y"] = _nudge_into_canvas(bbox, width_px, height_px, margin)
+                    suggested_wrap = tight
+                    unresolved += 1
+                    warnings.append(
+                        "no clear spot even at the minimum legible size; tightened the wrap "
+                        "- review placement by hand"
                     )
-                    if shrunk is not None:
-                        font_pt, (ax, ay), wrapped, bw, bh = shrunk
-                        bbox = {"x": ax, "y": ay, "width": bw, "height": bh}
-                        suggested_font_pt = round(font_pt, 1)
-                        if (round(ax), round(ay)) != (round(orig_ax), round(orig_ay)):
-                            suggested_anchor = {"x": round(ax), "y": round(ay)}
-                        warnings.append(
-                            f"no clear spot at full size; shrank to {font_pt:.0f}pt to fit"
-                        )
-                    else:
-                        tight, tw, th = _wrap(block.get("text", ""), font_pt, dpi, avail * 0.6)
-                        wrapped, bbox["width"], bbox["height"] = tight, tw, th
-                        suggested_wrap = tight
-                        unresolved += 1
-                        warnings.append(
-                            "no clear spot even at the minimum legible size; tightened the wrap "
-                            "- review placement by hand"
-                        )
-        elif role in FIXED_ROLES and _hits_any(bbox, placed):
-            warnings.append(
-                "overlaps another fixed text block; widen its band or shorten the text"
-            )
-
-        leader_line: Optional[dict[str, dict[str, float]]] = None
-        if movable and (round(ax), round(ay)) != (round(orig_ax), round(orig_ay)):
-            leader_line = _leader_line(bbox, (orig_ax, orig_ay))
-            warnings.append("moved off its point; draw a thin leader line to keep the pairing")
 
         placed.append(dict(bbox))
         results.append(

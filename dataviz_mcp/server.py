@@ -255,31 +255,37 @@ def create_server() -> Any:
         edge_margin_px: float | None = None,
         min_font_pt: float = 8.0,
     ) -> dict[str, Any]:
-        """Wrap a chart's text to fit and move colliding annotations to the nearest clear spot.
+        """Wrap a chart's text to fit and park each movable label beside the mark it names.
 
-        Call inside build after the title/subtitle/caption/annotations are written and the
-        canvas is fixed. Each ``blocks`` item is ``{id, text, role, font_pt?, anchor:{x,y}}``
-        in canvas px; title/subtitle/footer/caption are wrapped but never moved, annotations
-        are movable. Role ``data_label`` is an on-mark label the plotting layer already centred
-        on its mark (a stacked-bar segment value, a point label): wrapped, never moved, and
-        exempt from obstacle de-collision - do NOT pass its own bar as an obstacle, or it will be
-        shoved off the segment it belongs on. ``obstacles`` are the data marks' bounding boxes in
-        canvas px - movable annotations are always de-collided against them, not only against
-        other text. A movable block with
-        no clear spot at full size is shrunk toward ``min_font_pt`` (the legibility floor) before
-        the wrap is tightened. Returns each block's wrapped text, predicted bbox, and a moved
-        ``suggested_anchor`` / smaller ``suggested_font_pt`` / tighter ``suggested_wrap`` where
-        needed. A movable block that ends up off its original anchor also gets a ``leader_line``
-        (``{from, to}`` in canvas px) to draw as a thin connector so the label still pairs with
-        its mark. When two movable labels land on each other's side so their leaders cross, they
-        are swapped back toward their own marks whenever the swap stays clear of every mark and
-        label. A top-level ``redundant_annotations`` list flags any free annotation whose one
-        data value a nearby ``data_label`` already prints (a "Peak: 42%" beside a mark already
-        labelled 42%) and recommends dropping it - the value is on the chart twice; a comparison
-        naming two values or a delta whose number is on no label is never flagged. Plus a
-        canvas-level ``suggested_orientation`` / ``suggested_canvas`` when a landscape canvas stays
-        too cramped and a portrait flip would help. It fits the annotations already chosen; it
-        invents none.
+        Call inside build after the title/subtitle/caption/labels/annotations are written and the
+        canvas is fixed. Each ``blocks`` item is
+        ``{id, text, role, font_pt?, anchor:{x,y}, placement?, anchors?}`` in canvas px. Text is
+        placed in priority order so the least-free claims its spot first: data labels, then
+        category/series labels, then free annotations. title/subtitle/footer/caption sit at their
+        anchor, wrapped, never moved. Role ``data_label`` is an on-mark label the plotting layer
+        already centred on its mark (a stacked-bar segment value): wrapped, never moved, and exempt
+        from obstacle de-collision - do NOT pass its own bar as an obstacle, or it will be shoved
+        off the segment it belongs on. Role ``label`` (a category/series name) and ``annotation``
+        (a free callout) are movable, and their ``anchor`` is the MARK they name: the box parks one
+        small gap beside the mark - preferred side first (``placement`` = right/above/below/left,
+        default right) - with no leader line. A ``label`` may pass ``anchors``, a list of candidate
+        marks (e.g. several points along its line); it sits beside whichever is clear, since
+        adjacency identifies the series, not the endpoint. ``obstacles`` are the data marks'
+        bounding boxes in canvas px - movable labels are always parked clear of them, not only of
+        other text. Only when no adjacent spot exists at any of a label's marks does it travel to
+        the nearest clear area (shrinking toward ``min_font_pt``, the legibility floor, if needed)
+        and grow a ``leader_line`` (``{from, to}`` in canvas px) back to its point. Returns each
+        block's wrapped text and final ``bbox`` (authoritative - the anchor was the mark), plus
+        ``suggested_anchor`` / ``suggested_font_pt`` / ``suggested_wrap`` when it changed side, mark,
+        or size. A label parked on its preferred side has none of those and no leader. When two
+        moved labels land on each other's side so their leaders cross, they are swapped back toward
+        their own marks whenever the swap stays clear of every mark and label. A top-level
+        ``redundant_annotations`` list flags any free annotation whose one data value a nearby
+        ``data_label`` already prints (a "Peak: 42%" beside a mark already labelled 42%) and
+        recommends dropping it - the value is on the chart twice; a comparison naming two values or
+        a delta whose number is on no label is never flagged. Plus a canvas-level
+        ``suggested_orientation`` / ``suggested_canvas`` when a landscape canvas stays too cramped
+        and a portrait flip would help. It fits the labels already chosen; it invents none.
         """
         return recommend_text_placement_core(
             width_px,

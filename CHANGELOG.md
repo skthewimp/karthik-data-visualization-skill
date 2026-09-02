@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Text placement: park labels beside their marks, by priority, not repel them
+
+`recommend_text_placement` had one placement model for movable text: draw the box with its top-left *on* the anchor, and since the anchored point sits in `obstacles`, the box always overlapped its own mark and was always bounced away - via an 8-direction ring search up to 12 line-heights out - then given a leader line. So every direct label and value number landed somewhere far from its point with a dash back to it (the world-diet charts: series names on leader dashes, "≈40%" numbers scattered). There was also no hierarchy: category labels and free annotations competed first-come-first-served, so an annotation could take the spot a series label needed.
+
+- **The anchor is the mark; the box parks beside it, `dataviz_mcp/text_fit.py`.** A movable `label`/`annotation` now parks one small gap beside its mark - preferred side first (`placement` = right/above/below/left, default right) - and carries no leader line when it lands adjacent. Only when no adjacent side at any of the label's marks is clear does it fall through to the old far search and grow a leader. Leaders become the rare fallback, not the default.
+- **Category labels can slide along their series, `text_fit.py`.** A `label` may pass `anchors`, a list of candidate marks (e.g. several points along its line); it sits beside whichever is clear. Adjacency, not the endpoint, is what proves which series a label names, so a smothered endpoint no longer forces a dash.
+- **Placement priority, `text_fit.py`.** Text is now placed least-free first - data labels, then category/series labels, then free annotations - so each tier becomes an obstacle the freer tier fits around; an annotation can no longer claim a series label's spot.
+- Docstrings, `dataviz_mcp/server.py` tool contract, and `docs/mcp.md` updated; 4 new `text_fit` tests (adjacency-no-leader, blocked-side reparks without a leader, multi-anchor category label, tier ordering). Full suite 170 + 4 = 174 pass.
+
 ### Annotations: aggregate/difference is a form, not a licence
 
 Yesterday's value-add rule stopped bare number-labelling but carved out aggregates and differences - and the pipeline began overproducing them. Charts filled with callouts like "A + B: 30% -> 35%", "+11 points" between two printed endpoints, and "Peak: 42%": each a sum or subtraction of two-or-three values already labelled on the chart, adding nothing and crowding the frame. Root cause: the gate's survivor clause ("a comparison the reader would have to compute") read as a whitelist for anything a calculation produced, so a one-step mental subtraction of two visible numbers counted as "computed" and survived.

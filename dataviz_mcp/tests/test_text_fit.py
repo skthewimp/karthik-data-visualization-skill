@@ -163,6 +163,76 @@ def test_moved_label_gets_a_leader_line_back_to_its_point():
     assert any("leader line" in w for w in placement["warnings"])
 
 
+def test_label_parks_beside_its_mark_without_a_leader():
+    # The anchor is the mark. With nothing in the way the label parks just to its right and
+    # carries no leader, no suggested_anchor and no warning - it is where it belongs.
+    mark = {"x": 400, "y": 300}
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{"id": "s", "role": "label", "text": "Cereals", "anchor": mark}],
+        obstacles=[],
+    )
+    placement = _by_id(result, "s")
+    assert placement["leader_line"] is None
+    assert placement["suggested_anchor"] is None
+    assert not placement["warnings"]
+    assert placement["bbox"]["x"] > mark["x"]  # parked to the right of the mark, not on it
+
+
+def test_blocked_side_parks_on_another_side_still_without_a_leader():
+    # The preferred (right) side is blocked but the space above is open: the label parks above,
+    # adjacent to its mark, so it still needs no leader - only a note that it changed sides.
+    mark = {"x": 400, "y": 300}
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{"id": "s", "role": "label", "text": "Meat", "anchor": mark}],
+        obstacles=[{"x": 405, "y": 285, "width": 200, "height": 40}],
+    )
+    placement = _by_id(result, "s")
+    assert placement["leader_line"] is None  # still adjacent, no dash needed
+    assert placement["suggested_anchor"] is not None  # but it moved off the preferred side
+
+
+def test_category_label_may_sit_beside_any_point_along_its_series():
+    # The endpoint neighbourhood is blocked, but an earlier point on the same line is clear.
+    # The label attaches there - adjacency, not the endpoint, is what names the series - with
+    # no leader. Candidate marks are passed in `anchors`; the first is the primary.
+    endpoint = {"x": 900, "y": 300}
+    midpoint = {"x": 500, "y": 300}
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{
+            "id": "line", "role": "label", "text": "Roots and tubers",
+            "anchor": endpoint, "anchors": [endpoint, midpoint],
+        }],
+        obstacles=[{"x": 880, "y": 260, "width": 260, "height": 80}],  # smothers the endpoint
+    )
+    placement = _by_id(result, "line")
+    assert placement["leader_line"] is None
+    assert placement["bbox"]["x"] < 880  # parked near the mid-line point, clear of the endpoint
+
+
+def test_placement_priority_data_label_then_label_then_annotation():
+    # All three want the same spot. The data label is pinned there; the category label and the
+    # annotation each yield in turn, so none overlaps another - and the pinned label never moves.
+    anchor = {"x": 400, "y": 300}
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[
+            {"id": "ann", "role": "annotation", "text": "note", "anchor": anchor},
+            {"id": "lab", "role": "label", "text": "series", "anchor": anchor},
+            {"id": "dl", "role": "data_label", "text": "42%", "anchor": anchor},
+        ],
+    )
+    dl = _by_id(result, "dl")
+    lab = _by_id(result, "lab")
+    ann = _by_id(result, "ann")
+    assert dl["bbox"]["x"] == anchor["x"] and dl["bbox"]["y"] == anchor["y"]  # pinned, unmoved
+    assert not boxes_overlap(dl["bbox"], lab["bbox"])
+    assert not boxes_overlap(dl["bbox"], ann["bbox"])
+    assert not boxes_overlap(lab["bbox"], ann["bbox"])
+
+
 def test_unmoved_label_has_no_leader_line():
     result = recommend_text_placement(
         1200, 700, 144,
