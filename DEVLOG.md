@@ -18,8 +18,11 @@ today (Bollywood axis/precision/labels; mixed-unit small multiples). Two new one
   table).
 
 Case 03 (total line + per-model facets) embeds the aggregate "Total" as cell 1 of the component
-grid at a 10x scale. The total+breakdown pairing is licensed, so I flagged it but did not add a
-rule - the borderline layout call did not justify new general text.
+grid at a 10x scale. The total+breakdown pairing is licensed, so I first only flagged it - then
+Karthik asked to add the rule. Added to dataviz-selector: when the pairing uses a small-multiples
+breakdown, the total gets its own set-apart panel and scale, never a cell in the component grid,
+because a total mixed among components at a different scale is the same false-comparability read
+as heterogeneous units.
 
 While adding the convergent-cluster stop-point I noticed the earlier axis-range edit had
 overwritten the shared-scale resolution bullet rather than adding beside it; restored it in the

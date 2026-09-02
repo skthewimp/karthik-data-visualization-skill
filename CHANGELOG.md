@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Total + breakdown: the total is set apart from the grid, not a peer facet
+
+- **`dataviz-selector` (both copies).** The licensed total-line-plus-breakdown pairing now specifies layout for the small-multiples case: the total view must be visually set apart (its own larger panel and labelled scale, a clear break), not dropped in as one more cell of the component grid. A total panel mixed among component panels at a different scale invites the same false-comparability read as heterogeneous units. (Case 03 embedded a 0-60T total as cell 1 of a per-model 0-6T grid.)
+
 ### Negative shares and convergent small-series clusters (canonical-examples audit)
 
 Reviewing the canonical example set surfaced two more failures that shipped.
