@@ -1,5 +1,26 @@
 # Devlog
 
+## 2026-09-02 - Four failures on one integer-percent line chart
+
+Karthik flagged a repaired Bollywood-age line chart with four problems: (1) a 0-100 y-axis when
+the data maxes at 44, wasting half the panel; (2) fabricated decimals - `43.0%`, `1.0%` on
+integer source data, and ragged (`36%` beside `43.0%`); (3) endpoint value labels clashing with
+series-name labels at the right edge; (4) the recent "data labels can't be moved" rule visibly
+causing that clash.
+
+Root causes and fixes (no example-specific triggers, all general):
+
+- Precision: the spread rule sets how *few* digits distinguish values but had no ceiling on the
+  source's own precision. Added a hard cap - spread can lower digits, never raise above source;
+  integers stay integers; one uniform place per column. (`dataviz-precision`)
+- Labels: the on-mark `data_label` "never moved" rule (added to stop bar-segment values being
+  shoved off-canvas by obstacle-avoidance) was being read as "an overlap involving a data label
+  is acceptable." Clarified: the label stays anchored, but a collision is still a defect resolved
+  by moving the *other* label - at a line end, the series name is the movable one. (`dataviz-execution`)
+- Axis: nothing stopped padding a percentage axis to its unit ceiling. Added: fit the axis to the
+  data range, a percentage does not force 0-100, upper bound just above the max, zero baseline only
+  where the encoding needs it. (`karthik-data-visualization`)
+
 ## 2026-09-02 - Small multiples with mixed units keeps slipping through
 
 Karthik flagged a published repair that turned a mixed-unit comparison table into a five-panel

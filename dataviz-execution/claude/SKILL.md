@@ -60,6 +60,15 @@ data. Pass it as role `data_label` - wrapped, never moved - and never list its o
 `obstacles`. Only free callouts get de-collided; feeding segment values through obstacle-avoidance
 shoves every one off its bar and clips them off-canvas.
 
+"Never moved" pins the data label to its mark - it does **not** make a collision involving it
+acceptable to ship. When an on-mark value overlaps another label (a series-name/identity label at
+a line end, a neighbouring point's value, an axis label), that is still a real geometry defect, and
+it is resolved by moving the *other*, movable label - de-collide the free/identity label, flip the
+data label's offset to the opposite side of its mark, stack the two so they do not share a line, or
+cut one from the label set - never by leaving the two overlapping because "the data label can't
+move." At a crowded line end the series name is the movable one: separate it from the endpoint
+value rather than accepting the clash.
+
 A `REDUNDANT_VALUE_AXIS` flag (medium severity, so it requires revision) is the eraser test made
 mechanical: when the marks that carry the reading are directly labelled, the numeric value axis
 ticks and gridlines are duplicate ink - drop them unless the axis still earns its place with a

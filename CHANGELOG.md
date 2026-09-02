@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Precision, label collisions, and over-long axes
+
+A repair of an integer-percent line chart surfaced four rule failures at once - fabricated decimals, a 0-100 axis for data that maxes at 44, and endpoint value labels clashing with series-name labels that the "never moved" rule refused to separate.
+
+- **`dataviz-precision` (both copies).** Added a hard source-precision ceiling: the spread rule can lower digits but never raise them above what the source carries, so integer inputs stay integers (no `44.0`, no `1.0`), and a column may not mix `36` beside `43.0`. Fixes fabricated and ragged decimals.
+- **`dataviz-execution` (both copies).** Clarified the on-mark `data_label` "never moved" rule: it pins the label to its mark but does not make a collision *involving* it shippable. A data-label-vs-other-label overlap is still a geometry defect, resolved by moving the *other* (free/identity) label, flipping the data label's offset side, stacking, or cutting one - never by leaving the overlap. At a crowded line end the series name is the movable one.
+- **`karthik-data-visualization` (both copies).** Added: fit the value axis to the data; a percentage does not earn a 0-100 domain. Upper bound sits just above the largest plotted value; zero baseline kept where the encoding needs it; full 0-100 only when that range is itself the point.
+
 ### Small multiples: one faceted grid, one unit - pulled out as a hard gate
 
 A repair kept turning a mixed-unit comparison table (lines, $/line, chars, count, $/burst) into a five-panel small-multiples grid, and rationalised it in its own "Why" note as "panels preserve the distinct units." The rule already existed - but it was the last clause of a ~400-word bullet on layout, ordering, and scales, so the model never reached it, and nothing caught the violation before render.
