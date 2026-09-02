@@ -2091,3 +2091,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Leaving it. Done for this session: skill guidance decoupled from your harness (visual read is now a real check; HTML/SVG a legit renderer), no R/Python regression, committed + pushed (`82ca2dd`). `stage_contracts.py`...
 
 <!-- claude-session:13896fdc-f69b-438b-8e67-6d7a1a429f13:end -->
+
+<!-- claude-session:2c3f1bab-8c32-4855-b5ac-62621403c95c:start -->
+## 2026-09-02 12:36 IST | Claude session `2c3f1bab-8c3`
+
+### User prompts
+> we have a problem with annotations. most are next to useless. check out @canonical-examples.pdf for example. we put in a new rule yesterday preventing anotations that direcxtly label numbers but including those that t...
+> a more important thing - a lot of charts actually DON'T need annotations. are we forcing them? how do we put a higher threhold for placing them? and i don't want the new whitelist to genrate nonsensical stuff now
+
+### Work done
+- All 28 pass. Extending the CHANGELOG entry with this threshold work:
+- Done. Attacked the forcing function at all three layers, not just the wording. **Were we forcing annotations? Yes — structurally, in three places:** 1. **`needs_annotations` defaulted on vibes.** The selector set it f...
+
+<!-- claude-session:2c3f1bab-8c32-4855-b5ac-62621403c95c:end -->
