@@ -1,5 +1,23 @@
 # Devlog
 
+## 2026-09-02 - Separate data coordinates from layout coordinates
+
+A repair run compressed a time series after the builder reserved label space twice: once by
+extending the year domain far beyond the data and again with a huge physical margin. The same run
+left known direct labels unwrapped because an optional placement plan contradicted the selected
+design.
+
+The first draft added a mandatory direct-label schema. Karthik correctly flagged that as
+overfitting. The final fix removes that extra structure and repairs the general mechanisms:
+
+- reader-facing text blocks whose words and anchors already exist trigger text placement directly;
+- quantitative domains carry data, while non-data content and whitespace use screen/layout
+  coordinates;
+- the same whitespace cannot be reserved in both systems.
+
+No chart type, date range, label count, or right-side-band special case was encoded. The observed
+failure remains only as regression motivation.
+
 ## 2026-09-01 - Selector: crowding-gated facets + separate smoothing rule
 
 ### Context

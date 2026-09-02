@@ -108,6 +108,14 @@ repo's; read them as the mechanism, and apply the same checks visually when the 
   `suggested_canvas` for a later build stage to flip, re-render, and re-run. It returns the wrap,
   the moved anchor, the smaller size, and the flip; the model still owns which annotation to show
   and what it says.
+- **Known text triggers placement.** Before the first render, pass every reader-facing block whose
+  words and anchor are already known to `recommend_text_placement` and use its returned wrapping
+  and placement. Derive this work from the blocks themselves; do not rely on a separate optional
+  flag that can contradict the chosen design.
+- **Keep coordinate systems separate.** Data scales represent the intended data domain. Titles,
+  labels, annotations, legends, and their whitespace live in layout/screen coordinates. Never
+  change a quantitative scale merely to reserve room for non-data content, and never reserve the
+  same room in both the data domain and the physical layout.
 - **Backward check (at `execution`).** `inspect_rendered_chart` now reports the fix vectors for
   what it finds - per-edge `overflow_px` / `grow_margin_px`, `separation_needed_px`,
   `panel_heights_px`, and a `geometry_summary` whose `suggested_dims` is computed by the same

@@ -454,6 +454,25 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertIn("needs_precision_plan", prompt)
             self.assertNotIn("as JSON", prompt)
 
+    def test_build_prompt_derives_text_placement_and_separates_coordinate_systems(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            client = FakeCaseManager(Path(temp))
+            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
+            prompt = runner._build_prompt(
+                client.case_id,
+                client.case_dir,
+                client.case_dir / "candidate.png",
+                client.case_dir / "diagnose-01.md",
+                client.case_dir / "select-01.md",
+                1,
+                1,
+                "chart",
+                (),
+            )
+            self.assertIn("derive the trigger from the blocks", prompt)
+            self.assertIn("data scales represent the intended data domain", prompt)
+            self.assertIn("never reserve the same room in both coordinate systems", prompt)
+
     def test_reviewer_gets_delivery_preview_and_overlapping_detail_sheet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

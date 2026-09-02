@@ -1105,7 +1105,14 @@ stage's ``exact_lookup_required`` flag, supplied by the driver, or produced by c
 here if it is available. Numbers that appear inside claim text - the headline and the candidate
 annotations - carry the precision the insight stage already gave them: reproduce them as stated,
 do not re-round them. Record each applied format in ``recommendations_used.number_formats`` with
-its reason. Record each acceptance check as pass, fail, or unknown against observed evidence.
+its reason. Before the first render, pass every reader-facing text block whose words and anchor
+are already known to ``recommend_text_placement`` and apply its wrapping and placement; the
+presence of such blocks is the trigger, not a separately declared routing flag. Keep coordinate
+systems separate: a data scale represents the intended data domain, while titles, labels,
+annotations, legends, and their whitespace live in layout/screen coordinates. Never change a
+quantitative scale merely to reserve room for non-data content, and never reserve the same room
+in both the data domain and the physical layout. Record each acceptance check as pass, fail, or
+unknown against observed evidence.
 A ``source_fidelity`` check is answerable here. An ``external_validation`` check whose ground
 truth (an exact denominator, dataset, or methodology) is not available in this run is recorded
 as ``unknown``, its gap stated plainly in ``open_issues`` so it can surface as a chart

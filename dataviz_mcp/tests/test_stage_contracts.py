@@ -261,6 +261,15 @@ def test_select_carries_exact_lookup_decision_upstream() -> None:
     assert item["properties"]["reason"]["minLength"] == 1
 
 
+def test_build_derives_text_placement_and_keeps_data_out_of_layout() -> None:
+    """Existing text blocks trigger placement; data coordinates never reserve chrome."""
+    build = " ".join(sc.stage("repair", "build").instructions.split())
+    assert "presence of such blocks is the trigger" in build
+    assert "every reader-facing text block whose words and anchor are already known" in build
+    assert "Never change a quantitative scale merely to reserve room" in build
+    assert "never reserve the same room" in build
+
+
 def test_acceptance_checks_split_fidelity_from_external_validation() -> None:
     """Every check declares whether it is answerable in-run or needs external ground truth."""
     for schema in (sc.SELECT_SCHEMA, sc.stage("repair", "select").output_schema):

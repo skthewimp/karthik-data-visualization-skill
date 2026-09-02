@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Layout: text triggers placement; data domains never reserve chrome
+
+- **Placement is derived from content, not an optional plan flag.** Before the first render, build passes every reader-facing text block whose words and anchor are known to `recommend_text_placement` and applies its wrapping and placement. This closes the gap where a selected direct-labelling design could nevertheless mark placement planning "not required."
+- **Data and layout coordinates stay separate.** Quantitative scales represent the intended data domain; labels, annotations, legends, titles, and their whitespace live in layout/screen coordinates. Builders may not expand a scale merely to reserve non-data whitespace or reserve the same space again in a physical margin. The rule is intentionally general—no chart type, label count, or example-specific schema was added.
+- Updated the shared construct skill, stage contract, and local harness prompt; added contract and prompt regressions.
+
 ### Annotations: redefined as external facts, not filtered in-data callouts
 
 The value-add gate never closed. Each failure - `Cereal reversal: 42% -> 37%`, `Meat doubles: 6% -> 12%` - produced another clause, and the model found another loophole around it ("it's a ratio, so it reframes"). Prose describing *worth* is infinitely gameable, and every clause overfit to the one chart in front of us. The two entries below (`aggregate/difference is a form`, `value-add gate`) are that dead end. Root cause was a category error: we treated a callout of an in-data quantity as a weak annotation to be filtered, when it is not an annotation at all.
