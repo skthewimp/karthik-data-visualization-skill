@@ -30,7 +30,13 @@ Answer each against the evidence, and be specific about what fails and why.
 - **Is the EXPRESSION right?** Is the selected form the right vehicle for *this* claim, or will
   it mislead - hide the comparison the claim depends on, distort magnitudes, invite a wrong
   first read, or bury the message in a form no reader can follow (a deep stack for a per-series
-  trajectory, a dual axis implying a correlation, a pie split too fine to compare)?
+  trajectory, a dual axis implying a correlation, a pie split too fine to compare)? A
+  small-multiples grid is a specific failure to check by hand here: it claims its panels are
+  commensurable, so if the panels carry different units (a length panel beside a currency panel
+  beside a count), the form asserts a comparison that cannot be made - route back to `select`
+  for a table or separate individually-titled charts. "The panels preserve the distinct units"
+  is the rationalisation that gives this away, not a justification: distinct units are the
+  reason not to face them into one grid.
 - **Is the INSIGHT right?** Is the headline claim the key thing to say, and is it supported at
   the strength stated? Are the candidate annotations the right marks - each pointing at
   something a reader would miss - or are they clutter, or restatements of what the axis already

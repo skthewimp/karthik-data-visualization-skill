@@ -1,5 +1,29 @@
 # Devlog
 
+## 2026-09-02 - Small multiples with mixed units keeps slipping through
+
+Karthik flagged a published repair that turned a mixed-unit comparison table into a five-panel
+small-multiples grid (lines written, $/line, mean prompt chars, API calls, $/burst - five
+different units), and defended it as "panels preserve the distinct units." We already had a
+"panels must share the same unit" rule, so this was an enforcement failure, not a missing rule.
+
+Root cause: the rule was buried as the final clause of the ~400-word multi-series bullet in
+`dataviz-selector`, after layout, ordering, and shared-vs-free-scale prose. A weak model reading
+that wall never acts on the last sentence. And no gate re-checked it before render - the execution
+gate passed the grid geometrically ("0 measured defects").
+
+Two changes, no new machine schema (unit metadata isn't reliably available, and a hardcoded
+check would overfit):
+
+- pulled the same-unit requirement out into its own standalone `dataviz-selector` bullet, led
+  imperatively as a hard gate, with the "preserve the distinct units" rationalisation named as an
+  argument against the grid;
+- added the heterogeneous-unit-facet check to the EXPRESSION question in `dataviz-idea-critique`
+  so the pre-render gate catches it and routes back to `select`.
+
+Kept general: the test is per-panel unit commensurability, not the example's five panels or its
+specific units.
+
 ## 2026-09-02 - Separate data coordinates from layout coordinates
 
 A repair run compressed a time series after the builder reserved label space twice: once by

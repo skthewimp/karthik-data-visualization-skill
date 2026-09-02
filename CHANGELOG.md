@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Small multiples: one faceted grid, one unit - pulled out as a hard gate
+
+A repair kept turning a mixed-unit comparison table (lines, $/line, chars, count, $/burst) into a five-panel small-multiples grid, and rationalised it in its own "Why" note as "panels preserve the distinct units." The rule already existed - but it was the last clause of a ~400-word bullet on layout, ordering, and scales, so the model never reached it, and nothing caught the violation before render.
+
+- **`dataviz-selector` (both copies).** The same-unit requirement is extracted from the tail of the multi-series bullet into its own standalone bullet, worded as a hard gate: a small-multiples grid *asserts* its panels are commensurable, so different units per panel make it a lie however cleanly it tiles. The test is the unit of each panel's quantity, not the panel count or layout. Different units are named as an argument *against* one grid, not a property to "preserve"; the honest forms are a single table or separate individually-titled charts.
+- **`dataviz-idea-critique` (both copies).** The EXPRESSION question now checks heterogeneous-unit facets by hand pre-render and routes them back to `select`, and calls out "the panels preserve the distinct units" as the tell-tale rationalisation rather than a justification.
+
 ### Layout: text triggers placement; data domains never reserve chrome
 
 - **Placement is derived from content, not an optional plan flag.** Before the first render, build passes every reader-facing text block whose words and anchor are known to `recommend_text_placement` and applies its wrapping and placement. This closes the gap where a selected direct-labelling design could nevertheless mark placement planning "not required."
