@@ -60,6 +60,12 @@ List the marks worth considering - each a **claim tied to the datum, series, per
 that supports it**, with why it clears the bar. A mark earns its place only when it points at
 something a reader would otherwise miss or misread and the data backs it.
 
+**Start from an empty list.** The default is no candidates. Most charts carry their point in the
+headline claim and the direct labels and need nothing marked. Add a candidate only when a
+specific mark would change what the reader takes away; do not pad the list to look thorough, and
+do not treat "5 candidates" or any count as a target. An empty list is a normal, correct output,
+not a gap to fill.
+
 **The operational test: an annotation adds value only when its content cannot be recovered from
 the marks the reader already sees - their direct labels, the axes, and the title.** If removing
 the annotation loses nothing the reader could not read straight off the chart, it is clutter,
@@ -82,7 +88,9 @@ share or rank across many *unlabelled* marks, a ratio or multiple that reframes 
 chart at all: a cause, a consequence, the meaning of a threshold crossed, context from outside
 the chart, or attention directed to a feature that is easy to miss (a crossover, an inflection, a
 quiet divergence). Each survivor must also carry the headline claim - a true but incidental
-aggregate does not earn a mark. The list is often short and, when the headline claim and direct
+aggregate does not earn a mark. These categories are a filter, not a menu: clearing one does not
+oblige a candidate, and if you find yourself constructing a ratio or rank mainly so the chart has
+something to mark, emit none. The list is often short and, when the headline claim and direct
 labels already deliver the point, correctly empty. You decide the *claim and its anchor*; the build stage words, ranks, and
 places the mark.
 

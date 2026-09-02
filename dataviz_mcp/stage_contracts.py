@@ -1007,8 +1007,11 @@ cannot carry every message. Where the chart is a repair of an existing image, th
 chart's form is not an input and gets no vote - select the form cold from the claim and data.
 A table is a valid verdict when the intent is exact lookup or the values are not commensurable
 on one scale - set ``builder`` to ``table`` in that case, otherwise ``chart``. Set
-``needs_annotations`` and ``needs_explainer`` from whether the plan genuinely calls for
-on-chart marks or accompanying prose. Set ``design.colour_groups`` to the palette size - the
+``needs_annotations`` from whether the insight stage emitted any candidate annotation that
+survives its value-add bar: default it **false** when that candidate list is empty, and most
+charts carry the claim in the headline and direct labels and need no on-chart marks. Do not set
+it true merely because the form could host a callout. Set ``needs_explainer`` from whether the
+plan genuinely calls for accompanying prose. Set ``design.colour_groups`` to the palette size - the
 **maximum number of series that share a single panel** and must be told apart by colour. This
 is a property of the form, not the total category count: N lines, stacks, or slices in one
 panel need N; small multiples with k lines per panel need k (the same k colours reused across
