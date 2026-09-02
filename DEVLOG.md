@@ -2234,3 +2234,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:c7939796-c4b6-4957-8dd6-885d36814c3d:end -->
 
+<!-- claude-session:8011ebd8-8b7a-4918-958a-87a86fa6d2e5:start -->
+## 2026-09-02 17:00 IST | Claude session `8011ebd8-8b7`
+
+### User prompts
+> we have a "no small multiples unless units are same" rule but this keeps happening [Image #1]
+> check again. i've rsestarted my account
+> continue what you were doing
+
+### Work done
+- Case 03 is the bad one. Here's what happened. ## Case 03 — the lower panel is a black smear The redesign is **total line (top) + one 100%-stacked-area panel (bottom)**. The bottom panel — "Model mix (share of weekly u...
+- Good call — the metadata does explain it, once you line up `execution` call counts against the "measured defects" in each footer. ## The execution gate is the common thread | Case | build calls | **execution calls** |...
+
+<!-- claude-session:8011ebd8-8b7a-4918-958a-87a86fa6d2e5:end -->
