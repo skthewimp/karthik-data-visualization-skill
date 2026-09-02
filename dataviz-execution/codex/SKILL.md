@@ -30,17 +30,23 @@ Inspect the exact export at the declared delivery size and find every consequent
 
 ## Rendering and inspection
 
-The geometry verdict is not yours to eyeball. Run `render_and_inspect_chart` (or
-`inspect_rendered_chart` on the exact export) - it gives deterministic geometry - and record what
-it measured in the `inspection` block: the source tool, the smallest text size, the overlap
-count, and whether anything is clipped. Only when the inspector genuinely cannot run (check
-`probe_renderers`) may you fall back to a visual look; then set `geometry_source: visual-only`,
-leave the measured numbers empty, and report geometry as **unknown** - never as a pass. A
-`deliver` verdict can rest on a visual read of colour or ink, but its geometry claim must come
-from the tool or be marked unknown. Never describe an incomplete check as complete or fabricate
-metadata.
+The geometry verdict rests on the rendered export, not on the build code - so render at the
+declared delivery size and inspect that image. If your harness provides a deterministic geometry
+inspector, use it: this repo ships one (`render_and_inspect_chart`, or `inspect_rendered_chart` on
+the exact export, whenever `probe_renderers` reports a usable renderer), and it measures overlaps,
+clipping, and text size exactly. Record what it measured in the `inspection` block: the source
+tool, the smallest text size, the overlap count, and whether anything is clipped.
 
-When the inspector flags a geometry defect it also hands you the fix vector, so a revision is a
+When no such inspector is available - the common case outside this repo's harness, and the case for
+an HTML/SVG artifact or any renderer the inspector does not cover - inspect the exact export by eye
+at delivery size instead. This is a real check, not a non-check: look deliberately for each defect
+above, set `geometry_source: visual-only`, and record what you saw. A visual read can support a
+`deliver`. Stay honest about its limits - a picture cannot settle sub-pixel overlaps or exact
+point sizes - so note those as residual limitations rather than reporting measured precision you do
+not have. Never describe a check you did not run as complete, and never invent inspector metadata.
+
+The named flags below are what this repo's deterministic inspector emits; where it is absent, read
+each as the principle to apply by eye. When the inspector flags a geometry defect it also hands you the fix vector, so a revision is a
 number, not a guess: `geometry_summary.suggested_dims` (a grown `width_px`/`height_px` from the
 same math `recommend_layout` uses), per-edge `overflow_px` / `grow_margin_px` on clipped
 elements, `separation_needed_px` on colliding labels, and `panel_heights_px` /

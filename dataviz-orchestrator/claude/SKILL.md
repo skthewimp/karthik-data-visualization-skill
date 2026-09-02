@@ -100,8 +100,9 @@ the shared tail in full.
 Renderer availability must not change the chart design or force a translation into a weaker
 implementation. When the chosen renderer has a metadata-producing capability, render the exact
 deliverable through it and inspect that export before delivery. When it does not, keep the
-appropriate renderer, inspect the exact export visually, and record uncovered geometry as
-unknown. Do not translate a sound ggplot2 chart into Matplotlib only to obtain richer metadata.
+appropriate renderer and inspect the exact export visually - a real check that can support
+delivery - recording only what a picture cannot settle (sub-pixel overlap, exact point size) as a
+limitation. Do not translate a sound chart into a weaker renderer only to obtain richer metadata.
 
 ## Output package
 

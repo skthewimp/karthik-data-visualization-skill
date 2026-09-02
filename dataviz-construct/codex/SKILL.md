@@ -82,8 +82,12 @@ build call:
 ## Canvas size and text placement are resolved by tools, not eyeballed
 
 Geometry is mechanism, not build judgment - the same split as colour and precision. A weak model
-that guesses canvas dimensions clips titles, squashes facets, and collides annotations; two
-deterministic tools remove the guess.
+that guesses canvas dimensions clips titles, squashes facets, and collides annotations. Where the
+harness provides deterministic geometry tools, two of them remove the guess (described below).
+Where it does not - the common case outside this repo's own harness, and for any renderer those
+tools do not cover, such as a hand-authored HTML/SVG chart - the same guesses are settled by
+rendering the export and inspecting it by eye at delivery size. The tool names below are this
+repo's; read them as the mechanism, and apply the same checks visually when the tools are absent.
 
 - **Canvas (at `select`, applied at `build`).** `recommend_layout` sizes a clip-safe
   `width_px x height_px x dpi`, a facet grid, and the x-label rotation from the chart's *shape*
