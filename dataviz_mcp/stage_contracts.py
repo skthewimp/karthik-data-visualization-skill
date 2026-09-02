@@ -631,27 +631,45 @@ CLEAN_SCHEMA: dict[str, object] = {
 # Construct-tail schemas (insight -> select -> idea -> build -> execution).
 # --------------------------------------------------------------------------- #
 
-# The candidate marks the insight stage names for the chart. The build stage (via
-# chart-annotations) does the wording, ranking, and placement; here the *claim* and its
-# supporting data are decided, so the idea gate can check them before anything is drawn.
+# The candidate marks the insight stage names for the chart. An annotation is a fact from
+# OUTSIDE the dataset that explains what the data shows (a rainy day, a regulation, an
+# acquisition) - never a restatement of a quantity the chart already draws ("peak", "+38%",
+# "X to Y"), which is a direct label decided at build. The bar is self-enforcing: an external
+# fact cannot be obtained by studying the data harder, so the list is usually empty. The build
+# stage words and places these; it does not originate the fact.
 _CANDIDATE_ANNOTATIONS = {
     "type": "array",
     "description": (
-        "Marks worth considering, each a claim tied to the data that supports it. May be "
-        "empty - not every chart earns an on-chart mark. The build stage words and places "
-        "them; it does not originate the claim."
+        "External-fact marks worth considering, each a fact from outside the dataset that "
+        "explains a datum, tied to the datum it explains and the source it is known from. "
+        "Usually empty - most charts have no outside fact at hand, and an in-data quantity "
+        "('peak', 'record', 'X to Y', a rank, a trend, a crossover) is a direct label, not an "
+        "annotation, so it never belongs here. The build stage words and places them; it does "
+        "not originate the fact, and must never invent one to fill the slot."
     ),
     "items": {
         "type": "object",
         "properties": {
-            "claim": {"type": "string"},
+            "external_fact": {
+                "type": "string",
+                "description": (
+                    "The fact from outside the dataset - a cause, event, or regime change the "
+                    "chart cannot draw because it is not in the data."
+                ),
+            },
             "anchor": {
                 "type": "string",
-                "description": "The datum, series, period, or region the mark points at.",
+                "description": "The datum, series, period, or region the fact explains.",
             },
-            "why_it_clears_the_bar": {"type": "string"},
+            "source": {
+                "type": "string",
+                "description": (
+                    "Where the external fact is known from - the brief, the domain, the data "
+                    "owner, a citation. If there is no source, there is no annotation."
+                ),
+            },
         },
-        "required": ["claim", "anchor"],
+        "required": ["external_fact", "anchor", "source"],
         "additionalProperties": False,
     },
 }
@@ -1007,9 +1025,9 @@ cannot carry every message. Where the chart is a repair of an existing image, th
 chart's form is not an input and gets no vote - select the form cold from the claim and data.
 A table is a valid verdict when the intent is exact lookup or the values are not commensurable
 on one scale - set ``builder`` to ``table`` in that case, otherwise ``chart``. Set
-``needs_annotations`` from whether the insight stage emitted any candidate annotation that
-survives its value-add bar: default it **false** when that candidate list is empty, and most
-charts carry the claim in the headline and direct labels and need no on-chart marks. Do not set
+``needs_annotations`` from whether the insight stage named any external-fact annotation: default
+it **false** when that candidate list is empty, and most charts have no outside fact to mark and
+carry the claim in the headline and direct labels. Do not set
 it true merely because the form could host a callout. Set ``needs_explainer`` from whether the
 plan genuinely calls for accompanying prose. Set ``design.colour_groups`` to the palette size - the
 **maximum number of series that share a single panel** and must be told apart by colour. This
@@ -1052,8 +1070,9 @@ Answer four questions against the evidence. Is the DATA right: do the facts actu
 the claim, and are the denominator, grain, comparison, time window, and uncertainty sound?
 Is the EXPRESSION right: is the selected form the right vehicle for this claim, or will it
 mislead, hide the comparison, or invite a wrong first read? Is the INSIGHT right: is the
-headline claim the key thing to say and is it supported, and are the candidate annotations
-the right marks rather than clutter or restatements of the obvious? Is it HONEST and
+headline claim the key thing to say and is it supported, and is each candidate annotation an
+external fact the chart cannot draw - not an in-data quantity ('peak', 'X to Y') restated, and
+not a cause invented to fill the slot? Is it HONEST and
 COMPLETE: is anything key silently dropped, and does the claim's strength match the evidence?
 Return a verdict - ``proceed``, ``revise``, or ``blocked`` - with each issue's severity, a
 concrete fix, and whether it routes back to the insight stage (wrong or missing claim or

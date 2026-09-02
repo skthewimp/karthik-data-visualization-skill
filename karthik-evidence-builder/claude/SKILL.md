@@ -56,43 +56,27 @@ decomposition into one or several charts to selection.
 
 ## Candidate annotation claims
 
-List the marks worth considering - each a **claim tied to the datum, series, period, or region
-that supports it**, with why it clears the bar. A mark earns its place only when it points at
-something a reader would otherwise miss or misread and the data backs it.
+A candidate annotation is **a fact from outside the dataset that explains what the data shows** -
+tied to the datum, series, period, or region it explains. Rainfall behind a spike when rainfall
+is not a column here; a regulation, tax, or ban that shifts the level; an acquisition, election,
+war, or strike at a break in the trend; a change of definition or collection method behind a
+jump. The chart cannot draw these, because they are not in the data - that is the whole reason
+they earn a mark.
 
-**Start from an empty list.** The default is no candidates. Most charts carry their point in the
-headline claim and the direct labels and need nothing marked. Add a candidate only when a
-specific mark would change what the reader takes away; do not pad the list to look thorough, and
-do not treat "5 candidates" or any count as a target. An empty list is a normal, correct output,
-not a gap to fill.
+**A quantity that is in the data is never a candidate.** The encoding already draws it. "Peak",
+"all-time high", "record low", "from X to Y", "+38%", "doubled", "up 9 points", a rank, a trend,
+a crossover, an inflection, a gap between two series - the reader sees the shape; a callout that
+restates the shape adds nothing. If a specific number matters, it becomes a **direct label** at
+the build stage, not an annotation. Do not emit these as candidate annotations.
 
-**The operational test: an annotation adds value only when its content cannot be recovered from
-the marks the reader already sees - their direct labels, the axes, and the title.** If removing
-the annotation loses nothing the reader could not read straight off the chart, it is clutter,
-not an annotation. Three benign patterns recur and never earn a mark on their own:
-
-- restating a value a direct label or axis tick already prints (a callout '42%' beside a point
-  already labelled 42%);
-- naming a rank or extreme the geometry already shows (a 'highest' or 'peak' callout on the
-  visibly tallest, already-labelled mark);
-- restating a change the two labelled endpoints already display ('up 9 points' when both ends
-  are labelled and the reader can subtract them).
-
-Aggregate and difference are forms, not exemptions. Summing two labelled series, subtracting two
-labelled endpoints, or averaging a handful of visible values is arithmetic the reader does at a
-glance from numbers already on the chart; that it took a calculation does not save it. The test
-is the *effort* of recovery, not whether a calculation exists - a one-step subtraction of two
-printed numbers fails it. What *earns* a mark is what the reader genuinely cannot get by eye: a
-share or rank across many *unlabelled* marks, a ratio or multiple that reframes the comparison
-(not a subtraction of two visible values), a count over a long run - plus what is not on the
-chart at all: a cause, a consequence, the meaning of a threshold crossed, context from outside
-the chart, or attention directed to a feature that is easy to miss (a crossover, an inflection, a
-quiet divergence). Each survivor must also carry the headline claim - a true but incidental
-aggregate does not earn a mark. These categories are a filter, not a menu: clearing one does not
-oblige a candidate, and if you find yourself constructing a ratio or rank mainly so the chart has
-something to mark, emit none. The list is often short and, when the headline claim and direct
-labels already deliver the point, correctly empty. You decide the *claim and its anchor*; the build stage words, ranks, and
-places the mark.
+**The bar, and why it is self-enforcing:** an annotation requires a fact you know from *outside*
+the chart - the brief, the domain, the source, the data owner. You cannot obtain one by studying
+the data harder. So **the default is an empty list, and most charts stay empty**, because most of
+the time no external fact is at hand. If you cannot name the outside event and where you know it
+from, there is nothing to mark. Never invent a cause to fill the slot - a made-up "likely due
+to..." is worse than no annotation. If you only suspect a link, either leave it off or, at build,
+word it as coincidence in time ("coincides with..."), never as established cause. You decide the
+*external fact and the datum it explains*; the build stage words and places it.
 
 ## Honesty and boundaries
 
@@ -105,7 +89,8 @@ places the mark.
 
 ## Handoff
 
-Emit the facts, the `headline_claim`, the `candidate_annotations` (claim + anchor + why it
-clears the bar; empty when none earn a mark), and the `caveats`. The exact fields are
+Emit the facts, the `headline_claim`, the `candidate_annotations` (the external fact + the datum
+it explains + where you know the fact from; empty, and usually empty, when no outside fact is at
+hand), and the `caveats`. The exact fields are
 `dataviz_mcp/stage_contracts.py:INSIGHT_SCHEMA`; this skill carries the reasoning, that module
 the shape.
