@@ -470,6 +470,7 @@ class LocalRunnerTests(unittest.TestCase):
                 (),
             )
             self.assertIn("derive the trigger from the blocks", prompt)
+            self.assertIn("intact `full_text` in a compact key/footnote", prompt)
             self.assertIn("data scales represent the intended data domain", prompt)
             self.assertIn("never reserve the same room in both coordinate systems", prompt)
 

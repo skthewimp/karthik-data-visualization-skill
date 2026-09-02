@@ -5,6 +5,7 @@
 ### Layout: text triggers placement; data domains never reserve chrome
 
 - **Placement is derived from content, not an optional plan flag.** Before the first render, build passes every reader-facing text block whose words and anchor are known to `recommend_text_placement` and applies its wrapping and placement. This closes the gap where a selected direct-labelling design could nevertheless mark placement planning "not required."
+- **Labels use a readable measure, not a canvas fraction.** Series/category and on-mark data labels now wrap to a font-relative line length (24 characters by default) and at most three lines. The existing 32%-of-canvas allowance now applies only to free annotations. A label that still exceeds its budget is ellipsized, but the tool returns the intact `full_text` and requires the builder to supply it in a compact key/footnote or choose another form.
 - **Data and layout coordinates stay separate.** Quantitative scales represent the intended data domain; labels, annotations, legends, titles, and their whitespace live in layout/screen coordinates. Builders may not expand a scale merely to reserve non-data whitespace or reserve the same space again in a physical margin. The rule is intentionally general—no chart type, label count, or example-specific schema was added.
 - Updated the shared construct skill, stage contract, and local harness prompt; added contract and prompt regressions.
 

@@ -179,6 +179,53 @@ def test_label_parks_beside_its_mark_without_a_leader():
     assert placement["bbox"]["x"] > mark["x"]  # parked to the right of the mark, not on it
 
 
+def test_series_label_wraps_to_a_short_measure_not_a_canvas_fraction():
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{
+            "id": "s",
+            "role": "label",
+            "text": "Milk and dairy excluding butter fresh milk equivalent",
+            "anchor": {"x": 700, "y": 300},
+        }],
+    )
+    placement = _by_id(result, "s")
+    lines = placement["wrapped_text"].split("\n")
+    assert 1 < len(lines) <= 3
+    assert max(map(len, lines)) <= 24
+    assert placement["curtailed"] is False
+
+
+def test_overlong_series_label_is_curtailed_and_preserved_for_a_key():
+    full = " ".join(["internationally"] * 12)
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{"id": "s", "role": "label", "text": full, "anchor": {"x": 700, "y": 300}}],
+    )
+    placement = _by_id(result, "s")
+    assert len(placement["wrapped_text"].split("\n")) == 3
+    assert placement["wrapped_text"].endswith("…")
+    assert placement["curtailed"] is True
+    assert placement["full_text"] == full
+    assert any("key or footnote" in warning for warning in placement["warnings"])
+
+
+def test_long_data_label_uses_the_same_readable_line_budget():
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{
+            "id": "d",
+            "role": "data_label",
+            "text": "Provisional estimate adjusted for seasonal variation",
+            "anchor": {"x": 400, "y": 300},
+        }],
+        max_label_chars_per_line=20,
+    )
+    placement = _by_id(result, "d")
+    assert 1 < len(placement["wrapped_text"].split("\n")) <= 3
+    assert max(map(len, placement["wrapped_text"].split("\n"))) <= 20
+
+
 def test_blocked_side_parks_on_another_side_still_without_a_leader():
     # The preferred (right) side is blocked but the space above is open: the label parks above,
     # adjacent to its mark, so it still needs no leader - only a note that it changed sides.

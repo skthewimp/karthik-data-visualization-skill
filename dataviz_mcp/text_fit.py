@@ -107,6 +107,34 @@ def _wrap(text: str, font_pt: float, dpi: float, avail_px: float) -> tuple[str, 
     return "\n".join(lines), box_w, box_h
 
 
+def _wrap_to_line_budget(
+    text: str,
+    font_pt: float,
+    dpi: float,
+    avail_px: float,
+    max_lines: int | None = None,
+) -> tuple[str, float, float, bool]:
+    """Wrap to the physical measure, then curtail only when the line budget is exhausted."""
+    wrapped, box_w, box_h = _wrap(text, font_pt, dpi, avail_px)
+    lines = wrapped.split("\n")
+    if max_lines is None or len(lines) <= max_lines:
+        return wrapped, box_w, box_h, False
+
+    cpl = max(1, int(avail_px / char_px(font_pt, dpi)))
+    kept = lines[:max_lines]
+    if cpl == 1:
+        kept[-1] = "…"
+    else:
+        kept[-1] = kept[-1][: cpl - 1].rstrip() + "…"
+    longest = max(len(line) for line in kept)
+    return (
+        "\n".join(kept),
+        longest * char_px(font_pt, dpi),
+        len(kept) * line_px(font_pt, dpi),
+        True,
+    )
+
+
 def _nudge_into_canvas(
     bbox: dict[str, float], width: float, height: float, margin: float
 ) -> tuple[float, float]:
@@ -252,20 +280,24 @@ def _shrink_to_fit(
     width: float,
     height: float,
     margin: float,
-) -> Optional[tuple[float, tuple[float, float], str, float, float]]:
+    max_lines: int | None = None,
+) -> Optional[tuple[float, tuple[float, float], str, float, float, bool]]:
     """Step the font down toward ``min_font_pt`` (largest first) until the block finds a clear
     spot - at its anchor if the smaller box now fits, else at the nearest clear position. Returns
-    ``(font_pt, (x, y), wrapped, box_w, box_h)`` for the least shrink that fits, or ``None``."""
+    ``(font_pt, (x, y), wrapped, box_w, box_h, curtailed)`` for the least shrink that fits, or
+    ``None``."""
     ax, ay = anchor
     candidate = font_pt - 1.0
     while candidate >= min_font_pt:
-        wrapped, box_w, box_h = _wrap(text, candidate, dpi, avail)
+        wrapped, box_w, box_h, curtailed = _wrap_to_line_budget(
+            text, candidate, dpi, avail, max_lines
+        )
         bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
         if not _hits_any(bbox, blockers):
-            return candidate, (ax, ay), wrapped, box_w, box_h
+            return candidate, (ax, ay), wrapped, box_w, box_h, curtailed
         found = _search_clear(bbox, blockers, width, height, margin, step=line_px(candidate, dpi))
         if found is not None:
-            return candidate, found, wrapped, box_w, box_h
+            return candidate, found, wrapped, box_w, box_h, curtailed
         candidate -= 1.0
     return None
 
@@ -277,6 +309,8 @@ def recommend_text_placement(
     blocks: list[dict[str, Any]],
     obstacles: list[dict[str, Any]] | None = None,
     max_annotation_width_frac: float = 0.32,
+    max_label_chars_per_line: int = 24,
+    max_label_lines: int = 3,
     edge_margin_px: Optional[float] = None,
     min_font_pt: float = 8.0,
 ) -> dict[str, Any]:
@@ -305,7 +339,12 @@ def recommend_text_placement(
             px. Movable labels are always parked clear of these, not only text-vs-text.
             Do NOT pass a segment's own bar here for its ``data_label`` - an on-mark label belongs
             inside its mark, so it is exempt from obstacle de-collision entirely.
-        max_annotation_width_frac: widest an annotation box may wrap to, as a fraction of width.
+        max_annotation_width_frac: widest a free annotation box may wrap to, as a fraction of width.
+        max_label_chars_per_line: readable line measure for category/series and on-mark data
+            labels. Converted to pixels using each block's fixed font size, not canvas width.
+        max_label_lines: maximum lines for those labels. Text beyond the budget is curtailed with
+            an ellipsis and returned intact as ``full_text`` so the builder can provide a full-name
+            key or footnote. Free annotations and fixed title/caption bands are not curtailed.
         edge_margin_px: canvas margin; defaults to 3% of width.
         min_font_pt: legibility floor a movable block may shrink to when no clear spot is found
             at full size; never smaller, so a shrink can never create an undersized-text defect.
@@ -330,6 +369,10 @@ def recommend_text_placement(
     ``suggested_orientation: "portrait"`` and swapped ``suggested_canvas`` recommend a flip for a
     later build stage to apply and re-run against.
     """
+    if max_label_chars_per_line < 1:
+        raise ValueError("max_label_chars_per_line must be greater than zero")
+    if max_label_lines < 1:
+        raise ValueError("max_label_lines must be greater than zero")
     obstacles = list(obstacles or [])
     margin = float(edge_margin_px) if edge_margin_px is not None else round(0.03 * width_px)
     placed: list[dict[str, Any]] = []
@@ -352,15 +395,19 @@ def recommend_text_placement(
         suggested_font_pt: Optional[float] = None
         leader_line: Optional[dict[str, dict[str, float]]] = None
         text = block.get("text", "")
+        is_compact_label = role in ({"label"} | ON_MARK_ROLES)
+        max_lines = max_label_lines if is_compact_label else None
 
         if not movable:
             # Fixed bands and on-mark data labels: box origin at the anchor, wrapped, nudged in,
             # never de-collided or given a leader (a data label belongs on its mark).
-            avail = (width_px - 2 * margin) if role in FIXED_ROLES else max(
-                char_px(font_pt, dpi) * 8,
-                min(max_annotation_width_frac * width_px, width_px - ax - margin),
+            avail = (width_px - 2 * margin) if role in FIXED_ROLES else min(
+                char_px(font_pt, dpi) * max_label_chars_per_line,
+                max(char_px(font_pt, dpi) * 8, width_px - ax - margin),
             )
-            wrapped, box_w, box_h = _wrap(text, font_pt, dpi, avail)
+            wrapped, box_w, box_h, curtailed = _wrap_to_line_budget(
+                text, font_pt, dpi, avail, max_lines
+            )
             bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
             nx, ny = _nudge_into_canvas(bbox, width_px, height_px, margin)
             if (round(nx), round(ny)) != (round(ax), round(ay)):
@@ -376,13 +423,18 @@ def recommend_text_placement(
                     "id": block.get("id"),
                     "role": role,
                     "wrapped_text": wrapped,
+                    "full_text": text,
+                    "curtailed": curtailed,
                     "wrap_width_chars": max(1, int(avail / char_px(font_pt, dpi))),
                     "bbox": {k: round(v, 1) for k, v in bbox.items()},
                     "suggested_anchor": None,
                     "suggested_font_pt": None,
                     "suggested_wrap": None,
                     "leader_line": None,
-                    "warnings": warnings,
+                    "warnings": warnings + ([
+                        "label exceeds the readable line budget; use the returned full_text in "
+                        "a key or footnote"
+                    ] if curtailed else []),
                 }
             )
             continue
@@ -394,7 +446,15 @@ def recommend_text_placement(
             char_px(font_pt, dpi) * 8,
             min(max_annotation_width_frac * width_px, width_px - 2 * margin),
         )
-        wrapped, box_w, box_h = _wrap(text, font_pt, dpi, avail)
+        if is_compact_label:
+            avail = min(avail, char_px(font_pt, dpi) * max_label_chars_per_line)
+        wrapped, box_w, box_h, curtailed = _wrap_to_line_budget(
+            text, font_pt, dpi, avail, max_lines
+        )
+        if curtailed:
+            warnings.append(
+                "label exceeds the readable line budget; use the returned full_text in a key or footnote"
+            )
         raw_marks = block.get("anchors") or [anchor]
         marks = [(float(m.get("x", ax)), float(m.get("y", ay))) for m in raw_marks]
         primary = marks[0]
@@ -440,10 +500,10 @@ def recommend_text_placement(
                 # 3. Shrink toward the legibility floor, else tighten the wrap and flag for review.
                 shrunk = _shrink_to_fit(
                     text, font_pt, dpi, avail, min_font_pt,
-                    blockers, primary, width_px, height_px, margin,
+                    blockers, primary, width_px, height_px, margin, max_lines,
                 )
                 if shrunk is not None:
-                    font_pt, (cx, cy), wrapped, bw, bh = shrunk
+                    font_pt, (cx, cy), wrapped, bw, bh, curtailed = shrunk
                     bbox = {"x": cx, "y": cy, "width": bw, "height": bh}
                     suggested_font_pt = round(font_pt, 1)
                     suggested_anchor = {"x": round(cx), "y": round(cy)}
@@ -453,7 +513,9 @@ def recommend_text_placement(
                         "moved off its point; draw a thin leader line to keep the pairing"
                     )
                 else:
-                    tight, tw, th = _wrap(text, font_pt, dpi, avail * 0.6)
+                    tight, tw, th, curtailed = _wrap_to_line_budget(
+                        text, font_pt, dpi, avail * 0.6, max_lines
+                    )
                     wrapped = tight
                     bbox = {"x": primary[0], "y": primary[1], "width": tw, "height": th}
                     bbox["x"], bbox["y"] = _nudge_into_canvas(bbox, width_px, height_px, margin)
@@ -464,12 +526,18 @@ def recommend_text_placement(
                         "- review placement by hand"
                     )
 
+        if curtailed and not any("readable line budget" in warning for warning in warnings):
+            warnings.append(
+                "label exceeds the readable line budget; use the returned full_text in a key or footnote"
+            )
         placed.append(dict(bbox))
         results.append(
             {
                 "id": block.get("id"),
                 "role": role,
                 "wrapped_text": wrapped,
+                "full_text": text,
+                "curtailed": curtailed,
                 "wrap_width_chars": max(1, int(avail / char_px(font_pt, dpi))),
                 "bbox": {k: round(v, 1) for k, v in bbox.items()},
                 "suggested_anchor": suggested_anchor,

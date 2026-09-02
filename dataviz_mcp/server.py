@@ -252,6 +252,8 @@ def create_server() -> Any:
         blocks: list[dict[str, Any]],
         obstacles: list[dict[str, Any]] | None = None,
         max_annotation_width_frac: float = 0.32,
+        max_label_chars_per_line: int = 24,
+        max_label_lines: int = 3,
         edge_margin_px: float | None = None,
         min_font_pt: float = 8.0,
     ) -> dict[str, Any]:
@@ -274,7 +276,11 @@ def create_server() -> Any:
         bounding boxes in canvas px - movable labels are always parked clear of them, not only of
         other text. Only when no adjacent spot exists at any of a label's marks does it travel to
         the nearest clear area (shrinking toward ``min_font_pt``, the legibility floor, if needed)
-        and grow a ``leader_line`` (``{from, to}`` in canvas px) back to its point. Returns each
+        and grow a ``leader_line`` (``{from, to}`` in canvas px) back to its point. Series/category
+        and on-mark data labels use a short readable line measure and at most
+        ``max_label_lines``; if the full text exceeds that budget, the result is ellipsized and
+        carries ``full_text`` plus ``curtailed: true`` so the builder can add a full-name key or
+        footnote. Returns each
         block's wrapped text and final ``bbox`` (authoritative - the anchor was the mark), plus
         ``suggested_anchor`` / ``suggested_font_pt`` / ``suggested_wrap`` when it changed side, mark,
         or size. A label parked on its preferred side has none of those and no leader. When two
@@ -293,9 +299,11 @@ def create_server() -> Any:
             dpi,
             blocks,
             obstacles,
-            max_annotation_width_frac,
-            edge_margin_px,
-            min_font_pt,
+            max_annotation_width_frac=max_annotation_width_frac,
+            max_label_chars_per_line=max_label_chars_per_line,
+            max_label_lines=max_label_lines,
+            edge_margin_px=edge_margin_px,
+            min_font_pt=min_font_pt,
         )
 
     return server
