@@ -148,10 +148,15 @@ all.
 ## Staged, not one context
 
 Separate calls per stage is the default and the right way to run this: each call carries only
-that stage's skills plus the artifact handed forward. When nothing is orchestrating the calls -
-you were handed the plan and this skill in one turn - you still walk every stage in order,
-opening each stage's skills as you reach it and letting the previous stage's detail fall away;
-"separate call" is the architecture, never a licence to skip a stage. Handoffs are structured
+that stage's skills plus the artifact handed forward. When nothing external is orchestrating
+the calls - you were handed the plan and this skill in one turn - and you have a subagent / task
+capability, **you become the driver** and dispatch each stage as its own isolated subagent call.
+The isolation is the point: build (maker) and the idea / execution gates (checkers) must sit in
+separate contexts, or a checker inherits and rationalises the build's shortcuts and the gates
+stop biting. Only when you genuinely cannot spawn subagents do you fall back to walking every
+stage inline in one context, opening each stage's skills as you reach it and letting the
+previous stage's detail fall away; "separate call" is the architecture, never a licence to skip
+a stage. Handoffs are structured
 text (markdown sections plus, at the select branch, a small `routing` block of `key: value`
 lines), not strict JSON, so the pipeline runs on cheaper / open-weight models too. The content
 contract - the exact skill subset and required fields per stage - is the construct tail in

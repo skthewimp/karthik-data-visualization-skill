@@ -27,11 +27,18 @@ stage's skills plus the compact artifact handed forward from the previous stage.
 skill into one context rots it, and a build call has no use for the discovery or evaluation
 skills.
 
-**Only if nothing is orchestrating the calls** - no driver, no harness, you were simply handed
-the image and this skill in one turn - are the calls yours to make. Even then you do not dump
-every skill in at once: walk the stages in order, opening each stage's named skills as you
-reach that stage and letting the previous stage's detail fall away. "Separate call" is the
-architecture, not a licence to skip a stage or to assume some other call already did it.
+**If nothing external is orchestrating the calls** - no driver, no harness, you were simply
+handed the image and this skill in one turn - and **you have a subagent / task capability, you
+become the driver**: dispatch each stage as its own isolated subagent call, carrying forward
+only that stage's artifact. This is not optional politeness - the stage isolation is what keeps
+the build (maker) and the idea / execution gates (checkers) in separate contexts, so a checker
+cannot inherit and rationalise the build's shortcuts. Running it all in one context collapses
+maker and checker into the same head and silently defeats the gates. **Only when you genuinely
+cannot spawn subagents** do you fall back to walking the stages inline in one context - and even
+then you do not dump every skill in at once: walk them in order, opening each stage's named
+skills as you reach that stage and letting the previous stage's detail fall away. "Separate
+call" is the architecture, not a licence to skip a stage or to assume some other call already
+did it.
 
 Handoffs are **structured text, not strict JSON**: each stage emits one markdown section per
 content field plus, where the driver must branch, a small `routing` block of `key: value`
