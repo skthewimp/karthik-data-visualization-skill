@@ -261,6 +261,19 @@ def test_select_carries_exact_lookup_decision_upstream() -> None:
     assert item["properties"]["reason"]["minLength"] == 1
 
 
+def test_select_separates_scale_mapping_from_visible_scaffolding() -> None:
+    """A fixed/shared domain does not by itself authorize visible axes or gridlines."""
+    select = " ".join(sc.stage("repair", "select").instructions.split())
+    assert "coordinate mapping separate from the scaffolding" in select
+    assert "shared or fixed scale" in select
+    assert "does not require visible ticks" in select
+    assert "keep the common domain and remove scaffolding" in select
+
+    skill = (REPO_ROOT / "dataviz-selector" / "codex" / "SKILL.md").read_text()
+    assert "shared or fixed scale preserves comparable positions" in skill
+    assert "State both decisions in the plan" in skill
+
+
 def test_build_derives_text_placement_and_keeps_data_out_of_layout() -> None:
     """Existing text blocks trigger placement; data coordinates never reserve chrome."""
     build = " ".join(sc.stage("repair", "build").instructions.split())

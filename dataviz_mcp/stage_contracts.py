@@ -1047,6 +1047,12 @@ otherwise, which is the common case, and standing down when the meaning is not s
 red/green polarity would collapse under colour-vision deficiency. This is the whole colour
 *decision*; the ordered palette is resolved deterministically downstream by ``recommend_colours``
 and checked by ``validate_palette``, and build applies it - you decide the plan, not the hexes.
+Keep the quantitative coordinate mapping separate from the scaffolding drawn around it: a shared
+or fixed scale preserves comparable positions but does not require visible ticks, tick labels, an
+axis title, or gridlines. State both decisions in the design or layout plan. When direct labels on
+the reading-carrying marks supply the values the reader needs, keep the common domain and remove
+scaffolding that only repeats those labels; retain a component only for a named additional reading
+task such as estimating unlabelled marks, alignment, a meaningful baseline, or a threshold.
 Set ``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels, or
 table cells). When it is true, enumerate ``number_display_groups`` - one entry per axis,
 numeric column, or labelled numeric series - and decide ``exact_lookup_required`` for each
