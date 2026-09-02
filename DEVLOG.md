@@ -2160,3 +2160,4 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. The three-way cut is now consistent across all skills, contract, and docs; committed + pushed; memory holds both guards. **The rule now:** - **Annotation** = a fact not in the data (cause, event, regime change)....
 
 <!-- claude-session:c7939796-c4b6-4957-8dd6-885d36814c3d:end -->
+
