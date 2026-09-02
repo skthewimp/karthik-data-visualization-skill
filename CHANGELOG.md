@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Annotations: aggregate/difference is a form, not a licence
+
+Yesterday's value-add rule stopped bare number-labelling but carved out aggregates and differences - and the pipeline began overproducing them. Charts filled with callouts like "A + B: 30% -> 35%", "+11 points" between two printed endpoints, and "Peak: 42%": each a sum or subtraction of two-or-three values already labelled on the chart, adding nothing and crowding the frame. Root cause: the gate's survivor clause ("a comparison the reader would have to compute") read as a whitelist for anything a calculation produced, so a one-step mental subtraction of two visible numbers counted as "computed" and survived.
+
+- **Recovery test is effort, not whether a calculation exists, `karthik-evidence-builder` and `chart-annotations` (both copies each).** Aggregate and difference are forms, not exemptions: summing two labelled series or subtracting two labelled endpoints is arithmetic the reader does at a glance, so it drops like any other restatement. What survives is only what the reader genuinely cannot get by eye - a share or rank across many *unlabelled* marks, a ratio/multiple that reframes (not a one-step subtraction), a count over a long run - plus what is not on the chart at all (cause, consequence, threshold meaning, outside context, an easy-to-miss crossover/inflection). Each survivor must also carry the one headline claim; a true but incidental aggregate is cut.
+- **Default to zero when title + labels already carry the claim.** Both stages now state the honest annotation count is often zero, and warn against manufacturing a computed callout to fill space. New common-mistakes rows in `chart-annotations`; the evidence stage words its candidate list as "correctly empty" when the claim and direct labels already deliver the point.
+- **Step 4 gate wording, `chart-annotations`.** The value-add gate now also drops candidates that "recompute what labelled marks already show", closing the read that only literal label-restatements were rejected.
+
 ### Rendering/inspection guidance decoupled from this repo's own harness (not R-only)
 
 Repairing a chart delivered as an HTML/SVG artifact exposed that the render/inspect guidance assumed this repo's own deterministic MCP tooling was always present. Outside that harness - the case for most users, and for any hand-authored HTML/SVG or JS chart the tooling does not cover - the skills forced a dead end: `dataviz-execution` said the geometry verdict "is not yours to eyeball" and made a visual read report geometry as permanently **unknown, never a pass**, and `karthik-data-visualization` called a hand-rolled SVG/JS renderer "never a rung on the ladder". Together those made the execution gate unusable and excluded the medium Claude artifacts actually use. The rendering itself stays the harness's job; the skill guidance now degrades gracefully.

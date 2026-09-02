@@ -72,11 +72,18 @@ not an annotation. Three benign patterns recur and never earn a mark on their ow
 - restating a change the two labelled endpoints already display ('up 9 points' when both ends
   are labelled and the reader can subtract them).
 
-What *earns* a mark is what the marks do not give: a comparison the reader would otherwise have
-to compute (a ratio, a multiple, a rank across many series), a cause or a consequence, the
-meaning of a threshold crossed, context from outside the chart, or attention directed to a
-feature that is easy to miss (a crossover, an inflection, a quiet divergence). The list is often
-short and may be empty. You decide the *claim and its anchor*; the build stage words, ranks, and
+Aggregate and difference are forms, not exemptions. Summing two labelled series, subtracting two
+labelled endpoints, or averaging a handful of visible values is arithmetic the reader does at a
+glance from numbers already on the chart; that it took a calculation does not save it. The test
+is the *effort* of recovery, not whether a calculation exists - a one-step subtraction of two
+printed numbers fails it. What *earns* a mark is what the reader genuinely cannot get by eye: a
+share or rank across many *unlabelled* marks, a ratio or multiple that reframes the comparison
+(not a subtraction of two visible values), a count over a long run - plus what is not on the
+chart at all: a cause, a consequence, the meaning of a threshold crossed, context from outside
+the chart, or attention directed to a feature that is easy to miss (a crossover, an inflection, a
+quiet divergence). Each survivor must also carry the headline claim - a true but incidental
+aggregate does not earn a mark. The list is often short and, when the headline claim and direct
+labels already deliver the point, correctly empty. You decide the *claim and its anchor*; the build stage words, ranks, and
 places the mark.
 
 ## Honesty and boundaries
