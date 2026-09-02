@@ -2063,3 +2063,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Session captured, but there was not enough structured activity to summarize.
 
 <!-- claude-session:fe89a7b7-aa35-431f-bc6b-22f18cfc2983:end -->
+
+<!-- claude-session:4200f127-8e8b-404a-bd4e-738b14100a4a:start -->
+## 2026-09-02 11:10 IST | Claude session `4200f127-8e8`
+
+### User prompts
+> i wnat to isolate the effects of teh core skill set here and the harness that sits on top, and see what mgiht b e causing this issue. can you start by applying @dataviz-fix/ on ~/Downloads/openrouter.png ?
+> where is the output? put it back in downloads
+> ok there is a huge problem here. we're losing a lot of data. why did we decide that showing individual series was not important? also - the dataviz-fix skill creates a bunch of sub-sessions i thought to isolate maker-...
+
+### Work done
+- Synced and installed. Committing + pushing.
+- Fixed and shipped. **What changed:** the driverless fallback in `dataviz-construct` + `dataviz-fix` (claude + codex) no longer says "walk stages inline." It now says: if handed the skill directly **and** you can spawn...
+
+<!-- claude-session:4200f127-8e8b-404a-bd4e-738b14100a4a:end -->
