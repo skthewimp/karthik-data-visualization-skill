@@ -2117,3 +2117,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Fixed + pushed. Root cause and fix: **Bug (`recommend_text_placement`):** anchor was used as the box's top-left corner, drawn *on* the point. Point is an obstacle → box always overlaps → always bounced by ring-search...
 
 <!-- claude-session:52978d48-02cd-4697-bef7-0964c4149f0f:end -->
+
+<!-- claude-session:c7939796-c4b6-4957-8dd6-885d36814c3d:start -->
+## 2026-09-02 13:46 IST | Claude session `c7939796-c4b`
+
+### User prompts
+> back to the annotations thing, the recent fix has NOT solved it. still get meaningless annotations. and check these two plots (the one on the right has SEVERAL other issues, but we'll get to that after we've got measj...
+> in this case the annotaitons shouldn't have been generated at all. they add zero value. that's the fix. not the later gates
+> [Request interrupted by user]
+
+### Work done
+- Pushed. Let me fold the label side into memory so both guards travel together.
+- Done. The three-way cut is now consistent across all skills, contract, and docs; committed + pushed; memory holds both guards. **The rule now:** - **Annotation** = a fact not in the data (cause, event, regime change)....
+
+<!-- claude-session:c7939796-c4b6-4957-8dd6-885d36814c3d:end -->
