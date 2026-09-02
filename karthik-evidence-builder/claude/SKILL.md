@@ -66,8 +66,10 @@ they earn a mark.
 **A quantity that is in the data is never a candidate.** The encoding already draws it. "Peak",
 "all-time high", "record low", "from X to Y", "+38%", "doubled", "up 9 points", a rank, a trend,
 a crossover, an inflection, a gap between two series - the reader sees the shape; a callout that
-restates the shape adds nothing. If a specific number matters, it becomes a **direct label** at
-the build stage, not an annotation. Do not emit these as candidate annotations.
+restates the shape adds nothing. A single mark's value, where it matters, becomes a **direct
+label** at build - one value on one point, decided there, not here. A change or comparison ("X to
+Y", "+38%", "doubled") is neither annotation nor label; its claim belongs in the title, in words.
+Do not emit any of these as candidate annotations.
 
 **The bar, and why it is self-enforcing:** an annotation requires a fact you know from *outside*
 the chart - the brief, the domain, the source, the data owner. You cannot obtain one by studying

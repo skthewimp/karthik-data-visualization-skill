@@ -23,7 +23,7 @@ A chart's encoding - position, length, slope, colour - already draws every quant
 
 None of that is in the picture. That is why it earns ink. The chart cannot show a cause it does not contain.
 
-**Not an annotation - these are in the data, so they are labels or nothing:** "peak", "all-time high", "record low", "from X to Y", "+38%", "doubled", "up 9 points", a rank, a trend, a crossover, an inflection, a gap between two series. The reader already sees the shape; restating the shape in words adds nothing. If a specific number matters, print it as a **direct label** on the mark. If it does not matter enough to label, it does not matter enough to annotate.
+**Not an annotation - and mostly not a label either.** A change or a comparison - "from X to Y", "+38%", "doubled", "up 9 points", "peak", "all-time high", "record low", a rank, a crossover, a gap between two series - is not an annotation (it is in the data) and it is *not* a direct label. A label carries one mark's value; a change narrates the shape, and the encoding already draws the shape. "42% → 37%" belongs nowhere on the plot - the claim goes in the **title**, in words, or is left off. The only in-data text that earns a place on the chart is a direct label: the value of a single mark, on the few marks that carry the point.
 
 ## The bar this creates
 
@@ -45,7 +45,9 @@ Three different jobs, no overlap. If your annotation restates the title, it is t
 
 ## Direct labels
 
-Labels are not annotations and carry no external bar - a value on a mark is always legitimate. The only discipline is restraint: **label the few marks that carry the point, not every mark.** Endpoints, the extreme, the one the claim rests on. On a multi-series or small-multiples chart, call `recommend_labels(series, max_labels_per_series)` to pick those points and leave the rest in the data. "Keep every value" means every value stays *reconstructable* - in a table or note - not that every point gets stamped, which just collides into a pile-up.
+A direct label is **one mark's value**, or the mark's name - "42%", "Karnataka", the endpoint's number. It is never a change, a rank, or a comparison: "42% → 37%", "+9", "doubled", "peak" narrate the shape the chart already shows, so they go in the title or nowhere, not on a mark.
+
+Labels carry no external bar - a single value on a mark is always legitimate - but they need the same restraint as annotations: **label only the few marks that carry the point, never all of them.** Endpoints, the one extreme, the mark the claim rests on. A chart stamped with 200 values is as unreadable as one full of callouts - a wall of labels is the failure, not the fix. On a multi-series or small-multiples chart, call `recommend_labels(series, max_labels_per_series)` to pick those points and leave the rest in the data. "Keep every value" means every value stays *reconstructable* - in a table or note - not that every point gets stamped.
 
 ## Wording
 
@@ -93,11 +95,12 @@ Fix and re-render. Do not declare done from code inspection.
 
 | Mistake | Fix |
 |---|---|
-| "Peak", "all-time high", "+38%", "doubled", "X → Y" marked as an annotation | That is in the data. It is a direct label, or nothing - not an annotation |
+| "Peak", "+38%", "doubled", "X → Y" put on the chart | Change/comparison narration - the shape already shows it. It is neither an annotation nor a label; the claim goes in the title, or nowhere |
+| A direct label that is a change, not a value ("42% → 37%" on a mark) | A label is one point's value; the change is the shape. Label an endpoint's value if it matters, not the movement |
+| A wall of values - every point labelled | Label only the few marks the claim rests on; the rest stay reconstructable in the data |
 | A cause invented to fill the annotation slot | No external fact, no annotation. A made-up "likely due to" is worse than blank |
 | "Caused by X" from a coincidence in time | Word it "coincides with" / "followed"; claim cause only if established |
 | Annotation restates the title | Cut it; the title already said it |
-| Every point labelled | Label the few marks that carry the point; leave the rest reconstructable in the data |
 | Hand-typed count or "flat"/"doubled" never checked | Numbers and comparative words are computed from the same data as the mark |
 | Text clipped at a panel edge | Reserve axis headroom in the direction the text runs |
 | Group label parked at the cluster centroid | Anchor on the group, offset to the outside edge |

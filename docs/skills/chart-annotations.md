@@ -13,7 +13,7 @@ A chart's encoding - position, length, slope - already draws every quantity in t
 - the trend breaks at an acquisition, an election, a war, a strike
 - the series jumps because the definition or the collection method changed
 
-**Not an annotation** - these are in the data, so they are direct labels or nothing: "peak", "all-time high", "record low", "from X to Y", "+38%", "doubled", "up 9 points", a rank, a trend, a crossover, an inflection, a gap between two series. If a specific number matters, print it as a label on the mark. If it does not matter enough to label, it does not matter enough to annotate.
+**Not an annotation, and mostly not a label either** - a change or comparison ("from X to Y", "+38%", "doubled", "up 9 points", "peak", "all-time high", a rank, a crossover, a gap) narrates the shape the chart already draws. It is not an annotation (it is in the data) and not a direct label (a label carries one mark's *value*, not a movement). "42% → 37%" belongs nowhere on the plot - the claim goes in the title, in words, or is left off. The only in-data text on the chart is a direct label: a single mark's value, on the few points that carry the claim.
 
 ## The bar this creates
 
@@ -41,7 +41,7 @@ I've labelled every point and it's a mess. Which few should carry labels?
 
 **Correlation is not cause.** Unless the causal link is established, word the mark as timing, not explanation - "coincides with the GST rollout", not "fell because of GST". Cite where the fact comes from; an annotation is a factual claim about the world.
 
-**Label the few marks that carry the point, not every mark.** Labels carry no external bar - a value on a mark is always legitimate - but stamping every point collides into a pile-up. Endpoints, the extreme, the one the claim rests on. "Keep every value" means every value stays reconstructable in the data, not printed on the chart.
+**A label is one mark's value; label only the few that carry the point.** Not a change, rank, or comparison - those narrate the shape and go in the title. Labels carry no external bar - a single value is always legitimate - but a wall of 200 values is as unreadable as clutter callouts. Endpoints, the extreme, the one the claim rests on. "Keep every value" means every value stays reconstructable in the data, not printed on the chart.
 
 **Compute every number and every comparative word.** A hand-typed count is right until a filter changes and then silently wrong. "Flat", "doubled", "unchanged" are quantitative claims in plain clothes - a label reading "flat for the 45 years before" is false if that period rises 1.5 points per decade, and a false mark is worse than none.
 
