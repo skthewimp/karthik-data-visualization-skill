@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### First-build collision avoidance: reserve the frame blind, place on-mark labels from one measure render
+
+Harness analysis of first-version charts found the revision loop is dominated by geometry the model was solving *by eye after* rendering: clipped/out-of-bounds text (73%), text-text collisions (67%), text-mark collisions (59%), underfilled canvas (34%). Two new deterministic MCP tools move that work before the first delivered chart, so the model closes the loop only on genuine residuals.
+
+- **`reserve_frame` (new tool, `dataviz_mcp/frame.py`).** Places the chart's chrome - title, subtitle, caption, footer, axis and legend bands - blind, with no render, because chrome lives in the margins and does not depend on the data. Wraps each raw frame string to the canvas width, reserves a pixel band per block, and returns the `plot_area` rectangle the marks may fill plus placement-ready `frame_blocks`. Canvas size, dpi, and per-role font sizes are all inputs; a frame too big for the canvas is warned, never squashed. Kills clipped titles and half-empty canvases with no revision loop, and no extra render for frame-only charts.
+- **`place_on_marks` (new tool, `dataviz_mcp/text_fit.py`).** Places labels glued to specific marks using their real pixel positions. After one measure render, the layout metadata's `data_to_pixel` transform and mark boxes let it project each label's `(data_x, data_y)` to its true spot, hand the marks in as obstacles, and de-collide through `recommend_text_placement`. Text-mark and text-text overlaps are resolved by geometry on the first delivered chart, not after a loop.
+- **`dataviz-construct` (both copies) and the build stage contract.** The build stage now reserves the frame with `reserve_frame` before drawing and routes on-mark labels through `place_on_marks` after a single measure render, with `recommend_text_placement` demoted to the shared engine both front doors call.
+
 ### Total + breakdown: the total is set apart from the grid, not a peer facet
 
 - **`dataviz-selector` (both copies).** The licensed total-line-plus-breakdown pairing now specifies layout for the small-multiples case: the total view must be visually set apart (its own larger panel and labelled scale, a clear break), not dropped in as one more cell of the component grid. A total panel mixed among component panels at a different scale invites the same false-comparability read as heterogeneous units. (Case 03 embedded a 0-60T total as cell 1 of a per-model 0-6T grid.)

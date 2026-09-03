@@ -289,7 +289,8 @@ def test_build_derives_text_placement_and_keeps_data_out_of_layout() -> None:
     """Existing text blocks trigger placement; data coordinates never reserve chrome."""
     build = " ".join(sc.stage("repair", "build").instructions.split())
     assert "presence of such blocks is the trigger" in build
-    assert "every reader-facing text block whose words and anchor are already known" in build
+    assert "reserve_frame" in build and "place_on_marks" in build
+    assert "labels in\nDATA coordinates" in build or "labels in DATA coordinates" in build
     assert "series/category, on-mark data, and axis label" in build
     assert "must not invent a universal character count" in build
     assert "compact key or footnote" in build

@@ -5,8 +5,12 @@ from typing import Any
 from .comparison import compare_chart_artifacts as compare_core
 from .inspection import inspect_rendered_chart as inspect_core
 from .labels import recommend_labels as recommend_labels_core
+from .frame import reserve_frame as reserve_frame_core
 from .layout import recommend_layout as recommend_layout_core
-from .text_fit import recommend_text_placement as recommend_text_placement_core
+from .text_fit import (
+    place_on_marks as place_on_marks_core,
+    recommend_text_placement as recommend_text_placement_core,
+)
 from .palette import (
     extract_palette_from_image as extract_palette_core,
     recommend_colours as recommend_colours_core,
@@ -226,6 +230,92 @@ def create_server() -> Any:
             x_labels,
             longest_x_label_chars,
             delivery_profile,
+        )
+
+    @server.tool()
+    async def reserve_frame(
+        title: str = "",
+        subtitle: str = "",
+        caption: str = "",
+        footer: str = "",
+        x_axis_title: str = "",
+        y_axis_title: str = "",
+        longest_x_tick: str = "",
+        longest_y_tick: str = "",
+        legend_side: str = "none",
+        longest_legend_label: str = "",
+        width_px: int | None = None,
+        height_px: int | None = None,
+        dpi: int | None = None,
+        delivery_profile: str = "chat",
+        font_pt: dict[str, float] | None = None,
+        edge_margin_px: float | None = None,
+    ) -> dict[str, Any]:
+        """Reserve the frame (title/subtitle/caption/footer/axes/legend) blind, before any draw.
+
+        Chart chrome lives in the margins; its position does not depend on the data, so it is
+        placed with text-measuring arithmetic - wrap each block to the canvas width, count the
+        lines, reserve a pixel band - with no render. Returns the plot rectangle the marks may
+        fill, so the title never clips and the canvas never sits half-empty, without a revision
+        loop. Canvas size, dpi, and per-role font sizes are all inputs (``font_pt`` overrides
+        the house sizes, e.g. ``{"title": 20}``); a frame too big for the canvas is warned,
+        never squashed. Call at build, before the first render; feed ``plot_area`` to the
+        renderer and pass ``frame_blocks`` on to ``place_on_marks`` as fixed obstacles.
+        """
+        return reserve_frame_core(
+            title,
+            subtitle,
+            caption,
+            footer,
+            x_axis_title,
+            y_axis_title,
+            longest_x_tick,
+            longest_y_tick,
+            legend_side,
+            longest_legend_label,
+            width_px,
+            height_px,
+            dpi,
+            delivery_profile,
+            font_pt,
+            edge_margin_px,
+        )
+
+    @server.tool()
+    async def place_on_marks(
+        width_px: int,
+        height_px: int,
+        dpi: int,
+        transform: list[list[float]],
+        labels: list[dict[str, Any]],
+        marks: list[dict[str, Any]] | None = None,
+        fixed_blocks: list[dict[str, Any]] | None = None,
+        max_annotation_width_frac: float = 0.32,
+        edge_margin_px: float | None = None,
+        min_font_pt: float = 8.0,
+    ) -> dict[str, Any]:
+        """Place labels glued to data marks using their real pixel positions, not a guess.
+
+        After one measure render, the layout metadata carries the exact ``data_to_pixel``
+        transform and every mark's bounding box. This projects each label's ``(data_x,
+        data_y)`` through that transform, hands the marks in as obstacles, and delegates to
+        ``recommend_text_placement`` - so on-mark and category labels are de-collided against
+        where the marks actually landed, killing text-mark and text-text overlaps on the first
+        delivered chart instead of after a revision loop. Pass ``transform`` and ``marks``
+        straight from the render's layout metadata, and ``fixed_blocks`` from ``reserve_frame``
+        so labels also clear the title. Canvas size, dpi, and per-block ``font_pt`` are inputs.
+        """
+        return place_on_marks_core(
+            width_px,
+            height_px,
+            dpi,
+            transform,
+            labels,
+            marks,
+            fixed_blocks,
+            max_annotation_width_frac=max_annotation_width_frac,
+            edge_margin_px=edge_margin_px,
+            min_font_pt=min_font_pt,
         )
 
     @server.tool()

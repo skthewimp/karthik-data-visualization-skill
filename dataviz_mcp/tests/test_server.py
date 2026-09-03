@@ -30,6 +30,8 @@ def test_stdio_server_exposes_renderer_probe_and_backend_neutral_workflow() -> N
         "recommend_labels",
         "recommend_layout",
         "recommend_text_placement",
+        "reserve_frame",
+        "place_on_marks",
     }
 
 
@@ -121,4 +123,6 @@ asyncio.run(main())
         "recommend_labels",
         "recommend_layout",
         "recommend_text_placement",
+        "reserve_frame",
+        "place_on_marks",
     }

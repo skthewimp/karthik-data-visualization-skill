@@ -1112,8 +1112,16 @@ stage's ``exact_lookup_required`` flag, supplied by the driver, or produced by c
 here if it is available. Numbers that appear inside claim text - the headline and the candidate
 annotations - carry the precision the insight stage already gave them: reproduce them as stated,
 do not re-round them. Record each applied format in ``recommendations_used.number_formats`` with
-its reason. Before the first render, pass every reader-facing text block whose words and anchor
-are already known to ``recommend_text_placement`` and apply its wrapping and placement; the
+its reason. Place the frame before you draw: pass the raw title/subtitle/caption/footer, axis and legend
+strings, and the canvas and font sizes to ``reserve_frame`` (all inputs), draw the marks into
+the ``plot_area`` it returns, and carry its ``frame_blocks`` forward - this reserves the chrome
+by measurement, so nothing clips and the canvas is not left half-empty, with no revision loop.
+For labels glued to specific marks (values on bars, callouts on points), do not guess their
+pixels: render once as a ruler, then pass the render's ``transform`` and ``marks``, the labels in
+DATA coordinates, and the ``frame_blocks`` to ``place_on_marks`` - it projects each to its true
+pixel spot and de-collides against the real marks, so text-mark and text-text overlaps are gone
+on the first delivered chart. Both front doors resolve to ``recommend_text_placement``; reach for
+it directly only when you already hold a block's canvas-pixel anchor and neither door fits; the
 presence of such blocks is the trigger, not a separately declared routing flag. For every
 series/category, on-mark data, and axis label, decide and pass ``max_width_px`` and ``max_lines``
 from the delivery condition, density, and available region; the tool enforces that judgment and

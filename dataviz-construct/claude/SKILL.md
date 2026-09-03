@@ -97,7 +97,30 @@ repo's; read them as the mechanism, and apply the same checks visually when the 
   `slots x per_slot_floor` px, a continuous axis takes a pleasant aspect, faceting multiplies via
   a grid, and any demand past the delivery ceiling is *warned*, never squashed. Feed its dims
   straight into `render_and_inspect_chart`. It sizes the box; it never picks the chart.
-- **Text (at `build`, after the words exist).** Once the title, subtitle, caption, and
+- **Frame (at `build`, blind - no render).** The chrome - title, subtitle, caption, footer,
+  axis titles and ticks, legend - lives in the margins; where it sits does not depend on the
+  data, so it is placed by text-measuring arithmetic *before the first render*, not discovered
+  clipped after one. `reserve_frame` takes the raw frame strings plus the canvas and per-role
+  font sizes (all inputs: pass `width_px`/`height_px`/`dpi`/`font_pt`, or take the profile
+  defaults), wraps each block to the canvas width, reserves a pixel band per block, and returns
+  the **`plot_area` rectangle** the marks may fill and the placed **`frame_blocks`** (roles the
+  placement tools treat as fixed). Draw the marks into `plot_area`; a frame too big for the
+  canvas is *warned*, never squashed. This is what removes clipped titles (the largest first-
+  version defect) and the half-empty canvas - deterministically, with no revision loop and,
+  for a chart with no on-mark labels, no extra render at all.
+- **Data-glued labels (measure-then-place, at `build`).** A value stamped on a bar or a callout
+  pointing at a peak sits at a pixel position that *does* depend on the data, so it cannot be
+  placed blind. Do not guess its pixels and discover the collision after render - that guess is
+  the revision loop. Instead render **once as a ruler**: the render's layout metadata carries the
+  exact `data_to_pixel` `transform` and every mark's bounding box. Pass those, the labels in
+  **data coordinates** (`data_x`/`data_y`), and the `frame_blocks` to `place_on_marks`; it
+  projects each label to its true pixel spot, hands the marks in as obstacles, and de-collides
+  through `recommend_text_placement` - so text-mark and text-text overlaps are gone on the first
+  *delivered* chart, decided by geometry, not by the model's eye. Only charts that stamp labels
+  on marks pay for the measure render; frame-only charts skip it.
+- **Text engine (what the two front doors call).** `reserve_frame` and `place_on_marks` both
+  resolve to `recommend_text_placement` - reach for it directly only when you already hold a
+  block's canvas-pixel anchor and neither front door fits. Once the title, subtitle, caption, and
   annotations are written and their anchors chosen, `recommend_text_placement` wraps every block
   to fit its room and moves any annotation that would collide with another label, the canvas
   edge, **or a data mark** to the nearest clear spot - pass the marks' bounding boxes as

@@ -628,3 +628,86 @@ def recommend_text_placement(
         "suggested_orientation": suggested_orientation,
         "suggested_canvas": suggested_canvas,
     }
+
+
+def _project(transform: list[list[float]], x: float, y: float) -> tuple[float, float]:
+    """Map a data ``(x, y)`` to canvas pixels through a top-left affine (row-major 3x3)."""
+    r0, r1 = transform[0], transform[1]
+    px = r0[0] * float(x) + r0[1] * float(y) + r0[2]
+    py = r1[0] * float(x) + r1[1] * float(y) + r1[2]
+    return round(px, 1), round(py, 1)
+
+
+def place_on_marks(
+    width_px: int,
+    height_px: int,
+    dpi: int,
+    transform: list[list[float]],
+    labels: list[dict[str, Any]],
+    marks: list[dict[str, Any]] | None = None,
+    fixed_blocks: list[dict[str, Any]] | None = None,
+    max_annotation_width_frac: float = 0.32,
+    edge_margin_px: Optional[float] = None,
+    min_font_pt: float = 8.0,
+) -> dict[str, Any]:
+    """Place labels glued to data marks using their real pixel positions, not a guess.
+
+    The gap ``recommend_text_placement`` cannot close on its own: its anchors are canvas
+    pixels, but a builder thinks in data coordinates. After one measure render, the layout
+    metadata carries the exact data->pixel ``transform`` and the marks' bounding boxes. This
+    projects each label's ``(data_x, data_y)`` through that transform, hands the marks in as
+    obstacles, and delegates to ``recommend_text_placement`` - so labels are de-collided
+    against where the marks *actually* landed, killing text-mark and text-text overlaps on the
+    first delivered chart instead of after a revision loop.
+
+    Args:
+        width_px / height_px / dpi: the fixed canvas the measure render used.
+        transform: the ``data_to_pixel_top_left`` affine for the label's axes, straight from
+            the render's layout metadata (``transforms[i]``).
+        labels: movable labels/annotations and on-mark data labels, each
+            ``{id, text, role, data_x, data_y, placement?, max_width_px?, max_lines?, font_pt?,
+            anchors_data?}``. ``anchors_data`` is an optional list of ``{data_x, data_y}``
+            candidate marks for a category ``label`` (it may sit beside any of them). Roles
+            follow ``recommend_text_placement``: ``label`` / ``annotation`` move, ``data_label``
+            / ``axis_label`` stay on their projected spot.
+        marks: the render's mark boxes (``layout['marks']`` and/or ``['series']``); their
+            ``bbox`` values become the obstacles movable labels dodge.
+        fixed_blocks: frame blocks from ``reserve_frame`` (already in px), passed through so
+            data labels also clear the title/subtitle/caption.
+        max_annotation_width_frac / edge_margin_px / min_font_pt: forwarded verbatim.
+
+    Returns everything ``recommend_text_placement`` returns, plus ``projected_anchors``
+    (``{label_id: {x, y}}``) so the caller can see where each mark landed.
+    """
+    blocks: list[dict[str, Any]] = list(fixed_blocks or [])
+    projected: dict[str, dict[str, float]] = {}
+    for label in labels:
+        px, py = _project(transform, label["data_x"], label["data_y"])
+        projected[label["id"]] = {"x": px, "y": py}
+        block = {
+            key: value
+            for key, value in label.items()
+            if key not in ("data_x", "data_y", "anchors_data")
+        }
+        block["anchor"] = {"x": px, "y": py}
+        anchors_data = label.get("anchors_data")
+        if anchors_data:
+            block["anchors"] = [
+                dict(zip(("x", "y"), _project(transform, m["data_x"], m["data_y"])))
+                for m in anchors_data
+            ]
+        blocks.append(block)
+
+    obstacles = [m["bbox"] for m in (marks or []) if "bbox" in m]
+    result = recommend_text_placement(
+        width_px,
+        height_px,
+        dpi,
+        blocks,
+        obstacles,
+        max_annotation_width_frac=max_annotation_width_frac,
+        edge_margin_px=edge_margin_px,
+        min_font_pt=min_font_pt,
+    )
+    result["projected_anchors"] = projected
+    return result
