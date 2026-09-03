@@ -2247,3 +2247,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Good call — the metadata does explain it, once you line up `execution` call counts against the "measured defects" in each footer. ## The execution gate is the common thread | Case | build calls | **execution calls** |...
 
 <!-- claude-session:8011ebd8-8b7a-4918-958a-87a86fa6d2e5:end -->
+
+<!-- claude-session:a2bd1afb-a324-4c95-8c9f-5e4694cb2c7f:start -->
+## 2026-09-03 10:27 IST | Claude session `a2bd1afb-a32`
+
+### User prompts
+> one problem i'm findng with the current dataviz-fix harness is that the R code it generates is way too verbose (i'll paste an example below). i've been writing fairly concise R code for sevearl yaesr now (since 2019 a...
+> eg: library(ggplot2) library(grid) build_chart <- function() { # dataviz-section: data periods <- c("1970", "1980", "1990", "2000", "2030", "2050") categories <- c( "Cereals, food", "Roots and tubers", "Sugar", "Pulse...
+> 2
+
+### Work done
+- Parking. Writing the design doc so it's recoverable, then stopping.
+- Parked. Design + corpus evidence + resume path saved: `docs/parked-karthik-ggplot-skill.md` Captures: it's a code-efficiency rule set (not a theme/style), the 7 rules with anti-pattern map, non-frozen framing, corpus...
+- Touched files: `docs/parked-karthik-ggplot-skill.md`
+
+<!-- claude-session:a2bd1afb-a324-4c95-8c9f-5e4694cb2c7f:end -->
