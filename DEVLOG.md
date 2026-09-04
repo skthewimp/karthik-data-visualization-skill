@@ -2347,3 +2347,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - You were right to push back. Verifying instead of asserting turned up two real gaps in what I'd shipped: **What was actually wrong in my first pass:** 1. **`karthik-data-visualization` — the umbrella skill — was misse...
 
 <!-- claude-session:b4103f1b-ba79-4005-9d0b-1c33ff6d27bc:end -->
+
+<!-- claude-session:d0d1e6cc-d183-48b3-8f50-3a4022302c58:start -->
+## 2026-09-04 16:28 IST | Claude session `d0d1e6cc-d18`
+
+### User prompts
+> have our skills gotten too heavy and verbose through multiple iterations? can we audit them to make sure they are concise while still maintianing full essense?
+
+### Work done
+- Clean change set — exactly the 20 edited skills (×2 surfaces) plus CHANGELOG; the three untouched lean skills correctly absent. No upstream divergence. Committing and pushing.
+- Done. Pushed to `origin/main` (`6fd647f..9166903`), local matches upstream, all 221 tests pass, validator clean. ## What the audit found and fixed Your instinct was right — the skills had bloated, in two distinct ways...
+
+<!-- claude-session:d0d1e6cc-d183-48b3-8f50-3a4022302c58:end -->
