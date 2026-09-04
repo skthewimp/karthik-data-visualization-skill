@@ -2,10 +2,27 @@ from dataviz_mcp.layout import boxes_overlap
 from dataviz_mcp.text_fit import (
     _leader_endpoints,
     _leader_line,
+    _search_clear,
     _segments_cross,
     _uncross_leaders,
     recommend_text_placement as _recommend_text_placement,
 )
+
+
+def test_search_clear_returns_the_nearest_spot_not_a_line_height_jump():
+    # A blocker overlaps the box by a few pixels; a small nudge clears it. The search must land
+    # close to the anchor, not fling the box a whole line-height (step) away in the first free
+    # compass direction.
+    step = 16.0
+    bbox = {"x": 400.0, "y": 300.0, "width": 40.0, "height": 14.0}
+    blocker = {"x": 400.0, "y": 290.0, "width": 40.0, "height": 18.0}  # overlaps y 300..308
+    found = _search_clear(bbox, [blocker], 800.0, 600.0, 10.0, step=step)
+    assert found is not None
+    cx, cy = found
+    moved = {"x": cx, "y": cy, "width": bbox["width"], "height": bbox["height"]}
+    assert not boxes_overlap(moved, blocker)
+    distance = ((cx - bbox["x"]) ** 2 + (cy - bbox["y"]) ** 2) ** 0.5
+    assert distance < step  # sub-line-height: the whole point of the nearest search
 
 
 def recommend_text_placement(*args, **kwargs):

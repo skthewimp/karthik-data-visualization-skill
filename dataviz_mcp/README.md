@@ -137,7 +137,10 @@ def build_chart():
 Stable Matplotlib `gid` values make defects narrow and repairable:
 
 - use `series:<id>` for plotted lines;
-- use `annotation:<id>` for callouts.
+- use `annotation:<id>` for callouts;
+- use `data_label:<id>` for a value printed on its own mark, and `label:<id>` for a free label.
+
+Tag an on-mark value `data_label:`, never `label:`: a `data_label` sits on the mark it names by definition, so the inspector exempts it from the text-mark collision check (a `label` overlapping a mark is still flagged as an accidental overlap). Both count as a mark's direct value label for direct-label coverage and the redundant-value-axis check.
 
 Untagged Matplotlib lines and annotations receive generated IDs, but those IDs are less stable across revisions.
 

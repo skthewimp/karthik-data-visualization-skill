@@ -249,6 +249,14 @@ _DEFECT_CLASS: dict[str, str] = {
 }
 
 
+# A directly labelled value on its mark. Two gids carry it: ``data_label`` (an on-mark value the
+# plotting layer pinned, exempt from mark de-collision) and the older ``label`` (a free label that
+# happens to name a mark). Both count as a mark's direct value label for coverage and redundant-axis;
+# only ``data_label`` is exempt from the text-mark collision check, since a ``label`` sitting on a
+# mark it does not name is a real overlap.
+_VALUE_LABEL_ROLES = {"label", "data_label"}
+
+
 def _defect(
     code: str,
     severity: str,
@@ -587,8 +595,9 @@ def inspect_rendered_chart(
             axes_id = expectation.get("axes_id")
             role = expectation.get("role", "label")
             expected = int(expectation.get("expected_count", 0))
+            role_match = _VALUE_LABEL_ROLES if role in _VALUE_LABEL_ROLES else {role}
             observed = sum(
-                item.get("role") == role and (axes_id is None or item.get("axes_id") == axes_id)
+                item.get("role") in role_match and (axes_id is None or item.get("axes_id") == axes_id)
                 for item in elements
             )
             result = {
@@ -655,7 +664,7 @@ def inspect_rendered_chart(
                 axes_id = element.get("axes_id")
                 if (
                     axes_id is not None
-                    and element.get("role") == "label"
+                    and element.get("role") in _VALUE_LABEL_ROLES
                     and _looks_numeric(element.get("text", ""))
                 ):
                     value_labels_per_axes[axes_id] = value_labels_per_axes.get(axes_id, 0) + 1

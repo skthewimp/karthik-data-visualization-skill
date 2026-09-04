@@ -131,6 +131,17 @@ def label_over_bar():
     return fig, {"fixture": "label_over_bar"}
 
 
+def data_label_on_bar():
+    # A value printed on its own mark, tagged data_label: it sits on the bar by design, so it must
+    # not register as a text-mark collision the way a free label:overlap does.
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    bars = ax.bar([1, 2, 3], [2, 4, 3], color="#245b78")
+    bars[1].set_gid("mark:middle-bar")
+    label = ax.text(2, 2, "4", ha="center", va="center", color="white")
+    label.set_gid("data_label:middle-value")
+    return fig, {"fixture": "data_label_on_bar"}
+
+
 def incomplete_direct_labels():
     fig, ax, x, y = _base()
     for index in (2, 7):

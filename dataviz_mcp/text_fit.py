@@ -258,21 +258,32 @@ def _search_clear(
     margin: float,
     step: float,
 ) -> Optional[tuple[float, float]]:
-    """Ring-search outward from the anchor for the nearest position clear of every blocker."""
+    """Ring-search outward from the anchor for the nearest position clear of every blocker.
+
+    Steps in fine (quarter-``step``) increments and, at the first ring that has any clear spot,
+    returns the candidate closest to the anchor - so a label moves the least distance that clears
+    instead of jumping a whole line-height in the first compass direction that happens to be free.
+    Reach is unchanged (finer steps, proportionally more rings)."""
     ox, oy = bbox["x"], bbox["y"]
     directions = [
         (0, -1), (1, 0), (0, 1), (-1, 0),
         (1, -1), (1, 1), (-1, 1), (-1, -1),
     ]
-    for ring in range(1, 13):
+    fine = max(2.0, step / 4)
+    rings = int(step * 12 / fine) + 1
+    for ring in range(1, rings + 1):
+        clear: list[tuple[float, float]] = []
         for dx, dy in directions:
-            cx = ox + dx * step * ring
-            cy = oy + dy * step * ring
-            candidate = {"x": cx, "y": cy, "width": bbox["width"], "height": bbox["height"]}
+            candidate = {
+                "x": ox + dx * fine * ring, "y": oy + dy * fine * ring,
+                "width": bbox["width"], "height": bbox["height"],
+            }
             cx, cy = _nudge_into_canvas(candidate, width, height, margin)
             candidate["x"], candidate["y"] = cx, cy
             if not _hits_any(candidate, blockers):
-                return cx, cy
+                clear.append((cx, cy))
+        if clear:
+            return min(clear, key=lambda c: _distance(c, (ox, oy)))
     return None
 
 

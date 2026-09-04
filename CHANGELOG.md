@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Stop a data label clashing with its own mark, and stop flinging displaced labels far
+
+Two defects surfaced once inspection ran on delta-patched builds instead of full-source regenerations. Both are small, and neither needs a skill rule guarding it.
+
+- **A value on its own mark is no longer a self-collision.** The inspector already exempts role `data_label` from the text-mark collision check; the false positives came from on-mark values arriving as role `label`, which is flagged (a `label` overlapping a mark it does not name is a real accidental overlap). The fix is a tagging convention, not a geometry guess: an on-mark value must carry gid `data_label:<id>`, documented in `dataviz_mcp/README.md`. The inspector now also counts `data_label` (not only `label`) as a mark's direct value label, so direct-label coverage and the redundant-value-axis check still fire when values are tagged correctly (`dataviz_mcp/inspection.py`).
+- **Displaced labels move the least distance that clears.** `_search_clear` (`dataviz_mcp/text_fit.py`) stepped outward in whole line-height rings and returned the first clear spot in a fixed compass order (up first) - so a label a few pixels would clear jumped a full line-height, often in the wrong direction. It now steps in quarter-line increments and, at the first clearing ring, returns the candidate nearest the anchor. Reach is unchanged.
+- **No new skill rule.** Once on-mark values are `data_label`, the inspector exempts them and `place_on_marks` never de-collides them, so there is no false defect and nothing reverse-engineers grob positions into data predicates - the guard would protect a problem that no longer exists.
+
 ### Stop the reflexive 0-100 axis on a percentage - undo the prose nudge, trust the renderer's fit
 
 A recent run drew a percentage line chart (values 1-44%) on a 0-100 axis - the top half of the plot dead. The renderers' own defaults (ggplot's Wilkinson breaks, Matplotlib's) already fit a value axis to the data range and never draw to 100 here; the 0-100 came from the build model *overriding* that good default, stamping a percentage's natural domain onto the axis. The build/tester prose had, with the layout-MCP coordinate-separation work, started saying "data scales represent the intended data domain" - which for a percentage reads as 0-100. That was the push.

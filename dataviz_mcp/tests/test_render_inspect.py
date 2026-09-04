@@ -67,6 +67,13 @@ def test_fixture_reports_expected_geometry_defect(
     assert report["passes_geometry_checks"] is False
 
 
+def test_data_label_on_its_mark_is_not_a_collision(tmp_path: Path) -> None:
+    # Same geometry as label_over_bar, but the text is a data_label on the bar it names. A value on
+    # its own mark is not an accidental overlap, so it must not fire TEXT_MARK_COLLISION.
+    _, report = render(tmp_path, "data_label_on_bar")
+    assert "TEXT_MARK_COLLISION" not in {item["code"] for item in report["defects"]}
+
+
 def test_clean_chart_passes_all_geometry_checks(tmp_path: Path) -> None:
     _, report = render(tmp_path, "clean_chart")
     assert report["defects"] == []
