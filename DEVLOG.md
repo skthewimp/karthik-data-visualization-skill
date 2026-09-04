@@ -2409,3 +2409,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Reverted and pushed as `6d6702e`. **Final state — no tool, just the real fix:** - Undid the nudge: *"data scales represent the intended data domain"* → *"the data's plotted extent, not 0-100 unless the data reac...
 
 <!-- claude-session:698b3052-ff22-481f-b43d-bb360baf0089:end -->
+
+<!-- claude-session:606c28b2-6cf8-424e-bc19-7b4f2e66b4c9:start -->
+## 2026-09-04 17:41 IST | Claude session `606c28b2-6cf`
+
+### User prompts
+> inputs from the harness on what should improve inthe skills / tools These changes belong in the visualization skill/MCP layer: - Give every rendered label a stable semantic identity: series, period/category, value, so...
+> [Request interrupted by user]
+> again i think this is overengineering abandon this effort
+
+### Work done
+- Abandoning. Reverting everything.
+- Reverted. `git status` clean, `git diff` empty — identity.py deleted, text_fit.py and its tests back to original. No changes remain on disk. Nothing committed, nothing pushed. The scratchpad plan doc still exists (out...
+
+<!-- claude-session:606c28b2-6cf8-424e-bc19-7b4f2e66b4c9:end -->
