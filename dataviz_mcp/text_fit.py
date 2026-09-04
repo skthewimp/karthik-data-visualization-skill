@@ -814,7 +814,9 @@ def place_on_marks(
     (``{label_id: {x, y}}``) so the caller can see where each mark landed. Every movable label
     also carries **native data coordinates** the builder draws from directly, so no data-space
     ``geom_segment``/``annotate`` has to be improvised (and pass through a neighbour): ``placed_data``
-    (``{x, y}`` where the label's box origin sits), ``anchor_data`` (``{x, y}`` of the mark it names),
+    (``{x, y}`` of the label box's **top-left** corner - draw the label left/top-anchored, e.g. ggplot
+    ``hjust=0, vjust=1`` or matplotlib ``ha="left", va="top"``, so the drawn box matches the one the
+    tool placed and the leader meets its edge), ``anchor_data`` (``{x, y}`` of the mark it names),
     and, when a leader is drawn, ``leader_line_data`` (``{from, to}`` - the box-edge end and the
     mark end, in data coords). These are the inverse of the same affine used to project, so the
     leader terminates exactly at the label's bounding-box edge and at the mark. A singular affine
