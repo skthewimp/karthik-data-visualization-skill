@@ -2306,3 +2306,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Good call — this thread's done its job. Here's a self-contained prompt for a fresh session: ``` Build a `refit_chart` MCP tool in the dataviz repo. Repo: /Users/Karthik/Documents/work/karthik-data-visualization-skill...
 
 <!-- claude-session:469eb3ac-86b4-4535-9b4f-3da425a1c86c:end -->
+
+<!-- claude-session:30cee37e-d275-4710-878e-ab672b3051af:start -->
+## 2026-09-04 10:37 IST | Claude session `30cee37e-d27`
+
+### User prompts
+> Build a `refit_chart` MCP tool in the dataviz repo. Repo: /Users/Karthik/Documents/work/karthik-data-visualization-skill Use skills: test-driven-development, dataviz-construct. Python venv at .venv (`.venv/bin/python...
+> was this the thing about refit, or was this more about the fonts and stuff?
+
+### Work done
+- Done. Pushed to main (`02093e6..10fca8d`), local == upstream. **`refit_chart` shipped** - deterministic render→inspect→grow loop, no model turn for geometry arithmetic. - **`dataviz_mcp/refit.py`** - render → inspect...
+- This was **refit** - the resize loop. Not the fonts/text stuff. Quick line between them: - **refit (this session)** - only grows the *canvas* when something clips the edge or facet panels get squashed. Pure "make the...
+
+<!-- claude-session:30cee37e-d275-4710-878e-ab672b3051af:end -->
