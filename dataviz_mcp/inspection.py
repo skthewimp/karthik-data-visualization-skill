@@ -256,6 +256,15 @@ _DEFECT_CLASS: dict[str, str] = {
 # mark it does not name is a real overlap.
 _VALUE_LABEL_ROLES = {"label", "data_label"}
 
+# Geometry-fallback threshold for REDUNDANT_VALUE_AXIS: with no declared contract the check cannot
+# tell a reading-carrying mark from a filler one, so it fires only when a mark-bearing panel labels
+# a near-complete share of its marks - at which point the reader has essentially no mark left to
+# read off the scale and the numeric ticks are duplicate ink. Expressed as a ratio, not an
+# every-mark rule, so a chart labelling most (not literally all) of its marks still trips it; the
+# ratio scales naturally with panel size (a 3-mark panel still needs all three, a 10-mark panel
+# tolerates a couple unlabelled). The declared-contract path stays exact and owns the true key set.
+_REDUNDANT_AXIS_MIN_COVERAGE = 0.8
+
 
 def _defect(
     code: str,
@@ -645,13 +654,13 @@ def inspect_rendered_chart(
                     )
                 )
 
-        # Geometry fallback for faceted charts. The contract check above needs a caller-declared
-        # direct_labels expectation; a facet grid that labels every point but declares nothing
-        # would slip through. When the contract found nothing, derive coverage from the marks
-        # themselves - grouping by axes, which marks and value labels carry reliably even where
-        # tick labels do not: a chart flags when every mark-bearing panel has a numeric value
-        # label on each of its marks. Runs only when the contract path found nothing, so a chart
-        # is never double-flagged.
+        # Geometry fallback for charts that label their marks but declare no contract. The contract
+        # check above needs a caller-declared direct_labels expectation; a chart (faceted or not)
+        # that labels its marks but declares nothing would slip through. When the contract found
+        # nothing, derive coverage from the marks themselves - grouping by axes, which marks and
+        # value labels carry reliably even where tick labels do not: a chart flags when every
+        # mark-bearing panel labels a near-complete share of its marks (>= the coverage threshold).
+        # Runs only when the contract path found nothing, so a chart is never double-flagged.
         if not redundant_value_axis:
             elements = metadata.get("elements", [])
             marks_per_axes: dict[Any, int] = {}
@@ -672,7 +681,7 @@ def inspect_rendered_chart(
                 bool(marks_per_axes)
                 and any(count >= 2 for count in marks_per_axes.values())
                 and all(
-                    value_labels_per_axes.get(axes_id, 0) >= count
+                    value_labels_per_axes.get(axes_id, 0) >= count * _REDUNDANT_AXIS_MIN_COVERAGE
                     for axes_id, count in marks_per_axes.items()
                 )
             )
@@ -685,15 +694,19 @@ def inspect_rendered_chart(
                 ]
                 if numeric_ticks:
                     ids = [element["id"] for element in numeric_ticks]
+                    min_coverage = min(
+                        value_labels_per_axes.get(axes_id, 0) / count
+                        for axes_id, count in marks_per_axes.items()
+                    )
                     redundant_value_axis.append({"element_ids": ids, "tick_count": len(ids)})
                     defects.append(
                         _defect(
                             "REDUNDANT_VALUE_AXIS",
                             "medium",
                             ids,
-                            "Every mark is directly labelled on every panel; the numeric value "
-                            "axis duplicates the labels - drop its ticks and gridlines (eraser "
-                            "test).",
+                            f"Direct labels cover {min_coverage:.0%}+ of the marks on every panel; "
+                            "the numeric value axis duplicates them - drop its ticks and gridlines "
+                            "(eraser test).",
                         )
                     )
 

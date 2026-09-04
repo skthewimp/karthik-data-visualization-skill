@@ -118,7 +118,7 @@ Inspection reports the original five codes plus hierarchy, mark, delivery, contr
 | `DELIVERY_TEXT_TOO_SMALL` | Text is below the configured delivery-scale size | Medium |
 | `LOW_TEXT_CONTRAST` | Text contrast misses the practical delivery target | Medium |
 | `DIRECT_LABELS_INCOMPLETE` | A declared repeated-panel/direct-label count is incomplete | High |
-| `REDUNDANT_VALUE_AXIS` | The declared reading-carrying marks are directly labelled, or every mark is labelled, yet the numeric value axis still renders ticks - duplicate ink | Medium |
+| `REDUNDANT_VALUE_AXIS` | The declared reading-carrying marks are directly labelled (contract path), or - with no contract - every mark-bearing panel labels a near-complete share (~80%+) of its marks, yet the numeric value axis still renders ticks - duplicate ink | Medium |
 | `REDUNDANT_COLOUR` | Colour only restates a grouping the facet, category axis, or direct labels already show (one series per facet, one fill per named bar, or labelled series) - focal-plus-grey stays silent | Low |
 | `EXTERNAL_LEGEND` | A legend round-trips series the plot already names via direct labels, facet titles, or category ticks | Low |
 | `UNIDENTIFIED_SERIES` | Two or more series are distinguished only by colour with no legend, direct labels, or facet titles - the reader cannot tell which is which; direct labels are the preferred fix | High |

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### The redundant-value-axis check no longer needs every mark labelled
+
+A chart directly labelling most of its values still shipped a numeric y-axis, ticks, and gridlines. Root cause was in the detection, not the skill wording: `REDUNDANT_VALUE_AXIS` had two paths and both demanded completeness. The contract path fires on the editorial key set - but only when the builder *declares* `inspection_contract.direct_labels`, which the pipeline usually didn't. The geometry fallback (no contract) required a value label on *every* mark of *every* panel, so a chart labelling a lot but not all of its marks tripped neither path and kept its axis. Two changes close the gap.
+
+- **Geometry fallback relaxed from every-mark to near-complete coverage.** `inspect_rendered_chart` now flags once every mark-bearing panel labels a share of its marks at or above a coverage threshold (`_REDUNDANT_AXIS_MIN_COVERAGE = 0.8`), not once every mark is labelled. Expressed as a ratio, it scales with panel size on its own: a 3-mark panel still needs all three, a 10-mark panel tolerates a couple unlabelled - and a focal-plus-grey chart labelling one bar of five (0.2) stays silent, because the axis still carries the reading for the unlabelled marks. Contract path unchanged and still primary; the geometry share is the conservative no-contract floor, which cannot tell a key mark from a filler one. `dataviz_mcp/inspection.py`; regression fixtures + tests (`bars_mostly_labelled` fires at 0.8, `bars_few_labelled` stays silent at 0.2) in `dataviz_mcp/tests/`; `docs/mcp.md`.
+- **Skills now tell the builder to declare the contract.** `dataviz-execution` (both copies): the `REDUNDANT_VALUE_AXIS` entry gains an explicit instruction to pass `inspection_contract.direct_labels` (the labelled set, with `axes_id`/`role`/`expected_count`) at render time, so the flag fires on the editorial key set - endpoints and exceptions included - rather than waiting for the geometry share. `karthik-data-visualization` (both copies): the "one identification route per series" rule now points at the contract declaration so the key-set reading is available downstream.
+
 ### Stop a data label clashing with its own mark, and stop flinging displaced labels far
 
 Two defects surfaced once inspection ran on delta-patched builds instead of full-source regenerations. Both are small, and neither needs a skill rule guarding it.

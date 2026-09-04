@@ -187,6 +187,36 @@ def faceted_bars_all_labelled():
     return fig, {"fixture": "faceted_bars_all_labelled"}
 
 
+def bars_mostly_labelled():
+    # Five bars, four directly labelled with their value (coverage 0.8) and a numeric y axis, but
+    # NO inspection_contract. The geometry fallback must flag the redundant value axis from a
+    # near-complete label share, not require every single mark.
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    heights = [2, 4, 3, 5, 1]
+    bars = ax.bar(["A", "B", "C", "D", "E"], heights, color="#245b78")
+    for index, (bar, value) in enumerate(zip(bars, heights)):
+        bar.set_gid(f"mark:bar{index}")
+        if index == 2:  # leave one bar unlabelled -> 4/5 = 0.8 coverage
+            continue
+        label = ax.text(bar.get_x() + bar.get_width() / 2, value + 0.2, f"{value}", fontsize=8)
+        label.set_gid(f"label:bar{index}")
+    return fig, {"fixture": "bars_mostly_labelled"}
+
+
+def bars_few_labelled():
+    # Five bars, only one labelled (coverage 0.2): the axis still carries the reading for the four
+    # unlabelled marks, so REDUNDANT_VALUE_AXIS must stay silent.
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    heights = [2, 4, 3, 5, 1]
+    bars = ax.bar(["A", "B", "C", "D", "E"], heights, color="#245b78")
+    for index, (bar, value) in enumerate(zip(bars, heights)):
+        bar.set_gid(f"mark:bar{index}")
+        if index == 3:  # a single focal label
+            label = ax.text(bar.get_x() + bar.get_width() / 2, value + 0.2, f"{value}", fontsize=8)
+            label.set_gid(f"label:bar{index}")
+    return fig, {"fixture": "bars_few_labelled"}
+
+
 def coloured_facets_with_legend():
     fig, axes = plt.subplots(1, 2, figsize=(8, 4.5), dpi=100)
     x = np.arange(10)

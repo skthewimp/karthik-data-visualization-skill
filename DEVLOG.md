@@ -1,5 +1,41 @@
 # Devlog
 
+## 2026-09-04 - redundant value axis persisted when most (not all) values were labelled
+
+### Context
+
+Karthik: "even when a lot of values are directly labelled, we still get a Y-axis. why is this
+happening?" Traced it to detection, not skill wording. `REDUNDANT_VALUE_AXIS` has two paths, both
+demanding completeness: the contract path fires on the declared key set but needs the builder to
+pass `inspection_contract.direct_labels` (the pipeline usually didn't), and the geometry fallback
+required a value label on *every* mark of *every* panel. A chart labelling a lot but not all of its
+marks, with no declared contract, tripped neither path and kept its axis, ticks, and gridlines.
+
+The earlier decision (2026-09-01) deliberately kept the geometry fallback strict "because with no
+contract it can't tell a key mark from a filler one." Karthik chose to override that here - do both.
+
+### What I changed
+
+- **Geometry fallback: every-mark -> coverage ratio.** Replaced `value_labels >= count` with
+  `value_labels >= count * _REDUNDANT_AXIS_MIN_COVERAGE` (0.8), per mark-bearing panel. As a ratio
+  it scales with panel size without enumerating regimes: a 3-mark panel still needs all three, a
+  10-mark panel tolerates two unlabelled, a focal 1-of-5 stays silent (axis still reads the four).
+  The message reports the observed min coverage. `dataviz_mcp/inspection.py`.
+- **Skills declare the contract.** `dataviz-execution` (both): the flag entry now tells the builder
+  to pass `inspection_contract.direct_labels` at render time so the check fires on the editorial key
+  set (endpoints/exceptions), not only on near-complete geometry. `karthik-data-visualization`
+  (both): the identification-route rule points at the contract declaration. `docs/mcp.md` updated.
+- **Tests.** `bars_mostly_labelled` (4/5 = 0.8) now flags; `bars_few_labelled` (1/5 = 0.2) stays
+  silent. Existing every-mark and per-panel tests still pass. `dataviz_mcp/tests/`.
+
+### Decisions
+
+- Line series are unaffected: line points live in `series`, not `marks`, so the geometry fallback
+  never fired for pure line charts and still doesn't - sparse endpoint labels on a line keep their
+  axis. The relaxation targets discrete marks (bars/scatter) where each value is read individually.
+- Kept it a non-blocking-in-spirit suggestion at `medium`; the contract path stays the exact,
+  primary route and the geometry share is the conservative no-contract floor.
+
 ## 2026-09-04 - the reflexive 0-100 axis: undo the nudge, don't build a tool
 
 Karthik flagged a fresh run: a Bollywood age-mix line chart, values 1-44%, drawn on a 0-100
