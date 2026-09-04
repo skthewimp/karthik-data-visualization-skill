@@ -679,6 +679,14 @@ def place_on_marks(
     Returns everything ``recommend_text_placement`` returns, plus ``projected_anchors``
     (``{label_id: {x, y}}``) so the caller can see where each mark landed.
     """
+    if not transform or len(transform) < 2 or len(transform[0]) < 3 or len(transform[1]) < 3:
+        raise ValueError(
+            "place_on_marks needs a data->pixel transform (the render's "
+            "transforms[i].data_to_pixel_top_left). The ggplot render emits none for a "
+            "non-cartesian coord (coord_flip/polar/trans), a non-identity scale, or a "
+            "faceted plot - place those labels with the renderer's own repel (e.g. ggrepel) "
+            "and verify with inspect_rendered_chart instead."
+        )
     blocks: list[dict[str, Any]] = list(fixed_blocks or [])
     projected: dict[str, dict[str, float]] = {}
     for label in labels:

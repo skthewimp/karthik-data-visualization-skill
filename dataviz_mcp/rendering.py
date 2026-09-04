@@ -801,6 +801,8 @@ capture_panel_grob <- function(g, prefix, px, py, pw, ph) {
   captured
 }
 
+panel_px <- NA_real_; panel_py <- NA_real_
+panel_pw <- NA_real_; panel_ph <- NA_real_; panel_id <- ""
 rows <- vector("list", nrow(gt$layout))
 for (i in seq_len(nrow(gt$layout))) {
   item <- gt$layout[i,]
@@ -844,6 +846,10 @@ for (i in seq_len(nrow(gt$layout))) {
     px, py, pw, ph
   )
   if (startsWith(grob_name, "panel") && inherits(grob, "gTree")) {
+    if (is.na(panel_px)) {
+      panel_px <- px; panel_py <- py; panel_pw <- pw; panel_ph <- ph
+      panel_id <- paste0("gg-", i)
+    }
     for (child_name in names(grob$children)) {
       if (grepl("^(grill|panel\\.border|NULL)", child_name)) next
       child_rows <- capture_panel_grob(
@@ -853,7 +859,40 @@ for (i in seq_len(nrow(gt$layout))) {
     }
   }
 }
-layout_rows <- do.call(rbind, c(rows, panel_rows))
+# Data->pixel affine for place_on_marks. Only for a single-panel, non-flipped
+# CoordCartesian plot with a resolved panel box: there a linear map from the panel's
+# data ranges to its pixel rectangle is exact. Any other coord (flip, trans, polar,
+# sf) or a facet grid is left without a transform on purpose, so the consumer refuses
+# and falls back rather than projecting through a wrong affine. Packed into one row
+# (kind="transform", coefficients a;c;e;d;e2;f2 in x_points, panel id in name) so the
+# CSV channel needs no schema change.
+transform_rows <- list()
+if (inherits(built, "ggplot") && !is.na(panel_px) && is.finite(panel_pw) && panel_pw > 0) {
+  tryCatch({
+    bp <- ggplot_build(built)
+    pps <- bp$layout$panel_params
+    coord <- built$coordinates
+    cartesian <- inherits(coord, "CoordCartesian") && !inherits(coord, "CoordFlip")
+    if (cartesian && length(pps) == 1) {
+      pp <- pps[[1]]
+      xr <- pp$x.range; yr <- pp$y.range
+      if (length(xr) == 2 && length(yr) == 2 &&
+          is.finite(diff(xr)) && diff(xr) != 0 &&
+          is.finite(diff(yr)) && diff(yr) != 0) {
+        sx <- panel_pw / (xr[2] - xr[1])
+        sy <- panel_ph / (yr[2] - yr[1])
+        # pixel_x = sx*data_x + (panel_px - xr1*sx)
+        # pixel_y(top-left) = -sy*data_y + (panel_py + panel_ph + yr1*sy)
+        coeff <- paste(c(sx, 0, panel_px - xr[1] * sx,
+                         0, -sy, panel_py + panel_ph + yr[1] * sy), collapse=";")
+        transform_rows[[1]] <- row_frame(
+          "transform-1", panel_id, "", 0, 0, 0, 0, "transform", "", "", "", coeff, ""
+        )
+      }
+    }
+  }, error=function(e) NULL)
+}
+layout_rows <- do.call(rbind, c(rows, panel_rows, transform_rows))
 write.csv(layout_rows, layout_path, row.names=FALSE, na="")
 capture.output(dput(metadata), file=metadata_path)
 dev.off()
@@ -944,6 +983,7 @@ def _render_ggplot2(
     marks: list[dict[str, Any]] = []
     plot_areas: list[dict[str, Any]] = []
     legends: list[dict[str, Any]] = []
+    transforms: list[dict[str, Any]] = []
     unsupported_marks = 0
     panel_ids = {
         row["id"]: row["id"]
@@ -951,6 +991,21 @@ def _render_ggplot2(
         if row.get("kind") == "zone" and row.get("name", "").startswith("panel")
     }
     for row in rows:
+        if row.get("kind") == "transform":
+            coeffs = [float(v) for v in row.get("x_points", "").split(";") if v]
+            if len(coeffs) == 6:
+                a, c, e, d, e2, f2 = coeffs
+                transforms.append(
+                    {
+                        "axes_id": row.get("name") or row.get("id"),
+                        "data_to_pixel_top_left": [
+                            [_round(a), _round(c), _round(e)],
+                            [_round(d), _round(e2), _round(f2)],
+                            [0.0, 0.0, 1.0],
+                        ],
+                    }
+                )
+            continue
         bbox = {
             key: _round(float(row[key])) for key in ("x", "y", "width", "height")
         }
@@ -1035,7 +1090,7 @@ def _render_ggplot2(
         "artifact": artifact,
         "canvas": {"x": 0.0, "y": 0.0, "width": width, "height": height},
         "plot_areas": plot_areas,
-        "transforms": [],
+        "transforms": transforms,
         "elements": elements,
         "series": series,
         "marks": marks,

@@ -172,6 +172,53 @@ def test_ggplot_vertical_bars_share_a_baseline_and_are_centred(tmp_path: Path) -
     not probe_renderers()["renderers"]["ggplot2"]["available"],
     reason="ggplot2+ragg not installed",
 )
+def test_ggplot_emits_a_data_to_pixel_transform_that_lands_on_a_bar(tmp_path: Path) -> None:
+    # place_on_marks on R: a single-panel CoordCartesian plot emits a linear affine, and
+    # projecting a bar's data coords through it must land on that bar's captured box.
+    source = Path(__file__).parent / "fixtures" / "ggplot_bar_baseline_fixture.R"
+    bundle = render_and_inspect_chart(
+        str(source),
+        str(tmp_path / "ggplot-tf"),
+        renderer="ggplot2",
+        dimensions={"width_px": 800, "height_px": 500, "dpi": 144},
+    )
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    assert layout["transforms"], "expected a data->pixel transform for a cartesian plot"
+    t = layout["transforms"][0]["data_to_pixel_top_left"]
+    # Categories A..D sit at positions 1..4; D is the tallest at value 60.
+    px = t[0][0] * 4 + t[0][1] * 60 + t[0][2]
+    py = t[1][0] * 4 + t[1][1] * 60 + t[1][2]
+    bars = sorted(
+        (m["bbox"] for m in layout["marks"] if m.get("kind") == "rect"),
+        key=lambda b: b["x"],
+    )
+    tallest = bars[3]
+    assert abs(px - (tallest["x"] + tallest["width"] / 2)) <= 3
+    assert abs(py - tallest["y"]) <= 3
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
+def test_ggplot_coord_flip_emits_no_transform(tmp_path: Path) -> None:
+    # coord_flip is not a straight affine from data to screen, so no transform is emitted -
+    # the consumer must fall back rather than project through a wrong map.
+    source = Path(__file__).parent / "fixtures" / "ggplot_fixture.R"  # uses coord_flip()
+    bundle = render_and_inspect_chart(
+        str(source),
+        str(tmp_path / "ggplot-flip"),
+        renderer="ggplot2",
+        dimensions={"width_px": 900, "height_px": 506, "dpi": 120},
+    )
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    assert layout["transforms"] == []
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
 def test_ggplot_adapter_captures_every_panel_and_repeated_mark_structure(
     tmp_path: Path,
 ) -> None:

@@ -117,7 +117,10 @@ repo's; read them as the mechanism, and apply the same checks visually when the 
   projects each label to its true pixel spot, hands the marks in as obstacles, and de-collides
   through `recommend_text_placement` - so text-mark and text-text overlaps are gone on the first
   *delivered* chart, decided by geometry, not by the model's eye. Only charts that stamp labels
-  on marks pay for the measure render; frame-only charts skip it.
+  on marks pay for the measure render; frame-only charts skip it. The transform is available on
+  matplotlib always and on ggplot for a single-panel, non-flipped Cartesian plot; when the render
+  emits no transform (a flipped/polar/transformed or faceted ggplot), `place_on_marks` refuses -
+  place those labels with the renderer's own repel (ggrepel) and verify with the execution gate.
 - **Text engine (what the two front doors call).** `reserve_frame` and `place_on_marks` both
   resolve to `recommend_text_placement` - reach for it directly only when you already hold a
   block's canvas-pixel anchor and neither front door fits. Once the title, subtitle, caption, and

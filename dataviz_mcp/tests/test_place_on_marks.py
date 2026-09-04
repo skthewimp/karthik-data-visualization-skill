@@ -1,3 +1,5 @@
+import pytest
+
 from dataviz_mcp.text_fit import place_on_marks
 
 
@@ -78,6 +80,18 @@ def test_an_on_mark_data_label_stays_at_its_projected_anchor():
     assert placement["bbox"]["x"] == 200.0
     assert placement["bbox"]["y"] == 400.0
     assert placement["leader_line"] is None
+
+
+def test_place_on_marks_refuses_without_a_transform():
+    # A ggplot render with no emitted transform (coord_flip/polar/facet) must make this fail
+    # loudly so the driver falls back to ggrepel, not project through a missing map.
+    with pytest.raises(ValueError, match="data->pixel transform"):
+        place_on_marks(
+            800, 600, 144, [],
+            labels=[{"id": "l", "text": "x", "role": "label",
+                     "data_x": 0, "data_y": 0, "max_width_px": 80, "max_lines": 1}],
+            marks=[],
+        )
 
 
 def _overlap(a, b, tol=0.5):
