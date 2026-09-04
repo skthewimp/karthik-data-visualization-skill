@@ -2262,3 +2262,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `docs/parked-karthik-ggplot-skill.md`
 
 <!-- claude-session:a2bd1afb-a324-4c95-8c9f-5e4694cb2c7f:end -->
+
+<!-- claude-session:469eb3ac-86b4-4535-9b4f-3da425a1c86c:start -->
+## 2026-09-03 11:43 IST | Claude session `469eb3ac-86b`
+
+### User prompts
+> rigvht now the problem wtih the @dataviz-construct/ is that there are too many loops. t oo amny revisions. the bteter idea is to build better on the first go and eliminate these loops and revisions. a harness did some...
+> too much jargon herei 'm not undertsanading
+> yes this is better. also remember we have a text placement MCP already. for wrapping, adjustment etc. now - should we really draw to be able to find the places of all the labels and stuff? can't this be done bya a mod...
+
+### Work done
+- Done, pushed (`02093e6`). All three extensions work and are proven on real renders. ## What now works on R | Case | How | Proof | |---|---|---| | **coord_flip** | Cross-term affine (flip maps x→vertical, y→horizontal;...
+- Good call — this thread's done its job. Here's a self-contained prompt for a fresh session: ``` Build a `refit_chart` MCP tool in the dataviz repo. Repo: /Users/Karthik/Documents/work/karthik-data-visualization-skill...
+
+<!-- claude-session:469eb3ac-86b4-4535-9b4f-3da425a1c86c:end -->
