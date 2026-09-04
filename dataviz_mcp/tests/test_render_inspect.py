@@ -136,6 +136,42 @@ def test_auto_renderer_prefers_ggplot2_and_emits_full_contract(tmp_path: Path) -
     not probe_renderers()["renderers"]["ggplot2"]["available"],
     reason="ggplot2+ragg not installed",
 )
+def test_ggplot_vertical_bars_share_a_baseline_and_are_centred(tmp_path: Path) -> None:
+    # Regression: ggplot's GeomRect anchors each bar at (xmin, ymax) with
+    # just=c("left","top"). The adapter once treated that anchor as the box centre and
+    # subtracted half the size, shoving each bar up by half its height (so taller bars
+    # drifted higher and the tallest reported a negative top) and left by half its width.
+    source = Path(__file__).parent / "fixtures" / "ggplot_bar_baseline_fixture.R"
+    bundle = render_and_inspect_chart(
+        str(source),
+        str(tmp_path / "ggplot-bars"),
+        renderer="ggplot2",
+        dimensions={"width_px": 800, "height_px": 500, "dpi": 144},
+    )
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    bars = sorted(
+        (m["bbox"] for m in layout["marks"] if m.get("kind") == "rect"),
+        key=lambda b: b["x"],
+    )
+    assert len(bars) == 4
+    # Every bar sits on the canvas, no negative tops.
+    assert all(b["y"] >= 0 for b in bars)
+    # All four share one bottom baseline (bottom = y + height).
+    bottoms = [b["y"] + b["height"] for b in bars]
+    assert max(bottoms) - min(bottoms) <= 3, bottoms
+    # Heights track the data (10, 40, 25, 60): B and D are the tall ones.
+    heights = [b["height"] for b in bars]
+    assert heights[3] > heights[1] > heights[2] > heights[0]
+    # Bars are evenly spaced across the panel (centres roughly equidistant).
+    centres = [b["x"] + b["width"] / 2 for b in bars]
+    gaps = [centres[i + 1] - centres[i] for i in range(3)]
+    assert max(gaps) - min(gaps) <= 3, gaps
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
 def test_ggplot_adapter_captures_every_panel_and_repeated_mark_structure(
     tmp_path: Path,
 ) -> None:

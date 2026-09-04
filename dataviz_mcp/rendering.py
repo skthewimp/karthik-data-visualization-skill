@@ -683,6 +683,37 @@ unit_values <- function(value) {
   suppressWarnings(as.numeric(value))
 }
 
+# grid justification -> (hjust, vjust) in [0,1], where hjust 0=left/1=right and
+# vjust 0=bottom/1=top. Explicit gp hjust/vjust win; else read the `just` token(s);
+# else centre. Mirrors how the text branch anchors, so a rect drawn with
+# just=c("left","top") (ggplot's GeomRect: anchor at xmin/ymax) is not mistaken for
+# a centre-anchored box and pushed half its size off the mark.
+just_to_hv <- function(just, hjust, vjust) {
+  map <- function(tok) {
+    tok <- tolower(as.character(tok))
+    if (tok %in% c("left", "bottom")) return(0)
+    if (tok %in% c("right", "top")) return(1)
+    if (tok %in% c("centre", "center")) return(0.5)
+    sn <- suppressWarnings(as.numeric(tok))
+    if (length(sn) && is.finite(sn)) return(sn)
+    0.5
+  }
+  h <- if (length(hjust)) suppressWarnings(as.numeric(hjust[1])) else NA_real_
+  v <- if (length(vjust)) suppressWarnings(as.numeric(vjust[1])) else NA_real_
+  if ((is.na(h) || is.na(v)) && length(just)) {
+    if (is.character(just)) {
+      if (is.na(h)) h <- map(just[1])
+      if (is.na(v)) v <- map(if (length(just) >= 2) just[2] else just[1])
+    } else if (is.numeric(just)) {
+      if (is.na(h)) h <- just[1]
+      if (is.na(v)) v <- if (length(just) >= 2) just[2] else just[1]
+    }
+  }
+  if (!length(h) || is.na(h) || !is.finite(h)) h <- 0.5
+  if (!length(v) || is.na(v) || !is.finite(v)) v <- 0.5
+  c(h, v)
+}
+
 panel_rows <- list()
 capture_panel_grob <- function(g, prefix, px, py, pw, ph) {
   captured <- list()
@@ -706,13 +737,16 @@ capture_panel_grob <- function(g, prefix, px, py, pw, ph) {
   if (inherits(g, "rect")) {
     ws <- unit_values(g$width)
     hs <- unit_values(g$height)
+    hv <- just_to_hv(g$just, g$hjust, g$vjust)
     count <- min(length(xs), length(ys), length(ws), length(hs))
     for (j in seq_len(count)) {
+      w_px <- ws[j] * pw
+      h_px <- hs[j] * ph
       captured[[length(captured) + 1]] <- row_frame(
         paste0(prefix, "-", j), prefix, "",
-        absolute_x[j] - ws[j] * pw / 2,
-        absolute_y[j] - hs[j] * ph / 2,
-        ws[j] * pw, hs[j] * ph, "rect",
+        absolute_x[j] - hv[1] * w_px,
+        absolute_y[j] - (1 - hv[2]) * h_px,
+        w_px, h_px, "rect",
         gp_value(gp, "col", j), gp_value(gp, "fill", j)
       )
     }
