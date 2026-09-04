@@ -1,5 +1,32 @@
 # Devlog
 
+## 2026-09-04 - `recommend_axis_range`: fit the value axis at planning, not by build reflex
+
+Karthik flagged a fresh run: a Bollywood age-mix line chart, values 1-44%, drawn on a 0-100
+y-axis - top half of the plot empty. His read was sharp and correct: "R defaults would not draw
+to 100. The default is being set somewhere, and it became a bug after we put in the new layout
+MCP." My first instinct (add an inspect-time gate, or a new planner) he corrected twice: inspect
+is too late, decide it at planning "like how we figure out layout now."
+
+Investigation, not a literal default: I traced every scale-touching tool (`recommend_layout`,
+`reserve_frame`, `place_on_marks`, `rendering.py`) - all only *read* the scale from the ggplot
+the builder writes; none sets `limits`. So the `c(0,100)` came from the build model. Git
+archaeology found the decisive fact: `9636814` had already caught this exact bug (a repaired
+integer-percent line chart at 0-100) and "fixed" it docs-only, by adding "a percentage does not
+earn a 0-100 domain" to `karthik-data-visualization`. It recurred. Prose lost to the build
+reflex twice. And `e48ec0d` (which landed with the layout-MCP coordinate-separation work) had
+added "data scales represent the intended data domain" to the build/tester prose - which for a
+percentage reads as its natural domain, 0-100. That is the regression Karthik sensed.
+
+Fix follows his steer: move the range decision to planning, deterministic, applied at build -
+the same three-way split precision/colour/canvas already use. `recommend_axis_range` fits
+`[min,max]`+breaks to the plotted extent (nice-number headroom above the max; zero baseline only
+when `zero_based`; `hard_max` honoured but flagged when it leaves a big dead band). Wired as a
+`needs_axis_range_plan` / `value_axis_plan` select decision the driver resolves and build
+applies. Undid the "intended data domain" phrasing in the build contract and the tester harness.
+8 new tests (the bollywood extent asserts <60 max, movement-band drops the baseline, hard_max
+flagged); full suite 72 green.
+
 ## 2026-09-04 - `refit_chart`: close the render -> inspect -> resize loop in code
 
 Built the `refit_chart` MCP tool. The three pre/post-render geometry tools (`reserve_frame`,

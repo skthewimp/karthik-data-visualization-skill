@@ -130,6 +130,10 @@ Every geometry defect now also carries its fix vector, so a revision is a number
 
 Each defect also carries a `defect_class`, and the report groups the defects into a `correction_plan` with three classes, so the cycle routes deterministically instead of the model re-deriving the split each turn: **canvas** - clipping/overflow the canvas can grow out of, resolved by `refit_chart` and only when the group's shared `growth_vector` (the same `suggested_dims`) is non-null; **placement** - a local text move the geometry tools compute exactly (collisions, an over-long unwrapped annotation, a missing direct label, and a label crossing the *plot* boundary, which canvas growth cannot fix), resolved by `place_on_marks` / `recommend_text_placement` / `recommend_labels` and applied literally; **semantic** - a judgement only the model makes (contrast, redundant ink, an external legend, an unidentified series, undersized text, an underfilled canvas). A new defect code without a class is a test failure, not a silent default.
 
+## Data-scale decisions (resolved at select, applied at build)
+
+Like precision and colour, the value-axis *range* is decided at selection and resolved by a deterministic tool, so the build model never guesses it. `recommend_axis_range` takes the axis' plotted values plus the select stage's `zero_based` / `hard_min` / `hard_max` flags and returns a fitted `recommended_min` / `recommended_max` / `breaks`: the upper bound is a nice number just above the largest value with small headroom, the lower bound is 0 when zero-based or a nice number below the smallest value for a movement-band line. The range is keyed to the data's plotted extent, never to the measure's natural domain - a percentage running 1-44 gets an axis to ~48, not 0-100. A `hard_max` far above the data is honoured but flagged, so a deliberate full range is never silent. This closes a recurring regression: a build model reflexively stamping 0-100 on a percentage, which prose guidance alone failed to hold.
+
 ## Forward geometry (size and place before render)
 
 Deterministic tools size the canvas, reserve the frame, and place the text *before* (or with a single measure render), so a weak model does not clip, squash, or collide in the first pass and then spend its revision budget guessing dimensions. `reserve_frame` settles the chrome blind and `place_on_marks` settles on-mark labels from one measure render - between them the top four first-version defects (clipping, text-text, text-mark, underfill) are decided by geometry, not by the model's eye. All are mechanism only - they never choose the chart or write the annotation.
@@ -187,6 +191,7 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 | `dataviz_mcp/labels.py` | Direct-label point selection within a budget (`recommend_labels`) |
 | `dataviz_mcp/palette.py` | Colour selection, assignment, WCAG/CVD scoring, and image sampling (`recommend_colours`, `validate_palette`, `extract_palette_from_image`); uses `color_math.py` |
 | `dataviz_mcp/precision.py` | Spread-derived significant digits for a numeric column (`recommend_precision`) |
+| `dataviz_mcp/axis.py` | Extent-fitted value-axis range and breaks (`recommend_axis_range`) - never the measure's natural domain |
 | `dataviz_mcp/comparison.py` | Hash-validated revision comparison |
 | `dataviz_mcp/server.py` | Stdio MCP surface (render, inspect, compare, and the recommend_* resolution tools) |
 | `dataviz_mcp/review_views.py` | Full, delivery, panel, hierarchy, and dense-placement views |

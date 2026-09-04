@@ -472,7 +472,7 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertIn("derive the trigger from the blocks", prompt)
             self.assertIn("axis label, decide `max_width_px` and `max_lines`", prompt)
             self.assertIn("Set `allow_curtail: true` only", prompt)
-            self.assertIn("data scales represent the intended data domain", prompt)
+            self.assertIn("data scales span the data's plotted extent", prompt)
             self.assertIn("never reserve the same room in both coordinate systems", prompt)
 
     def test_reviewer_gets_delivery_preview_and_overlapping_detail_sheet(self) -> None:

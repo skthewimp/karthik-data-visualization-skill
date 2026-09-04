@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .axis import recommend_axis_range as recommend_axis_range_core
 from .comparison import compare_chart_artifacts as compare_core
 from .inspection import inspect_rendered_chart as inspect_core
 from .labels import recommend_labels as recommend_labels_core
@@ -226,6 +227,31 @@ def create_server() -> Any:
         """
         return recommend_precision_core(
             values, role, target_steps, smallest_meaningful_difference, exact
+        )
+
+    @server.tool()
+    async def recommend_axis_range(
+        values: list[float],
+        zero_based: bool = True,
+        hard_min: float | None = None,
+        hard_max: float | None = None,
+        target_breaks: int = 5,
+    ) -> dict[str, Any]:
+        """Recommend a fitted [min, max] and breaks for a continuous value axis.
+
+        The range is keyed to the plotted extent, never to the measure's natural domain:
+        a percentage running 1-44 earns an axis to ~48, never a reflexive 0-100. The
+        upper bound is a nice number just above the largest value with small headroom;
+        the lower bound is 0 when ``zero_based`` (bars, share-of-total, or a line whose
+        absolute level is the point) or a nice number below the smallest value for a
+        movement-band line. ``zero_based`` is the select stage's judgment - the tool only
+        resolves numbers. Set ``hard_min``/``hard_max`` to honour a genuine domain floor
+        or a full range that is truly the point; both are applied exactly and flagged so
+        the override is never silent. Call at select, hand the resolved bounds and breaks
+        to the builder's ``scale_*_continuous`` so the build model never guesses the range.
+        """
+        return recommend_axis_range_core(
+            values, zero_based, hard_min, hard_max, target_breaks
         )
 
     @server.tool()

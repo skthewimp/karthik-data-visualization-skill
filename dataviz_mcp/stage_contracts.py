@@ -464,6 +464,53 @@ _NUMBER_DISPLAY_GROUPS = {
     },
 }
 
+# The value-axis RANGE decision is made HERE, at selection, and carried forward - so build
+# applies fitted bounds, it never guesses the range. Like precision and colour, the judgment
+# (is this a continuous value axis, is it zero-based, is a hard bound genuinely the point) lives
+# at select and the numbers are resolved by a deterministic tool (recommend_axis_range)
+# downstream; the build model never gets to stamp a measure's natural domain (0-100 for a
+# percentage) onto the axis. Populated only when needs_axis_range_plan is true (a continuous
+# value axis is shown); empty for a purely categorical chart.
+_VALUE_AXIS_PLAN = {
+    "type": "array",
+    "description": (
+        "One entry per continuous value axis shown. Empty when no continuous value axis is "
+        "drawn (needs_axis_range_plan false). Sets, per axis, whether it is zero-based and any "
+        "hard bound - decided at selection from the encoding and the data, not left to the "
+        "builder to infer from the unit. The actual fitted min/max/breaks are resolved "
+        "downstream by recommend_axis_range from the plotted values and these flags."
+    ),
+    "items": {
+        "type": "object",
+        "properties": {
+            "axis": {"type": "string"},
+            "zero_based": {
+                "type": "boolean",
+                "description": (
+                    "true for bars, share-of-total, or a line whose absolute level is the point "
+                    "(0 is a compared reference). false for a line whose story is movement in a "
+                    "narrow band, where a zero baseline would flatten it. Reason required."
+                ),
+            },
+            "hard_min": {
+                "type": ["number", "null"],
+                "description": "A genuine domain floor to honour exactly, or null for the fitted low bound.",
+            },
+            "hard_max": {
+                "type": ["number", "null"],
+                "description": (
+                    "A full range to honour exactly (e.g. 100 when 0-100 is genuinely the point), "
+                    "or null - the default - for a bound fitted just above the largest value. A "
+                    "measure's natural ceiling is NOT a reason to set this; fit to the data."
+                ),
+            },
+            "reason": {"type": "string", "minLength": 1},
+        },
+        "required": ["axis", "zero_based", "hard_min", "hard_max", "reason"],
+        "additionalProperties": False,
+    },
+}
+
 # The colour DECISION is made HERE, at form selection, and carried forward - so build only
 # applies a palette, it never picks hues. Like precision, the judgment lives at select and the
 # mechanics are a deterministic tool (recommend_colours / validate_palette) run downstream; the
@@ -722,6 +769,8 @@ SELECT_SCHEMA: dict[str, object] = {
         "needs_color_plan": {"type": "boolean"},
         "needs_precision_plan": {"type": "boolean"},
         "number_display_groups": _NUMBER_DISPLAY_GROUPS,
+        "needs_axis_range_plan": {"type": "boolean"},
+        "value_axis_plan": _VALUE_AXIS_PLAN,
         "colour_plan": _COLOUR_PLAN,
         "design": _DESIGN,
         "layout_plan": _LAYOUT_PLAN,
@@ -734,6 +783,8 @@ SELECT_SCHEMA: dict[str, object] = {
         "needs_color_plan",
         "needs_precision_plan",
         "number_display_groups",
+        "needs_axis_range_plan",
+        "value_axis_plan",
         "colour_plan",
         "design",
         "layout_plan",
@@ -1061,7 +1112,15 @@ HERE: true only for identifiers or a genuine exact-lookup requirement, false (th
 otherwise, with a reason either way. This flag is the whole precision *decision*; the actual
 format (how many digits) is then resolved deterministically downstream by ``recommend_precision``
 from the group's values and this flag, and the build stage only applies it - so decide the flag
-carefully here. Produce the design, the layout plan under the declared delivery condition, and an
+carefully here. Set ``needs_axis_range_plan`` true whenever a continuous value axis is drawn, and
+enumerate ``value_axis_plan`` - one entry per such axis - deciding HERE, per axis, ``zero_based``
+(true for bars, share-of-total, or a line whose absolute level is the point; false for a line whose
+story is movement in a narrow band) and any ``hard_min`` / ``hard_max`` (a genuine domain floor, or
+a full range like 0-100 only when that range is genuinely the point - a measure's natural ceiling is
+never itself a reason). This is the whole axis-range *decision*; the fitted min/max/breaks are
+resolved deterministically downstream by ``recommend_axis_range`` from the plotted values and these
+flags, and the build stage only applies them - so the range is fitted to the data, never stamped
+with the unit's domain (a percentage running 1-44 is not a 0-100 axis). Produce the design, the layout plan under the declared delivery condition, and an
 observable acceptance check for every fatal or major problem and every preservation
 requirement. Tag each acceptance check with ``validation_type``: ``source_fidelity`` when it
 can be checked inside the run (the artifact matches the source, the recovered data, or the
@@ -1115,7 +1174,13 @@ stage's ``exact_lookup_required`` flag, supplied by the driver, or produced by c
 here if it is available. Numbers that appear inside claim text - the headline and the candidate
 annotations - carry the precision the insight stage already gave them: reproduce them as stated,
 do not re-round them. Record each applied format in ``recommendations_used.number_formats`` with
-its reason. Place the frame before you draw: pass the raw title/subtitle/caption/footer, axis and legend
+its reason. Make no value-axis-range decision here either. For every continuous value axis, apply
+the fitted bounds and breaks from ``recommend_axis_range`` (keyed to the axis' plotted values and
+the select stage's ``zero_based`` / hard-bound flags, supplied by the driver or produced by calling
+the tool here) - pass them straight into the renderer's ``scale_*_continuous`` (``limits`` and
+``breaks``). Do not let the builder default the range to the measure's natural domain: a percentage
+is not a 0-100 axis unless the data reaches it. Record the applied range in
+``recommendations_used.axis_ranges``. Place the frame before you draw: pass the raw title/subtitle/caption/footer, axis and legend
 strings, and the canvas and font sizes to ``reserve_frame`` (all inputs), draw the marks into
 the ``plot_area`` it returns, and carry its ``frame_blocks`` forward - this reserves the chrome
 by measurement, so nothing clips and the canvas is not left half-empty, with no revision loop.
@@ -1135,8 +1200,9 @@ intact and revise the layout, wording, or form. Treat directly labelled point va
 names as ``label`` blocks adjacent to their line or mark. Draw a connector only when the returned
 placement contains a ``leader_line`` - never add a decorative dash. If several ordinary direct
 labels need leaders, revise the label set, anchors, or layout rather than accepting a field of
-displaced callouts. Keep coordinate systems separate: a data scale represents the intended data
-domain, while titles, labels,
+displaced callouts. Keep coordinate systems separate: a data scale spans the data's plotted extent
+(the fitted range from ``recommend_axis_range``, not the measure's natural domain - a percentage is
+not 0-100 unless the data reaches it), while titles, labels,
 annotations, legends, and their whitespace live in layout/screen coordinates. Never change a
 quantitative scale merely to reserve room for non-data content, and never reserve the same room
 in both the data domain and the physical layout. Record each acceptance check as pass, fail, or
@@ -1224,6 +1290,9 @@ _BUILDER_SKILLS = {
 # builder skill to load, plus flags that route work AWAY from the build call:
 #   * ``needs_precision_plan`` -> ``recommend_precision`` per display group (from its values and
 #     the select stage's ``exact_lookup_required`` flag) -> ``dataviz-precision`` not carried.
+#   * ``needs_axis_range_plan`` -> ``recommend_axis_range`` per continuous value axis (from its
+#     plotted values and the select stage's ``zero_based`` / hard-bound flags) -> the build model
+#     applies the fitted min/max/breaks instead of guessing a range from the unit.
 #   * ``needs_color_plan`` -> ``recommend_colours`` from the select stage's ``colour_plan``
 #     (available colours, groups, focal, semantic hints) -> ``dataviz-color`` not carried.
 #   * ``needs_explainer`` -> the separate render-independent ``explain`` stage writes the note
@@ -1238,6 +1307,7 @@ _SELECT_ROUTING_FIELDS = (
     "needs_explainer",
     "needs_color_plan",
     "needs_precision_plan",
+    "needs_axis_range_plan",
 )
 
 # No builder-agnostic build conditionals remain: colour, precision, and the explainer note are

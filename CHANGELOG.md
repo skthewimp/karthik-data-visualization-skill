@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### `recommend_axis_range`: fit the value axis at planning time, not by build-model reflex
+
+A recent run drew a percentage line chart (values 1-44%) on a 0-100 axis - the top half of the plot dead. R's own defaults would have fitted the range; the 0-100 came from the build model reflexively stamping a percentage's natural domain onto the axis. The same bug had already been "fixed" once (`9636814`) by adding prose to `karthik-data-visualization` ("a percentage does not earn a 0-100 domain") and it recurred - prose guidance lost to the build reflex twice. Two things had also landed with the layout-MCP work that pushed the wrong way: the build/tester prose said "data scales represent the intended data domain", which for a percentage reads as 0-100.
+
+The fix moves the value-axis range decision out of the build model's discretion and into planning, exactly as precision, colour, and canvas size already are - decided at select, resolved by a deterministic tool, applied at build.
+
+- **New `recommend_axis_range` tool (`dataviz_mcp/axis.py`).** Takes an axis' plotted `values` plus `zero_based` / `hard_min` / `hard_max` and returns fitted `recommended_min` / `recommended_max` / `breaks`: the upper bound is a nice number just above the largest value with small headroom, the lower bound is 0 when zero-based or a nice number below the smallest value for a movement-band line. Keyed to the data's plotted extent, never the measure's natural domain. A `hard_max` far above the data is honoured but flagged, so a deliberate full range is never silent. Registered as the 16th MCP tool.
+- **Select decides, build applies (`dataviz_mcp/stage_contracts.py`).** New `needs_axis_range_plan` routing flag and `value_axis_plan` schema (per axis: `zero_based`, `hard_min`, `hard_max`, reason). The select stage sets them; the driver runs `recommend_axis_range`; the build stage passes the resolved `limits`/`breaks` straight into `scale_*_continuous`.
+- **Undid the competing nudge.** "data scales represent the intended data domain" → "data scales span the data's plotted extent (fitted via `recommend_axis_range`, not the measure's natural domain - a percentage is not 0-100 unless the data reaches it)", in the build contract and the tester harness prose.
+- **Skills updated (all copies).** `karthik-data-visualization` routes the axis-fit bullet through the tool; `dataviz-construct` lists it among the select-decided, tool-resolved decisions.
+- Docs (`docs/mcp.md`, `dataviz_mcp/README.md`) and tests (`test_axis.py`, updated `test_stage_contracts.py` / tester test) follow.
+
 ### Conciseness pass across all 23 skills
 
 The skill bodies had accreted through many iterations and picked up two kinds of bloat: the same rule restated three or four times within one skill (e.g. `karthik-data-visualization` stated "light background" and the direct-label scope rules in several sections at once), and cross-file rules re-derived in full where a summary plus a pointer to the owning skill would do (the small-multiples grid rules lived in full in both `dataviz-selector` and `karthik-data-visualization`; the focal-plus-grey colour rule in seven files). Several skills also carried single run-on bullets that buried the rule (one ~400-word bullet in `dataviz-selector`).
