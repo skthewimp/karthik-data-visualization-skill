@@ -410,6 +410,59 @@ def _codes(report: dict) -> set:
     return {defect["code"] for defect in report["defects"]}
 
 
+def _emitted_codes() -> set:
+    """Every defect code the module can emit, read straight from its source, so a new code that
+    forgets a correction class is caught here rather than defaulting silently."""
+    import ast
+
+    source = (Path(inspect_rendered_chart.__code__.co_filename)).read_text()
+    codes = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            v = node.value
+            if v.isupper() and "_" in v and len(v) > 4:
+                codes.add(v)
+    return codes
+
+
+def test_every_emitted_defect_code_has_a_correction_class() -> None:
+    from dataviz_mcp.inspection import _DEFECT_CLASS
+
+    unmapped = _emitted_codes() - set(_DEFECT_CLASS)
+    assert not unmapped, f"defect codes missing a correction class: {sorted(unmapped)}"
+    assert set(_DEFECT_CLASS.values()) <= {"canvas", "placement", "semantic"}
+
+
+def test_defects_carry_their_class_and_the_report_routes_them(tmp_path: Path) -> None:
+    _, report = render(tmp_path, "annotation_outside_canvas")
+    # A canvas-edge overflow classifies as canvas and rides a real growth vector.
+    oob = next(item for item in report["defects"] if item["code"] == "OUT_OF_BOUNDS")
+    assert oob["defect_class"] == "canvas"
+    plan = report["correction_plan"]
+    assert set(plan) == {"canvas", "placement", "semantic"}
+    assert oob in plan["canvas"]["defects"]
+    # The canvas group's growth vector mirrors the geometry summary's, so refit reads one number.
+    assert plan["canvas"]["growth_vector"] == report["geometry_summary"]["suggested_dims"]
+    assert plan["canvas"]["growth_vector"] is not None
+
+
+def test_placement_defect_routes_to_the_placement_group(tmp_path: Path) -> None:
+    _, report = render(tmp_path, "two_annotations_overlap")
+    plan = report["correction_plan"]
+    placement_codes = {d["code"] for d in plan["placement"]["defects"]}
+    assert "LABEL_LABEL_COLLISION" in placement_codes
+    assert all(d["defect_class"] == "placement" for d in plan["placement"]["defects"])
+
+
+def test_clean_chart_has_an_empty_correction_plan(tmp_path: Path) -> None:
+    _, report = render(tmp_path, "clean_chart")
+    plan = report["correction_plan"]
+    assert plan["canvas"]["defects"] == []
+    assert plan["placement"]["defects"] == []
+    assert plan["semantic"]["defects"] == []
+    assert plan["canvas"]["growth_vector"] is None
+
+
 def test_redundant_value_axis_flagged_when_every_mark_is_labelled(tmp_path: Path) -> None:
     _, report = render(tmp_path, "all_marks_labelled")
     assert "REDUNDANT_VALUE_AXIS" in _codes(report)

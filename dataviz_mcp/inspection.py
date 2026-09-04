@@ -217,6 +217,38 @@ def _underfill_defect(
     )
 
 
+# Every defect belongs to one correction class, which decides how the cycle resolves it:
+#   canvas    - clipping/overflow the canvas can grow out of; refit deterministically when a
+#               growth vector exists (edge overflow past the canvas edge).
+#   placement - a local text move the geometry tools compute exactly (collisions, an over-long
+#               unwrapped annotation, a label straddling the plot boundary, a missing direct
+#               label). place_on_marks / recommend_text_placement / recommend_labels own these.
+#   semantic  - a judgement the model must make (contrast, redundant ink, an external legend,
+#               an unidentified series, undersized text, an underfilled canvas that wants a
+#               design decision, not a resize).
+# Keyed by every defect code, so a new code without a class is a test failure, not a silent
+# default.
+_DEFECT_CLASS: dict[str, str] = {
+    "OUT_OF_BOUNDS": "canvas",
+    "TEXT_CLIPPED": "placement",
+    "LABEL_LABEL_COLLISION": "placement",
+    "TEXT_TEXT_COLLISION": "placement",
+    "HIERARCHY_TEXT_COLLISION": "placement",
+    "TEXT_MARK_COLLISION": "placement",
+    "ANNOTATION_SERIES_COLLISION": "placement",
+    "LEGEND_TEXT_COLLISION": "placement",
+    "LONG_UNWRAPPED_ANNOTATION": "placement",
+    "DIRECT_LABELS_INCOMPLETE": "placement",
+    "LOW_TEXT_CONTRAST": "semantic",
+    "DELIVERY_TEXT_TOO_SMALL": "semantic",
+    "REDUNDANT_COLOUR": "semantic",
+    "REDUNDANT_VALUE_AXIS": "semantic",
+    "EXTERNAL_LEGEND": "semantic",
+    "UNIDENTIFIED_SERIES": "semantic",
+    "UNDERFILLED_CANVAS": "semantic",
+}
+
+
 def _defect(
     code: str,
     severity: str,
@@ -227,6 +259,7 @@ def _defect(
     value: dict[str, Any] = {
         "code": code,
         "severity": severity,
+        "defect_class": _DEFECT_CLASS.get(code, "semantic"),
         "element_ids": list(element_ids),
         "message": message,
     }
@@ -828,6 +861,27 @@ def inspect_rendered_chart(
         "suggested_dims": suggested_dims,
     }
 
+    # Route each defect by its class so a driver resolves the cycle without re-deriving the split:
+    # canvas -> refit (only when a growth vector exists), placement -> the exact geometry-tool move,
+    # semantic -> a model patch. The canvas group carries the shared growth vector, so "grow only
+    # when a growth vector exists" is a null check, not a judgement call.
+    correction_plan = {
+        "canvas": {
+            "defects": [d for d in defects if d["defect_class"] == "canvas"],
+            "growth_vector": suggested_dims,
+            "route": "refit_chart - grow the canvas by the vector; skip when growth_vector is null",
+        },
+        "placement": {
+            "defects": [d for d in defects if d["defect_class"] == "placement"],
+            "route": "place_on_marks / recommend_text_placement / recommend_labels - apply the "
+            "exact per-defect move; do not hand the geometry back to the model",
+        },
+        "semantic": {
+            "defects": [d for d in defects if d["defect_class"] == "semantic"],
+            "route": "model patch - re-express, recolour, reword, or make the design call",
+        },
+    }
+
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "artifact": artifact,
@@ -865,6 +919,7 @@ def inspect_rendered_chart(
         "min_panel_height_px": min_panel_height_px,
         "geometry_summary": geometry_summary,
         "defects": defects,
+        "correction_plan": correction_plan,
         "limitations": limitations,
     }
     destination = (

@@ -319,6 +319,7 @@ def recommend_text_placement(
     max_annotation_width_frac: float = 0.32,
     edge_margin_px: Optional[float] = None,
     min_font_pt: float = 8.0,
+    plot_area: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Wrap every text block to fit and park each movable label beside the mark it names.
 
@@ -448,6 +449,7 @@ def recommend_text_placement(
                     "suggested_font_pt": None,
                     "suggested_wrap": None,
                     "leader_line": None,
+                    "plot_boundary_correction": None,
                     "warnings": warnings + ([
                         "label exceeds the readable line budget; use the returned full_text in "
                         "a key or footnote"
@@ -462,6 +464,7 @@ def recommend_text_placement(
         # Movable label/annotation: the anchor is the MARK; park the box beside it. A category
         # label may name several candidate marks along its series (`anchors`) - it can sit beside
         # any of them, since adjacency, not the endpoint, is what proves which series it names.
+        plot_boundary_correction: Optional[dict[str, float]] = None
         avail = max(
             char_px(font_pt, dpi) * 8,
             min(max_annotation_width_frac * width_px, width_px - 2 * margin),
@@ -555,6 +558,21 @@ def recommend_text_placement(
                 "label exceeds the chosen line budget; keep the full text and revise the layout, "
                 "wording, or form"
             )
+        # Local plot-boundary correction: a movable label left straddling the plot edge is clipped,
+        # and canvas growth cannot fix it (the box is inside the canvas, across the *plot* boundary).
+        # Nudge it wholly inside and report the exact move, so the driver applies one delta, not a
+        # broad "re-place everything".
+        if plot_area is not None:
+            correction = _plot_boundary_correction(bbox, plot_area, obstacles + placed, margin)
+            if correction is not None:
+                bbox["x"] += correction["dx"]
+                bbox["y"] += correction["dy"]
+                plot_boundary_correction = correction
+                suggested_anchor = {"x": round(bbox["x"]), "y": round(bbox["y"])}
+                if leader_line is not None:
+                    leader_line = _leader_line(bbox, primary)
+                warnings.append("crossed the plot boundary; moved wholly inside the plot area")
+
         placed.append(dict(bbox))
         results.append(
             {
@@ -570,6 +588,7 @@ def recommend_text_placement(
                 "suggested_font_pt": suggested_font_pt,
                 "suggested_wrap": suggested_wrap,
                 "leader_line": leader_line,
+                "plot_boundary_correction": plot_boundary_correction,
                 "warnings": warnings,
             }
         )
@@ -669,6 +688,79 @@ def _project(
     return round(px, 1), round(py, 1)
 
 
+def _scale_trans_inverse(name: str, value: float) -> float:
+    """Undo ``_scale_trans``: map a scale-transformed coordinate back to a data value."""
+    v = float(value)
+    if name in ("identity", "", None):
+        return v
+    if name in ("log-10", "log10"):
+        return 10.0**v
+    if name in ("log-2", "log2"):
+        return 2.0**v
+    if name == "log":
+        return math.exp(v)
+    if name == "sqrt":
+        return v * v
+    if name == "reverse":
+        return -v
+    raise ValueError(f"unsupported scale transform {name!r}")
+
+
+def _project_inverse(
+    transform: list[list[float]],
+    px: float,
+    py: float,
+    x_trans: str = "identity",
+    y_trans: str = "identity",
+) -> Optional[tuple[float, float]]:
+    """Map a canvas pixel back to a data ``(x, y)``: invert the top-left affine, then undo each
+    axis' scale transform. Returns ``None`` for a singular (non-invertible) affine, so a caller
+    emits no data-coordinate leader rather than a fabricated one."""
+    r0, r1 = transform[0], transform[1]
+    a, b = r0[0], r0[1]
+    d, e = r1[0], r1[1]
+    det = a * e - b * d
+    if abs(det) < 1e-9:
+        return None
+    rx = px - r0[2]
+    ry = py - r1[2]
+    tx = (e * rx - b * ry) / det
+    ty = (-d * rx + a * ry) / det
+    x = _scale_trans_inverse(x_trans, tx)
+    y = _scale_trans_inverse(y_trans, ty)
+    return round(x, 6), round(y, 6)
+
+
+def _plot_boundary_correction(
+    bbox: dict[str, float],
+    plot_area: dict[str, float],
+    blockers: list[dict[str, Any]],
+    margin: float,
+) -> Optional[dict[str, float]]:
+    """If ``bbox`` straddles the plot-area boundary (partly inside, partly out), return the exact
+    shift {dx, dy} that brings it fully inside, preferring the smaller move. Returns ``None`` when
+    the box is already wholly inside, wholly outside (a deliberate margin annotation), or when the
+    corrected box would collide - those escalate, they are not silently shoved."""
+    bx0, by0 = bbox["x"], bbox["y"]
+    bx1, by1 = bx0 + bbox["width"], by0 + bbox["height"]
+    px0, py0 = plot_area["x"], plot_area["y"]
+    px1, py1 = px0 + plot_area["width"], py0 + plot_area["height"]
+    inside = bx0 >= px0 and by0 >= py0 and bx1 <= px1 and by1 <= py1
+    outside = bx1 <= px0 or bx0 >= px1 or by1 <= py0 or by0 >= py1
+    if inside or outside:
+        return None
+    # Straddles an edge: clamp the origin so the whole box sits inside the plot rectangle.
+    nx = min(max(bx0, px0), px1 - bbox["width"])
+    ny = min(max(by0, py0), py1 - bbox["height"])
+    dx, dy = round(nx - bx0, 1), round(ny - by0, 1)
+    if dx == 0 and dy == 0:
+        return None
+    moved = {**bbox, "x": nx, "y": ny}
+    if _hits_any(moved, blockers):
+        return None
+    return {"dx": dx, "dy": dy}
+
+
 def place_on_marks(
     width_px: int,
     height_px: int,
@@ -682,6 +774,7 @@ def place_on_marks(
     max_annotation_width_frac: float = 0.32,
     edge_margin_px: Optional[float] = None,
     min_font_pt: float = 8.0,
+    plot_area: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Place labels glued to data marks using their real pixel positions, not a guess.
 
@@ -713,9 +806,19 @@ def place_on_marks(
             lives in the scale-transformed space. Default identity (matplotlib and linear
             ggplot axes).
         max_annotation_width_frac / edge_margin_px / min_font_pt: forwarded verbatim.
+        plot_area: the panel's plot rectangle ``{x, y, width, height}`` in canvas px (from
+            ``reserve_frame``). When given, a movable label left straddling the plot boundary is
+            nudged wholly inside and its exact move is reported - a clip that canvas growth cannot fix.
 
     Returns everything ``recommend_text_placement`` returns, plus ``projected_anchors``
-    (``{label_id: {x, y}}``) so the caller can see where each mark landed.
+    (``{label_id: {x, y}}``) so the caller can see where each mark landed. Every movable label
+    also carries **native data coordinates** the builder draws from directly, so no data-space
+    ``geom_segment``/``annotate`` has to be improvised (and pass through a neighbour): ``placed_data``
+    (``{x, y}`` where the label's box origin sits), ``anchor_data`` (``{x, y}`` of the mark it names),
+    and, when a leader is drawn, ``leader_line_data`` (``{from, to}`` - the box-edge end and the
+    mark end, in data coords). These are the inverse of the same affine used to project, so the
+    leader terminates exactly at the label's bounding-box edge and at the mark. A singular affine
+    yields no data coordinates (they are omitted) rather than a fabricated one.
     """
     if not transform or len(transform) < 2 or len(transform[0]) < 3 or len(transform[1]) < 3:
         raise ValueError(
@@ -757,6 +860,29 @@ def place_on_marks(
         max_annotation_width_frac=max_annotation_width_frac,
         edge_margin_px=edge_margin_px,
         min_font_pt=min_font_pt,
+        plot_area=plot_area,
     )
     result["projected_anchors"] = projected
+
+    # Hand the builder exact native coordinates for every movable label, so leaders and label
+    # positions are drawn from the inverse of the projection - never improvised in data space.
+    mark_data = {label["id"]: {"x": label["data_x"], "y": label["data_y"]} for label in labels}
+    for placement in result.get("placements", []):
+        if placement["role"] in (FIXED_ROLES | ON_MARK_ROLES):
+            continue
+        bbox = placement["bbox"]
+        placed_data = _project_inverse(transform, bbox["x"], bbox["y"], x_trans, y_trans)
+        if placed_data is not None:
+            placement["placed_data"] = {"x": placed_data[0], "y": placed_data[1]}
+        if placement["id"] in mark_data:
+            placement["anchor_data"] = mark_data[placement["id"]]
+        leader = placement.get("leader_line")
+        if leader is not None:
+            src = _project_inverse(transform, leader["from"]["x"], leader["from"]["y"], x_trans, y_trans)
+            dst = _project_inverse(transform, leader["to"]["x"], leader["to"]["y"], x_trans, y_trans)
+            if src is not None and dst is not None:
+                placement["leader_line_data"] = {
+                    "from": {"x": src[0], "y": src[1]},
+                    "to": {"x": dst[0], "y": dst[1]},
+                }
     return result

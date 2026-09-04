@@ -59,6 +59,19 @@ ONLY what resizing fixes; carry any ceiling / max-iteration / underfill warnings
 `residual_limitations`, and escalate the residual - label collisions, hierarchy, colour, precision,
 ink, and an underfilled canvas (a design call, not a resize) - to the focused revision below.
 
+The inspector sorts every defect for you: `correction_plan` groups them into `canvas`, `placement`,
+and `semantic`, and each defect carries its own `defect_class`. Route by class, do not re-derive the
+split. **canvas** rides `correction_plan.canvas.growth_vector` - the one `refit_chart` already
+consumes; grow only when it is non-null, and a `canvas` defect with a null vector (an underfilled
+canvas) is a design call, not a resize. **placement** is an exact move the geometry tools compute -
+feed those marks back through `place_on_marks` / `recommend_text_placement` (or `recommend_labels`
+for a missing direct label) and apply what they return literally; never hand placement geometry
+back to the model to eyeball. **semantic** - contrast, redundant colour or axis, an external legend,
+an unidentified series, undersized text - is the only class that earns a model patch. A label
+crossing the *plot* boundary (not the canvas edge) is `placement`, not `canvas`: canvas growth
+cannot pull it in, so `place_on_marks` moves it wholly inside via `plot_area` and returns the exact
+`plot_boundary_correction` `{dx, dy}` to apply.
+
 The named flags below are what this repo's deterministic inspector emits; where it is absent, read
 each as the principle to apply by eye. When the inspector flags a geometry defect it also hands you the fix vector, so a residual the resize loop cannot settle is
 still a number, not a guess: `geometry_summary.suggested_dims` (a grown `width_px`/`height_px` from the
@@ -92,7 +105,12 @@ geometry itself, only once every mark-bearing panel carries a value label on eac
 (with no contract the check cannot tell a key mark from a filler one, so it waits for all of them).
 
 For label placement, reproduce the tool's result literally: draw a connector only when the
-returned block contains a `leader_line`. A selected point value is a fixed `data_label`, including
+returned block contains a `leader_line`. When it does, draw the segment from the block's
+`leader_line_data` - the leader endpoints in **native data coordinates**, the inverse of the same
+projection - so it terminates exactly at the label's bounding-box edge and at the mark. Do not
+improvise a data-space `geom_segment`/`annotate` from the pixel `leader_line` by eye: a guessed
+`xend`/`yend` lands off the mark and runs through whichever label sits between. Place the label
+itself at the block's `placed_data`. A selected point value is a fixed `data_label`, including
 when the plotting layer gives it a consistent small offset from the point; it is not a free
 annotation to repel. When several ordinary direct labels have travelled far enough to need
 leaders, treat the repeated callout pattern as a layout or label-set defect and revise it.

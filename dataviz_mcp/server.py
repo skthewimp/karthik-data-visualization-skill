@@ -333,6 +333,7 @@ def create_server() -> Any:
         max_annotation_width_frac: float = 0.32,
         edge_margin_px: float | None = None,
         min_font_pt: float = 8.0,
+        plot_area: dict[str, float] | None = None,
     ) -> dict[str, Any]:
         """Place labels glued to data marks using their real pixel positions, not a guess.
 
@@ -346,6 +347,13 @@ def create_server() -> Any:
         so labels also clear the title. When the transform entry carries ``x_trans`` / ``y_trans``
         (a log/sqrt/reverse ggplot axis), pass them through so the data coords are transformed
         before the affine. Canvas size, dpi, and per-block ``font_pt`` are inputs.
+
+        Pass ``plot_area`` (the panel rectangle from ``reserve_frame``) to correct a movable label
+        left straddling the plot boundary - a clip canvas growth cannot fix. Every movable label
+        comes back with native data coordinates (``placed_data``, ``anchor_data``, and
+        ``leader_line_data`` when a leader is drawn) so the builder draws leaders and label
+        positions from exact coordinates instead of improvising a ``geom_segment`` that may run
+        through a neighbour. The leader terminates at the label's bounding-box edge and the mark.
         """
         return place_on_marks_core(
             width_px,
@@ -360,6 +368,7 @@ def create_server() -> Any:
             max_annotation_width_frac=max_annotation_width_frac,
             edge_margin_px=edge_margin_px,
             min_font_pt=min_font_pt,
+            plot_area=plot_area,
         )
 
     @server.tool()
@@ -388,6 +397,7 @@ def create_server() -> Any:
         max_annotation_width_frac: float = 0.32,
         edge_margin_px: float | None = None,
         min_font_pt: float = 8.0,
+        plot_area: dict[str, float] | None = None,
     ) -> dict[str, Any]:
         """Wrap a chart's text to fit and park each movable label beside the mark it names.
 
@@ -425,7 +435,10 @@ def create_server() -> Any:
         recommends dropping it - the value is on the chart twice; a comparison naming two values or
         a delta whose number is on no label is never flagged. Plus a canvas-level
         ``suggested_orientation`` / ``suggested_canvas`` when a landscape canvas stays too cramped
-        and a portrait flip would help. It fits the labels already chosen; it invents none.
+        and a portrait flip would help. It fits the labels already chosen; it invents none. Pass
+        ``plot_area`` (the panel rectangle from ``reserve_frame``) to correct a movable label left
+        straddling the plot boundary; the label carries the exact ``plot_boundary_correction``
+        ``{dx, dy}`` applied.
         """
         return recommend_text_placement_core(
             width_px,
@@ -436,6 +449,7 @@ def create_server() -> Any:
             max_annotation_width_frac=max_annotation_width_frac,
             edge_margin_px=edge_margin_px,
             min_font_pt=min_font_pt,
+            plot_area=plot_area,
         )
 
     return server

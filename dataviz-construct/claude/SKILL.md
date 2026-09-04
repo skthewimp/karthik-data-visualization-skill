@@ -116,7 +116,13 @@ repo's; read them as the mechanism, and apply the same checks visually when the 
   **data coordinates** (`data_x`/`data_y`), and the `frame_blocks` to `place_on_marks`; it
   projects each label to its true pixel spot, hands the marks in as obstacles, and de-collides
   through `recommend_text_placement` - so text-mark and text-text overlaps are gone on the first
-  *delivered* chart, decided by geometry, not by the model's eye. Only charts that stamp labels
+  *delivered* chart, decided by geometry, not by the model's eye. Pass the `plot_area` too, so a
+  label left straddling the plot boundary is pulled wholly inside (a clip canvas growth cannot fix)
+  and returns the exact `plot_boundary_correction` to apply. Draw every moved label from the native
+  data coordinates it returns - `placed_data` for the label, and `leader_line_data` for any
+  connector - never a hand-written `geom_segment`: a guessed `xend`/`yend` misses the mark and cuts
+  through whatever label lies between. The returned leader already terminates at the box edge and the
+  mark. Only charts that stamp labels
   on marks pay for the measure render; frame-only charts skip it. The transform is available on
   matplotlib always and on ggplot for any Cartesian plot - `coord_flip`, log/sqrt/reverse scales,
   and facets included (per panel). Only a non-Cartesian coord (polar/`coord_trans`/sf) or an
@@ -151,7 +157,13 @@ repo's; read them as the mechanism, and apply the same checks visually when the 
 - **Backward check (at `execution`).** `inspect_rendered_chart` now reports the fix vectors for
   what it finds - per-edge `overflow_px` / `grow_margin_px`, `separation_needed_px`,
   `panel_heights_px`, and a `geometry_summary` whose `suggested_dims` is computed by the same
-  layout math - so a weak model reads "grow the top by 14px" instead of judging by eye.
+  layout math - so a weak model reads "grow the top by 14px" instead of judging by eye. It also
+  sorts every defect into a `correction_plan` of three classes (each defect carries its
+  `defect_class`): **canvas** (grow it - `refit_chart`, only when the group's `growth_vector` is
+  non-null), **placement** (an exact move - back through `place_on_marks` /
+  `recommend_text_placement` / `recommend_labels`, applied literally), and **semantic** (the only
+  class a model patch touches - contrast, redundant ink, an unidentified series). Route by class;
+  do not re-derive the split.
 - **Refit closes the resize loop (at `execution`, deterministically FIRST).** Reading "grow the
   top by 14px" and re-rendering is pure arithmetic - it should not cost a model turn. `refit_chart`
   runs that loop in code: render -> inspect -> while clipping/overflow/squash remains, grow the
