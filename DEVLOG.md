@@ -2423,3 +2423,19 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Reverted. `git status` clean, `git diff` empty — identity.py deleted, text_fit.py and its tests back to original. No changes remain on disk. Nothing committed, nothing pushed. The scratchpad plan doc still exists (out...
 
 <!-- claude-session:606c28b2-6cf8-424e-bc19-7b4f2e66b4c9:end -->
+
+<!-- claude-session:49f9acbf-6e2a-4e46-88a1-55ff4116875e:start -->
+## 2026-09-04 21:13 IST | Claude session `49f9acbf-6e2`
+
+### User prompts
+> we are having some issues in the harness, with the results of the inspection, since now we're not regenerating full code at inspection. from the harness:: The immediate upstream defect is therefore: > On-mark labels l...
+> ok this is really silly that we are looking at clashes between a labeland itself. surely there must be an easy way of dealingiwth it? also harness can be fixed as per what skill / MCP demands. another issue i've seen...
+> recommend A for the data lable thing. just fixit simply. and fix the nearest search thing. remember we can wrap andstuff . also - do we reallyneed taht skill rule? seems overengineerting to me
+
+### Work done
+- Now fix my ggplot test — the labels are now role `label` with `on_data_layer`, not `data_label`.
+- Good question, and it cuts to the actual root — I've been patching a check whose premise is wrong. **Direct answer: for text-vs-mark, you're right — we mostly don't need it.** A direct label is *supposed* to sit on it...
+- Touched files: `dataviz_mcp/inspection.py`, `dataviz_mcp/rendering.py`, `dataviz_mcp/tests/test_render_inspect.py`
+- dataviz_mcp/inspection.py | 7 +++++++
+
+<!-- claude-session:49f9acbf-6e2a-4e46-88a1-55ff4116875e:end -->
