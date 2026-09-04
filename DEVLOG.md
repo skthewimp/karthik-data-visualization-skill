@@ -2319,3 +2319,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - This was **refit** - the resize loop. Not the fonts/text stuff. Quick line between them: - **refit (this session)** - only grows the *canvas* when something clips the edge or facet panels get squashed. Pure "make the...
 
 <!-- claude-session:30cee37e-d275-4710-878e-ab672b3051af:end -->
+
+<!-- claude-session:f8a961d6-04b0-4d1d-9881-884ca3be0f41:start -->
+## 2026-09-04 11:10 IST | Claude session `f8a961d6-04b`
+
+### User prompts
+> now that we've recently pushed a bunch of tools, any skills around this we need to rewrite? think through carefully and do a comprehensive job
+> not just refit. we have other recent tools as well
+> is reserrve frame and place on hcart being claled appropriately?
+
+### Work done
+- All 212 pass. Adding CHANGELOG note and committing.
+- Pushed `62bfeb3`. Answer to "are `reserve_frame` and `place_on_marks` being called appropriately?": **Mostly yes — but found and fixed one real misdirection bug.** How they're wired (all correct): - They're MCP tools;...
+
+<!-- claude-session:f8a961d6-04b0-4d1d-9881-884ca3be0f41:end -->
