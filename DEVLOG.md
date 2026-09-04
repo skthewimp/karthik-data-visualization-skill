@@ -2395,3 +2395,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Pushed to `origin/main` (`6fd647f..9166903`), local matches upstream, all 221 tests pass, validator clean. ## What the audit found and fixed Your instinct was right — the skills had bloated, in two distinct ways...
 
 <!-- claude-session:d0d1e6cc-d183-48b3-8f50-3a4022302c58:end -->
+
+<!-- claude-session:698b3052-ff22-481f-b43d-bb360baf0089:start -->
+## 2026-09-04 17:08 IST | Claude session `698b3052-ff2`
+
+### User prompts
+> a recent run produced this graph.[Image #2] i thougth with our new layout selector and other MCPs, this should ahve been better. but hte Y axis is badly f ormed (don't need to go till 100 here). what'sh appening?
+> no the objective here is to fix the process not hte chart.
+> [Request interrupted by user]
+
+### Work done
+- Pushed as `6d6702e`. Now fix the memory note — my earlier update drew the wrong lesson (it said "add a deterministic planning tool"), which we just reversed.
+- Done. Reverted and pushed as `6d6702e`. **Final state — no tool, just the real fix:** - Undid the nudge: *"data scales represent the intended data domain"* → *"the data's plotted extent, not 0-100 unless the data reac...
+
+<!-- claude-session:698b3052-ff22-481f-b43d-bb360baf0089:end -->
