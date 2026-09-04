@@ -2333,3 +2333,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed `62bfeb3`. Answer to "are `reserve_frame` and `place_on_marks` being called appropriately?": **Mostly yes — but found and fixed one real misdirection bug.** How they're wired (all correct): - They're MCP tools;...
 
 <!-- claude-session:f8a961d6-04b0-4d1d-9881-884ca3be0f41:end -->
+
+<!-- claude-session:b4103f1b-ba79-4005-9d0b-1c33ff6d27bc:start -->
+## 2026-09-04 11:25 IST | Claude session `b4103f1b-ba7`
+
+### User prompts
+> recnently made a few new changes in the repo - some MCPs got added. do another comprehensive pass of all the MCPs and skills and make sure theey are all internally consistent.
+> some inputs from the harness: 2. Leader-line placement needs to become deterministic. The patch model received measured placement evidence but generated: geom_segment(x = 6, y = value, xend = 5.34, yend = label_y) Tha...
+> are you sure that this is fixed properly, and that the skills have been appropriately modified to reflect the new tools?
+
+### Work done
+- 221 pass, clean. Committing the follow-up.
+- You were right to push back. Verifying instead of asserting turned up two real gaps in what I'd shipped: **What was actually wrong in my first pass:** 1. **`karthik-data-visualization` — the umbrella skill — was misse...
+
+<!-- claude-session:b4103f1b-ba79-4005-9d0b-1c33ff6d27bc:end -->
