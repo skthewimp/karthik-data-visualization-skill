@@ -5,111 +5,76 @@ description: "Karthik-style R analysis: local-precedent scratchpads, analyst-fir
 
 # Karthik R Analysis Style
 
-Use for R analysis, exploratory `.Rmd` / `.qmd` notebooks, and analytics pipelines. Core rule: this is not generic EDA and not a polished report. It is a working scratchpad where the next chunk follows from what the previous chunk showed.
+Use for R analysis, exploratory `.Rmd`/`.qmd` notebooks, and analytics pipelines. Core rule: this is not generic EDA and not a polished report - it is a working scratchpad where the next chunk follows from what the previous chunk showed.
 
-Own R notebook texture, local precedent, exploratory branching, and R code conventions. `karthik-analysis-planner` owns the analysis contract, `karthik-data-cleaning` owns substantive data preparation and validation, `dataviz-selector` owns final chart choice, `karthik-data-visualization` owns publication-ready chart design, and `chart-explainer` owns notes attached to plots.
+Own R notebook texture, local precedent, exploratory branching, and R code conventions. `karthik-analysis-planner` owns the analysis contract, `karthik-data-cleaning` owns substantive data preparation and validation, `dataviz-selector` owns final chart choice, `karthik-data-visualization` owns publication chart design, and `chart-explainer` owns notes attached to plots.
 
 ## Analyst, not software engineer
 
-This skill follows the same philosophy as Karthik's data-cleaning skill: analyze with context, not with software-engineering tidiness.
-
-Treat an exploratory notebook as thinking in public with data. The goal is judgement, not architecture. Prefer context-specific probes, visible assumptions, and domain reasoning over reusable machinery.
+Treat an exploratory notebook as thinking in public with data. The goal is judgement, not architecture - context-specific probes, visible assumptions, and domain reasoning over reusable machinery.
 
 Do:
 
-- Start from the analytical question and unit of analysis, not from a code structure.
-- Let messy facts change the next step.
-- Keep local, disposable objects if they help thinking.
-- Use domain names and metrics when they are supported by the current question and data; do not treat examples from one notebook family as universal defaults.
-- Clean or transform only what helps answer the next question.
-- Keep caveats near the chunk that revealed them.
+- Start from the analytical question and unit of analysis, not a code structure.
+- Let messy facts change the next step; keep local, disposable objects if they help thinking.
+- Use domain names and metrics supported by the current question and data; don't treat one notebook family's examples as universal defaults.
+- Clean or transform only what helps answer the next question; keep caveats near the chunk that revealed them.
 
-Do not:
+Don't:
 
-- Turn exploration into a package, framework, pipeline, or software component.
-- Abstract too early into functions, configs, classes, helpers, tests, or generic loaders.
+- Turn exploration into a package, framework, pipeline, or component, or abstract early into functions/configs/classes/helpers/tests/generic loaders.
 - Optimize for reproducible production code before understanding the data.
 - Hide judgement behind generic verbs like `clean_data()`, `process_data()`, `run_analysis()`.
-- Make the notebook look tidy at the cost of losing the reasoning trail.
+- Make the notebook tidy at the cost of the reasoning trail.
 
 A good notebook can be a little ugly if it shows the analyst's path. A bad notebook is clean, generic, and context-free.
 
-## Empirical posterior from 2018+ notebooks
+## What the 2018+ notebooks show
 
-A 20-notebook audit across Mint, Shopify, Retail, Oliveboard, Ticketing, Onsite, elections, weather, payments, JEE, BabbageInsight, qcom/Cosmix, and cricket updated the prior this way:
+A 20-notebook audit (Mint, Shopify, Retail, Oliveboard, Ticketing, Onsite, elections, weather, payments, JEE, BabbageInsight, qcom/Cosmix, cricket) fixes the priors:
 
 - Start from a live context: article, client problem, stakeholder need, product idea, or personal curiosity. A concrete objective is fine; a generic EDA preamble is not.
-- The unit of analysis is usually implicit in the first few chunks. Make it visible when creating new work: order, item, store-day, candidate-seat, ball, innings, match, user-test, hour-day, app-city-SKU.
-- Broad metric scans are allowed only when the business/client context calls for them. They should still be metric-led (`GMV`, `AOV`, `DAU`, `coupon burn`, `availability`, `search visibility`), not column-led.
-- Rough prose is a feature, not a bug. Typos, fragments, “Not as interesting!”, “Nothing significant”, “What is this column?” are closer than polished paragraphs.
-- Sparse notebooks are fine. Not every chunk needs prose. But every sequence should reveal why that cut came next.
-- Modeling/simulation/clustering is acceptable when it is the natural analyst move: swing simulator, structural break test, clustering questions/users, forecast need, player impact. Do not add models because EDA templates say so.
-- Exports (`pdf`, `pbcopy`, saved chart) appear when feeding an article/client output. Do not add them otherwise.
-- Some newer client/data-access notebooks have setup/query sections for DuckDB/S3/Parquet. Copy that only when the data source requires it; do not generalize it into framework boilerplate.
+- The unit of analysis is usually implicit in the first few chunks - make it visible in new work (order, item, store-day, candidate-seat, ball, innings, match, user-test, hour-day, app-city-SKU).
+- Broad metric scans are allowed only when the business/client context calls for them, and stay metric-led (`GMV`, `AOV`, `DAU`, coupon burn, availability, search visibility), not column-led.
+- Rough prose is a feature: typos, fragments, "Not as interesting!", "Nothing significant", "What is this column?" are closer than polished paragraphs. Sparse is fine - not every chunk needs prose, but every sequence should reveal why that cut came next.
+- Modeling/simulation/clustering is acceptable when it's the natural analyst move (swing simulator, structural break test, clustering, forecast, player impact), not because a template says so.
+- Exports (`pdf`, `pbcopy`, saved chart) and DuckDB/S3/Parquet setup appear only when the output or data source requires them - don't generalize either into boilerplate.
 
-If evidence conflicts, prefer older hand-written notebooks for voice and reasoning; prefer newer notebooks for current data-access patterns.
+If evidence conflicts, prefer older hand-written notebooks for voice and reasoning, newer ones for current data-access patterns.
 
-## Sequential learning rule for improving this skill
+## Improving this skill: sequential posterior update
 
-When updating this skill from Karthik's old notebooks, do not batch-read examples and summarize once. Use a sequential posterior update:
-
-```text
-prior skill → inspect file 1 → write delta → update working belief → choose/read file 2 in light of that belief → ... → final skill patch
-```
-
-After each file, record:
-
-- what the current skill would have predicted
-- what the notebook actually does
-- what belief should become stronger, weaker, or more conditional
-- what kind of future notebook this evidence applies to
-
-This matters because Karthik's style is not one global template. It is a family of analyst behaviours: article scratchpad, client metric scan, data diagnostic, model experiment, chart hunt, and personal curiosity notebook. Later files should refine or qualify earlier conclusions, not merely add examples.
+When updating this skill from old notebooks, don't batch-read and summarize once. Go file by file (`prior → inspect file 1 → write delta → update belief → choose file 2 in that light → ... → final patch`), and after each file record what the skill would have predicted, what the notebook does, which belief should strengthen/weaken/become conditional, and which future notebooks the evidence applies to. Karthik's style is a family of behaviours (article scratchpad, client metric scan, data diagnostic, model experiment, chart hunt, personal curiosity), not one global template, so later files refine earlier conclusions rather than just adding examples.
 
 ## First move: RAG against local precedent
 
-Before creating or heavily editing a notebook, retrieve local examples and update your plan from them. Treat the current skill as the prior and nearby notebooks as evidence.
-
-Inspect 3-5 notebooks before writing:
+Before creating or heavily editing a notebook, retrieve local examples and update your plan from them - the skill is the prior, nearby notebooks the evidence. Inspect 3-5 before writing:
 
 1. Same folder/project.
-2. Same domain: cricket, elections, commerce/client, weather, time series, survey, etc.
-3. Older hand-written notebooks from 2018 onward if recent files look AI-generated or over-structured.
-4. One adjacent “bad fit” file if useful, to avoid copying the wrong mode.
+2. Same domain (cricket, elections, commerce/client, weather, time series, survey, etc.).
+3. Older hand-written notebooks (2018 onward) if recent files look AI-generated or over-structured.
+4. One adjacent "bad fit" file if useful, to avoid copying the wrong mode.
 
-For each example, ask: what is the question/context, grain, first inspection, branch logic, code texture, and stopping point? Then write the new notebook in the posterior style. Do not invent a new workflow if the repo already has one.
-
-Copy texture, not just syntax: roughness, local object names, domain metrics, assignment style, plot roughness, section rhythm, willingness to abandon paths.
-
-Read `references/style-observations.md` only when matching old notebooks closely.
+For each, ask: question/context, grain, first inspection, branch logic, code texture, stopping point. Then write in the posterior style - don't invent a new workflow if the repo has one. Copy texture, not just syntax: roughness, local object names, domain metrics, assignment style, plot roughness, section rhythm, willingness to abandon paths. Read `references/style-observations.md` only when matching old notebooks closely.
 
 ## Notebook family routing
 
-Before writing, classify the notebook family. This prevents one Karthik pattern from being over-applied to all work.
+Classify the family before writing, so one Karthik pattern isn't over-applied to all work:
 
 - **Article/story scratchpad:** one claim or curiosity; rough prose; quick tables/plots; export only if feeding article/chart.
 - **Client diagnostic:** stakeholder problem list, source-of-truth decisions, metric definitions, criteria scoring, business-native cuts.
-- **Metric scan:** broad scan is allowed only when metrics are domain-native (`GMV`, `AOV`, `DAU`, conversion, burn, incidence, active plans), not generic columns.
-- **Forecast/model calibration:** functions and repeated evaluation are allowed; keep the analyst reasoning about bias, seasonality, holdout, ratios, and horizons visible.
-- **Algorithm/product experiment:** end-to-end functions are allowed when designing an algorithm (dynamic pricing, Elo, structural breaks, parsers). Still explain assumptions and check intermediate objects.
-- **Text/NLP parsing notebook:** helper functions are normal for parsing lines/messages/documents. Still inspect raw lines and samples before abstraction.
-- **Chart recreation/graphic hunt:** start from target visual/question; iterate aesthetics and anomalies; export only when output is the point.
-- **Tracker/dashboard-ish notebook:** repeated charts/maps are okay; preserve update logic and assumptions, but do not turn it into a generic app unless asked.
+- **Metric scan:** broad scan only when metrics are domain-native (`GMV`, `AOV`, `DAU`, conversion, burn, incidence, active plans), not generic columns.
+- **Forecast/model calibration:** functions and repeated evaluation allowed; keep reasoning about bias, seasonality, holdout, ratios, horizons visible.
+- **Algorithm/product experiment:** end-to-end functions allowed (dynamic pricing, Elo, structural breaks, parsers); still explain assumptions and check intermediate objects.
+- **Text/NLP parsing:** helper functions are normal; still inspect raw lines and samples before abstraction.
+- **Chart recreation/graphic hunt:** start from target visual/question; iterate aesthetics and anomalies; export only when the output is the point.
+- **Tracker/dashboard-ish:** repeated charts/maps okay; preserve update logic and assumptions, don't make a generic app unless asked.
 
-If a precedent file is just RStudio template boilerplate or generic AI-generated sections, treat it as negative evidence. Do not copy its prose or structure.
+If a precedent file is just RStudio template boilerplate or generic AI-generated sections, treat it as negative evidence - don't copy its prose or structure.
 
 ## Mental model
 
-Write like Karthik at the console:
-
-1. Load data.
-2. Print the object.
-3. Ask one narrow question in plain English.
-4. Run one short table or plot.
-5. React: too messy, no signal, weird, useful, dead end.
-6. Change slice/grain/benchmark because of what appeared.
-
-The notebook earns its keep by choosing what to look at next. It does not earn its keep by being comprehensive.
+Write like Karthik at the console: load data → print the object → ask one narrow question in plain English → run one short table or plot → react (too messy, no signal, weird, useful, dead end) → change slice/grain/benchmark from what appeared. The notebook earns its keep by choosing what to look at next, not by being comprehensive.
 
 ## Notebook shape
 
@@ -122,84 +87,51 @@ output: html_notebook
 ---
 ```
 
-Then usually:
-
 ```r
 require(tidyverse)
 require(lubridate)   # if dates matter
 require(tidytable)   # if grouped summaries get compact
 ```
 
-Rules:
-
-- The notebook is for running chunk by chunk while exploring, never for knitting. Do not add anything that only serves a knitted output (figure sizing/captions for the rendered doc, `knitr::opts_chunk$set`, cross-references, "run all"/knit-ready structure). Assume every chunk is executed one at a time in the console.
-- Use absolute paths or `setwd()` when RStudio chunk-by-chunk execution needs it.
-- Keep chunks short. One chunk = one thought/probe.
-- Print raw objects early: dataframe, `head()`, `count()`, `summary()`.
-- Use section titles/prose as steering notes, not formal report copy.
-- Leave dead ends if they explain the next move.
-- Reassign objects freely in scratchpads when cleaning step is local and obvious.
-- Do not add YAML author/date, setup boilerplate, `knitr::opts_chunk$set`, global config, or package abstraction unless local precedent does it or user asked.
+- The notebook is for running chunk by chunk while exploring, never for knitting. Add nothing that only serves a knitted output (figure sizing/captions, `knitr::opts_chunk$set`, cross-references, run-all/knit-ready structure, YAML author/date, global config, package abstraction) unless local precedent does it or the user asked. Assume every chunk runs one at a time in the console.
+- Use absolute paths or `setwd()` when chunk-by-chunk execution needs it.
+- Keep chunks short - one chunk = one thought/probe. Print raw objects early (`head()`, `count()`, `summary()`).
+- Use section titles/prose as steering notes, not report copy. Leave dead ends if they explain the next move. Reassign objects freely when the cleaning step is local and obvious.
 
 ## Prose style inside notebooks
 
-Use rough working notes. Examples:
+Rough working notes, e.g. `What does this file look like?`, `Need a quick size check first`, `Date coverage is not identical. Remember this before comparing apps.`, `Let's only look at stores with enough days`, `Too messy. Try the recent period.`, `This is probably a dead end`, `What matters is whether it rained at all in this window, not the exact hour`.
 
-- `What does this file look like?`
-- `Need a quick size check first`
-- `Date coverage is not identical. Remember this before comparing apps.`
-- `Let's only look at stores with enough days`
-- `Too messy. Try the recent period.`
-- `This is probably a dead end`
-- `Now compare against 2019`
-- `What matters is whether it rained at all in this window, not the exact hour`
+Avoid generated-sounding scaffolding: `Question Log`, `Reusable Cuts`, `Current Conclusion`, `Blog Notes`, `Executive Summary`, `Key Takeaways`, `Data Quality Assessment`, "The setup is usable...", or any standing pipeline/framework unless explicitly asked.
 
-Avoid generated-sounding scaffolding:
-
-- `Question Log`
-- `Reusable Cuts`
-- `Current Conclusion`
-- `Blog Notes`
-- `Executive Summary`
-- `Key Takeaways`
-- `Data Quality Assessment`
-- `The setup is usable...`
-- Any standing pipeline/framework unless the user explicitly asks for one.
-
-### After a plot: say what it showed
-
-The notes above are lead-ins - what you are about to look at. Every plot also needs a note *after* it saying what it showed, because whoever reads this notebook did not run it.
-
-Use `chart-explainer` for these notes. Do not restate or modify its note contract here. Keep its output in the same rough register as the surrounding notebook.
+**After a plot: say what it showed.** The notes above are lead-ins; every plot also needs a note *after* it saying what it showed, because whoever reads this notebook didn't run it. Use `chart-explainer` for these (don't restate its contract here), kept in the same rough register as the surrounding notebook.
 
 ## Exploration moves that feel right
 
 Prefer these over checklist EDA:
 
 - `count(..., sort = T)` for categories, statuses, years, teams, parties, stores, cities, SKUs.
-- Direct object printing to understand data shape.
+- Direct object printing to understand shape.
 - `summarise(...)` / `summarise.(..., .by = ...)` with `n()`, `n_distinct()`, min/max dates, sums, means, medians.
 - Quick proportions: `mutate(prop = n / sum(n), .by = ...)`.
 - Meaningful filters: recent years, top entities, enough observations, non-missing fields, competitive candidates, active stores.
 - Change grain deliberately: ball → innings → match → season; order → store-day → store; hour → day/month/year; candidate → constituency/state.
-- Compare against baseline: prior year/election/season, others vs India, app vs app, top stores vs rest, this year vs historical average.
-- Follow anomalies selectively. Do not analyze every weird column.
-- Use domain knowledge aggressively.
+- Compare against a baseline: prior year/election/season, others vs India, app vs app, top stores vs rest, this year vs historical average.
+- Follow anomalies selectively; don't analyze every weird column. Use domain knowledge aggressively.
 
 ## Domain patterns
 
 - **Cricket:** batting order, phase, run rate, strike rate, wickets, innings, chase/bat-first, top-order contribution, player/team cuts, match context, era cuts, simulations when useful.
-- **Elections:** vote share, margins, winner/runner-up, party abbreviations, swing, ENPV/corners, alliances, maps, previous election comparison.
+- **Elections:** vote share, margins, winner/runner-up, party abbreviations, swing, ENPV/corners, alliances, maps, previous-election comparison.
 - **Commerce/client:** GMV, AOV, order frequency, availability, search/discovery, conversion, cohorts, stores/cities/SKUs, top/bottom tables, treatment/control or no-coupon baselines.
 - **Weather/time series:** day-of-year overlays, this year vs history, month/hour windows, thresholds, medians/quantiles, structural breaks only after visual pulse checks.
 - **Survey/health/personal data:** enough-n filters, distributions by meaningful demographic or behavioural cuts, longitudinal comparisons.
 
 ## Code defaults
 
-- Prefer tidyverse `%>%` pipes.
-- Use `tidytable` when `.by` makes code shorter: `summarise.`, `mutate.`, `filter.`.
-- Preserve surrounding style. Old notebooks may use `group_by() %>% summarise()` and `T/F`; do not modernize gratuitously.
-- Default to right assignment (`->`) at the end of any long chain. Karthik prefers this so a pipe can be run partially, line by line, in the console while exploring - the target is only named once, at the bottom.
+- Prefer tidyverse `%>%` pipes. Use `tidytable` (`summarise.`, `mutate.`, `filter.`) when `.by` makes code shorter.
+- Preserve surrounding style - old notebooks may use `group_by() %>% summarise()` and `T/F`; don't modernize gratuitously.
+- Default to right assignment (`->`) at the end of any long chain, so a pipe can run partially, line by line, in the console; the target is named once, at the bottom:
 
 ```r
 some_pipeline(...) %>%
@@ -207,52 +139,36 @@ some_pipeline(...) %>%
   object
 ```
 
-- Left assignment is fine for short one-liners and when surrounding code uses it. Do not modernize old notebooks' assignment style, but new long chains should end in `->`.
-- Prefer `case_when()` over nested `ifelse()` in new code, but do not rewrite old code without need.
-- Helpers should stay small and local in first-pass exploration. Exception: parsers, simulations, forecasting calibration, Elo/dynamic-pricing algorithms, and repeated text-processing steps may need functions. Even then, inspect inputs/outputs around the function and keep assumptions visible.
+- Left assignment is fine for short one-liners and where surrounding code uses it; new long chains end in `->`.
+- Prefer `case_when()` over nested `ifelse()` in new code; don't rewrite old code without need.
+- Helpers stay small and local in first-pass exploration. Exception: parsers, simulations, forecasting calibration, Elo/dynamic-pricing algorithms, and repeated text processing may need functions - even then, inspect inputs/outputs around the function and keep assumptions visible.
 - Use `write_delim(pipe('pbcopy'), '\t')`, `pdf(...)`, or quick export only when the notebook is clearly feeding a chart/article/client output.
 
 ## Plot defaults
 
-Plot early to decide whether the question is worth pursuing. Good enough beats polished.
+Plot early to decide whether the question is worth pursuing; good enough beats polished. Common patterns: `geom_point() + geom_line()` for time/ordered comparisons; `geom_col()` for counts; `geom_histogram()`/`geom_density()`/`geom_violin()` for distributions; `geom_smooth(se = F)` for broad shape; `facet_wrap(..., scales = 'free')` for entity comparisons; `geom_text()` when exact labels matter; `geom_sf()` when geography is the unit; `theme_bw()`/`theme_minimal()` with light cleanup.
 
-Common patterns:
-
-- `geom_point() + geom_line()` for time/ordered comparisons.
-- `geom_col()` for counts/tallies.
-- `geom_histogram()` / `geom_density()` / `geom_violin()` for distributions.
-- `geom_smooth(se = F)` for broad shape.
-- `facet_wrap(..., scales = 'free')` for entity comparisons.
-- `geom_text()` when exact labels matter.
-- `geom_sf()` when geography is the unit.
-- `theme_bw()` / `theme_minimal()` with light cleanup.
-
-Do not turn first-pass plots into publication charts unless asked. But make them interpretable enough to guide the next cut.
-
-When a plot becomes a deliverable rather than a probe, hand chart-form choice to `dataviz-selector` and visual execution to `karthik-data-visualization`; do not extend these rough plotting defaults into a second publication style.
+Don't turn first-pass plots into publication charts unless asked, but make them interpretable enough to guide the next cut. When a plot becomes a deliverable rather than a probe, hand chart-form choice to `dataviz-selector` and visual execution to `karthik-data-visualization`; don't extend these rough defaults into a second publication style.
 
 ## Database / large data
 
-- Do not write raw SQL. Reach for a dplyr backend instead: `dbplyr` with `tbl(...)` for databases, `duckplyr` / DuckDB for local analytical queries, `arrow` for Parquet/S3. Express filters, joins, and aggregation as dplyr verbs and let the backend translate.
+- Don't write raw SQL. Reach for a dplyr backend: `dbplyr` with `tbl(...)` for databases, `duckplyr`/DuckDB for local analytical queries, `arrow` for Parquet/S3. Express filters, joins, and aggregation as dplyr verbs and let the backend translate.
 - Keep heavy aggregation in-backend; `collect()` only when local materialization is needed.
 - Only exception: an unavoidable one-off DDL/config statement (create view, attach, S3 credentials) with no dplyr equivalent. Never hand-write query logic (`SELECT`/`GROUP BY`/joins) as SQL strings.
 
-## Anti-patterns: what went wrong before
+## Anti-patterns
 
-When asked for exploratory notebooks, do **not** produce a polished analysis product with a pre-declared workflow. In particular:
+Beyond the Don'ts above, when asked for exploratory notebooks specifically don't:
 
-- Do not make a generic audit notebook unless the user asked for an audit.
-- Do not add logs, reusable-cut sections, numbered question systems, or blog-production scaffolds by default.
-- Do not write long caveat/conclusion prose before seeing enough output.
-- Do not smooth over uncertainty. If you have not run the chunks, write probes, not conclusions.
-- Do not create broad all-purpose notebooks. Start with one concrete question/context and let it sprawl naturally.
-- Do not over-clean. Clean only what blocks the next probe.
-- Do not force every notebook into the same shape. Some Karthik notebooks are article scratchpads, some are client metric scans, some are model experiments, some are one-off chart hunts.
-- Do not polish Karthik's rough working prose into corporate narration.
-- Do not copy RStudio default template text (`Add a new chunk...`) or generic generated headings from precedent files.
-- Do not ban functions categorically; ban premature abstraction. Functions are fine when the notebook is building an algorithm, parser, simulation, or forecast calibration.
+- make a generic audit notebook unless an audit was asked for;
+- add logs, reusable-cut sections, numbered question systems, or blog-production scaffolds by default;
+- write long caveat/conclusion prose before seeing enough output, or smooth over uncertainty (if you haven't run the chunks, write probes, not conclusions);
+- create broad all-purpose notebooks - start with one concrete question and let it sprawl;
+- polish Karthik's rough working prose into corporate narration, or copy RStudio default template text (`Add a new chunk...`) and generic headings from precedent files.
 
-## Better skeleton for a new scratchpad
+Ban premature abstraction, not functions categorically - functions are fine when building an algorithm, parser, simulation, or forecast calibration.
+
+## Skeleton for a new scratchpad
 
 Use this shape unless local examples suggest otherwise:
 
@@ -298,6 +214,6 @@ dat %>%
 Now take the first promising cut...
 ```
 
-Then continue from results. Do not fill the rest with hypothetical sections.
+Then continue from results; don't fill the rest with hypothetical sections.
 
-For detailed sequential 20-step empirical audit, read `references/iterative-learning-20.md`. For behavioural forward-tests against 20 unseen notebooks, read `references/behavioral-forward-tests-20.md`.
+For the detailed sequential 20-step empirical audit, read `references/iterative-learning-20.md`. For behavioural forward-tests against 20 unseen notebooks, read `references/behavioral-forward-tests-20.md`.

@@ -22,9 +22,9 @@ Produce, explicitly:
 
 ## Precision and honesty
 
-- Use exact values when the prompt supplies them or when they are printed as source labels.
-- Reading values off an image is inherently approximate. That is self-evident - a reconstruction is obviously not the raw data - so it does not need announcing on the chart or repeating through the brief. Do not fabricate precision: no digits the image cannot support, and no rounding toward rounder-sounding numbers. But do not hedge every number either; the messages rarely depend on exact precision, and difficulty of reading a value is never a reason to drop the category it belongs to. Keep any per-cell confidence for your own reasoning, not as chart furniture. At most, one plain source line ("reconstructed from the source image") is enough - and even that only if the medium expects a source note.
-- Do not invent categories or periods that are not in the source. Do not silently merge series. If the source is genuinely unreadable in a region, note which cells you were least sure of when you hand the table on - internally, not as a caption.
+- Use exact values when the prompt supplies them or they are printed as source labels.
+- Reading values off an image is inherently approximate - self-evident, so it doesn't need announcing on the chart or repeating through the brief. Don't fabricate precision (no digits the image can't support, no rounding toward rounder numbers), but don't hedge every number either; the messages rarely depend on exact precision, and reading difficulty is never a reason to drop a category. Keep per-cell confidence for your own reasoning, not as chart furniture. At most one plain source line ("reconstructed from the source image"), and only if the medium expects a source note.
+- Don't invent categories or periods not in the source, or silently merge series. If a region is genuinely unreadable, note the cells you were least sure of when handing the table on - internally, not as a caption.
 
 ## Output shape
 

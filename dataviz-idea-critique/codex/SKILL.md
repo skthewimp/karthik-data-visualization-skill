@@ -5,11 +5,7 @@ description: Pre-render gate that critiques a chart's idea - is the data right, 
 
 # Dataviz Idea Critique
 
-The **pre-render gate** of the construct process. It receives the *plan* - the facts, the
-headline claim, the candidate annotations, and the selected form - and judges the **idea
-before any chart is drawn**. An LLM can read a plan and the data and tell whether the chart
-will work; it does not need the picture. Catching a wrong chart here is far cheaper than
-rendering it, seeing it is wrong, and starting over.
+The **pre-render gate** of the construct process. It receives the *plan* - the facts, the headline claim, the candidate annotations, and the selected form - and judges the **idea before any chart is drawn**. An LLM can read a plan and the data and tell whether the chart will work; it doesn't need the picture, and catching a wrong chart here is far cheaper than rendering it and starting over.
 
 ## Not the same as dataviz-critique
 

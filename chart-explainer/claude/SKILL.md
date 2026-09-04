@@ -8,21 +8,17 @@ metadata:
 
 # Chart Explainer
 
-Own the short prose placed beside or below a finished chart or table. Do not write text on the chart, redesign it, critique it, or decide whether it passes release; those belong to `chart-annotations`, `karthik-data-visualization`, `dataviz-critique`, and `dataviz-eval`.
+Own the short prose placed beside or below a finished chart or table. Don't write text on the chart, redesign it, critique it, or decide release; those belong to `chart-annotations`, `karthik-data-visualization`, `dataviz-critique`, and `dataviz-eval`.
 
-Use this when a chart or table has to be understood by someone who was not in the analysis. The output is the text that sits **next to** the exhibit: the two lines in an email body, the note under a figure in a notebook, the message that carries a screenshot.
+Use when a chart or table has to be understood by someone who wasn't in the analysis. The output is the text that sits **next to** the exhibit: the two lines in an email body, the note under a figure in a notebook, the message carrying a screenshot. Two situations trigger it: an exhibit already exists and needs narrating, or you're being asked to build an exploratory notebook (in which case the notes are part of the deliverable and the notebook rules below apply from the first plot).
 
-Two situations trigger it. Either an exhibit already exists and needs narrating, or you are being asked to build an exploratory notebook - in which case the notes are part of what you are building, and the rules in "Exploratory notebooks you are building" below apply from the first plot.
-
-This is not text on the chart. This is not a critique of the chart. It is the narration that makes a finished exhibit legible to someone reading it cold.
-
-The note states the finding, not what the pixels look like, so it does not need the rendered chart - the data, the claim, and the caveat are enough. In the construct pipeline this runs as its own `explain` stage off the finding (the insight artifact) and the plan, in parallel with build and execution, never inside the render-bound build call.
+The note states the finding, not what the pixels look like, so it doesn't need the rendered chart - the data, claim, and caveat are enough. In the construct pipeline this runs as its own `explain` stage off the finding (the insight artifact) and the plan, in parallel with build and execution, never inside the render-bound build call.
 
 ## The two-line contract
 
-Use the shortest explanation that makes the exhibit understandable in its delivery context. Two lines can be a useful compact default, but it is not a universal limit.
+Use the shortest explanation that makes the exhibit understandable in its delivery context. Two lines is a useful compact default, not a universal limit.
 
-**Lead - the finding or orientation.** State what the exhibit is about and what it supports. Include a quantitative anchor when it improves understanding, but use a qualitative structure, ordering, pattern, or null result when that is more informative.
+**Lead - the finding or orientation.** State what the exhibit is about and what it supports. Include a quantitative anchor when it helps, but use a qualitative structure, ordering, pattern, or null result when that is more informative.
 
 **Follow-up - one useful qualification or implication when needed.** Choose what prevents over-reading or helps the reader act; combine points only when separating them would reduce clarity.
 
@@ -48,7 +44,7 @@ Good
 
 ### The orientation exception
 
-If the reader cannot tell what is plotted, line 1 may orient instead of claim - but **line 2 must then carry the claim.** The payoff is never optional.
+If the reader can't tell what is plotted, line 1 may orient instead of claim - but **line 2 must then carry the claim.** The payoff is never optional.
 
 ```text
 Figure 1 plots constituency-wise BJP vote share in 2017 against 2012.
@@ -59,17 +55,11 @@ Orienting in line 1 *and* line 2 is the most common failure of this skill. Two l
 
 ## Before writing: say what it is saying
 
-Do not start from a template. Say out loud, in plain words, what this chart is actually saying. Then compress that into line 1.
-
-Charts often turn out to be saying things like: something moved; two groups differ; the data kills a stated expectation; there is a break point after which behaviour is different; a relationship is real but too weak to lean on; nothing is here; this chart is a data check rather than a finding.
-
-**That list is to loosen your thinking, not to classify into.** Most real charts say something that is not on it. Write what this one says.
+Don't start from a template. Say out loud, in plain words, what this chart is actually saying, then compress that into line 1. Charts often turn out to say: something moved; two groups differ; the data kills a stated expectation; there's a break point; a relationship is real but too weak to lean on; nothing is here; this is a data check, not a finding. That list is to loosen your thinking, not to classify into - write what this one says.
 
 ## Every number carries its anchor
 
-A bare magnitude is a failed note. The reader has no idea whether 234 million is a lot.
-
-Anchors, in rough order of usefulness: the prior period, the other group, the control or no-treatment baseline, the number someone expected, the total it is a share of.
+A bare magnitude is a failed note - the reader has no idea whether 234 million is a lot. Anchors, in rough order of usefulness: the prior period, the other group, the control/no-treatment baseline, the number someone expected, the total it's a share of.
 
 ```text
 Fail   Average ticket size on credit cards was Rs 2,700 in November.
@@ -77,31 +67,24 @@ Pass   Average ticket size on credit cards fell to Rs 2,700 in November, from ov
        Rs 3,000 across the first nine months.
 ```
 
-**With data in hand, compute the number.** Never read it off the image and never round toward a rounder-sounding figure. If only the image is available, say so in the note and keep the precision coarse.
+**With data in hand, compute the number** - never read it off the image, never round toward a rounder-sounding figure. If only the image is available, say so and keep the precision coarse.
 
 ## "Nothing here" is a real answer
 
-If the chart shows nothing, the note says so. This is a legitimate, frequently correct output.
+If the chart shows nothing, the note says so - a legitimate, frequently correct output.
 
 ```text
 No real correlation between rejects and routes.
 Checked whether rejection rate clusters by delivery route - it does not.
 ```
 
-```text
-The clusters are near-identical on every dimension. Nothing to act on here.
-```
-
-Rules:
-
-- Say what you looked for and did not find. "No signal" alone is not enough; the reader needs to know which signal was tested.
-- Preserve the distinction between description, exploration, and inference. Match language to evidence strength and uncertainty: avoid inflated claims, but distinguish null, weak, suggestive, inconclusive, and heterogeneous findings when supported.
-- A weak-but-real relationship is stated as weak, with the strength quantified: "the relationship exists but it is weak - reserve price explains little of the variation."
-- Never manufacture. If you find yourself hunting the chart for something quotable, the note is "nothing here".
+- Say what you looked for and did not find. "No signal" alone isn't enough; name which signal was tested.
+- Match language to evidence strength: distinguish null, weak, suggestive, inconclusive, and heterogeneous findings; a weak-but-real relationship is stated as weak, quantified ("the relationship exists but is weak - reserve price explains little of the variation").
+- Never manufacture. If you're hunting the chart for something quotable, the note is "nothing here".
 
 ## Register
 
-Ask once at the start of the run which register applies. Default to note-to-self if the answer is not obvious from context.
+Ask once at the start of the run which register applies; default to note-to-self if not obvious.
 
 | Register | Keeps | Adds |
 |---|---|---|
@@ -109,31 +92,27 @@ Ask once at the start of the run which register applies. Default to note-to-self
 | Colleague | blunt nulls, assumed shared context on the dataset | - |
 | Client / external | - | what the metric means, and the caveat line where the data is thin |
 
-Register changes the wording. It never changes the finding, and it never softens a null into a maybe.
+Register changes the wording. It never changes the finding, and never softens a null into a maybe.
 
 ## Input modes
 
 | What you have | How to write the note |
 |---|---|
 | Rendered chart + the data | Read the image for the shape, compute every number from the data, verify the claim against the data before writing. |
-| Chart code + the data, no render | Infer the shape from the geoms and the grouping, compute the claim from the data. |
-| Image only | Describe conservatively. No invented precision. That a number is read off a chart is self-evident from context - do not spend the note announcing it. |
+| Chart code + the data, no render | Infer the shape from the geoms and grouping, compute the claim from the data. |
+| Image only | Describe conservatively, no invented precision. That a number is read off a chart is self-evident - don't spend the note announcing it. |
 
-The verification step is not optional when data is available. A note that states a number the data does not support is worse than no note.
+Verification is not optional when data is available: a note stating a number the data doesn't support is worse than no note.
 
 ## Exploratory notebooks you are building
 
-When the request is "build a notebook to explore this data" rather than "explain this chart", this skill is part of the deliverable, not a later pass. The person asking will read the notebook without having run it, and an unnarrated plot hands them the analyst's job.
+When the request is "build a notebook to explore this data", this skill is part of the deliverable, not a later pass. The reader reads the notebook without running it, and an unnarrated plot hands them the analyst's job. When one agent both runs the exploration and writes it up, nobody checks whether the write-up matches the charts - the two-line contract and compute-don't-eyeball are the only things between an exploratory notebook and a confident deck of artefacts.
 
-Rules for that case:
-
-1. **Every plot chunk is followed by its note.** Two lines, in the markdown immediately below the chunk. Not a comment inside the chunk, not a batch of notes at the end.
-2. **Write the note after running the chunk, from the computed output.** A note written from the code you are about to run is a guess.
-3. **Notes are written in the note-to-self register by default** - this is exploration, so open questions and column names belong in them.
-4. **The nulls stay in.** An exploratory notebook is mostly dead ends. A notebook where every plot has a finding under it is a notebook where the notes were invented. If a plot shows nothing, its note says so and the plot stays.
-5. **Do not add a findings summary at the top or bottom unless asked.** Ranking and narrative are a separate request, made once the reader has seen which probes came back empty.
-
-The reason this matters most here: when an agent both runs the exploration and writes it up, nobody checks whether the write-up matches what the charts show. The two-line contract and the compute-don't-eyeball rule are the only things standing between an exploratory notebook and a confident deck of artefacts.
+1. **Every plot chunk is followed by its note** - two lines, in the markdown immediately below the chunk. Not a comment inside it, not a batch at the end. Twelve plots get twelve notes, numbered to the figure order.
+2. **Write the note after running the chunk, from the computed output.** A note written from code you're about to run is a guess.
+3. **Note-to-self register by default** - open questions and column names belong in them.
+4. **The nulls stay in.** An exploratory notebook is mostly dead ends; a notebook where every plot has a finding is one where the notes were invented. If a plot shows nothing, its note says so and the plot stays. If nine of twelve show nothing, nine notes say nothing.
+5. **No findings summary at top or bottom unless asked**, and don't reorder to build an arc - ranking and narrative are a separate request, made once the reader has seen which probes came back empty.
 
 ## Tables
 
@@ -145,24 +124,15 @@ Good   Hyderabad is the only city where margin fell while revenue grew - down 4 
        on 18% more revenue.
 ```
 
-## Batches
-
-A notebook with twelve plots gets twelve notes, numbered to match the figure order.
-
-**Do not smooth them into a narrative.** Exploratory notebooks mostly contain dead ends, and the reason this skill exists is that the dead ends get written up as findings. If nine of twelve show nothing, nine notes say nothing.
-
-Do not add a summary paragraph unless asked. Do not reorder to build an arc. Do not drop the null charts - the reader needs to know they were checked.
-
 ## Banned
 
 - "This chart shows", "The graph illustrates", "As we can see", "It is evident that", "Here we visualise"
-- Restating the axis labels as prose
-- Repeating the chart title
+- Restating axis labels as prose; repeating the chart title
 - Hedge-mush: "appears to indicate a possible trend", "suggests there may be some relationship"
 - Rule-of-three parallelism, and "not X; it just Y"
 - Em dashes - use hyphens
 - A third sentence
-- Causal verbs without causal evidence: "drove", "caused", "led to" on observational data. Use "coincided with", "is associated with", or restructure.
+- Causal verbs without causal evidence ("drove", "caused", "led to") on observational data - use "coincided with", "is associated with", or restructure.
 
 ## Self-check before output
 
@@ -172,11 +142,11 @@ Do not add a summary paragraph unless asked. Do not reorder to build an arc. Do 
 4. Would this note survive if the chart were removed - does it say something, or only point at something?
 5. If the chart shows nothing, does the note say nothing, or did I find something to fill the space?
 
-Any failure: rewrite. Do not ship the note with a caveat about itself.
+Any failure: rewrite. Don't ship the note with a caveat about itself.
 
 ## Calibration
 
-`examples.md` holds real notes from Karthik's Mint columns and analysis notebooks, with the weak versions alongside. Read it before writing the first note of a run. The failure mode this skill guards against is generic caption prose, and worked examples are the only reliable correction.
+`examples.md` holds real notes from Karthik's Mint columns and analysis notebooks, with the weak versions alongside. Read it before writing the first note of a run - the failure mode this skill guards against is generic caption prose, and worked examples are the only reliable correction.
 
 ## Not this skill
 
@@ -185,4 +155,4 @@ Any failure: rewrite. Do not ship the note with a caveat about itself.
 - Fixing a chart that hides its message - `dataviz-fix`
 - Longer prose around the analysis - `karthik-writing-style`
 
-If the chart is bad, still write the note. Do not critique it here.
+If the chart is bad, still write the note. Don't critique it here.

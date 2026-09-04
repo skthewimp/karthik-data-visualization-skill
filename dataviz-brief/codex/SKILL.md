@@ -5,56 +5,56 @@ description: Extract the design brief for a chart repair - key messages, require
 
 # Dataviz Brief
 
-Use this at the **start** of a chart repair, before any chart is chosen or built. Its job is to state what the replacement must accomplish - the intent - so that everything downstream is designed *forward* from that intent, not patched onto the source chart.
+Use at the **start** of a chart repair, before any chart is chosen or built. Its job is to state what the replacement must accomplish - the intent - so everything downstream is designed *forward* from that intent, not patched onto the source.
 
-This skill reads the source, but it does not defend the source. It never produces a fault-list of the old chart, and it never lets the old chart's form decide the new one. The form question belongs to `dataviz-selector`, run afterwards and cold. Here you decide only *what the chart must say and carry*, not *how it should look*.
+This skill reads the source but doesn't defend it: no fault-list of the old chart, and the old form never decides the new one (form is `dataviz-selector`'s, run afterwards and cold). Here you decide only *what the chart must say and carry*, not *how it should look*.
 
 ## Why this runs first
 
-A repair that begins by critiquing the source chart anchors on the existing image, and the path of least resistance becomes "re-render the same form, tidied". That fails a whole class of charts - most visibly a many-series stacked bar whose message is per-series comparison, which no amount of tidying makes legible. Extracting the brief first, and selecting the form cold from the brief, removes the source form from the room. **Preserving a message is not preserving a form.** The data and the messages must survive; the encoding must not, and usually should not when the source form was the weakness.
+A repair that begins by critiquing the source anchors on the existing image, and the path of least resistance becomes "re-render the same form, tidied" - which fails a whole class of charts, most visibly a many-series stacked bar whose message is per-series comparison. Extracting the brief first and selecting the form cold from it removes the source form from the room. **Preserving a message is not preserving a form:** the data and messages must survive; the encoding usually should not when the source form was the weakness.
 
 ## Inputs
 
 - The source image or artifact.
-- The prompt, if any: the requested change, chart-type requests, annotations, wording, brand or style preferences, audience notes. Treat everything the user states here as a requirement, not a suggestion.
+- The prompt, if any: requested change, chart-type requests, annotations, wording, brand/style preferences, audience notes. Treat everything stated here as a requirement, not a suggestion.
 
 ## What to produce
 
-A short brief with these parts. Prose or JSON both fine; keep it concise.
+A short brief with these parts (prose or JSON, concise):
 
 ### 1. Key messages
 
-From the source and any prompt, state the one or few messages the chart exists to carry - for example "total usage is growing" *and* "the mix is shifting away from a dominant incumbent". A chart may legitimately carry more than one.
+State the one or few messages the chart exists to carry - e.g. "total usage is growing" *and* "the mix is shifting away from a dominant incumbent". More than one is legitimate.
 
-- **The source's form declares its messages.** Whatever the source encodes as its primary structure is presumptively a key message. A stacked, multi-series, or faceted chart exists to show composition or comparison across those categories - that comparison *is* a message, not optional detail. Read the primary encoded dimension (whatever colour, stack, or facet carries) as key unless the prompt explicitly redirects to a different question. This is how you read intent *out of* the source; it is not a reason to keep the source's form.
-- **Difficulty of recovery is never grounds to drop a message.** This covers both what a category is *worth* and what a category *is*. Uncertain values - "approximate", "read from a screenshot", "too many categories to read exactly", "would invent unreadable precision" - and uncertain identity - "the legend names fewer categories than the chart encodes", "can't map every colour to a label" - are alike facts about the source form's weakness. Neither shrinks the intent. They argue for a better form downstream (small multiples, direct-labelled lines, top-N plus an explicit "other", a share-of-total view), never for deleting the message here. When some category labels can't be recovered, keep the categories: name the ones the source does identify and mark the rest generically. Approximate values and imperfect labels still carry a composition-or-comparison message; exact precision and complete naming were never the point.
+- **The source's form declares its messages.** Whatever the source encodes as its primary structure (whatever colour, stack, or facet carries) is presumptively a key message - a stacked/multi-series/faceted chart exists to show that composition or comparison. Read it as key unless the prompt redirects to a different question. This is how you read intent *out of* the source; it's not a reason to keep the source's form.
+- **Difficulty of recovery is never grounds to drop a message** - neither uncertain values ("approximate", "too many categories to read exactly") nor uncertain identity ("the legend names fewer categories than encoded", "can't map every colour to a label"). Both are facts about the source form's weakness and argue for a better form downstream (small multiples, direct-labelled lines, top-N plus explicit "other", share-of-total), never for deleting the message. When some labels can't be recovered, keep the categories: name the ones the source identifies and mark the rest generically.
 
 ### 2. Required content per message
 
-For each key message, name the data and encoding the rebuild must show to support it - the specific series, periods, breakdowns, comparisons, or annotations without which the message collapses. A per-category breakdown is required content for a "the mix is shifting" message; it is not for a "the total is growing" message.
+For each key message, name the data and encoding the rebuild must show - the specific series, periods, breakdowns, comparisons, or annotations without which it collapses. A per-category breakdown is required for "the mix is shifting", not for "the total is growing".
 
 ### 3. Explicit drops
 
-Name anything you judge *not* key, and why, in message terms. A drop is legitimate only when the information serves no key message - not when it is merely inconvenient to recover or render. Silence is not a decision: a multi-category chart that comes back as a bare total has failed if no one decided to lose the per-category breakdown. If you drop, say so out loud with a reason.
+Name anything *not* key, and why, in message terms. A drop is legitimate only when the information serves no key message - not when it's inconvenient to recover or render. Silence is not a decision: a multi-category chart that comes back as a bare total has failed if no one decided to lose the breakdown.
 
 ### 4. Audience, story, and constraints
 
-- **Audience and medium**: who reads this, expected data literacy, viewing size (slide, chat, thumbnail, print). This shapes the form later.
-- **Story**: the one-sentence point the chart should leave the reader with, if the prompt or evidence implies one. Do not manufacture a claim when the evidence is exploratory.
-- **Constraints from the prompt**: requested chart type, annotations, wording, brand or style preferences, what to fix. These are authoritative and must survive the whole repair. When a downstream redesign impulse conflicts with a stated constraint, the constraint wins.
+- **Audience and medium:** who reads this, expected literacy, viewing size (slide, chat, thumbnail, print).
+- **Story:** the one-sentence point the chart should leave, if the prompt or evidence implies one. Don't manufacture a claim when the evidence is exploratory.
+- **Constraints from the prompt:** requested chart type, annotations, wording, brand/style, what to fix - authoritative, and they must survive the whole repair. When a downstream redesign impulse conflicts with a stated constraint, the constraint wins.
 
 ### 5. Edit-vs-redesign mode
 
-Classify the request and emit the mode explicitly - this decides whether the form is reopened:
+Emit the mode explicitly - it decides whether the form is reopened:
 
-- **`bounded-edit`**: a literal, self-contained change to the existing chart that leaves its form intact and correct - "fix the axis labels", "change the title", "recolour series 3", "remove the gridlines". Stay anchored to the source form; skip form selection and full data extraction; apply the named edit and re-render. Choose this only when the existing form genuinely serves the messages and the prompt does not question it.
-- **`redesign`**: everything else - a new question, a weak or misleading form, a per-series message trapped in a stack, "make this clearer", or no prompt at all. The form is reopened: the source form gets no vote, and form selection runs cold from the messages and data.
+- **`bounded-edit`:** a literal, self-contained change leaving the form intact and correct ("fix the axis labels", "change the title", "recolour series 3", "remove the gridlines"). Skip form selection and full data extraction; apply the edit and re-render. Choose only when the existing form genuinely serves the messages and the prompt doesn't question it.
+- **`redesign`:** everything else - a new question, a weak or misleading form, a per-series message trapped in a stack, "make this clearer", or no prompt. The source form gets no vote; form selection runs cold.
 
-When in doubt, choose `redesign`. A bounded-edit that turns out to need a form change can always be widened; a redesign wrongly narrowed to an edit reproduces the source's weakness.
+When in doubt, choose `redesign` - a bounded-edit that needs a form change can be widened; a redesign wrongly narrowed to an edit reproduces the source's weakness.
 
 ### 6. Keep-notes (thin)
 
-A short, optional pass: is anything in the source genuinely worth carrying forward as an idea - a smart annotation, a sensible top-N-plus-"other" grouping, a good baseline or reference line, a well-chosen period window? List only real, reusable ideas. This is *not* a fault-list of the source and *not* a defence of its form. If nothing stands out, say so and move on.
+Optional: is anything in the source worth carrying forward as an idea - a smart annotation, a sensible top-N-plus-"other" grouping, a good baseline or period window? List only real, reusable ideas. Not a fault-list, not a defence of the form. If nothing stands out, say so.
 
 ## Output shape
 
@@ -72,6 +72,6 @@ Keep-notes: <reusable source ideas | none>
 
 ## Boundaries
 
-- Do not choose a chart form here. That is `dataviz-selector`, run afterwards and cold on this brief.
-- Do not extract the full data table here beyond what you need to name the messages. Detailed period-by-category extraction is `dataviz-extract`, run in parallel.
-- Do not critique the source chart's execution. Diagnosis of what is wrong with the old chart is not needed for a forward-design repair; you need only the intent it should have served.
+- Don't choose a chart form here - that's `dataviz-selector`, run afterwards and cold on this brief.
+- Don't extract the full data table beyond what you need to name the messages; period-by-category extraction is `dataviz-extract`, run in parallel.
+- Don't critique the source's execution - a forward-design repair needs only the intent the old chart should have served.

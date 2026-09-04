@@ -5,174 +5,56 @@ description: Post-render gate that critiques a built chart's execution - geometr
 
 # Dataviz Execution
 
-The **post-render gate** of the construct process. It receives the built candidate at its
-delivery size and checks the **rendering, not the idea**. The idea gate already decided the
-chart is the right chart saying the right thing; this stage decides whether the actual export
-is clean enough to hand a reader. Judgement here needs the pixels - which is exactly why it
-runs *after* build, where the idea gate ran before it.
+The **post-render gate** of the construct process. It receives the built candidate at its delivery size and checks the **rendering, not the idea**. The idea gate already decided the chart is the right chart saying the right thing; this stage decides whether the actual export is clean enough to hand a reader. The verdict needs the pixels - which is why it runs *after* build.
 
 ## Check the execution
 
 Inspect the exact export at the declared delivery size and find every consequential defect:
 
-- **Geometry:** clipping, elements running off the canvas, misalignment, overlapping marks or
-  text, collisions between labels, labels and axes, or panels.
-- **Association:** every label, value, and annotation clearly tied to the mark it belongs to;
-  no legend round-trips where a direct label would read. Direct values use one consistent small
-  offset and series names sit adjacent to their line; a connector is earned only by a genuinely
-  displaced label, not added as a decorative dash.
-- **Hierarchy and scaffolding:** the title, subtitle, and emphasis read in the intended order;
-  no duplicated axes, redundant gridlines, or leftover default furniture.
-- **Colour:** sufficient contrast against the background, series distinguishable, and the
-  palette surviving grayscale and common colour-vision deficiencies - not reliant on
-  red/green alone.
-- **Precision as displayed:** the number of digits shown matches the decided plan (the spread
-  rule, or an exact-lookup override with its reason) - no fabricated or ragged precision.
-- **Eraser test:** remove any ink that carries no data, no label, and no necessary context - and this includes labels themselves. A direct label that only repeats a level or shape a labelled neighbour already shows is redundant ink; confirm the labels left on the plot are the editorial set (a series' identity, endpoints, the focal comparison, genuine exceptions, exact lookups) and not a value stamped on every point. Over-labelling is what makes a chart read busy and cheap.
+- **Geometry:** clipping, elements off the canvas, misalignment, overlapping marks or text, collisions between labels, labels and axes, or panels.
+- **Association:** every label, value, and annotation clearly tied to its mark; no legend round-trips where a direct label would read. Direct values use one consistent small offset and series names sit adjacent to their line; a connector is earned only by a genuinely displaced label, not a decorative dash.
+- **Hierarchy and scaffolding:** title, subtitle, and emphasis read in the intended order; no duplicated axes, redundant gridlines, or leftover default furniture.
+- **Colour:** enough contrast against the background, series distinguishable, palette surviving grayscale and common CVD - not red/green alone.
+- **Precision as displayed:** the digits shown match the decided plan (the spread rule, or an exact-lookup override with its reason) - no fabricated or ragged precision.
+- **Eraser test:** remove any ink carrying no data, label, or necessary context - including labels themselves. A direct label that only repeats a level or shape a labelled neighbour shows is redundant ink; confirm the labels left are the editorial set (a series' identity, endpoints, the focal comparison, genuine exceptions, exact lookups), not a value on every point.
 
 ## Rendering and inspection
 
-The geometry verdict rests on the rendered export, not on the build code - so render at the
-declared delivery size and inspect that image. If your harness provides a deterministic geometry
-inspector, use it: this repo ships one (`render_and_inspect_chart`, or `inspect_rendered_chart` on
-the exact export, whenever `probe_renderers` reports a usable renderer), and it measures overlaps,
-clipping, and text size exactly. Record what it measured in the `inspection` block: the source
-tool, the smallest text size, the overlap count, and whether anything is clipped.
+The geometry verdict rests on the rendered export, not the build code - render at the declared delivery size and inspect that image. If your harness provides a deterministic geometry inspector, use it: this repo ships one (`render_and_inspect_chart`, or `inspect_rendered_chart` on the exact export, whenever `probe_renderers` reports a usable renderer), measuring overlaps, clipping, and text size exactly. Record what it measured in the `inspection` block: source tool, smallest text size, overlap count, and whether anything is clipped.
 
-When no such inspector is available - the common case outside this repo's harness, and the case for
-an HTML/SVG artifact or any renderer the inspector does not cover - inspect the exact export by eye
-at delivery size instead. This is a real check, not a non-check: look deliberately for each defect
-above, set `geometry_source: visual-only`, and record what you saw. A visual read can support a
-`deliver`. Stay honest about its limits - a picture cannot settle sub-pixel overlaps or exact
-point sizes - so note those as residual limitations rather than reporting measured precision you do
-not have. Never describe a check you did not run as complete, and never invent inspector metadata.
+When no inspector is available - the common case outside this repo's harness, and for an HTML/SVG artifact or any renderer it doesn't cover - inspect the exact export by eye at delivery size. This is a real check: look deliberately for each defect above, set `geometry_source: visual-only`, and record what you saw. A visual read can support a `deliver`, but a picture can't settle sub-pixel overlaps or exact point sizes - note those as residual limitations rather than reporting measured precision you don't have. Never describe an unrun check as complete, and never invent inspector metadata.
 
-Where a deterministic inspector is present, settle the **resizable** geometry deterministically
-FIRST, before spending a model turn on it. Edge clipping, off-canvas overflow, and squashed facet
-panels are pure arithmetic - the fix is a grown canvas, not a judgement - so run `refit_chart` on
-the build's source at its delivery size. It renders, inspects, and while a resize-fixable defect
-remains grows the canvas by the exact overflow the inspector measured and re-renders, up to its
-iteration budget, honouring the delivery ceiling (warned, never squashed) and stopping when a grow
-no longer shrinks the residual. Read the inspection it already produced on its final artifact (or
-run `inspect_rendered_chart` on the exact export) and record what it measured. `refit_chart` fixes
-ONLY what resizing fixes; carry any ceiling / max-iteration / underfill warnings into
-`residual_limitations`, and escalate the residual - label collisions, hierarchy, colour, precision,
-ink, and an underfilled canvas (a design call, not a resize) - to the focused revision below.
+Where a deterministic inspector is present, settle the **resizable** geometry deterministically FIRST, before spending a model turn. Edge clipping, off-canvas overflow, and squashed facet panels are arithmetic - the fix is a grown canvas, not a judgement - so run `refit_chart` on the build's source at delivery size: it renders, inspects, and while a resize-fixable defect remains grows the canvas by the exact measured overflow and re-renders, up to its budget, honouring the delivery ceiling (warned, never squashed) and stopping when a grow stops shrinking the residual. Read the inspection it produced on its final artifact (or run `inspect_rendered_chart` on the export) and record what it measured. `refit_chart` fixes ONLY what resizing fixes; carry any ceiling/max-iteration/underfill warnings into `residual_limitations`, and escalate the residual (label collisions, hierarchy, colour, precision, ink, and an underfilled canvas) to the focused revision below.
 
-The inspector sorts every defect for you: `correction_plan` groups them into `canvas`, `placement`,
-and `semantic`, and each defect carries its own `defect_class`. Route by class, do not re-derive the
-split. **canvas** rides `correction_plan.canvas.growth_vector` - the one `refit_chart` already
-consumes; grow only when it is non-null, and a `canvas` defect with a null vector (an underfilled
-canvas) is a design call, not a resize. **placement** is an exact move the geometry tools compute -
-feed those marks back through `place_on_marks` / `recommend_text_placement` (or `recommend_labels`
-for a missing direct label) and apply what they return literally; never hand placement geometry
-back to the model to eyeball. **semantic** - contrast, redundant colour or axis, an external legend,
-an unidentified series, undersized text - is the only class that earns a model patch. A label
-crossing the *plot* boundary (not the canvas edge) is `placement`, not `canvas`: canvas growth
-cannot pull it in, so `place_on_marks` moves it wholly inside via `plot_area` and returns the exact
-`plot_boundary_correction` `{dx, dy}` to apply.
+The inspector sorts every defect: `correction_plan` groups them into `canvas`, `placement`, and `semantic`, and each defect carries its `defect_class`. Route by class, don't re-derive the split. The named flags below are what this repo's inspector emits; where it's absent, read each as the principle to apply by eye, using the fix vectors it hands you (`geometry_summary.suggested_dims` - a grown `width_px`/`height_px` from the same math `recommend_layout` uses; per-edge `overflow_px`/`grow_margin_px`; `separation_needed_px`; `panel_heights_px`/`min_panel_height_px`) so a residual is a number, not a guess.
 
-The named flags below are what this repo's deterministic inspector emits; where it is absent, read
-each as the principle to apply by eye. When the inspector flags a geometry defect it also hands you the fix vector, so a residual the resize loop cannot settle is
-still a number, not a guess: `geometry_summary.suggested_dims` (a grown `width_px`/`height_px` from the
-same math `recommend_layout` uses), per-edge `overflow_px` / `grow_margin_px` on clipped
-elements, `separation_needed_px` on colliding labels, and `panel_heights_px` /
-`min_panel_height_px` for squashed facets. For colliding annotations, feed the marks back through `recommend_text_placement`
-instead of hand-placing them. On-mark data labels are the exception: a value the plotting layer
-already positioned on its mark or at a deliberate fixed offset from it is position-fixed by the
-data. Pass it as role `data_label` - wrapped, never moved - and never list its own mark in
-`obstacles`. Only free callouts get de-collided; feeding segment values through obstacle-avoidance
-shoves every one off its bar and clips them off-canvas.
+- **canvas** rides `correction_plan.canvas.growth_vector` - the one `refit_chart` consumes; grow only when it's non-null. A `canvas` defect with a null vector (an underfilled canvas) is a design call, not a resize.
+- **placement** is an exact move the geometry tools compute - feed those marks back through `place_on_marks`/`recommend_text_placement` (or `recommend_labels` for a missing direct label) and apply what they return literally; never hand placement geometry back to the model to eyeball. A label crossing the *plot* boundary (not the canvas edge) is `placement`, not `canvas`: growth can't pull it in, so `place_on_marks` moves it wholly inside via `plot_area` and returns the exact `plot_boundary_correction` `{dx, dy}`.
+- **semantic** - contrast, redundant colour or axis, an external legend, an unidentified series, undersized text - is the only class that earns a model patch.
 
-"Never moved" pins the data label to its mark - it does **not** make a collision involving it
-acceptable to ship. When an on-mark value overlaps another label (a series-name/identity label at
-a line end, a neighbouring point's value, an axis label), that is still a real geometry defect, and
-it is resolved by moving the *other*, movable label - de-collide the free/identity label, flip the
-data label's offset to the opposite side of its mark, stack the two so they do not share a line, or
-cut one from the label set - never by leaving the two overlapping because "the data label can't
-move." At a crowded line end the series name is the movable one: separate it from the endpoint
-value rather than accepting the clash.
+**Label placement, reproduced literally.** Draw a connector only when the returned block contains a `leader_line`; then draw the segment from the block's `leader_line_data` (leader endpoints in **native data coordinates**, the inverse of the projection) so it terminates exactly at the label's box edge and the mark, and place the label at the block's `placed_data`. Never improvise a data-space `geom_segment`/`annotate` from the pixel `leader_line` - a guessed `xend`/`yend` lands off the mark and runs through whichever label sits between. When several ordinary direct labels have travelled far enough to need leaders, treat the repeated callout as a layout/label-set defect and revise it.
 
-A `REDUNDANT_VALUE_AXIS` flag (medium severity, so it requires revision) is the eraser test made
-mechanical: when the marks that carry the reading are directly labelled, the numeric value axis
-ticks and gridlines are duplicate ink - drop them unless the axis still earns its place with a
-zero baseline or a scale reference. You do not need every point labelled for the axis to go; it
-is redundant once the reader has no mark left to read off the scale. Category (non-numeric) ticks
-are never flagged. The flag fires from the declared direct-label contract - which names that key
-set, so a chart labelling only its endpoints and exceptions still trips it - and also, as a
-conservative floor for a facet grid that labels its marks but declares nothing, from the mark
-geometry itself, only once every mark-bearing panel carries a value label on each of its marks
-(with no contract the check cannot tell a key mark from a filler one, so it waits for all of them).
+**On-mark data labels are the exception to de-collision.** A value the plotting layer positioned on its mark (or at a deliberate fixed offset) is position-fixed by the data: pass it as role `data_label` (wrapped, never moved), and never list its own mark in `obstacles` - only free callouts get de-collided, and feeding segment values through obstacle-avoidance shoves every one off its bar and clips them off-canvas. But "never moved" pins it to its mark; it does **not** make a collision involving it acceptable. When an on-mark value overlaps another label (a line-end series name, a neighbour's value, an axis label), that is still a real defect - resolve it by moving the *other*, movable label, flipping the data label's offset to the opposite side, stacking the two off one line, or cutting one - never by leaving them overlapping because "the data label can't move." At a crowded line end the series name is the movable one.
 
-For label placement, reproduce the tool's result literally: draw a connector only when the
-returned block contains a `leader_line`. When it does, draw the segment from the block's
-`leader_line_data` - the leader endpoints in **native data coordinates**, the inverse of the same
-projection - so it terminates exactly at the label's bounding-box edge and at the mark. Do not
-improvise a data-space `geom_segment`/`annotate` from the pixel `leader_line` by eye: a guessed
-`xend`/`yend` lands off the mark and runs through whichever label sits between. Place the label
-itself at the block's `placed_data`. A selected point value is a fixed `data_label`, including
-when the plotting layer gives it a consistent small offset from the point; it is not a free
-annotation to repel. When several ordinary direct labels have travelled far enough to need
-leaders, treat the repeated callout pattern as a layout or label-set defect and revise it.
+The named flags:
 
-An `EXTERNAL_LEGEND` flag and a `REDUNDANT_COLOUR` flag (both low, non-blocking) are the same
-eraser test for the other two round-trips. Colour is duplicate ink when it only restates a
-grouping the plot already encodes another way - one series per facet, one fill per named bar, or
-series that already carry direct labels; drop it, or reserve it for a single focal series. A
-legend is a round-trip whenever the series are already named on the plot - by direct labels
-(however many lines share the panel), facet titles, or category ticks - so label them in place
-and remove it. Both stay silent when colour or a legend genuinely carries what no other channel
-does: several series crossing one panel with no direct labels, or a focal-plus-grey highlight
-(fewer fills than bars). The trigger, not the severity, is what keeps those honest.
-
-The `UNIDENTIFIED_SERIES` flag is the inverse failure, and it blocks (high). Colour can only
-carry identity for several series if something keys it: a legend, direct labels, or facet
-titles. Two or more series told apart by colour with none of those - no legend, no labels, no
-per-facet naming - leave the reader unable to say which series is which. Every series needs
-exactly one identity route: a redundant legend over already-labelled lines is an eraser-test
-nicety, but zero routes is a real read failure. The fix is to label the lines directly
-(preferred) rather than to add back a legend.
-
-An `UNDERFILLED_CANVAS` flag (from the measured `occupied_utilization_ratio`) is the opposite
-failure: the canvas is mostly empty. On its own it is a low suggestion - a single big number is
-allowed to sit in space - but paired with undersized text it turns medium, the empty-and-tiny
-layout that should be a denser view or the table the request asked for.
+- **`REDUNDANT_VALUE_AXIS`** (medium, requires revision) - the eraser test made mechanical: when the marks carrying the reading are directly labelled, the numeric value axis ticks and gridlines are duplicate ink; drop them unless the axis still earns a zero baseline or scale reference. Not every point need be labelled for the axis to go - it's redundant once the reader has no mark left to read off the scale. Category (non-numeric) ticks are never flagged. It fires from the declared direct-label contract (so a chart labelling only endpoints and exceptions still trips it) and, for a facet grid that labels marks but declares nothing, from mark geometry once every mark-bearing panel labels each of its marks.
+- **`EXTERNAL_LEGEND`** and **`REDUNDANT_COLOUR`** (both low, non-blocking) - the same eraser test for the other round-trips. Colour is duplicate ink when it only restates a grouping the plot already encodes (one series per facet, one fill per named bar, or series already direct-labelled); drop it or reserve it for a single focal series. A legend is a round-trip whenever the series are already named on the plot (direct labels, facet titles, or category ticks); label in place and remove it. Both stay silent when colour or a legend carries what no other channel does (several unlabelled series in one panel, or a focal-plus-grey highlight). The trigger, not the severity, keeps them honest.
+- **`UNIDENTIFIED_SERIES`** (high, blocks) - the inverse failure. Colour carries identity for several series only if something keys it (legend, direct labels, or facet titles). Two-plus series told apart by colour with none of those leave the reader unable to say which is which. Every series needs exactly one identity route; zero routes is a real read failure. Fix by labelling the lines directly (preferred), not by re-adding a legend.
+- **`UNDERFILLED_CANVAS`** (from the measured `occupied_utilization_ratio`) - the canvas is mostly empty. On its own a low suggestion (a single big number may sit in space), but paired with undersized text it turns medium: the empty-and-tiny layout that should be a denser view or the requested table.
 
 ## Flow check before craft
 
-Before judging a **redesign** candidate, confirm the build carries a recorded cold form
-decision. A redesign that is a tidied re-render of the source form with no form choice behind
-it is a flow violation on its own - route it back to `select` to choose the form cold and
-rebuild, rather than polishing the wrong chart. (A `bounded-edit` legitimately keeps the source
-form; it records the retained form and is not a violation.)
+Before judging a **redesign** candidate, confirm the build carries a recorded cold form decision. A redesign that is a tidied re-render of the source form with no form choice behind it is a flow violation - route it back to `select` to choose the form cold and rebuild, rather than polishing the wrong chart. (A `bounded-edit` legitimately keeps the source form; it records the retained form and is not a violation.)
 
 ## Loop, routing, and delivery
 
-Consolidate the defects into **one focused revision**, re-render, and re-inspect the changed
-regions and their neighbours. Exit as soon as no fatal or major defect remains. **How many
-revision passes to run is the driver's budget, not a fixed number in this stage** - do not
-bake a pass count into the work.
+Consolidate the defects into **one focused revision**, re-render, and re-inspect the changed regions and their neighbours. Exit as soon as no fatal or major defect remains. **How many passes to run is the driver's budget, not a fixed number here.** If the render reveals the *idea* is wrong (the form can't carry the claim, the message doesn't land), route back to the idea gate rather than patching pixels.
 
-If the render reveals that the *idea* is wrong (the form cannot carry the claim after all, the
-message does not land), route back to the idea gate rather than patching pixels.
+**Once the defects are clean, run the composition pass before delivering.** A defect-free chart can still read as busy, generic, styled-default output. Load `dataviz-aesthetic` and apply its composition gate as the final step: what is seen first, whether anything competes, whether every box/rule/colour/bold phrase earns its place, whether whitespace groups rather than fills, whether the result looks composed rather than defaulted. That gate owns composition and premium feel; this one owns defects, and the two don't re-check each other's territory. Route any composition fixes back through the same one-focused-revision loop.
 
-**Once the defects are clean, run the composition pass before delivering.** A chart with no
-remaining defects can still read as busy, generic, styled-default output. Load `dataviz-aesthetic`
-and apply its composition gate as the final step: step back from the whole export and check what
-is seen first, whether anything competes with it, whether every box, rule, colour, and bold
-phrase earns its place, whether whitespace groups rather than fills, and whether the result looks
-composed rather than defaulted. That gate owns composition and premium feel; this one owns
-defects, and the two do not re-check each other's territory. Route any composition fixes it names
-back through the same one-focused-revision loop.
-
-Deliver the best valid candidate with a plain summary and any residual limitation. An
-acceptance check left `unknown` because its external validation was unavailable is a footnote
-in `residual_limitations`, not a defect, and never a reason to withhold - still return
-`deliver`. Reserve `blocked` for a genuine inability to produce any valid artifact at all.
+Deliver the best valid candidate with a plain summary and any residual limitation. An acceptance check left `unknown` because its external validation was unavailable is a footnote in `residual_limitations`, not a defect, and never a reason to withhold - still return `deliver`. Reserve `blocked` for a genuine inability to produce any valid artifact.
 
 ## Handoff
 
-Emit the verdict, the summary, the delivered artifact path, the `inspection` evidence (the
-geometry source and its measured numbers), the changes made, and the residual limitations. The
-exact fields are `dataviz_mcp/stage_contracts.py:EXECUTION_SCHEMA`; this skill carries the
-reasoning, that module the shape.
+Emit the verdict, the summary, the delivered artifact path, the `inspection` evidence (geometry source and measured numbers), the changes made, and the residual limitations. Exact fields: `dataviz_mcp/stage_contracts.py:EXECUTION_SCHEMA`; this skill carries the reasoning, that module the shape.

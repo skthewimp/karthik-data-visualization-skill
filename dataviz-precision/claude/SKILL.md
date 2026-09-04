@@ -28,24 +28,22 @@ If you know the smallest difference that actually matters (`d`), pass `smallest_
 
 ## What this means in practice
 
-- **Significant digits, not decimal places.** The place cuts to the *left* of the decimal point too: 12,483 becomes 12,500 or 12,000 when the spread is coarse. A column of large, widely spread values usually wants fewer digits, not more.
-- **Round every value in a column to the same place.** Uniform digit-length down a column lets length itself read as magnitude, and lets the decimal points align.
-- **Do not show precision the data cannot support**, and never manufacture it to fill space. Precision is a data decision, not a layout one.
-- **The source's own precision is a hard ceiling the spread rule can lower but never raise.** The spread formula chooses how *few* digits are enough to tell the values apart; it can never license *more* digits than the source carries. Integer source values stay integers - `44`, `1`, not `44.0`, `1.0` - because a trailing `.0` asserts a tenths measurement the data never made. So take the finer of the two: the place the spread dictates, capped at the source's decimal places. This is a per-column uniform decision like every other precision call: a column may not print `36` beside `43.0`, mixing integer and one-decimal formatting - decide one place for the whole set and apply it to every value.
+- **Significant digits, not decimal places.** The place cuts to the *left* of the decimal too: 12,483 becomes 12,500 or 12,000 when the spread is coarse. Large, widely spread values usually want fewer digits, not more.
+- **Round every value in a column to the same place**, so length reads as magnitude and decimal points align.
+- **Don't show precision the data cannot support**, and never manufacture it to fill space - precision is a data decision, not a layout one.
+- **The source's own precision is a hard ceiling the spread rule can lower but never raise.** Integer source values stay integers (`44`, `1`, not `44.0`, `1.0` - a trailing `.0` asserts a tenths measurement never made). Take the finer of the two: the spread's place, capped at the source's decimal places. Still one uniform place per column - never `36` beside `43.0`.
 - **Never round toward rounder-sounding numbers** - round to the place the spread dictates, not to whatever looks tidy.
-- **A displayed `0` must mean the value is zero.** When a value far smaller than the spread would round away at the column place (a small unit cost beside large counts, a lone focal annotation), `recommend_precision` refines the place just enough to keep that value one significant digit and returns `zero_collapse_prevented: true`. It never lets a nonzero value print as `0`.
+- **A displayed `0` must mean the value is zero.** When a value far smaller than the spread would round away at the column place, `recommend_precision` refines the place just enough to keep it one significant digit and returns `zero_collapse_prevented: true`. It never lets a nonzero value print as `0`.
 
 ## Precedence: the spread rule is the default; exact digits are the exception
 
 By default, `recommend_precision` governs every displayed number. Source digits override it in exactly one case: **identifiers or a genuine exact-lookup requirement** - an account number, a code, a reference value the reader must read off verbatim. Call `recommend_precision(values, role, exact=True)` for those; it preserves every source digit and returns `exact_override: true`.
 
-An exact override is never silent. Whenever you leave the spread rule behind, **record the reason** - why this column is an identifier or an exact lookup rather than a quantity to compare. If you cannot name why exact digits are needed, the spread rule stands.
-
-If an upstream decision has already marked a column as an identifier or exact-lookup, obey that mark and carry its stated reason forward - do not silently re-decide it at build time. Absent any such mark, the spread rule stands and the exact-vs-spread call is yours to make here. Carrying the decision as an explicit flag with its reason, rather than leaving it to be re-inferred from prose, is what lets a weaker downstream model apply it reliably.
+An exact override is never silent: whenever you leave the spread rule behind, **record the reason** - why this column is an identifier or exact lookup rather than a quantity to compare. If you can't name why, the spread rule stands. If an upstream decision already marked a column as identifier/exact-lookup, obey that mark and carry its reason forward - don't silently re-decide at build. Carrying the decision as an explicit flag with its reason (not re-inferred from prose) is what lets a weaker downstream model apply it reliably.
 
 ## Labels are not measurements: temporal and ordinal axes
 
-A third case sits outside the rule entirely. A value that names a position on the axis rather than a quantity to compare - a **year** (2000, not 2,000), a quarter, a month number, a rank, a stage, or any sequence/ID used as a coordinate - is a **label**, not a measurement. It takes no thousands separator, no spread rounding, and no forced decimal places: a year axis reads `1970 2000 2030`, never `1,970` or `2000.0`. This is not the exact-lookup override (that preserves the digits of a *quantity*); a temporal or ordinal coordinate is simply never a quantity the spread rule governs. `recommend_precision` is for the measured values plotted against these axes, not for the axis positions themselves. The same holds for such a value quoted inside an annotation ("in 2000", not "in 2,000").
+A value that names a position rather than a quantity to compare - a **year** (2000, not 2,000), a quarter, month number, rank, stage, or any sequence/ID used as a coordinate - is a **label**, not a measurement: no thousands separator, no spread rounding, no forced decimals (a year axis reads `1970 2000 2030`, never `1,970` or `2000.0`). This isn't the exact-lookup override (that preserves a *quantity's* digits); a coordinate is simply never a quantity the spread rule governs. `recommend_precision` is for the measured values plotted against these axes, not the axis positions. Same for such a value inside an annotation ("in 2000", not "in 2,000").
 
 ## Charts and tables
 

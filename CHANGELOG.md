@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Conciseness pass across all 23 skills
+
+The skill bodies had accreted through many iterations and picked up two kinds of bloat: the same rule restated three or four times within one skill (e.g. `karthik-data-visualization` stated "light background" and the direct-label scope rules in several sections at once), and cross-file rules re-derived in full where a summary plus a pointer to the owning skill would do (the small-multiples grid rules lived in full in both `dataviz-selector` and `karthik-data-visualization`; the focal-plus-grey colour rule in seven files). Several skills also carried single run-on bullets that buried the rule (one ~400-word bullet in `dataviz-selector`).
+
+Every skill body was rewritten for concision without dropping a distinct rule: intra-file restatements collapsed to one canonical statement, run-on bullets exploded into scannable sub-points, and cross-file duplicated rule sets trimmed to a short craft summary plus a pointer to the owner skill (colour → `dataviz-color`, precision → `dataviz-precision`, small-multiples layout → `dataviz-selector`, composition → `dataviz-aesthetic`, annotation selection → `chart-annotations`). Owner skills keep the full rule.
+
+- **No behaviour change.** Every MCP tool name, routing flag, schema reference, named gate, and directive is preserved; a token-level diff against the previous version confirms no identifier was dropped. Only wording and duplication were cut.
+- **~18% smaller overall** (39.5k → 32.1k words across the Claude bodies), concentrated where the bloat was: `karthik-data-visualization` -42%, `dataviz-selector` -37%, `dataviz-orchestrator` -23%, `dataviz-fix` -22%, `dataviz-critique` -20%. The evaluation protocol `dataviz-eval` was cut conservatively (-18%) because its restatements partly serve as anti-rationalization guardrails, and already-lean skills (`dataviz-aesthetic`, `dataviz-idea-critique`, `karthik-powerpoint-style`, `dataset-question-generator`, `karthik-analysis-planner`, `karthik-data-cleaning`) were left largely untouched rather than forcing cuts that would lose specifics.
+- Codex and Claude copies stay in sync (identical bodies; only the frontmatter `description` differs per surface, as before).
+
 ### Deterministic leaders, plot-boundary correction, and a classified correction cycle
 
 Harness analysis of the repair loop found three places the model was still doing geometry by eye that the tools could settle exactly: it improvised a data-space `geom_segment` for a leader (which ran through a neighbouring label), it had no local fix for a label that crosses the *plot* boundary while sitting inside the canvas, and the inspector handed back an undifferentiated defect list that invited "apply every placement patch". All three are now mechanical.

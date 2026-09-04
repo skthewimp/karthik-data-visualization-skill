@@ -28,8 +28,7 @@ precision than the data supports, is not finished.
 1. State the reader's task: look up one value, compare down a column, compare
    across a row, or scan for outliers. The task decides ordering, emphasis, and
    any conditional formatting.
-2. Order rows and columns for that task - by the value being compared, not
-   alphabetically or by source order, unless lookup by name is the task.
+2. Order rows and columns for that task (see Craft principles).
 3. Format from data outward: values and their alignment first, emphasis second,
    rules and shading last.
 4. Apply the eraser test: remove any ink that does not carry data or necessary
@@ -57,22 +56,7 @@ precision than the data supports, is not finished.
   left-align text; align each header with its column body. Equalise the decimal
   count down a column so digit-length itself reads as magnitude - the number's
   size becomes a small bar chart.
-- **Precision keyed to variance, in both directions.** To compute the digits for a
-  column, use `dataviz-precision` (the `recommend_precision` MCP tool), which derives
-  the uniform rounding place from the column's spread; the rule is stated here. When
-  this table is built inside the construct pipeline, each column's format is already
-  resolved upstream and handed to you - apply the given per-column format and align to
-  it; do not re-derive the place.
-  Precision is significant
-  digits, not decimal places. Show the number that resolves the smallest
-  meaningful difference in the column - which cuts to the *left* of the decimal
-  point as well as the right. When the trailing digits of a large number carry no
-  signal, round them off to zeros (to tens, hundreds, thousands): 12,483 reads as
-  12,500 or 12,000 if that is the resolution the comparison needs. A column of
-  large, widely spread values usually wants coarser rounding and fewer decimals,
-  not more; over-precise trailing digits are noise that hides the magnitude the
-  reader is comparing. Round every value in a column to the same place. Do not
-  show precision the data cannot support, and never manufacture it to fill space.
+- **Precision keyed to variance.** Full rule and computation: `dataviz-precision` (the `recommend_precision` MCP tool), which derives one uniform rounding place from the column's spread. Inside the construct pipeline each column's format is resolved upstream and handed to you - apply and align to it, don't re-derive. In brief: significant digits not decimal places; round every value in a column to the same place; coarse-round the noise off large widely-spread values (12,483 → 12,500 or 12,000); never show or manufacture precision the data can't support.
 - **Column widths sized to content.** Give each column the width its content
   needs; wrap long text columns deliberately and never let one column's wrap
   distort the grid or push number columns out of scanning range. Number columns

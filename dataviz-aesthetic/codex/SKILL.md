@@ -5,15 +5,9 @@ description: Post-render composition gate - does the finished chart read as one 
 
 # Dataviz Aesthetic
 
-The **composition gate**. It runs after the chart is built and after the execution gate has
-cleared the defects, and asks a different question with a different lens: not "is any element
-wrong" but "does the whole thing read as one composed, premium image, or like styled default
-output with the finding buried in it".
+The **composition gate**. It runs after the chart is built and the execution gate has cleared the defects, asking a different question with a different lens: not "is any element wrong" but "does the whole thing read as one composed, premium image, or like styled default output with the finding buried in it".
 
-Execution hunts element by element. This gate does the opposite move: **step back and look at
-the whole export at delivery size as a picture**, before reading any single label. Most of what
-makes a chart look cheap is invisible up close and obvious from a step back - so the review
-happens from a step back.
+Execution hunts element by element. This gate does the opposite: **step back and look at the whole export at delivery size as a picture**, before reading any single label. Most of what makes a chart look cheap is invisible up close and obvious from a step back.
 
 ## Keep the roles separate
 

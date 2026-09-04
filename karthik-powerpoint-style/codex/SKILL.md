@@ -24,7 +24,7 @@ Before writing new slides on a topic, check whether Karthik's own decks, blogs, 
 
 1. Write the one-sentence claim for each slide before designing it.
 2. Choose the simplest evidence structure for that claim: chart, scorecard, table, timeline, comparison, or short argument.
-3. Title the slide plainly (see Slide titles): state the finding in plain words, or use a plain concept label or a direct question - never a crafted aphorism.
+3. Title the slide plainly - a finding in plain words, a concept label, or a direct question, never a crafted aphorism (see Slide titles).
 4. Put the main evidence large and central; remove anything that does not support the claim.
 5. Add only necessary context: timeframe, comparator, source, caveat, annotation, or next action.
 6. Use direct labels and annotations so the slide can be understood without presenter narration.

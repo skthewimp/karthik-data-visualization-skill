@@ -56,29 +56,11 @@ decomposition into one or several charts to selection.
 
 ## Candidate annotation claims
 
-A candidate annotation is **a fact from outside the dataset that explains what the data shows** -
-tied to the datum, series, period, or region it explains. Rainfall behind a spike when rainfall
-is not a column here; a regulation, tax, or ban that shifts the level; an acquisition, election,
-war, or strike at a break in the trend; a change of definition or collection method behind a
-jump. The chart cannot draw these, because they are not in the data - that is the whole reason
-they earn a mark.
+A candidate annotation is **a fact from outside the dataset that explains what the data shows**, tied to the datum, series, period, or region it explains: rainfall behind a spike when rainfall isn't a column, a regulation/tax/ban that shifts the level, an acquisition/election/war/strike at a trend break, a definition or collection-method change behind a jump. The chart can't draw these - that is why they earn a mark. (`chart-annotations` owns their wording and placement at build.)
 
-**A quantity that is in the data is never a candidate.** The encoding already draws it. "Peak",
-"all-time high", "record low", "from X to Y", "+38%", "doubled", "up 9 points", a rank, a trend,
-a crossover, an inflection, a gap between two series - the reader sees the shape; a callout that
-restates the shape adds nothing. A single mark's value, where it matters, becomes a **direct
-label** at build - one value on one point, decided there, not here. A change or comparison ("X to
-Y", "+38%", "doubled") is neither annotation nor label; its claim belongs in the title, in words.
-Do not emit any of these as candidate annotations.
+**A quantity in the data is never a candidate** - the encoding already draws it. "Peak", "all-time high", "from X to Y", "+38%", "doubled", a rank, a crossover, an inflection, a gap between series - the reader sees the shape, so a callout restating it adds nothing. A single mark's value, where it matters, becomes a **direct label** at build (decided there); a change or comparison is neither annotation nor label - its claim belongs in the title, in words. Don't emit any of these as candidates.
 
-**The bar, and why it is self-enforcing:** an annotation requires a fact you know from *outside*
-the chart - the brief, the domain, the source, the data owner. You cannot obtain one by studying
-the data harder. So **the default is an empty list, and most charts stay empty**, because most of
-the time no external fact is at hand. If you cannot name the outside event and where you know it
-from, there is nothing to mark. Never invent a cause to fill the slot - a made-up "likely due
-to..." is worse than no annotation. If you only suspect a link, either leave it off or, at build,
-word it as coincidence in time ("coincides with..."), never as established cause. You decide the
-*external fact and the datum it explains*; the build stage words and places it.
+**The bar is self-enforcing:** an annotation requires a fact you know from *outside* the chart (the brief, domain, source, data owner) - you can't get one by studying the data harder. So **the default is an empty list, and most charts stay empty.** If you can't name the outside event and where you know it from, there is nothing to mark. Never invent a cause to fill the slot; if you only suspect a link, leave it off or word it as coincidence in time ("coincides with..."), never established cause. You decide the *external fact and the datum it explains*; build words and places it.
 
 ## Honesty and boundaries
 
