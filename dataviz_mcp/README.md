@@ -223,6 +223,50 @@ Inputs:
 
 Both referenced PNGs are re-hashed before comparison. The result lists resolved, introduced, and persistent defects; blocking counts; dimensions; pixel difference; and whether the revision is mechanically improved. It does not make a substantive release decision.
 
+## Forward geometry and text
+
+These size the canvas, reserve the chrome, and place the text *before* (or with one measure render) so a weak model does not clip, squash, or collide on the first pass. All are mechanism only - they never choose the chart or write the annotation. See [`docs/mcp.md`](../docs/mcp.md) for the design rationale.
+
+### `recommend_layout`
+
+Sizes a clip-safe canvas from the chart's shape expressed as counts. Inputs: `x_slots`, `y_slots`, `filled_marks`, `n_panels`, `facet_scales` (`fixed`/`free`/`free_x`/`free_y`), `n_direct_labels`, `title_lines`/`subtitle_lines`/`footer_lines`, `x_labels`, `longest_x_label_chars`, `delivery_profile` (`chat`/`slide`/`document`). Returns `width_px x height_px x dpi`, a facet grid, x-label rotation, and reserved title/subtitle/footer bands. Demand past the delivery ceiling is warned, never squashed. Call at select, before build; feed the dims into the renderer and `recommend_text_placement`.
+
+### `reserve_frame`
+
+Places the chrome - title, subtitle, caption, footer, axis titles, tick bands, legend - blind, with no render, because chrome lives in the margins and does not depend on the data. Inputs: the frame strings (`title`, `subtitle`, `caption`, `footer`, `x_axis_title`, `y_axis_title`, `longest_x_tick`, `longest_y_tick`, `legend_side`, `longest_legend_label`), plus `width_px`/`height_px`/`dpi`/`delivery_profile`, per-role `font_pt` overrides, and `edge_margin_px`. Returns the `plot_area` rectangle the marks may fill and placement-ready `frame_blocks`. A frame too big for the canvas is warned, never squashed. Call at build, before the first render; pass `frame_blocks` on to `place_on_marks` as fixed obstacles.
+
+### `place_on_marks`
+
+Places labels glued to specific marks using their real pixel positions instead of a guess. Required inputs: `width_px`, `height_px`, `dpi`, `transform` (the `data_to_pixel` affine from the render's layout metadata), and `labels` (each with `data_x`/`data_y`). Optional: `marks` (bounding boxes, handed in as obstacles), `fixed_blocks` (from `reserve_frame`), `x_trans`/`y_trans` for log/sqrt/reverse ggplot axes, `max_annotation_width_frac`, `edge_margin_px`, `min_font_pt`. Projects each label through the transform and delegates to `recommend_text_placement`, so text-mark and text-text overlaps are de-collided on the first delivered chart. A non-Cartesian coord or unreproducible scale emits no transform and the tool refuses rather than project through a wrong map. Returns everything `recommend_text_placement` returns plus `projected_anchors`.
+
+### `recommend_labels`
+
+Selects *which* points on each series to label directly, within a per-series budget (`max_labels_per_series`, default 4). Pass one `{id, values:[...]}` entry per `series` in order; it claims endpoints and extremes first, then the largest step-to-step changes. Returns per-series `label_indices` and `reasons`. It selects points, not placement - feed the chosen anchors to `recommend_text_placement`.
+
+### `recommend_text_placement`
+
+Wraps a chart's text to fit its room and parks each movable label beside the mark it names, in priority order (data labels, then category/series labels, then free annotations). Required inputs: `width_px`, `height_px`, `dpi`, `blocks` (each `{id, text, role, anchor:{x,y}, placement?, anchors?, font_pt?, max_width_px?, max_lines?}`). Optional: `obstacles` (data-mark bounding boxes), `max_annotation_width_frac`, `edge_margin_px`, `min_font_pt`. Fixed roles (`title`/`subtitle`/`footer`/`caption`/`axis_label`/`data_label`) are wrapped, never moved; `label` and `annotation` are movable and de-collided against obstacles, travelling to the nearest clear area with a `leader_line` only when no adjacent spot exists. Returns each block's wrapped text and final `bbox`, `suggested_anchor`/`suggested_font_pt`/`suggested_wrap` when changed, a `redundant_annotations` list, and a canvas-level `suggested_orientation`/`suggested_canvas` when a portrait flip would help. It fits the labels already chosen; it invents none.
+
+## Colour and precision advisors
+
+Analytical mechanism for two decisions a chart always needs. They report and recommend; they never hard-block.
+
+### `recommend_colours`
+
+Picks and assigns colours for one graph from an `available` set (brand/context/default). Inputs: `available`, `n_series`, `background` (default `#FFFFFF`), optional `focal` (pinned to series 0), and `semantic_hints` (a list of `{series_index, colour}` hard pins or `{series_index, hue_family}` soft families, each with optional `alternates`). Chooses by max-min separation and background contrast; priority is series distinctness (hard), then meaning over contrast/CVD. Unmet or collided hints are reported in `semantic_findings`. Use even when colours are given - a specific chart still needs a which-and-how-assigned decision.
+
+### `validate_palette`
+
+Scores a palette on WCAG contrast, series distinctness, CVD, and grayscale survival. Inputs: `colours`, `background`, optional `text_colours`, `min_contrast_text` (default 4.5), `min_contrast_mark` (default 3.0). Returns a verdict plus ranked findings, each with a concrete nudge. Targets are soft: findings are reported, not hard-blocked.
+
+### `extract_palette_from_image`
+
+Samples dominant hues from a source chart image as a repair prior (brand/WCAG may override). Inputs: `image_path`, `max_colours` (default 8), `ignore_near_white_black` (default true).
+
+### `recommend_precision`
+
+Recommends significant digits / a uniform rounding place for a numeric column, derived from the spread (max - min), not individual values. Inputs: `values`, `role` (`axis`/`label`/`table_column`), `target_steps` (default 2), optional `smallest_meaningful_difference`, and `exact` (identifiers or exact-lookup only - preserves every digit and flags `exact_override`). Every value is rounded to one uniform place.
+
 ## Optional audited repair integration
 
 The default repair path can call `render_and_inspect_chart` without opening a case. When an audit trail or benchmark is requested, the case manager preserves the bundle and inspection beside an iteration:

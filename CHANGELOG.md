@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Tool docs catch up to the 15-tool MCP surface
+
+The `Tool contracts` catalog and the module map had lagged behind the tools added over the last several changes, so the two published references disagreed with each other and with the registered surface (the set asserted in `test_server.py`).
+
+- **`dataviz_mcp/README.md`.** Its `Tool contracts` section documented only the six render/inspect/compare tools and never grew the nine advisors added since (colour/precision in `4d45f6b`; frame, `place_on_marks`, `recommend_text_placement`, `recommend_labels`, `recommend_layout` in later commits) - even though the root README names this file the home for tool parameters. Added concise contracts for all nine under two new subsections, `Forward geometry and text` and `Colour and precision advisors`.
+- **`docs/mcp.md`.** The module map omitted `palette.py` (colour selection/scoring/sampling) and `precision.py` (spread-derived significant digits). Added both rows so the map covers every module behind the registered tools.
+
 ### `refit_chart`: close the render -> inspect -> resize loop in code
 
 When a first render clips the canvas edge or squashes its facet panels, the fix is pure arithmetic - the inspector already reports the exact overflow in pixels and `suggest_dims_for_overflow` already turns it into a grown canvas - yet today it costs a full model turn: the fix vectors go to the model, which edits code and re-renders. `refit_chart` closes that loop deterministically.

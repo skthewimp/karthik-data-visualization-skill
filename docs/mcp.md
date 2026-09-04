@@ -183,6 +183,8 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 | `dataviz_mcp/frame.py` | Blind frame reservation - plot rectangle from title/axis/legend text (`reserve_frame`) |
 | `dataviz_mcp/text_fit.py` | Forward text wrapping and annotation de-collision (`recommend_text_placement`), plus data-coord label placement from a measure render (`place_on_marks`) |
 | `dataviz_mcp/labels.py` | Direct-label point selection within a budget (`recommend_labels`) |
+| `dataviz_mcp/palette.py` | Colour selection, assignment, WCAG/CVD scoring, and image sampling (`recommend_colours`, `validate_palette`, `extract_palette_from_image`); uses `color_math.py` |
+| `dataviz_mcp/precision.py` | Spread-derived significant digits for a numeric column (`recommend_precision`) |
 | `dataviz_mcp/comparison.py` | Hash-validated revision comparison |
 | `dataviz_mcp/server.py` | Stdio MCP surface (render, inspect, compare, and the recommend_* resolution tools) |
 | `dataviz_mcp/review_views.py` | Full, delivery, panel, hierarchy, and dense-placement views |
