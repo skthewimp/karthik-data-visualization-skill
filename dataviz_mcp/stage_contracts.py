@@ -1098,8 +1098,11 @@ annotations, wording, brand or style preferences. Apply the installed writing or
 skill, if one exists in this environment, to every reader-facing phrase; if none is
 installed, apply the prompt's stated preferences. Render one real artifact through the
 project's renderer, then inspect that exact export at its delivery size and correct
-consequential clipping, collision, hierarchy, comparison, labelling, colour, content, or
-prompt-compliance defects before returning. Make no colour decision here: apply the ordered
+consequential collision, hierarchy, comparison, labelling, colour, content, or
+prompt-compliance defects before returning. Do not hand-edit the canvas dimensions to chase
+edge clipping, overflow, or squashed panels - that resizable geometry is settled
+deterministically by ``refit_chart`` at the execution gate, which grows the canvas by the exact
+measured overflow; spend your effort on the defects a resize cannot fix. Make no colour decision here: apply the ordered
 palette resolved from the select stage's ``colour_plan`` by ``recommend_colours`` (supplied by
 the driver, or produced by calling the tool with the plan's available colours, ``colour_groups``,
 background, focal, and semantic hints), assign it in the palette's order, and record what you
@@ -1152,8 +1155,18 @@ process - the post-render gate. You receive the built candidate at its delivery 
 plan. Check the RENDERING, not the idea (the idea gate owns substance): clipping, collisions,
 label-to-mark association, typography hierarchy, duplicated scaffolding, colour contrast and
 grayscale / CVD survival, the numbers' precision as displayed, and any ink that carries no
-data, label, or necessary context (the eraser test). The geometry verdict is not yours to eyeball:
-run ``render_and_inspect_chart`` (or ``inspect_rendered_chart`` on the exact export) and record
+data, label, or necessary context (the eraser test). Settle the resizable geometry
+deterministically FIRST, before you spend a model turn on it: run ``refit_chart`` on the build's
+source at its delivery size. It renders, inspects, and grows the canvas by the exact overflow the
+inspector measured - clearing edge clipping, overflow, and squashed panels in code, up to its
+iteration budget and honouring the delivery ceiling (warned, never squashed) - so you never hand
+those pure-arithmetic fixes to a model edit. Read its ``resolved`` flag, ``final_dimensions``, and
+``history``; carry any ceiling / max-iterations / underfill ``warnings`` into
+``residual_limitations``. refit fixes ONLY what resizing fixes; escalate the residual - label
+collisions, hierarchy, colour, precision, ink, and an underfilled canvas (a design call, not a
+resize) - to the model revision below. The geometry verdict is not yours to eyeball:
+read the inspection ``refit_chart`` already produced on its final artifact (or run
+``inspect_rendered_chart`` on the exact export) and record
 what it measured in ``inspection`` - ``geometry_source``, the smallest text size, the overlap
 count, and whether anything is clipped. Only when the inspector genuinely cannot run (check
 ``probe_renderers``) may you set ``geometry_source: visual-only``; then leave the measured numbers

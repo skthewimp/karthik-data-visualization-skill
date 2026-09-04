@@ -285,6 +285,18 @@ def test_build_and_execution_enforce_direct_label_placement() -> None:
     assert "only when the placement result contains one" in execution
 
 
+def test_execution_runs_refit_before_escalating_geometry_to_the_model() -> None:
+    """The post-render gate settles resizable geometry with refit_chart first, then escalates."""
+    build = " ".join(sc.stage("repair", "build").instructions.split())
+    execution = " ".join(sc.stage("repair", "execution").instructions.split())
+    assert "refit_chart" in execution
+    assert "FIRST" in execution
+    assert "escalate the residual" in execution
+    # Build stops hand-editing canvas dims for clipping/overflow/squash - refit owns that.
+    assert "refit_chart" in build
+    assert "Do not hand-edit the canvas dimensions" in build
+
+
 def test_build_derives_text_placement_and_keeps_data_out_of_layout() -> None:
     """Existing text blocks trigger placement; data coordinates never reserve chrome."""
     build = " ".join(sc.stage("repair", "build").instructions.split())

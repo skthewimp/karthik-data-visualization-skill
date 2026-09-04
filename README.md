@@ -375,7 +375,7 @@ See [`tester/README.md`](tester/README.md) and the [`repair-loop product roadmap
 
 The metadata-first MCP server exposes deterministic chart rendering, exact-artifact geometry inspection, and revision comparison. It leaves analytical and visual judgement in the skills.
 
-The server exposes five tools: `probe_renderers`, `render_and_inspect_chart`, the backward-compatible Matplotlib-only `render_chart`, `inspect_rendered_chart`, and `compare_chart_artifacts`. The backend-neutral workflow produces a PNG, chart spec, layout metadata, inspection, review views, and a hash-bound manifest. Comparison remains mechanical and does not make a subjective release decision.
+The server exposes six rendering/geometry tools: `probe_renderers`, `render_and_inspect_chart`, the backward-compatible Matplotlib-only `render_chart`, `inspect_rendered_chart`, `refit_chart` (the deterministic render -> inspect -> grow loop that clears clipping/overflow/squash without a model turn), and `compare_chart_artifacts`. The backend-neutral workflow produces a PNG, chart spec, layout metadata, inspection, review views, and a hash-bound manifest. Comparison remains mechanical and does not make a subjective release decision.
 
 See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, version guarantees, inspection coverage, and tested repair sequence. See [`dataviz_mcp/README.md`](dataviz_mcp/README.md) for installation, client registration, tool parameters, the chart-builder contract, and the local security boundary.
 

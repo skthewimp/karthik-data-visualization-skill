@@ -152,6 +152,16 @@ repo's; read them as the mechanism, and apply the same checks visually when the 
   what it finds - per-edge `overflow_px` / `grow_margin_px`, `separation_needed_px`,
   `panel_heights_px`, and a `geometry_summary` whose `suggested_dims` is computed by the same
   layout math - so a weak model reads "grow the top by 14px" instead of judging by eye.
+- **Refit closes the resize loop (at `execution`, deterministically FIRST).** Reading "grow the
+  top by 14px" and re-rendering is pure arithmetic - it should not cost a model turn. `refit_chart`
+  runs that loop in code: render -> inspect -> while clipping/overflow/squash remains, grow the
+  canvas by the measured overflow and re-render, up to an iteration budget, honouring the delivery
+  ceiling (warned, never squashed) and stopping when a grow stops reducing the residual. Run it
+  first at the execution gate; it fixes ONLY what resizing fixes (edge clipping, overflow, squashed
+  panels), so the model then handles the residual - label collisions, hierarchy, colour, precision,
+  ink. Underfill has no exact shrink vector, so refit *reports* it (a design call: denser layout,
+  bigger marks, or a table) and never resizes for it. Canvas size, dpi, and the iteration cap are
+  inputs with delivery-profile defaults.
 
 ## The plan carries across the gate
 

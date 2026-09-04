@@ -47,6 +47,8 @@ The PNG remains the deliverable and source of truth. `layout-metadata.json` reco
 
 `inspect_rendered_chart` rejects metadata whose artifact hash or dimensions do not match the PNG. If no metadata is available, it records the raster hash and dimensions but marks geometry checks incomplete. It does not convert an unknown result into a pass.
 
+`refit_chart` closes the render -> inspect -> resize loop in code. When a first render clips the canvas edge or squashes its facet panels, the fix is not a judgement call - the inspector already reports the exact overflow in pixels and `suggest_dims_for_overflow` already turns it into a grown canvas. `refit_chart` runs that loop: render, inspect, and while a resize-fixable defect remains, grow the canvas by the measured overflow and re-render - up to `max_iterations`, honouring the delivery-profile ceiling (warned, never squashed) and stopping when a grow no longer reduces the residual. It fixes only what growing fixes (edge clipping, overflow, squashed panels); underfill has no exact shrink vector, so it is reported (`underfilled` + a warning) but never resized, and label collisions stay `place_on_marks`' job. `max_iterations`, `dimensions`, and `delivery_profile` are inputs with profile defaults. It returns the final artifact, inspection path, `final_dimensions`, a per-pass `history` (dimensions and residual metrics each pass), `warnings`, and a `resolved` flag - so a driver runs it deterministically first at the execution gate and escalates only the residual, non-resize defects to the model. `dataviz_mcp/refit.py`.
+
 ## Generation sequence
 
 The intellectual stages remain unchanged:
@@ -176,6 +178,7 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 |---|---|
 | `dataviz_mcp/rendering.py` | Trusted builder execution and metadata-first render bundle |
 | `dataviz_mcp/inspection.py` | Exact-artifact geometry checks, defect report, and fix vectors |
+| `dataviz_mcp/refit.py` | Deterministic render -> inspect -> grow loop that clears clipping/overflow/squash (`refit_chart`) |
 | `dataviz_mcp/layout.py` | Forward canvas sizing (`recommend_layout`) and shared geometry primitives |
 | `dataviz_mcp/frame.py` | Blind frame reservation - plot rectangle from title/axis/legend text (`reserve_frame`) |
 | `dataviz_mcp/text_fit.py` | Forward text wrapping and annotation de-collision (`recommend_text_placement`), plus data-coord label placement from a measure render (`place_on_marks`) |

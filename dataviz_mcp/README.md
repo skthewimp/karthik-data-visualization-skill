@@ -192,6 +192,25 @@ The report includes artifact hash and dimensions, inspection mode, completeness,
 
 Supplying mismatched metadata is an error. Omitting metadata produces an explicit raster-only, incomplete report rather than a pass.
 
+### `refit_chart`
+
+Closes the render -> inspect -> resize loop in code, so pure geometry arithmetic never costs a model turn. Renders, inspects, and while clipping/overflow/squash remains, grows the canvas by the exact overflow the inspector measured and re-renders.
+
+Inputs:
+
+| Parameter | Required | Meaning |
+|---|---:|---|
+| `source_path` | Yes | Trusted local `.py` (matplotlib) or `.R` (ggplot2) chart builder |
+| `output_dir` | Yes | Directory the artifact bundle is written to |
+| `renderer` | No | `auto` / `ggplot2` / `matplotlib`; defaults to `auto` |
+| `delivery_profile` | No | `chat` / `slide` / `document`; sets base size and the growth ceiling. Defaults to `chat` |
+| `dimensions` | No | Starting `width_px`/`height_px`/`dpi`; defaults to the profile |
+| `max_iterations` | No | Maximum regrows after the first render; defaults to 3 |
+| `content` | No | `chart` or `table`; defaults to `chart` |
+| `artifact_name` / `build_function` | No | Passed through to the renderer |
+
+Scope is only what growing fixes - edge clipping, overflow, squashed panels. Underfill (no exact shrink vector) is reported (`underfilled` + a warning) but never resized; label collisions stay `place_on_marks`' job. The loop exits when geometry is clean, the delivery ceiling is reached (warned, never squashed), `max_iterations` is hit, or a grow stops reducing the residual. Returns the final artifact, inspection path, `final_dimensions`, a per-pass `history`, `warnings`, and a `resolved` flag.
+
 ### `compare_chart_artifacts`
 
 Inputs:

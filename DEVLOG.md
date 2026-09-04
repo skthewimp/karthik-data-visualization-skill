@@ -1,5 +1,35 @@
 # Devlog
 
+## 2026-09-04 - `refit_chart`: close the render -> inspect -> resize loop in code
+
+Built the `refit_chart` MCP tool. The three pre/post-render geometry tools (`reserve_frame`,
+`place_on_marks`, `suggest_dims_for_overflow`) already hand *fix vectors* back to the model when
+a first render clips or squashes - and the model then spends a full turn editing dims and
+re-rendering. That is pure arithmetic dressed up as a model call. `refit_chart` runs the loop
+in code: render -> inspect -> while clipping/overflow/squash remains, grow the canvas by the
+exact measured overflow (`suggest_dims_for_overflow`) and re-render, up to `max_iterations`,
+honouring the delivery ceiling (warned, never squashed) and stopping when a grow stops reducing
+the residual.
+
+Design fork I put to Karthik before coding: the scope line named "underfilled canvas", but
+underfill has no exact read-back resize vector (the report gives only a ratio, and the fix is a
+*shrink* that is predict-and-check, not exact arithmetic - which collides with the repo's
+read-back-not-predict rule). Asked; he chose **only grow, report underfill**. So refit grows
+deterministically for clip/overflow/squash and surfaces underfill as a residual (`underfilled` +
+a warning) for the model to handle as a design call (denser layout / bigger marks / table).
+
+TDD throughout: 16 tests (pure helpers, a fake-renderer loop harness for every exit path -
+resolved / ceiling / no-improvement / max-iterations / underfill - plus two *live* renders).
+Proven live on both backends: a clipped matplotlib title 396px over the edge clears to 0 in one
+grow; squashed ggplot facet panels grow 9.7px -> 136px monotonically (asymptotic under the
+shared single-deficit squash math, so multi-row facets ride the budget and report an honest
+residual rather than resolving fully - a property of the existing shared math, not a refit bug).
+
+Wired it into the server (14 -> 15 tools), the `dataviz-construct` build/execution stage
+contracts (execution runs refit deterministically FIRST, then escalates only non-resize
+residuals; build no longer hand-edits dims for clipping), both SKILL.md copies, `docs/mcp.md`,
+the READMEs, and CHANGELOG. Full suite 195 -> 212 green.
+
 ## 2026-09-02 - Canonical-examples audit: two more shipped failures
 
 Walked the five canonical example outputs. Cases 01 and 05 were the two already fixed earlier

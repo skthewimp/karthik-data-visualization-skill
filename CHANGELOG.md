@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### `refit_chart`: close the render -> inspect -> resize loop in code
+
+When a first render clips the canvas edge or squashes its facet panels, the fix is pure arithmetic - the inspector already reports the exact overflow in pixels and `suggest_dims_for_overflow` already turns it into a grown canvas - yet today it costs a full model turn: the fix vectors go to the model, which edits code and re-renders. `refit_chart` closes that loop deterministically.
+
+- **`refit_chart` (new tool, `dataviz_mcp/refit.py`).** Renders, inspects, and while a resize-fixable defect remains (edge clipping, overflow, squashed panels) grows the canvas by the measured overflow and re-renders - up to `max_iterations`, honouring the delivery-profile ceiling (warned, never squashed) and stopping when a grow no longer reduces the residual (loop guard). It fixes only what growing fixes: underfill has no exact shrink vector, so it is reported (`underfilled` + a warning, a design call) but never resized, and label collisions stay `place_on_marks`' job. Canvas size, dpi, and the iteration cap are inputs with profile defaults, not baked constants. Returns the final artifact, inspection path, `final_dimensions`, a per-pass `history`, `warnings`, and a `resolved` flag. Proven live on both backends: a clipped matplotlib title (396px over the edge) clears to 0 in one grow; squashed ggplot facet panels grow monotonically until the loop's budget or the panel floor.
+- **`dataviz-construct` (both copies) and the build/execution stage contracts.** The execution gate now runs `refit_chart` deterministically FIRST to settle resizable geometry, then escalates only the residual (label collisions, hierarchy, colour, precision, ink, underfill) to a model revision. The build stage no longer hand-edits canvas dimensions to chase clipping/overflow/squash - refit owns that.
+
 ### First-build collision avoidance: reserve the frame blind, place on-mark labels from one measure render
 
 Harness analysis of first-version charts found the revision loop is dominated by geometry the model was solving *by eye after* rendering: clipped/out-of-bounds text (73%), text-text collisions (67%), text-mark collisions (59%), underfilled canvas (34%). Two new deterministic MCP tools move that work before the first delivered chart, so the model closes the loop only on genuine residuals.

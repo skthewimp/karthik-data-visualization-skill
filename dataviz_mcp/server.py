@@ -17,6 +17,7 @@ from .palette import (
     validate_palette as validate_palette_core,
 )
 from .precision import recommend_precision as recommend_precision_core
+from .refit import refit_chart as refit_core
 from .rendering import (
     probe_renderers as probe_core,
     render_and_inspect_chart as render_inspect_core,
@@ -82,6 +83,43 @@ def create_server() -> Any:
             artifact_name,
             build_function,
             content=content,
+        )
+
+    @server.tool()
+    async def refit_chart(
+        source_path: str,
+        output_dir: str,
+        renderer: str = "auto",
+        delivery_profile: str = "chat",
+        dimensions: dict[str, Any] | None = None,
+        max_iterations: int = 3,
+        content: str = "chart",
+        artifact_name: str = "chart.png",
+        build_function: str = "build_chart",
+    ) -> dict[str, Any]:
+        """Render, inspect, and grow the canvas in code until clipping/overflow/squash clears.
+
+        Closes the render -> inspect -> resize loop deterministically, so a weak model never
+        spends a model turn on pure geometry arithmetic. Each pass reads the exact overflow the
+        inspector measured and grows the canvas by ``suggest_dims_for_overflow``'s amount, up to
+        ``max_iterations``, honouring the delivery-profile ceiling (warned, never squashed) and
+        stopping when a grow no longer reduces the residual. Scope is only what *growing* fixes -
+        edge clipping, overflow, squashed panels; underfill (no exact shrink vector) is reported
+        but never resized, and label collisions stay ``place_on_marks``' job. Returns the final
+        artifact, inspection path, ``final_dimensions``, a per-pass ``history``, ``warnings``, a
+        ``resolved`` flag, and ``underfilled``. Run it FIRST at the execution gate, then escalate
+        only the residual (non-resize) defects to a model revision.
+        """
+        return refit_core(
+            source_path,
+            output_dir,
+            renderer,
+            delivery_profile,
+            dimensions,
+            max_iterations,
+            content,
+            artifact_name,
+            build_function,
         )
 
     @server.tool()
