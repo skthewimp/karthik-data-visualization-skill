@@ -64,9 +64,11 @@ ann <- d %>%
 geom_text(data = ann, aes(x, y, label = label), hjust = 0, ...)
 ```
 
+Where the harness ships forward placement tools, let them settle the geometry deterministically rather than by eye: `reserve_frame` fixes the title, caption, axis, and legend bands blind so the plot area is known before anything is drawn, and `place_on_marks` projects the annotated datum to its real pixel position (from one measure render), anchors the text there, and de-collides it against the marks and other labels through `recommend_text_placement` - so a clip or an overlap is prevented, not discovered after the render. A free callout tied to no single datum routes through `recommend_text_placement` directly. Where those tools are absent, apply the same principles by eye:
+
 - **Anchor on the datum, then offset into whitespace.** A group's centroid is the worst resting place - the densest part of the cloud. Anchor on the feature, push the text to the outside edge where no mark sits.
 - Text must never sit on data, gridlines, or another label. A connector must never cross other data; use one only when proximity alone does not make the link clear.
-- **Reserve room when setting scale limits, on every edge the text can reach** - labels clip left, right, top, and bottom. Extend the limits in the direction the text runs and turn clipping off; do not discover the clip after rendering.
+- **Reserve the room for text in the margin, not by stretching the data scale.** Labels clip on every edge the text can reach - left, right, top, bottom - so make the room before rendering. But the quantitative scale represents the data domain: widen the plot margin (or let `reserve_frame` reserve the band) to hold the text, rather than extending the axis limits to hold non-data content, and never reserve the same room twice in both the scale and the margin. Turn clipping off; do not discover the clip after rendering.
 - If no honest placement exists, change the chart - widen margins, expand the range, move the panel - before dropping the mark.
 
 ## Visual weight
@@ -99,7 +101,7 @@ Fix and re-render. Do not declare done from code inspection.
 | "Caused by X" from a coincidence in time | Word it "coincides with" / "followed"; claim cause only if established |
 | Annotation restates the title | Cut it; the title already said it |
 | Hand-typed count or "flat"/"doubled" never checked | Numbers and comparative words are computed from the same data as the mark |
-| Text clipped at a panel edge | Reserve axis headroom in the direction the text runs |
+| Text clipped at a panel edge | Reserve the room in the margin (or via `reserve_frame`), not by stretching the data scale |
 | Group label parked at the cluster centroid | Anchor on the group, offset to the outside edge |
 | External fact asserted with no source | Cite where it comes from; it is a factual claim about the world |
 | Declared done without rendering | Export and inspect |
