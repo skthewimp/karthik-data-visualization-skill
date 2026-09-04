@@ -143,6 +143,28 @@ def test_auto_renderer_prefers_ggplot2_and_emits_full_contract(tmp_path: Path) -
     not probe_renderers()["renderers"]["ggplot2"]["available"],
     reason="ggplot2+ragg not installed",
 )
+def test_ggplot_value_labels_on_marks_are_data_labels_not_collisions(tmp_path: Path) -> None:
+    # ggplot cannot gid a geom_text value label as data_label, so the adapter tags in-panel data
+    # text as data_label by construction. It must be exempt from the text-mark collision check even
+    # when it sits on its bar, not flagged as an accidental overlap.
+    source = Path(__file__).parent / "fixtures" / "ggplot_value_labels_fixture.R"
+    bundle = render_and_inspect_chart(
+        str(source),
+        str(tmp_path / "ggplot-values"),
+        renderer="ggplot2",
+        dimensions={"width_px": 800, "height_px": 500, "dpi": 144},
+    )
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    inspection = json.loads(Path(bundle["inspection_path"]).read_text())
+    data_labels = [e for e in layout["elements"] if e.get("role") == "data_label"]
+    assert len(data_labels) == 4, [e["role"] for e in layout["elements"]]
+    assert "TEXT_MARK_COLLISION" not in {d["code"] for d in inspection["defects"]}
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
 def test_ggplot_vertical_bars_share_a_baseline_and_are_centred(tmp_path: Path) -> None:
     # Regression: ggplot's GeomRect anchors each bar at (xmin, ymax) with
     # just=c("left","top"). The adapter once treated that anchor as the box centre and

@@ -1088,7 +1088,11 @@ def _render_ggplot2(
             continue
         if kind == "text":
             lower_name = name.lower()
-            child_role = "annotation" if "annot" in lower_name else "label"
+            # ggplot cannot gid a value on its mark the way matplotlib can: an in-panel geom_text /
+            # geom_label is data-driven by construction, so it IS that mark's value label. Tag it
+            # data_label (exempt from the text-mark collision check, like a gid-tagged matplotlib
+            # label); a named annotation layer stays annotation.
+            child_role = "annotation" if "annot" in lower_name else "data_label"
             elements.append(
                 {
                     "id": row["id"],
