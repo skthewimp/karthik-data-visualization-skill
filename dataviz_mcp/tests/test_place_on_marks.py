@@ -83,15 +83,22 @@ def test_an_on_mark_data_label_stays_at_its_projected_anchor():
 
 
 def test_place_on_marks_refuses_without_a_transform():
-    # A ggplot render with no emitted transform (coord_flip/polar/facet) must make this fail
-    # loudly so the driver falls back to ggrepel, not project through a missing map.
-    with pytest.raises(ValueError, match="data->pixel transform"):
+    # A ggplot render with no emitted transform (a non-Cartesian coord_trans/polar/sf, or an
+    # unreproducible date/logit/custom scale) must make this fail loudly so the driver falls
+    # back to ggrepel, not project through a missing map.
+    with pytest.raises(ValueError, match="data->pixel transform") as excinfo:
         place_on_marks(
             800, 600, 144, [],
             labels=[{"id": "l", "text": "x", "role": "label",
                      "data_x": 0, "data_y": 0, "max_width_px": 80, "max_lines": 1}],
             marks=[],
         )
+    message = str(excinfo.value)
+    # The guidance must name the truly-unsupported cases and must NOT claim the supported
+    # ones (coord_flip, log/sqrt/reverse scales, facets) emit no transform.
+    assert "coord_trans" in message and "polar" in message
+    assert "included" in message  # coord_flip / scales / facets named as SUPPORTED
+    assert "coord_flip/polar" not in message  # the old lie grouped coord_flip with unsupported
 
 
 def _overlap(a, b, tol=0.5):

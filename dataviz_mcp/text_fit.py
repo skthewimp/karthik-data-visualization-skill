@@ -720,10 +720,12 @@ def place_on_marks(
     if not transform or len(transform) < 2 or len(transform[0]) < 3 or len(transform[1]) < 3:
         raise ValueError(
             "place_on_marks needs a data->pixel transform (the render's "
-            "transforms[i].data_to_pixel_top_left). The ggplot render emits none for a "
-            "non-cartesian coord (coord_flip/polar/trans), a non-identity scale, or a "
-            "faceted plot - place those labels with the renderer's own repel (e.g. ggrepel) "
-            "and verify with inspect_rendered_chart instead."
+            "transforms[i].data_to_pixel_top_left). Every CoordCartesian ggplot emits one - "
+            "coord_flip, log/sqrt/reverse scales, and facets (one transform per panel, keyed "
+            "by axes_id) included. The render emits none only for a non-Cartesian coord "
+            "(coord_trans/polar/sf) or an unreproducible scale transform (date/logit/custom); "
+            "place those labels with the renderer's own repel (e.g. ggrepel) and verify with "
+            "inspect_rendered_chart instead."
         )
     blocks: list[dict[str, Any]] = list(fixed_blocks or [])
     projected: dict[str, dict[str, float]] = {}
