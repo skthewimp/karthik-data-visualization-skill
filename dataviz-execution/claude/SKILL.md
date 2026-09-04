@@ -47,13 +47,24 @@ above, set `geometry_source: visual-only`, and record what you saw. A visual rea
 point sizes - so note those as residual limitations rather than reporting measured precision you do
 not have. Never describe a check you did not run as complete, and never invent inspector metadata.
 
+Where a deterministic inspector is present, settle the **resizable** geometry deterministically
+FIRST, before spending a model turn on it. Edge clipping, off-canvas overflow, and squashed facet
+panels are pure arithmetic - the fix is a grown canvas, not a judgement - so run `refit_chart` on
+the build's source at its delivery size. It renders, inspects, and while a resize-fixable defect
+remains grows the canvas by the exact overflow the inspector measured and re-renders, up to its
+iteration budget, honouring the delivery ceiling (warned, never squashed) and stopping when a grow
+no longer shrinks the residual. Read the inspection it already produced on its final artifact (or
+run `inspect_rendered_chart` on the exact export) and record what it measured. `refit_chart` fixes
+ONLY what resizing fixes; carry any ceiling / max-iteration / underfill warnings into
+`residual_limitations`, and escalate the residual - label collisions, hierarchy, colour, precision,
+ink, and an underfilled canvas (a design call, not a resize) - to the focused revision below.
+
 The named flags below are what this repo's deterministic inspector emits; where it is absent, read
-each as the principle to apply by eye. When the inspector flags a geometry defect it also hands you the fix vector, so a revision is a
-number, not a guess: `geometry_summary.suggested_dims` (a grown `width_px`/`height_px` from the
+each as the principle to apply by eye. When the inspector flags a geometry defect it also hands you the fix vector, so a residual the resize loop cannot settle is
+still a number, not a guess: `geometry_summary.suggested_dims` (a grown `width_px`/`height_px` from the
 same math `recommend_layout` uses), per-edge `overflow_px` / `grow_margin_px` on clipped
 elements, `separation_needed_px` on colliding labels, and `panel_heights_px` /
-`min_panel_height_px` for squashed facets. Apply the suggested dims and re-render rather than
-nudging by eye; for colliding annotations, feed the marks back through `recommend_text_placement`
+`min_panel_height_px` for squashed facets. For colliding annotations, feed the marks back through `recommend_text_placement`
 instead of hand-placing them. On-mark data labels are the exception: a value the plotting layer
 already positioned on its mark or at a deliberate fixed offset from it is position-fixed by the
 data. Pass it as role `data_label` - wrapped, never moved - and never list its own mark in
