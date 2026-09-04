@@ -563,12 +563,15 @@ pdf(NULL)
 source(source_path, local=.GlobalEnv)
 builder <- get(build_function, mode="function", inherits=TRUE)
 built <- builder()
+plot_obj <- NULL  # the ggplot object, whether returned bare or as list(plot=)
 if (inherits(built, "ggplot")) {
   metadata <- list()
+  plot_obj <- built
   gt <- ggplotGrob(built)
 } else if (is.list(built) && inherits(built$plot, "ggplot")) {
   metadata <- built$metadata
   if (is.null(metadata)) metadata <- list()
+  plot_obj <- built$plot
   gt <- ggplotGrob(built$plot)
 } else if (inherits(built, "gtable")) {
   metadata <- list()
@@ -681,6 +684,18 @@ gp_value <- function(gp, field, index, fallback="") {
 unit_values <- function(value) {
   if (is.null(value)) return(numeric())
   suppressWarnings(as.numeric(value))
+}
+
+# Name of a scale's transformation, tolerant across ggplot versions (transformation slot
+# in >= 3.5, trans before). A discrete scale has none -> treat as identity (its positions
+# are already numeric). place_on_marks reproduces identity/log/sqrt/reverse; any other
+# name leaves the panel without a transform so the consumer falls back.
+trans_name <- function(sc) {
+  tr <- tryCatch(sc$transformation, error=function(e) NULL)
+  if (is.null(tr)) tr <- tryCatch(sc$trans, error=function(e) NULL)
+  nm <- tryCatch(tr$name, error=function(e) NULL)
+  if (is.null(nm) || is.na(nm) || nm %in% c("<none>", "<err>")) return("identity")
+  nm
 }
 
 # grid justification -> (hjust, vjust) in [0,1], where hjust 0=left/1=right and
@@ -801,8 +816,7 @@ capture_panel_grob <- function(g, prefix, px, py, pw, ph) {
   captured
 }
 
-panel_px <- NA_real_; panel_py <- NA_real_
-panel_pw <- NA_real_; panel_ph <- NA_real_; panel_id <- ""
+panel_boxes <- list()
 rows <- vector("list", nrow(gt$layout))
 for (i in seq_len(nrow(gt$layout))) {
   item <- gt$layout[i,]
@@ -846,10 +860,7 @@ for (i in seq_len(nrow(gt$layout))) {
     px, py, pw, ph
   )
   if (startsWith(grob_name, "panel") && inherits(grob, "gTree")) {
-    if (is.na(panel_px)) {
-      panel_px <- px; panel_py <- py; panel_pw <- pw; panel_ph <- ph
-      panel_id <- paste0("gg-", i)
-    }
+    panel_boxes[[grob_name]] <- list(id=paste0("gg-", i), px=px, py=py, pw=pw, ph=ph)
     for (child_name in names(grob$children)) {
       if (grepl("^(grill|panel\\.border|NULL)", child_name)) next
       child_rows <- capture_panel_grob(
@@ -859,34 +870,54 @@ for (i in seq_len(nrow(gt$layout))) {
     }
   }
 }
-# Data->pixel affine for place_on_marks. Only for a single-panel, non-flipped
-# CoordCartesian plot with a resolved panel box: there a linear map from the panel's
-# data ranges to its pixel rectangle is exact. Any other coord (flip, trans, polar,
-# sf) or a facet grid is left without a transform on purpose, so the consumer refuses
-# and falls back rather than projecting through a wrong affine. Packed into one row
-# (kind="transform", coefficients a;c;e;d;e2;f2 in x_points, panel id in name) so the
-# CSV channel needs no schema change.
+# Data->pixel affine(s) for place_on_marks, one per panel. Emitted for a CoordCartesian
+# plot (coord_flip included: panel_params reports screen-oriented ranges, so a flip is the
+# same affine with the axes' roles swapped - x drives the vertical, y the horizontal). The
+# affine lives in the axes' transformed space, so each panel also carries its x/y scale
+# transform name; place_on_marks applies that (identity/log/sqrt/reverse) before the map.
+# A panel whose scale uses an unreproducible transform (date, logit, custom), or any
+# non-Cartesian coord (trans, polar, sf), is skipped so the consumer falls back rather
+# than project through a wrong map. Packed one row per panel (kind="transform",
+# coefficients a;c;e;d;e2;f2 in x_points, "x_trans;y_trans" in y_points, panel id in name).
+supported_trans <- c("identity", "log-10", "log10", "log-2", "log2", "log", "sqrt", "reverse")
 transform_rows <- list()
-if (inherits(built, "ggplot") && !is.na(panel_px) && is.finite(panel_pw) && panel_pw > 0) {
+if (!is.null(plot_obj) && length(panel_boxes) > 0) {
   tryCatch({
-    bp <- ggplot_build(built)
-    pps <- bp$layout$panel_params
-    coord <- built$coordinates
-    cartesian <- inherits(coord, "CoordCartesian") && !inherits(coord, "CoordFlip")
-    if (cartesian && length(pps) == 1) {
-      pp <- pps[[1]]
-      xr <- pp$x.range; yr <- pp$y.range
-      if (length(xr) == 2 && length(yr) == 2 &&
-          is.finite(diff(xr)) && diff(xr) != 0 &&
-          is.finite(diff(yr)) && diff(yr) != 0) {
-        sx <- panel_pw / (xr[2] - xr[1])
-        sy <- panel_ph / (yr[2] - yr[1])
-        # pixel_x = sx*data_x + (panel_px - xr1*sx)
-        # pixel_y(top-left) = -sy*data_y + (panel_py + panel_ph + yr1*sy)
-        coeff <- paste(c(sx, 0, panel_px - xr[1] * sx,
-                         0, -sy, panel_py + panel_ph + yr[1] * sy), collapse=";")
-        transform_rows[[1]] <- row_frame(
-          "transform-1", panel_id, "", 0, 0, 0, 0, "transform", "", "", "", coeff, ""
+    bp <- ggplot_build(plot_obj)
+    L <- bp$layout
+    pps <- L$panel_params
+    is_flip <- inherits(plot_obj$coordinates, "CoordFlip")
+    is_cart <- inherits(plot_obj$coordinates, "CoordCartesian")
+    if (is_cart) {
+      for (k in seq_along(pps)) {
+        pp <- pps[[k]]
+        xr <- pp$x.range; yr <- pp$y.range
+        if (length(xr) != 2 || length(yr) != 2) next
+        if (!is.finite(diff(xr)) || diff(xr) == 0 || !is.finite(diff(yr)) || diff(yr) == 0) next
+        sxi <- if (!is.null(L$layout$SCALE_X)) L$layout$SCALE_X[k] else 1
+        syi <- if (!is.null(L$layout$SCALE_Y)) L$layout$SCALE_Y[k] else 1
+        xt <- trans_name(L$panel_scales_x[[sxi]])
+        yt <- trans_name(L$panel_scales_y[[syi]])
+        if (!(xt %in% supported_trans) || !(yt %in% supported_trans)) next
+        box_name <- if (length(pps) == 1) names(panel_boxes)[1] else {
+          paste0("panel-", L$layout$COL[k], "-", L$layout$ROW[k])
+        }
+        pbx <- panel_boxes[[box_name]]
+        if (is.null(pbx)) next
+        dxr <- xr[2] - xr[1]; dyr <- yr[2] - yr[1]
+        if (is_flip) {
+          # x.range is the horizontal (value) axis, y.range the vertical (category):
+          # px from data_y, py from data_x.
+          a <- 0;              c0 <- pbx$pw / dxr; e0 <- pbx$px - xr[1] * (pbx$pw / dxr)
+          d0 <- -(pbx$ph / dyr); e2 <- 0;         f2 <- pbx$py + pbx$ph + yr[1] * (pbx$ph / dyr)
+        } else {
+          a <- pbx$pw / dxr; c0 <- 0;              e0 <- pbx$px - xr[1] * (pbx$pw / dxr)
+          d0 <- 0;           e2 <- -(pbx$ph / dyr); f2 <- pbx$py + pbx$ph + yr[1] * (pbx$ph / dyr)
+        }
+        coeff <- paste(c(a, c0, e0, d0, e2, f2), collapse=";")
+        transform_rows[[length(transform_rows) + 1]] <- row_frame(
+          paste0("transform-", k), pbx$id, "", 0, 0, 0, 0, "transform",
+          "", "", "", coeff, paste(c(xt, yt), collapse=";")
         )
       }
     }
@@ -993,6 +1024,9 @@ def _render_ggplot2(
     for row in rows:
         if row.get("kind") == "transform":
             coeffs = [float(v) for v in row.get("x_points", "").split(";") if v]
+            trans = [t for t in row.get("y_points", "").split(";") if t]
+            x_trans = trans[0] if len(trans) > 0 else "identity"
+            y_trans = trans[1] if len(trans) > 1 else "identity"
             if len(coeffs) == 6:
                 a, c, e, d, e2, f2 = coeffs
                 transforms.append(
@@ -1003,6 +1037,8 @@ def _render_ggplot2(
                             [_round(d), _round(e2), _round(f2)],
                             [0.0, 0.0, 1.0],
                         ],
+                        "x_trans": x_trans,
+                        "y_trans": y_trans,
                     }
                 )
             continue

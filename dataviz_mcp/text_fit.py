@@ -15,6 +15,7 @@ Mechanism only. It never invents an annotation - it fits the ones already chosen
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any, Optional
 
@@ -630,11 +631,41 @@ def recommend_text_placement(
     }
 
 
-def _project(transform: list[list[float]], x: float, y: float) -> tuple[float, float]:
-    """Map a data ``(x, y)`` to canvas pixels through a top-left affine (row-major 3x3)."""
+def _scale_trans(name: str, value: float) -> float:
+    """Apply a ggplot scale transform's forward function, matching the space the panel
+    ranges (and so the affine) live in. Only the reproducible numeric transforms; anything
+    else never reaches here because the adapter emits no transform for it."""
+    v = float(value)
+    if name in ("identity", "", None):
+        return v
+    if name in ("log-10", "log10"):
+        return math.log10(v)
+    if name in ("log-2", "log2"):
+        return math.log2(v)
+    if name == "log":
+        return math.log(v)
+    if name == "sqrt":
+        return math.sqrt(v)
+    if name == "reverse":
+        return -v
+    raise ValueError(f"unsupported scale transform {name!r}")
+
+
+def _project(
+    transform: list[list[float]],
+    x: float,
+    y: float,
+    x_trans: str = "identity",
+    y_trans: str = "identity",
+) -> tuple[float, float]:
+    """Map a data ``(x, y)`` to canvas pixels: apply each axis' scale transform, then the
+    top-left affine (row-major 3x3). The affine may carry cross terms (a flipped chart maps
+    x to the vertical axis and y to the horizontal), so both rows read both coordinates."""
+    tx = _scale_trans(x_trans, x)
+    ty = _scale_trans(y_trans, y)
     r0, r1 = transform[0], transform[1]
-    px = r0[0] * float(x) + r0[1] * float(y) + r0[2]
-    py = r1[0] * float(x) + r1[1] * float(y) + r1[2]
+    px = r0[0] * tx + r0[1] * ty + r0[2]
+    py = r1[0] * tx + r1[1] * ty + r1[2]
     return round(px, 1), round(py, 1)
 
 
@@ -646,6 +677,8 @@ def place_on_marks(
     labels: list[dict[str, Any]],
     marks: list[dict[str, Any]] | None = None,
     fixed_blocks: list[dict[str, Any]] | None = None,
+    x_trans: str = "identity",
+    y_trans: str = "identity",
     max_annotation_width_frac: float = 0.32,
     edge_margin_px: Optional[float] = None,
     min_font_pt: float = 8.0,
@@ -674,6 +707,11 @@ def place_on_marks(
             ``bbox`` values become the obstacles movable labels dodge.
         fixed_blocks: frame blocks from ``reserve_frame`` (already in px), passed through so
             data labels also clear the title/subtitle/caption.
+        x_trans / y_trans: the axes' scale-transform names from the same layout-metadata
+            transform entry (``identity`` / ``log-10`` / ``log-2`` / ``log`` / ``sqrt`` /
+            ``reverse``). Applied to each data coordinate before the affine, because the affine
+            lives in the scale-transformed space. Default identity (matplotlib and linear
+            ggplot axes).
         max_annotation_width_frac / edge_margin_px / min_font_pt: forwarded verbatim.
 
     Returns everything ``recommend_text_placement`` returns, plus ``projected_anchors``
@@ -690,7 +728,7 @@ def place_on_marks(
     blocks: list[dict[str, Any]] = list(fixed_blocks or [])
     projected: dict[str, dict[str, float]] = {}
     for label in labels:
-        px, py = _project(transform, label["data_x"], label["data_y"])
+        px, py = _project(transform, label["data_x"], label["data_y"], x_trans, y_trans)
         projected[label["id"]] = {"x": px, "y": py}
         block = {
             key: value
@@ -701,7 +739,8 @@ def place_on_marks(
         anchors_data = label.get("anchors_data")
         if anchors_data:
             block["anchors"] = [
-                dict(zip(("x", "y"), _project(transform, m["data_x"], m["data_y"])))
+                dict(zip(("x", "y"),
+                         _project(transform, m["data_x"], m["data_y"], x_trans, y_trans)))
                 for m in anchors_data
             ]
         blocks.append(block)

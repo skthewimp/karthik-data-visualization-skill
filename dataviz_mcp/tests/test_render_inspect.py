@@ -201,10 +201,11 @@ def test_ggplot_emits_a_data_to_pixel_transform_that_lands_on_a_bar(tmp_path: Pa
     not probe_renderers()["renderers"]["ggplot2"]["available"],
     reason="ggplot2+ragg not installed",
 )
-def test_ggplot_coord_flip_emits_no_transform(tmp_path: Path) -> None:
-    # coord_flip is not a straight affine from data to screen, so no transform is emitted -
-    # the consumer must fall back rather than project through a wrong map.
-    source = Path(__file__).parent / "fixtures" / "ggplot_fixture.R"  # uses coord_flip()
+def test_ggplot_coord_flip_transform_is_cross_termed_and_lands_on_a_bar(tmp_path: Path) -> None:
+    # Under coord_flip the value aesthetic drives the horizontal axis and the category the
+    # vertical, so the affine carries cross terms (px depends on data_y, py on data_x). The
+    # fixture returns list(plot=, metadata=), which must still yield a transform.
+    source = Path(__file__).parent / "fixtures" / "ggplot_fixture.R"  # coord_flip, list(plot=)
     bundle = render_and_inspect_chart(
         str(source),
         str(tmp_path / "ggplot-flip"),
@@ -212,7 +213,79 @@ def test_ggplot_coord_flip_emits_no_transform(tmp_path: Path) -> None:
         dimensions={"width_px": 900, "height_px": 506, "dpi": 120},
     )
     layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
-    assert layout["transforms"] == []
+    assert layout["transforms"], "coord_flip on a cartesian plot should emit a transform"
+    t = layout["transforms"][0]["data_to_pixel_top_left"]
+    # cross-termed: px reads y (t[0][1] != 0), py reads x (t[1][0] != 0); diagonal ~0.
+    assert abs(t[0][0]) < 1e-6 and abs(t[1][1]) < 1e-6
+    assert abs(t[0][1]) > 1e-6 and abs(t[1][0]) > 1e-6
+    # categories C,B,A at levels -> value 7 is the longest bar; project (its position, 7).
+    bars = sorted(
+        (m["bbox"] for m in layout["marks"] if m.get("kind") == "rect"),
+        key=lambda b: b["width"],
+    )
+    longest = bars[-1]  # value 7 bar
+    # find its category position by matching the projected vertical to the bar's mid-y
+    best = None
+    for pos in (1, 2, 3):
+        py = t[1][0] * pos + t[1][1] * 7 + t[1][2]
+        px = t[0][0] * pos + t[0][1] * 7 + t[0][2]
+        err = abs(py - (longest["y"] + longest["height"] / 2)) + abs(
+            px - (longest["x"] + longest["width"])
+        )
+        best = err if best is None else min(best, err)
+    assert best <= 4, best
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
+def test_ggplot_log_scale_carries_its_transform_and_projects_onto_a_point(tmp_path: Path) -> None:
+    source = Path(__file__).parent / "fixtures" / "ggplot_log_fixture.R"
+    bundle = render_and_inspect_chart(
+        str(source),
+        str(tmp_path / "ggplot-log"),
+        renderer="ggplot2",
+        dimensions={"width_px": 800, "height_px": 500, "dpi": 144},
+    )
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    assert layout["transforms"], "expected a transform for a log-scaled cartesian plot"
+    entry = layout["transforms"][0]
+    assert entry["x_trans"] == "identity"
+    assert entry["y_trans"] in ("log-10", "log10")
+    t = entry["data_to_pixel_top_left"]
+    # Project the top point (x=4, y=2000): y must be log10'd before the affine.
+    import math
+
+    px = t[0][0] * 4 + t[0][1] * math.log10(2000) + t[0][2]
+    py = t[1][0] * 4 + t[1][1] * math.log10(2000) + t[1][2]
+    points = [m["bbox"] for m in layout["marks"]]
+    rightmost = max(points, key=lambda b: b["x"] + b["width"] / 2)
+    assert abs(px - (rightmost["x"] + rightmost["width"] / 2)) <= 3
+    assert abs(py - (rightmost["y"] + rightmost["height"] / 2)) <= 3
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
+def test_ggplot_facets_emit_one_transform_per_panel_keyed_to_marks(tmp_path: Path) -> None:
+    source = Path(__file__).parent / "fixtures" / "ggplot_facet_free_fixture.R"
+    bundle = render_and_inspect_chart(
+        str(source),
+        str(tmp_path / "ggplot-facets"),
+        renderer="ggplot2",
+        dimensions={"width_px": 1000, "height_px": 500, "dpi": 144},
+    )
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    # Three panels -> three transforms, each keyed to a panel that holds marks.
+    assert len(layout["transforms"]) == 3
+    tf_axes = {t["axes_id"] for t in layout["transforms"]}
+    mark_axes = {m["axes_id"] for m in layout["marks"]}
+    assert tf_axes == mark_axes
+    # Free scales -> the panels' affines differ (distinct x offsets).
+    offsets = {round(t["data_to_pixel_top_left"][0][2]) for t in layout["transforms"]}
+    assert len(offsets) == 3
 
 
 @pytest.mark.skipif(

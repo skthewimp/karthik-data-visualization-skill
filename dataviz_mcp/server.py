@@ -290,6 +290,8 @@ def create_server() -> Any:
         labels: list[dict[str, Any]],
         marks: list[dict[str, Any]] | None = None,
         fixed_blocks: list[dict[str, Any]] | None = None,
+        x_trans: str = "identity",
+        y_trans: str = "identity",
         max_annotation_width_frac: float = 0.32,
         edge_margin_px: float | None = None,
         min_font_pt: float = 8.0,
@@ -303,7 +305,9 @@ def create_server() -> Any:
         where the marks actually landed, killing text-mark and text-text overlaps on the first
         delivered chart instead of after a revision loop. Pass ``transform`` and ``marks``
         straight from the render's layout metadata, and ``fixed_blocks`` from ``reserve_frame``
-        so labels also clear the title. Canvas size, dpi, and per-block ``font_pt`` are inputs.
+        so labels also clear the title. When the transform entry carries ``x_trans`` / ``y_trans``
+        (a log/sqrt/reverse ggplot axis), pass them through so the data coords are transformed
+        before the affine. Canvas size, dpi, and per-block ``font_pt`` are inputs.
         """
         return place_on_marks_core(
             width_px,
@@ -313,6 +317,8 @@ def create_server() -> Any:
             labels,
             marks,
             fixed_blocks,
+            x_trans=x_trans,
+            y_trans=y_trans,
             max_annotation_width_frac=max_annotation_width_frac,
             edge_margin_px=edge_margin_px,
             min_font_pt=min_font_pt,
