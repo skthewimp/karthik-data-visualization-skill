@@ -1,31 +1,40 @@
 # Devlog
 
-## 2026-09-04 - `recommend_axis_range`: fit the value axis at planning, not by build reflex
+## 2026-09-04 - the reflexive 0-100 axis: undo the nudge, don't build a tool
 
 Karthik flagged a fresh run: a Bollywood age-mix line chart, values 1-44%, drawn on a 0-100
 y-axis - top half of the plot empty. His read was sharp and correct: "R defaults would not draw
 to 100. The default is being set somewhere, and it became a bug after we put in the new layout
-MCP." My first instinct (add an inspect-time gate, or a new planner) he corrected twice: inspect
-is too late, decide it at planning "like how we figure out layout now."
+MCP."
 
 Investigation, not a literal default: I traced every scale-touching tool (`recommend_layout`,
 `reserve_frame`, `place_on_marks`, `rendering.py`) - all only *read* the scale from the ggplot
-the builder writes; none sets `limits`. So the `c(0,100)` came from the build model. Git
-archaeology found the decisive fact: `9636814` had already caught this exact bug (a repaired
-integer-percent line chart at 0-100) and "fixed" it docs-only, by adding "a percentage does not
-earn a 0-100 domain" to `karthik-data-visualization`. It recurred. Prose lost to the build
-reflex twice. And `e48ec0d` (which landed with the layout-MCP coordinate-separation work) had
-added "data scales represent the intended data domain" to the build/tester prose - which for a
-percentage reads as its natural domain, 0-100. That is the regression Karthik sensed.
+the builder writes; none sets `limits`. So the `c(0,100)` came from the build model *overriding*
+the renderer's default. Git archaeology found the decisive fact: `9636814` had already caught
+this exact bug (a repaired integer-percent line chart at 0-100) and "fixed" it docs-only. It
+recurred. And `e48ec0d` (with the layout-MCP coordinate-separation work) had added "data scales
+represent the intended data domain" to the build/tester prose - which for a percentage reads as
+its natural domain, 0-100. That is the push.
 
-Fix follows his steer: move the range decision to planning, deterministic, applied at build -
-the same three-way split precision/colour/canvas already use. `recommend_axis_range` fits
-`[min,max]`+breaks to the plotted extent (nice-number headroom above the max; zero baseline only
-when `zero_based`; `hard_max` honoured but flagged when it leaves a big dead band). Wired as a
-`needs_axis_range_plan` / `value_axis_plan` select decision the driver resolves and build
-applies. Undid the "intended data domain" phrasing in the build contract and the tester harness.
-8 new tests (the bollywood extent asserts <60 max, movement-band drops the baseline, hard_max
-flagged); full suite 72 green.
+First I over-corrected: built a `recommend_axis_range` planning tool (select decides zero_based/
+hard bounds, tool fits min/max/breaks, build applies), wired as a `needs_axis_range_plan` /
+`value_axis_plan` select decision, committed and pushed (`1f7dae5`). Karthik pushed back twice -
+first "is this too prescriptive? what about small multiples, dual axes?", then "do we need this
+tool at all?" He was right both times. The renderer *already* fits a value axis to the data with
+nice breaks (ggplot's Wilkinson, Matplotlib's) for zero model effort - a 1-44 line gets ~0-44,
+10/20/30/40 ticks, never 100, never a forced zero. A Python tool would re-implement that wheel,
+mishandle log/date/categorical axes, and worst of all re-invite the explicit-`limits` override
+that *is* the bug. The path of least resistance (write no `limits`) already gives the right
+answer; the fix is to stop pushing the model off it.
+
+So I ripped the tool back out (deleted `axis.py`/`test_axis.py`, reverted server/docs/README/
+construct to `9166903`) and kept only the real fix: undo the "intended data domain" phrasing ->
+"the data's plotted extent ... not 0-100 unless the data reaches it" (build contract + tester),
+and one plain build-guidance line in `karthik-data-visualization` and the construct build stage -
+let the renderer's fitted range and nice breaks stand, override only for a deliberate zero
+baseline or a genuine full-range case. No new tool, schema, or routing flag. Lesson: a recurring
+visual defect is not automatically a missing-tool problem; when the default already does the
+right thing, the fix is to stop overriding it, not to add machinery that overrides it "correctly".
 
 ## 2026-09-04 - `refit_chart`: close the render -> inspect -> resize loop in code
 

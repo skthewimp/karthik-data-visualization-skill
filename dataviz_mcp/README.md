@@ -267,10 +267,6 @@ Samples dominant hues from a source chart image as a repair prior (brand/WCAG ma
 
 Recommends significant digits / a uniform rounding place for a numeric column, derived from the spread (max - min), not individual values. Inputs: `values`, `role` (`axis`/`label`/`table_column`), `target_steps` (default 2), optional `smallest_meaningful_difference`, and `exact` (identifiers or exact-lookup only - preserves every digit and flags `exact_override`). Every value is rounded to one uniform place.
 
-### `recommend_axis_range`
-
-Recommends a fitted `[min, max]` and `breaks` for a continuous value axis, keyed to the plotted extent rather than the measure's natural domain - a percentage running 1-44 gets an axis to ~48, never a reflexive 0-100. Inputs: `values` (the plotted values the axis must contain), `zero_based` (default `true` - bars, share-of-total, or a line whose absolute level is the point; `false` for a movement-band line), optional `hard_min` / `hard_max` (a genuine domain floor, or a full range that is truly the point - applied exactly and flagged), and `target_breaks` (default 5). Returns the bounds, aligned breaks, `headroom_fraction`, override flags, and a rationale. Decide `zero_based`/hard bounds at select; pass the resolved `limits`/`breaks` to the renderer at build.
-
 ## Optional audited repair integration
 
 The default repair path can call `render_and_inspect_chart` without opening a case. When an audit trail or benchmark is requested, the case manager preserves the bundle and inspection beside an iteration:

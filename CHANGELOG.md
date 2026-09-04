@@ -2,17 +2,15 @@
 
 ## Unreleased
 
-### `recommend_axis_range`: fit the value axis at planning time, not by build-model reflex
+### Stop the reflexive 0-100 axis on a percentage - undo the prose nudge, trust the renderer's fit
 
-A recent run drew a percentage line chart (values 1-44%) on a 0-100 axis - the top half of the plot dead. R's own defaults would have fitted the range; the 0-100 came from the build model reflexively stamping a percentage's natural domain onto the axis. The same bug had already been "fixed" once (`9636814`) by adding prose to `karthik-data-visualization` ("a percentage does not earn a 0-100 domain") and it recurred - prose guidance lost to the build reflex twice. Two things had also landed with the layout-MCP work that pushed the wrong way: the build/tester prose said "data scales represent the intended data domain", which for a percentage reads as 0-100.
+A recent run drew a percentage line chart (values 1-44%) on a 0-100 axis - the top half of the plot dead. The renderers' own defaults (ggplot's Wilkinson breaks, Matplotlib's) already fit a value axis to the data range and never draw to 100 here; the 0-100 came from the build model *overriding* that good default, stamping a percentage's natural domain onto the axis. The build/tester prose had, with the layout-MCP coordinate-separation work, started saying "data scales represent the intended data domain" - which for a percentage reads as 0-100. That was the push.
 
-The fix moves the value-axis range decision out of the build model's discretion and into planning, exactly as precision, colour, and canvas size already are - decided at select, resolved by a deterministic tool, applied at build.
+The same visual bug had also been "fixed" once before (`9636814`, docs-only) and recurred, so the temptation was to over-engineer a `recommend_axis_range` planning tool. That was the wrong call: the renderer already computes a fitted range with nice breaks for free, so a tool would only re-implement that in Python *and* re-invite the explicit-`limits` override that caused the bug. The fix is to remove the push and let the default stand.
 
-- **New `recommend_axis_range` tool (`dataviz_mcp/axis.py`).** Takes an axis' plotted `values` plus `zero_based` / `hard_min` / `hard_max` and returns fitted `recommended_min` / `recommended_max` / `breaks`: the upper bound is a nice number just above the largest value with small headroom, the lower bound is 0 when zero-based or a nice number below the smallest value for a movement-band line. Keyed to the data's plotted extent, never the measure's natural domain. A `hard_max` far above the data is honoured but flagged, so a deliberate full range is never silent. Registered as the 16th MCP tool.
-- **Select decides, build applies (`dataviz_mcp/stage_contracts.py`).** New `needs_axis_range_plan` routing flag and `value_axis_plan` schema (per axis: `zero_based`, `hard_min`, `hard_max`, reason). The select stage sets them; the driver runs `recommend_axis_range`; the build stage passes the resolved `limits`/`breaks` straight into `scale_*_continuous`.
-- **Undid the competing nudge.** "data scales represent the intended data domain" → "data scales span the data's plotted extent (fitted via `recommend_axis_range`, not the measure's natural domain - a percentage is not 0-100 unless the data reaches it)", in the build contract and the tester harness prose.
-- **Skills updated (all copies).** `karthik-data-visualization` routes the axis-fit bullet through the tool; `dataviz-construct` lists it among the select-decided, tool-resolved decisions.
-- Docs (`docs/mcp.md`, `dataviz_mcp/README.md`) and tests (`test_axis.py`, updated `test_stage_contracts.py` / tester test) follow.
+- **Undid the nudge.** "data scales represent the intended data domain" → "data scales span the data's plotted extent (not the measure's natural domain - a percentage is not 0-100 unless the data reaches it)", in the build contract (`dataviz_mcp/stage_contracts.py`) and the tester harness prose (`tester/local_runner.py`).
+- **Build guidance (all copies).** `karthik-data-visualization` and the construct build stage now say plainly: let the renderer's own fitted range and nice breaks stand; override with an explicit range only for a deliberate zero baseline or a genuine full-range case, never to stamp the unit's ceiling on the axis.
+- **No new tool, no schema, no routing flag** - deliberately. The renderer's default fit is the mechanism; the model's only job is to not override it without a reason.
 
 ### Conciseness pass across all 23 skills
 
