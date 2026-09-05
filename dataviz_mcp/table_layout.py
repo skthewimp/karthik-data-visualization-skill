@@ -81,7 +81,11 @@ def recommend_table_layout(
     subtitle: str = "",
     notes: str = "",
 ) -> dict[str, Any]:
-    """Plan from columns {header, cells, identifier?, max_width_px?, visual_width_px?}.
+    """Plan from columns {header, cells, identifier?, max_width_px?, max_header_lines?, visual_width_px?}.
+
+    Pass the complete header (label, units and any description), using explicit
+    newlines for semantic breaks. Optional max_header_lines constrains wrapping;
+    exceeding it or max_width_px produces cannot_fit rather than a clipped header.
 
     Cells are final display strings; columns may additionally carry semantic metadata.
     content_path accepts a local JSON object with columns, title, subtitle, notes.
@@ -105,7 +109,16 @@ def recommend_table_layout(
     cols = columns or []
     if not cols:
         raise ValueError("At least one column is required")
-    cells = [[str(v) if v is not None else "" for v in c.get("cells", [])] for c in cols]
+    for i, c in enumerate(cols):
+        if not isinstance(c, dict) or not isinstance(c.get("header"), str) or not isinstance(c.get("cells"), list):
+            raise ValueError(
+                f"Column {i} requires full header text and a cells list; character counts "
+                "cannot establish fit. Use header='' only for an intentionally blank header."
+            )
+        budget = c.get("max_header_lines")
+        if budget is not None and (isinstance(budget, bool) or not isinstance(budget, int) or budget < 1):
+            raise ValueError("max_header_lines must be a positive integer")
+    cells = [[str(v) if v is not None else "" for v in c["cells"]] for c in cols]
     n = len(cells[0])
     if any(len(c) != n for c in cells):
         raise ValueError("Columns must contain the same number of cells")
@@ -141,7 +154,7 @@ def recommend_table_layout(
         raise ValueError("Unknown comparison scope")
     if kind in {"bar", "dot", "shading", "sparkline"} and scope in {"row", "table"} and not plan.get("commensurable"):
         raise ValueError("A shared scale requires explicit commensurability")
-    headers = [str(c.get("header", "")) for c in cols]
+    headers = [c["header"] for c in cols]
     bm, backend = _metrics([v for c in cells for v in c], typo["family"], body, dpi)
     if kind == "emphasis":
         bold_metrics, bold_backend = _metrics([v for c in cells for v in c], typo["family"], body, dpi, True)
@@ -187,9 +200,15 @@ def recommend_table_layout(
             seen.add(signature)
             variants.append({"width": math.ceil(available + 2 * px),
                 "header": wh, "cells": wc,
+                "header_over_budget": (c.get("max_header_lines") is not None and
+                                       wh.count("\n") + 1 > c["max_header_lines"]),
                 "header_height": (wh.count("\n") + 1) * line_px(header, dpi) + 2 * py,
                 "heights": [(v.count("\n") + 1) * line_px(body, dpi) + 2 * py for v in wc]})
-        options.append(variants)
+        feasible = [v for v in variants if not v["header_over_budget"]
+                    and v["width"] <= c.get("max_width_px", math.inf)]
+        # Enforce each column's constraints before comparing table footprints.
+        # Keep impossible variants only to return intact content with cannot_fit.
+        options.append(feasible or variants)
 
     ids = [i for i, c in enumerate(cols) if c.get("identifier")]
     remaining = [i for i in range(len(cols)) if i not in ids]
@@ -220,7 +239,9 @@ def recommend_table_layout(
 
     def score(chosen):
         _, hh, heights, pages = arrange(chosen)
-        overflow = any(p["width_px"] > max_w or p["height_px"] > max_h for p in pages)
+        overflow = (any(p["width_px"] > max_w or p["height_px"] > max_h for p in pages)
+                    or any(v["header_over_budget"] or v["width"] > c.get("max_width_px", math.inf)
+                           for c, v in zip(cols, chosen)))
         # Prefer feasible delivery, then fewer continuations, then less allocated
         # space at unchanged type/padding. Shared row/header heights make excess
         # wrapping expensive across the whole table, not just the changed column.
@@ -251,6 +272,14 @@ def recommend_table_layout(
     wrapped_headers = [v["header"] for v in chosen]
     wrapped_cells = [v["cells"] for v in chosen]
     impossible = any(p["width_px"] > max_w or p["height_px"] > max_h for p in pages)
+    for i, (c, v) in enumerate(zip(cols, chosen)):
+        if v["header_over_budget"] or v["width"] > c.get("max_width_px", math.inf):
+            impossible = True
+            warnings.append(
+                f"Column {i}: complete header/content exceeds a supplied column width "
+                "or header-line limit. Widen or revise the wording/continuation plan; "
+                "do not clip, truncate or shrink the header."
+            )
     split = len(pages) > 1
     if split and not profile.get("allow_split", True):
         impossible = True

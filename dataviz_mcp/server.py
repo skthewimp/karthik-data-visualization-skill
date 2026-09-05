@@ -299,7 +299,11 @@ def create_server() -> Any:
         """Measure formatted table content and return geometry or continuation pages.
 
         columns: {header, cells: display strings[], identifier?, max_width_px?,
-        visual_width_px?}. Or content_path: local JSON {columns, title?, subtitle?, notes?}.
+        max_header_lines?, visual_width_px?}. Both header and cells are required.
+        Pass the COMPLETE header including units/descriptions, not character counts.
+        Use explicit newlines for semantic breaks. A supplied header-line budget
+        forces wider columns/continuations or cannot_fit, never clipping or smaller type.
+        Or content_path: local JSON {columns, title?, subtitle?, notes?}.
         typography: family, body_pt, header_pt, minimum_body_pt, minimum_header_pt,
         padding_x_px, padding_y_px. delivery: max_width_px, max_height_px, dpi,
         display_width_px, minimum_text_px, allow_split. Set display width and minimum
@@ -313,8 +317,10 @@ def create_server() -> Any:
         Shared scales require commensurability. Reserve visual_width_px in columns
         containing inline graphics. Fonts never shrink to fit. Pages carry zero-based
         columns and half-open row ranges; repeat headers and identifier columns.
-        Apply returned widths, row heights, wrapped strings and typography in the builder;
-        render and inspect. Fallback metrics are explicitly identified.
+        Apply returned headers verbatim at header_pt in bold and header_height_px;
+        use returned column widths, body wrapping/heights and padding. Do not draw
+        original unwrapped headers in the computed cells or add unmeasured sublabels.
+        Render and inspect. Fallback metrics are explicitly identified.
         """
         return recommend_table_layout_core(
             columns, content_path, delivery_profile, typography, delivery, treatment,

@@ -63,3 +63,18 @@ def test_construction_wraps_long_content_without_a_manual_width_cap(long_header)
     assert "\n" in wrapped and wrapped.replace("\n", " ") == phrase
     if long_header:
         assert compact["row_heights_px"] == wide["row_heights_px"]
+
+
+def test_header_budget_requires_complete_text_and_respects_column_ceiling():
+    with pytest.raises(ValueError, match="full header text"):
+        recommend_table_layout([{"header_chars": 40, "max_cell_chars": 4}])
+    col = {"header": "Average revenue per active customer", "cells": ["12", "35"],
+           "max_header_lines": 2}
+    plan = recommend_table_layout([col])
+    assert plan["status"] == "fits"
+    assert plan["headers"][0].count("\n") + 1 <= 2
+    assert plan["headers"][0].replace("\n", " ") == col["header"]
+    impossible = recommend_table_layout([{**col, "max_width_px": 40}])
+    assert impossible["status"] == "cannot_fit"
+    assert impossible["headers"][0].replace("\n", " ") == col["header"]
+    assert impossible["header_pt"] == plan["header_pt"]

@@ -259,8 +259,13 @@ Alternatively, `content_path` reads a local JSON object containing `columns` and
 optional `title`, `subtitle`, `notes`. Cells are final display strings; retain raw
 values separately for bars, shading, and sparklines. Each column has the same
 number of cells. `None` becomes a blank; use explicit strings for other missing
-value conventions. Headers accept explicit newlines. `max_width_px` includes
-padding and inline graphics; unbreakable tokens are preserved even when too wide.
+value conventions. Every column must supply `header` and `cells`; character-count
+metadata is insufficient. Use `header: ""` only for an intentionally blank header.
+Pass the whole header, including units and descriptions; explicit newlines preserve
+semantic breaks. Optional `max_header_lines` sets the heading's line budget.
+The planner widens/splits to honour it or returns `cannot_fit`. `max_width_px`
+includes padding and inline graphics and is a ceiling: an unbreakable token is
+preserved for review, but cannot silently override that ceiling with a fit verdict.
 Typography also accepts `padding_x_px` and `padding_y_px`. Defaults are compact:
 0.35 em on each horizontal side and 0.15 em above/below, based on body type. Explicit
 padding overrides those defaults. The R table renderer adds no outer margin beyond
@@ -287,7 +292,9 @@ The tool does not remove content or reduce type to make it fit.
 
 Apply the returned geometry to the table builder: grid widths/heights in inches
 are pixels divided by `dpi`; fonts are points. Use the returned wrapped strings,
-font family and sizes, and padding. `blocks` use `block_font_pt` in bold; their
+font family and sizes, and padding. Draw returned `headers` verbatim in bold at
+`header_pt` within `header_height_px`. Never replace them with raw unwrapped names
+or add descriptions that were absent from the measured content. `blocks` use `block_font_pt` in bold; their
 reserved height is `reserved_band_px`. Render each page with
 `render_and_inspect_chart(content="table")`, passing its dimensions and `dpi`,
 plus `minimum_text_size_pt`, `display_width_px`, and `minimum_text_size_px` in

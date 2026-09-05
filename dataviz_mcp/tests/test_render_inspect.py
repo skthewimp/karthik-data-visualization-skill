@@ -617,3 +617,60 @@ build_table <- function() {
                                       content="table", build_function="build_table")
     report = inspect_rendered_chart(partial["artifact"]["path"], partial["layout_metadata_path"], minimum_text_size_pt=5)
     assert not report["checks_complete"]
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
+def test_planned_multiline_headers_render_within_their_cells(tmp_path: Path) -> None:
+    from dataviz_mcp.table_layout import recommend_table_layout
+
+    plan = recommend_table_layout([
+        {"header": "Service", "identifier": True, "cells": ["Alpha", "Beta"]},
+        {"header": "Availability\nShare of scheduled hours", "max_header_lines": 3,
+         "cells": ["99.2%", "98.7%"]},
+        {"header": "Resolution time\nHours per completed request", "max_header_lines": 3,
+         "cells": ["3.4", "12.5"]},
+    ], delivery={"max_width_px": 360, "display_width_px": 360, "minimum_text_px": 16})
+    assert plan["status"] != "cannot_fit"
+    # Build directly from the public output, including its wrapped headers and band
+    # height. Check real glyph geometry rather than only estimated string lengths.
+    def r_vector(values):
+        return "c(" + ",".join(json.dumps(v, ensure_ascii=False) for v in values) + ")"
+
+    for page_index, page in enumerate(plan["pages"]):
+        columns = page["columns"]
+        body_rows = list(range(*page["rows"]))
+        labels = [plan["headers"][c] for c in columns]
+        labels += [plan["cells"][c][r] for r in body_rows for c in columns]
+        nr = len(body_rows) + 1
+        source = tmp_path / f"headers-{page_index}.R"
+        source.write_text(f'''library(grid)
+library(gtable)
+build_table <- function() {{
+  labels <- matrix({r_vector(labels)}, nrow={nr}, byrow=TRUE)
+  grobs <- matrix(vector("list", length(labels)), nrow={nr})
+  for (i in seq_len(nrow(labels))) for (j in seq_len(ncol(labels))) {{
+    grobs[[i,j]] <- textGrob(labels[i,j],
+      x=unit({plan["padding_x_px"] / plan["dpi"]}, "in"),
+      y=if(i==1) unit({plan["padding_y_px"] / plan["dpi"]}, "in") else unit(.5,"npc"),
+      just=c("left", if(i==1) "bottom" else "centre"),
+      gp=gpar(fontfamily="{plan["font_family"]}",
+        fontsize=if(i==1) {plan["header_pt"]} else {plan["body_pt"]},
+        fontface=if(i==1) "bold" else "plain", lineheight=1.25))
+  }}
+  gtable_matrix("planned", grobs,
+    widths=unit({r_vector([plan["col_widths_px"][c] / plan["dpi"] for c in columns])}, "in"),
+    heights=unit({r_vector([plan["header_height_px"] / plan["dpi"]] + [plan["row_heights_px"][r] / plan["dpi"] for r in body_rows])}, "in"))
+}}
+''')
+        bundle = render_and_inspect_chart(str(source), str(tmp_path / f"page-{page_index}"),
+            content="table", build_function="build_table",
+            dimensions={**page, "dpi": plan["dpi"], "minimum_text_size_pt": 11,
+                        "display_width_px": 360, "minimum_text_size_px": 16})
+        report = json.loads(Path(bundle["inspection_path"]).read_text())
+        layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+        assert report["passes_geometry_checks"], report["defects"]
+        rendered_headers = {e["text"] for e in layout["elements"] if e["font_size_pt"] == plan["header_pt"]}
+        assert rendered_headers == {plan["headers"][c] for c in columns}

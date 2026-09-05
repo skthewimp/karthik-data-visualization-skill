@@ -109,7 +109,12 @@ diagnostic and inspect text contrast against the actual cell fills. A plain tabl
 palette call; a magnitude or focal treatment must not disappear behind “no series”.
 
 When available, call `recommend_table_layout` with the formatted headers/cells,
-identifier columns, typography, and delivery constraints. For larger inputs pass
+identifier columns, typography, and delivery constraints. Supply each complete
+header, including units and explanatory sublabels; use explicit newlines for
+semantic breaks. Character counts or an omitted description cannot establish fit.
+Choose a per-column `max_header_lines` when the reading task or delivery limits
+how tall a heading may become; this is a constraint, not permission to clip it.
+For larger inputs pass
 a local JSON `content_path` rather than putting the table into the conversation.
 The planner balances measured header/body wrapping against shared row heights
 before construction, choosing compact columns without reducing type. A long
@@ -118,8 +123,12 @@ Do not equalise column widths or stretch cells to fill the delivery canvas. Keep
 padding compact and preserve space needed for graphics. Specify
 `visual_width_px` for inline graphics; `max_width_px` is an optional ceiling,
 not a requirement for automatic wrapping. Headers can use the full column width;
-body text shares it with its reserved inline graphic. Use the returned wrapped strings, column widths, row
-heights, font sizes, text bands, and continuation pages in the builder. Page column
+body text shares it with its reserved inline graphic. Draw the returned `headers`
+verbatim at `header_pt` in bold inside `header_height_px`, using the returned
+column widths and padding. Do not flatten those line breaks, substitute the raw
+unwrapped names, or add unmeasured labels above/below them. The tallest complete
+wrapped header determines the header band; compact body rows are a separate layer.
+Use the returned body wrapping/heights, text bands and continuation pages too. Page column
 indices are zero-based and row ranges are half-open; repeat identifiers and headers.
 Do not silently drop rows or columns. Check that a split still supports the reading
 task; revise grouping or delivery if comparisons would be separated.

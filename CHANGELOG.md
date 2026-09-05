@@ -4,6 +4,11 @@
 
 ### Measured table planning and nested text inspection
 
+- Header planning requires complete text, including units/descriptions. Character
+  counts cannot silently become blank headers with a fit verdict. Optional
+  `max_header_lines` and column-width ceilings are enforced before compacting;
+  the builder uses the returned wrapping and header-band height verbatim.
+
 - Compact, type-relative cell padding is the default. The renderer adds no hidden
   outer margin, and the table skill prioritises information over decorative space.
 

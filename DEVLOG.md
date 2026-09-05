@@ -17,6 +17,9 @@
 - Construction now compares measured wrapping options and shared row heights to
   reduce internal whitespace before build, preserving fonts/padding and inline
   graphic space. Long headers/cells wrap automatically without manual width caps.
+  Full header text is now required; optional header-line budgets and column ceilings
+  are enforced before footprint optimisation. A real render regression checks
+  multiline names/descriptions against the planned header cells.
 - Made compact, type-relative padding the default and removed the renderer's
   implicit outer margin; the table skill prioritises information over decorative space.
 - Updated both skill surfaces: treatment follows the reading task and scale
