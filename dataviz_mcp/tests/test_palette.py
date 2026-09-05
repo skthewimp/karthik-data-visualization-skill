@@ -46,18 +46,32 @@ def test_recommend_extends_default_pool_past_eight_series():
     assert len(set(result["chosen"])) == 12  # Okabe-Ito (8) extended with vetted extras
 
 
-def test_recommend_unresolved_when_supplied_pool_too_small():
-    # A small brand set for more series than it holds: never invent hues to pad it -
-    # report unresolved and route back to the select stage.
+def test_recommend_generates_to_complete_a_short_supplied_pool():
+    # A small brand set for more series than it holds: the named palettes are only
+    # recommendations, so the count (hard) is met by generating extra distinguishable
+    # colours rather than giving up - never a short palette.
     result = recommend_colours(["#D55E00", "#0072B2", "#009E73"], n_series=5, focal="#D55E00")
     assert result["chosen"][0] == "#D55E00"  # focal still pinned to series 0
-    assert result["resolved"] is False
-    assert result["route_to"] == "select"
-    assert result["shortfall"] == 2
-    assert len(result["chosen"]) == 3  # only the three real colours, no invented ones
-    # Curated candidates are offered for the caller to consider, not applied.
-    assert len(result["suggested_additions"]) == 2
-    assert all(c not in result["chosen"] for c in result["suggested_additions"])
+    assert result["resolved"] is True
+    assert result["route_to"] is None
+    assert result["shortfall"] == 0
+    assert len(result["assignment"]) == 5
+    assert len(set(result["chosen"])) == 5  # five distinct colours
+    # Exactly two were generated to cover the deficit, and they are part of the palette.
+    assert len(result["generated_additions"]) == 2
+    assert all(c in result["chosen"] for c in result["generated_additions"])
+    # Every generated colour reads on the background.
+    from dataviz_mcp.color_math import _contrast_ratio
+    assert all(_contrast_ratio(c, "#FFFFFF") >= 3.0 for c in result["generated_additions"])
+
+
+def test_recommend_unresolved_only_when_generation_cannot_clear_background():
+    # A mid-grey background few colours read against: if even generation cannot produce
+    # enough colours clearing the bar, the result is unresolved and routes to select.
+    result = recommend_colours(["#808080"], n_series=8, background="#7F7F7F")
+    if not result["resolved"]:
+        assert result["route_to"] == "select"
+        assert result["shortfall"] > 0
 
 
 def test_recommend_falls_back_to_default_when_no_available():

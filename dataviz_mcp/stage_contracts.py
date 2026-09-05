@@ -1112,10 +1112,11 @@ background, focal, and semantic hints), assign it in the palette's order, and re
 applied in ``recommendations_used.palette``. Never substitute, omit, or invent a data-series
 colour, and never nudge a planned hex: every series is coloured from the resolved assignment
 exactly as given. Apply the assignment only when ``recommend_colours`` returns ``resolved`` true;
-if it returns ``resolved`` false (a ``shortfall`` remains - the pool holds fewer distinct colours
-than the series need), report the plan as UNRESOLVED and route back to the select stage (its
-``route_to``) to drop a series or supply more colours - do NOT improvise the missing hues or
-render a short palette. Record the complete series-to-colour mapping in
+a short pool is completed by the tool itself with generated distinguishable colours (reported in
+``generated_additions``), so a resolved assignment already covers every series. In the rare case
+it returns ``resolved`` false (even generation could not clear the background bar), report the plan
+as UNRESOLVED and route back to the select stage (its ``route_to``) to change the background or
+drop a series - do NOT improvise the missing hues or render a short palette yourself. Record the complete series-to-colour mapping in
 ``recommendations_used.palette`` and validate that every assigned series colour is present and
 correct after rendering - not only the ones that happened to render. Background contrast is a soft
 diagnostic, not a reason to swap a colour: if ``validate_palette`` flags a contrast or adjacency

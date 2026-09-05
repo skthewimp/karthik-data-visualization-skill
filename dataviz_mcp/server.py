@@ -162,16 +162,18 @@ def create_server() -> Any:
     ) -> dict[str, Any]:
         """Pick and assign colours for one graph from an available set (brand/context/default).
 
-        Returns one distinct colour per series (the hard constraint), chosen farthest-first
-        for diversity, pinning ``focal`` to series 0. Background contrast is a soft
-        preference: colours are never dropped for it (that would starve the pool) - it only
-        orders the fill and is reported by ``validate_palette``. The default pool is
-        Okabe-Ito, extended with vetted Paul Tol hues past eight series; a supplied set is
-        never padded. Use even when colours are given - a specific chart still needs a
-        which-and-how-assigned decision. If the pool has fewer distinct colours than
-        ``n_series``, ``resolved`` is false and ``route_to`` is "select" (a ``shortfall``
-        remains, with ``suggested_additions`` to consider) - apply nothing and route back.
-        Colours are never generated procedurally.
+        Returns one distinct colour per series (the hard constraint), pinning ``focal`` to
+        series 0. Selection is lexicographic: contrast WITH THE BACKGROUND first (a colour
+        must read against the background - this outranks separation from other series), then
+        diversity (farthest-first), then higher contrast as tiebreak. Contrast is soft:
+        colours are never dropped for it, only spent last. The default pool is Okabe-Ito,
+        extended with vetted Paul Tol hues past eight series - and these named palettes are
+        recommendations, not a ceiling: a genuine shortage (more series than distinct pool
+        colours) is topped up with algorithmically generated background-aware colours
+        (``generated_additions``) so the count is always met. Use even when colours are given.
+        ``resolved`` is false only in the pathological case where even generation cannot clear
+        the background bar; then ``route_to`` is "select" - change the background or drop a
+        series.
 
         Pass ``semantic_hints`` to bind series to a colour intent the model has judged
         appropriate: a list of ``{"series_index": i, "colour": "#hex"}`` (hard pin) or

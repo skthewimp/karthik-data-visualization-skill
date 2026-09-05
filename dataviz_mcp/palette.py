@@ -74,6 +74,58 @@ EXTENDED_CATEGORICAL = OKABE_ITO + _TOL_EXTRA
 _CVD_KINDS = ("deuteranope", "protanope", "tritanope")
 
 
+def _hls_to_hex(hue_deg: float, lightness: float, saturation: float) -> str:
+    r, g, b = colorsys.hls_to_rgb((hue_deg % 360.0) / 360.0, lightness, saturation)
+    return f"#{round(r * 255):02X}{round(g * 255):02X}{round(b * 255):02X}"
+
+
+def _generate_distinguishable(
+    placed: Sequence[str],
+    background: str,
+    count: int,
+    min_contrast_mark: float,
+) -> list[str]:
+    """Algorithmically extend a palette when the curated/supplied pool is genuinely too
+    small for the requested series count (the count is the hard constraint; Okabe-Ito and
+    the other named palettes are recommendations, not a ceiling).
+
+    Honours the same priority as selection: candidates come from an HLS lattice whose
+    lightness bands are picked for the background (darker marks on a light ground, lighter
+    on a dark one), so every candidate reads against the background; then they are appended
+    farthest-first to maximise separation from what is already placed. Not the default path
+    - only the shortage handler, so it never displaces a good recommended colour.
+    """
+    bg_light = hue_lightness(background)
+    is_light_bg = (bg_light[1] if bg_light else 1.0) >= 0.5
+    lightness_bands = (0.30, 0.42, 0.22, 0.52) if is_light_bg else (0.70, 0.60, 0.80, 0.50)
+
+    candidates: list[str] = []
+    seen = set(placed)
+    for lightness in lightness_bands:
+        for step in range(30):
+            for saturation in (0.72, 0.85, 0.55):
+                hexv = _hls_to_hex(step * 12.0, lightness, saturation)
+                if hexv in seen:
+                    continue
+                ratio = _contrast_ratio(hexv, background)
+                if ratio is None or ratio < min_contrast_mark:
+                    continue
+                seen.add(hexv)
+                candidates.append(hexv)
+
+    chosen: list[str] = []
+    reference = list(placed)
+    while len(chosen) < count and candidates:
+        best = max(
+            candidates,
+            key=lambda c: min((_separation(c, other) for other in reference), default=0.0),
+        )
+        chosen.append(best)
+        reference.append(best)
+        candidates = [c for c in candidates if c != best]
+    return chosen
+
+
 def _separation(first: str, second: str) -> float:
     """Perceptual separation scalar (~0 = confusable). Lightness-weighted because
     hue collapses under CVD and grayscale; lightness survives both."""
@@ -277,11 +329,14 @@ def recommend_colours(
     as a tiebreak. Contrast stays SOFT, not a filter: a colour below the background bar is
     never dropped (that would starve the pool), only spent last - used to satisfy the count
     when readable colours run out - and reported by `validate_palette`. The default pool is
-    Okabe-Ito, extended with hand-vetted Paul Tol hues when more than eight series are asked
-    for; a supplied set is never padded with extras. If the pool holds fewer distinct colours
-    than `n_series`, the result is **unresolved** (`resolved: false`, `route_to: "select"`) -
-    the caller drops a series or supplies more colours, never invents hues. Colours are never
-    generated procedurally.
+    Okabe-Ito, extended with hand-vetted Paul Tol hues past eight series. These named palettes
+    are recommendations, not a ceiling: when even the extended/supplied pool holds fewer distinct
+    colours than `n_series`, the deficit is topped up algorithmically (`_generate_distinguishable`
+    - a background-aware HLS lattice picked farthest-first, so every extra reads on the background),
+    reported in `generated_additions`, so the hard count is met. `resolved` is false only in the
+    pathological case where even generation cannot produce enough colours clearing the background
+    bar (e.g. a mid-grey ground); then `route_to` is "select" to change the background or drop a
+    series.
 
     Without `semantic_hints`, the returned palette is **ordered and prefix-nested**: it
     is built by farthest-first traversal, so the first m colours are themselves a good
@@ -414,10 +469,6 @@ def recommend_colours(
         placed.append(chosen_colour)
         used.add(chosen_colour)
 
-    # Fill the remaining positions farthest-first over ALL parseable colours (contrast is
-    # not a filter). Diversity is the objective: maximise the minimum separation from what
-    # is already placed; break ties toward higher background contrast so any poorly-reading
-    # colour is spent last, only when the count demands it.
     # Contrast WITH THE BACKGROUND outranks separation from the other series: a colour must
     # first read against the background, and only then be as distinct as possible from its
     # neighbours. So pick lexicographically - (1) prefer colours that clear the background
@@ -426,6 +477,18 @@ def recommend_colours(
     # SOFT: a below-bar colour is not dropped, just spent last, only when the count needs it.
     remaining_slots = [idx for idx in range(n_series) if idx not in slots]
     supply = [c for c in parsed if c not in used]
+
+    # Genuine shortage: the pool holds fewer distinct colours than the series need. The
+    # count is HARD and the named palettes are only recommendations, so top up the deficit
+    # algorithmically rather than give up - generated colours read on the background and are
+    # farthest-first from everything already in play. This fires only when the pool cannot
+    # cover the count, never as the default path.
+    generated: list[str] = []
+    deficit = len(remaining_slots) - len(supply)
+    if deficit > 0:
+        generated = _generate_distinguishable(placed + supply, background, deficit, min_contrast_mark)
+        supply = supply + generated
+    generated_set = set(generated)
 
     def _reads(colour: str) -> bool:
         ratio = _contrast_ratio(colour, background)
@@ -450,28 +513,13 @@ def recommend_colours(
     ordered_positions = sorted(slots)
     chosen = [slots[idx] for idx in ordered_positions]
 
-    # HARD constraint: return one distinct colour per requested series. If the pool holds
-    # fewer real colours than that (a small supplied brand set), we cannot fabricate more
-    # without inventing arbitrary hues - so return an explicit UNRESOLVED result that routes
-    # back to the select stage to drop a series or supply more colours. A short plan with
-    # holes is never a successful recommendation.
+    # HARD constraint: one distinct colour per requested series. Generation tops up any
+    # shortage, so the count is normally met. `resolved` is false only in the pathological
+    # case where even generation cannot produce enough colours clearing the background bar
+    # (e.g. a mid-grey background that few colours read against); then, and only then, route
+    # back to the select stage to change the background or drop a series.
     shortfall = n_series - len(chosen)
     resolved = shortfall == 0
-
-    # When unresolved, offer curated CVD-safe candidates the caller MAY add (farthest-first
-    # from what is chosen) - a suggestion for the select stage, not colours applied here.
-    suggestions: list[str] = []
-    if not resolved:
-        candidate_pool = [c for c in EXTENDED_CATEGORICAL if c not in chosen]
-        reference = list(chosen)
-        while len(suggestions) < shortfall and candidate_pool:
-            if reference:
-                pick = max(candidate_pool, key=lambda c: min(_separation(c, o) for o in reference))
-            else:
-                pick = candidate_pool[0]
-            suggestions.append(pick)
-            reference.append(pick)
-            candidate_pool = [c for c in candidate_pool if c != pick]
 
     assignment = [{"series_index": idx, "colour": slots[idx]} for idx in ordered_positions]
     validation = validate_palette(chosen, background=background) if chosen else {"verdict": "pass", "findings": []}
@@ -493,11 +541,18 @@ def recommend_colours(
             f"{len(dropped)} colour(s) read poorly on this background ({', '.join(dropped)}) - "
             f"kept (contrast is a soft preference) and reported by validate_palette."
         )
+    generated_used = [c for c in chosen if c in generated_set]
+    if generated_used:
+        rationale_parts.append(
+            f"The {'supplied' if available else 'default'} set was short for {n_series} series; "
+            f"generated {len(generated_used)} extra distinguishable colour(s) "
+            f"({', '.join(generated_used)}) that read on the background to complete the palette."
+        )
     if not resolved:
         rationale_parts.append(
-            f"UNRESOLVED: the {'supplied' if available else 'default'} set has only {len(chosen)} "
-            f"distinct colour(s) for {n_series} series - {shortfall} short. Route back to the select "
-            f"stage to drop a series or supply more colours; do not invent hues to pad the palette."
+            f"UNRESOLVED: could not produce {shortfall} more colour(s) clearing the background "
+            f"bar on {background} even by generation. Route back to the select stage to change "
+            f"the background or drop a series."
         )
 
     return {
@@ -506,18 +561,18 @@ def recommend_colours(
         "assignment": assignment,
         "ordered_palette": chosen,
         "chosen": chosen,
-        "prefix_nested": not has_semantics,
+        "prefix_nested": (not has_semantics) and not generated_used,
         "n_series": n_series,
         "shortfall": shortfall,
-        "suggested_additions": suggestions,
+        "generated_additions": generated_used,
         "dropped_low_contrast": dropped,
         "semantic_findings": semantic_findings,
         "validation": validation,
         "rationale": " ".join(rationale_parts)
         + (
-            ""
-            if has_semantics
-            else " Palette is ordered and prefix-nested: a panel with fewer series uses the first that many colours."
+            " Palette is ordered and prefix-nested: a panel with fewer series uses the first that many colours."
+            if not has_semantics and not generated_used
+            else ""
         ),
     }
 
