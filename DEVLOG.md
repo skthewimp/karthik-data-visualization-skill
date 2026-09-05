@@ -2548,3 +2548,19 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Reoriented — build-side only. The table is unreadable because nothing on the **build** path sizes it or forces the craft. Concretely what's missing at build time: 1. **No table sizing.** Construct's Canvas step (`reco...
 
 <!-- claude-session:7f23275d-f817-42ff-8f63-b1dda2b3ab51:end -->
+
+<!-- claude-session:26f1d4c5-6eb9-4cb7-b56c-7b4a14ebe346:start -->
+## 2026-09-05 14:50 IST | Claude session `26f1d4c5-6eb`
+
+### User prompts
+> tables are really poor right now. for eg. [Image #1] . we need 1. a proper chart sizer; 2. font sizing; 3. proper styling / bars / cell sahding etc. right now it's being done horribly.
+> no R helper. this repo only has MCPs and skills. look at what we already have and extend that.
+> [Request interrupted by user for tool use]
+
+### Work done
+- Now tests. Let me see the existing layout test style.
+- All pass. Run full suite to confirm nothing broke and the tool registers.
+- Touched files: `dataviz_mcp/layout.py`, `dataviz_mcp/server.py`, `dataviz_mcp/tests/test_layout.py`
+- dataviz_mcp/layout.py | 189 +++++++++++++++++++++++++++++++++++++++++++++++++
+
+<!-- claude-session:26f1d4c5-6eb9-4cb7-b56c-7b4a14ebe346:end -->
