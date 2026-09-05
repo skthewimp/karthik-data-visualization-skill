@@ -55,6 +55,22 @@ OKABE_ITO = [
     "#000000",
 ]
 
+# When the default is asked for more than eight series, extend Okabe-Ito with Paul Tol's
+# qualitative hues (also CVD-aware). Hand-vetted, never generated - farthest-first over the
+# union picks the most distinct subset, so early series still land on the Okabe-Ito colours.
+_TOL_EXTRA = [
+    "#332288",
+    "#117733",
+    "#88CCEE",
+    "#DDCC77",
+    "#CC6677",
+    "#AA4499",
+    "#44AA99",
+    "#999933",
+    "#882255",
+]
+EXTENDED_CATEGORICAL = OKABE_ITO + _TOL_EXTRA
+
 _CVD_KINDS = ("deuteranope", "protanope", "tritanope")
 
 
@@ -246,6 +262,7 @@ def recommend_colours(
     semantic_hints: Optional[Sequence[dict[str, Any]]] = None,
     family_tolerance_deg: float = 40.0,
     min_separation: float = 0.18,
+    min_contrast_mark: float = 3.0,
 ) -> dict[str, Any]:
     """Pick and assign `n_series` colours for one graph from the `available` set.
 
@@ -253,11 +270,22 @@ def recommend_colours(
     panel (so small multiples with k lines per panel pass k, not the total category
     count).
 
+    Returning one distinct colour per series is the HARD constraint. Selection is then
+    lexicographic: contrast WITH THE BACKGROUND comes first (a colour must read against the
+    background - this outranks separation from the other series), then diversity (maximise
+    the minimum separation from the already-placed series), then higher background contrast
+    as a tiebreak. Contrast stays SOFT, not a filter: a colour below the background bar is
+    never dropped (that would starve the pool), only spent last - used to satisfy the count
+    when readable colours run out - and reported by `validate_palette`. The default pool is
+    Okabe-Ito, extended with hand-vetted Paul Tol hues when more than eight series are asked
+    for; a supplied set is never padded with extras. If the pool holds fewer distinct colours
+    than `n_series`, the result is **unresolved** (`resolved: false`, `route_to: "select"`) -
+    the caller drops a series or supplies more colours, never invents hues. Colours are never
+    generated procedurally.
+
     Without `semantic_hints`, the returned palette is **ordered and prefix-nested**: it
     is built by farthest-first traversal, so the first m colours are themselves a good
-    m-colour palette and a smaller panel uses the prefix. Colours are chosen greedily to
-    maximise the minimum pairwise separation while staying readable against the
-    background. `focal` pins a colour to series 0.
+    m-colour palette and a smaller panel uses the prefix. `focal` pins a colour to series 0.
 
     `semantic_hints` binds specific series to a colour *intent* the model has judged. Each
     entry is ``{"series_index": i, ...}`` with either ``"colour": "#hex"`` (a hard pin) or
@@ -277,19 +305,24 @@ def recommend_colours(
     colour, unknown word) are flagged `semantic_unmet` and the slot is filled by
     separation. Hints make positions identity-bound, so the palette is not prefix-nested.
     """
-    pool = list(available) if available else list(OKABE_ITO)
-    # Split into parseable / usable (reads against the background) / dropped (low contrast).
-    # Semantic hints may reach the full parseable set; separation fill uses only `usable`.
-    parsed, usable, dropped = [], [], []
+    if available:
+        pool = list(available)
+    else:
+        # Default: Okabe-Ito, extended with Paul Tol's hues only when more than eight
+        # series are asked for. Never inject extras into a supplied brand set.
+        pool = list(EXTENDED_CATEGORICAL) if n_series > len(OKABE_ITO) else list(OKABE_ITO)
+    # Every parseable colour stays in play. Background contrast is a SOFT preference here,
+    # not a filter: dropping low-contrast colours starves the pool and breaks the hard
+    # constraint of returning enough distinct series colours. Contrast only orders the
+    # fill (higher first) and is reported downstream by ``validate_palette``. `dropped` is
+    # an informational list of colours that read poorly on this background, not excluded.
+    parsed, dropped = [], []
     for colour in pool:
         ratio = _contrast_ratio(colour, background)
-        if ratio is None:
+        if ratio is None or colour in parsed:
             continue
         parsed.append(colour)
-        if ratio >= 3.0:
-            if colour not in usable:
-                usable.append(colour)
-        else:
+        if ratio < 3.0:
             dropped.append(colour)
 
     def _resolve(kind: str, value: str, exclude: set[str]) -> Optional[str]:
@@ -381,41 +414,72 @@ def recommend_colours(
         placed.append(chosen_colour)
         used.add(chosen_colour)
 
-    # Fill the remaining positions farthest-first from what is already placed (usable only).
-    fill_pool = [c for c in usable if c not in used]
-    for idx in range(n_series):
-        if idx in slots or not fill_pool:
-            continue
-        if not placed:
-            best = max(fill_pool, key=lambda c: _contrast_ratio(c, background) or 0.0)
-        else:
-            best = max(fill_pool, key=lambda c: min(_separation(c, other) for other in placed))
+    # Fill the remaining positions farthest-first over ALL parseable colours (contrast is
+    # not a filter). Diversity is the objective: maximise the minimum separation from what
+    # is already placed; break ties toward higher background contrast so any poorly-reading
+    # colour is spent last, only when the count demands it.
+    # Contrast WITH THE BACKGROUND outranks separation from the other series: a colour must
+    # first read against the background, and only then be as distinct as possible from its
+    # neighbours. So pick lexicographically - (1) prefer colours that clear the background
+    # bar over those that do not, (2) among equals, maximise the minimum separation from the
+    # already-placed series, (3) break ties toward higher background contrast. Contrast stays
+    # SOFT: a below-bar colour is not dropped, just spent last, only when the count needs it.
+    remaining_slots = [idx for idx in range(n_series) if idx not in slots]
+    supply = [c for c in parsed if c not in used]
+
+    def _reads(colour: str) -> bool:
+        ratio = _contrast_ratio(colour, background)
+        return ratio is not None and ratio >= min_contrast_mark
+
+    for idx in remaining_slots:
+        if not supply:
+            break
+        best = max(
+            supply,
+            key=lambda c: (
+                1 if _reads(c) else 0,
+                min((_separation(c, other) for other in placed), default=0.0),
+                _contrast_ratio(c, background) or 0.0,
+            ),
+        )
         slots[idx] = best
         placed.append(best)
-        fill_pool = [c for c in fill_pool if c != best]
+        used.add(best)
+        supply = [c for c in supply if c != best]
 
     ordered_positions = sorted(slots)
     chosen = [slots[idx] for idx in ordered_positions]
 
+    # HARD constraint: return one distinct colour per requested series. If the pool holds
+    # fewer real colours than that (a small supplied brand set), we cannot fabricate more
+    # without inventing arbitrary hues - so return an explicit UNRESOLVED result that routes
+    # back to the select stage to drop a series or supply more colours. A short plan with
+    # holes is never a successful recommendation.
     shortfall = n_series - len(chosen)
+    resolved = shortfall == 0
+
+    # When unresolved, offer curated CVD-safe candidates the caller MAY add (farthest-first
+    # from what is chosen) - a suggestion for the select stage, not colours applied here.
     suggestions: list[str] = []
-    if shortfall > 0:
-        # Top up from Okabe-Ito colours not already chosen and readable on the background.
-        for colour in OKABE_ITO:
-            if len(suggestions) >= shortfall:
-                break
-            if colour in chosen:
-                continue
-            ratio = _contrast_ratio(colour, background)
-            if ratio is not None and ratio >= 3.0:
-                suggestions.append(colour)
+    if not resolved:
+        candidate_pool = [c for c in EXTENDED_CATEGORICAL if c not in chosen]
+        reference = list(chosen)
+        while len(suggestions) < shortfall and candidate_pool:
+            if reference:
+                pick = max(candidate_pool, key=lambda c: min(_separation(c, o) for o in reference))
+            else:
+                pick = candidate_pool[0]
+            suggestions.append(pick)
+            reference.append(pick)
+            candidate_pool = [c for c in candidate_pool if c != pick]
 
     assignment = [{"series_index": idx, "colour": slots[idx]} for idx in ordered_positions]
     validation = validate_palette(chosen, background=background) if chosen else {"verdict": "pass", "findings": []}
 
+    default_label = "the Okabe-Ito default" if n_series <= len(OKABE_ITO) else "the extended default"
     rationale_parts = [
         f"Chose {len(chosen)} of {n_series} colours from "
-        f"{'the supplied set' if available else 'the Okabe-Ito default'} by max-min separation on a {background} background."
+        f"{'the supplied set' if available else default_label} by max-min separation on a {background} background."
     ]
     if focal:
         rationale_parts.append(f"Pinned focal {focal} to series 0.")
@@ -425,14 +489,20 @@ def recommend_colours(
             f"positions are identity-bound so the palette is not prefix-nested."
         )
     if dropped:
-        rationale_parts.append(f"Dropped {len(dropped)} low-contrast colour(s): {', '.join(dropped)}.")
-    if shortfall > 0:
         rationale_parts.append(
-            f"Available set is {shortfall} short for {n_series} series; "
-            f"add/substitute: {', '.join(suggestions) or 'nudge existing colours apart'}."
+            f"{len(dropped)} colour(s) read poorly on this background ({', '.join(dropped)}) - "
+            f"kept (contrast is a soft preference) and reported by validate_palette."
+        )
+    if not resolved:
+        rationale_parts.append(
+            f"UNRESOLVED: the {'supplied' if available else 'default'} set has only {len(chosen)} "
+            f"distinct colour(s) for {n_series} series - {shortfall} short. Route back to the select "
+            f"stage to drop a series or supply more colours; do not invent hues to pad the palette."
         )
 
     return {
+        "resolved": resolved,
+        "route_to": None if resolved else "select",
         "assignment": assignment,
         "ordered_palette": chosen,
         "chosen": chosen,

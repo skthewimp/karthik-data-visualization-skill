@@ -1109,8 +1109,17 @@ measured overflow; spend your effort on the defects a resize cannot fix. Make no
 palette resolved from the select stage's ``colour_plan`` by ``recommend_colours`` (supplied by
 the driver, or produced by calling the tool with the plan's available colours, ``colour_groups``,
 background, focal, and semantic hints), assign it in the palette's order, and record what you
-applied in ``recommendations_used.palette``. If ``validate_palette`` flags a contrast or
-adjacency problem, correct it against the plan; do not re-pick hues from scratch. Make no
+applied in ``recommendations_used.palette``. Never substitute, omit, or invent a data-series
+colour, and never nudge a planned hex: every series is coloured from the resolved assignment
+exactly as given. Apply the assignment only when ``recommend_colours`` returns ``resolved`` true;
+if it returns ``resolved`` false (a ``shortfall`` remains - the pool holds fewer distinct colours
+than the series need), report the plan as UNRESOLVED and route back to the select stage (its
+``route_to``) to drop a series or supply more colours - do NOT improvise the missing hues or
+render a short palette. Record the complete series-to-colour mapping in
+``recommendations_used.palette`` and validate that every assigned series colour is present and
+correct after rendering - not only the ones that happened to render. Background contrast is a soft
+diagnostic, not a reason to swap a colour: if ``validate_palette`` flags a contrast or adjacency
+problem, correct it against the plan; do not re-pick hues from scratch. Make no
 precision decision here. For every numeric
 display group (each axis, label, or table column), apply the resolved number format for that
 group - the format from ``recommend_precision`` keyed to the group's values and the select

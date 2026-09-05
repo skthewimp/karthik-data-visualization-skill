@@ -162,9 +162,16 @@ def create_server() -> Any:
     ) -> dict[str, Any]:
         """Pick and assign colours for one graph from an available set (brand/context/default).
 
-        Chooses by max-min separation and background contrast, pins ``focal`` to series 0,
-        and reports any shortfall with suggested additions. Use even when colours are given -
-        a specific chart still needs a which-and-how-assigned decision.
+        Returns one distinct colour per series (the hard constraint), chosen farthest-first
+        for diversity, pinning ``focal`` to series 0. Background contrast is a soft
+        preference: colours are never dropped for it (that would starve the pool) - it only
+        orders the fill and is reported by ``validate_palette``. The default pool is
+        Okabe-Ito, extended with vetted Paul Tol hues past eight series; a supplied set is
+        never padded. Use even when colours are given - a specific chart still needs a
+        which-and-how-assigned decision. If the pool has fewer distinct colours than
+        ``n_series``, ``resolved`` is false and ``route_to`` is "select" (a ``shortfall``
+        remains, with ``suggested_additions`` to consider) - apply nothing and route back.
+        Colours are never generated procedurally.
 
         Pass ``semantic_hints`` to bind series to a colour intent the model has judged
         appropriate: a list of ``{"series_index": i, "colour": "#hex"}`` (hard pin) or

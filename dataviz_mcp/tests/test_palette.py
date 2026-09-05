@@ -26,11 +26,38 @@ def test_validate_flags_low_background_contrast():
     assert any(f["rule"] == "mark_vs_background" for f in result["findings"])
 
 
-def test_recommend_reports_shortfall_and_suggestions():
+def test_recommend_does_not_starve_pool_on_low_contrast_background():
+    # Case-04 regression: the seven-series default must return seven distinct colours on
+    # white. Contrast is soft, so Okabe-Ito colours that read poorly on white are NOT
+    # dropped from the pool - the count is the hard constraint.
+    result = recommend_colours(None, n_series=7)
+    assert result["resolved"] is True
+    assert result["route_to"] is None
+    assert result["shortfall"] == 0
+    assert len(result["assignment"]) == 7
+    assert len(set(result["chosen"])) == 7  # seven distinct colours
+    # Validation covers every assigned series.
+    assert result["validation"]["n_colours"] == 7
+
+
+def test_recommend_extends_default_pool_past_eight_series():
+    result = recommend_colours(None, n_series=12)
+    assert result["resolved"] is True
+    assert len(set(result["chosen"])) == 12  # Okabe-Ito (8) extended with vetted extras
+
+
+def test_recommend_unresolved_when_supplied_pool_too_small():
+    # A small brand set for more series than it holds: never invent hues to pad it -
+    # report unresolved and route back to the select stage.
     result = recommend_colours(["#D55E00", "#0072B2", "#009E73"], n_series=5, focal="#D55E00")
-    assert result["chosen"][0] == "#D55E00"  # focal pinned to series 0
+    assert result["chosen"][0] == "#D55E00"  # focal still pinned to series 0
+    assert result["resolved"] is False
+    assert result["route_to"] == "select"
     assert result["shortfall"] == 2
+    assert len(result["chosen"]) == 3  # only the three real colours, no invented ones
+    # Curated candidates are offered for the caller to consider, not applied.
     assert len(result["suggested_additions"]) == 2
+    assert all(c not in result["chosen"] for c in result["suggested_additions"])
 
 
 def test_recommend_falls_back_to_default_when_no_available():
