@@ -2534,3 +2534,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Pushed. To close the loop on your actual question: yes, it's genuinely wired in — the code extends past Okabe-Ito into Tol, and past the whole curated set via generation, proven above. The phrase was over-repeat...
 
 <!-- claude-session:8f30f1f0-9b62-4476-945e-2120819351b7:end -->
+
+<!-- claude-session:7f23275d-f817-42ff-8f63-b1dda2b3ab51:start -->
+## 2026-09-05 14:06 IST | Claude session `7f23275d-f81`
+
+### User prompts
+> ok we have a genuine problem wiht tables. right now they are absolutey unreadable. canvas not properly sized. fonts too small. no highlights or colouring. no bars or sparklines to show additional info. etc. etc. like...
+> [Request interrupted by user for tool use]
+> fuck you. it's not an INSPECTION issue. it's a building issue.
+
+### Work done
+- You're right. Dropping the inspection framing. The image is bad because it was **built** badly: 6pt fonts, colliding two-line headers, invisible grey focal row, no bars/shading for magnitude, canvas squeezed. The fix...
+- Reoriented — build-side only. The table is unreadable because nothing on the **build** path sizes it or forces the craft. Concretely what's missing at build time: 1. **No table sizing.** Construct's Canvas step (`reco...
+
+<!-- claude-session:7f23275d-f817-42ff-8f63-b1dda2b3ab51:end -->
