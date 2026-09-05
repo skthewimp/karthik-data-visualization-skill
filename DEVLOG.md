@@ -1,5 +1,20 @@
 # Devlog
 
+## 2026-09-05 - redundant-axis geometry floor: two labelled marks, not an 80% share
+
+Karthik: the 0.8 share was still too conservative - "as long as at least 2 points per series are
+labelled we can dispense with the axis." Correct, and honest for a linear axis: two labelled marks
+fix the pixel->value mapping, so a reader can recover any other mark from them; the ticks are then
+duplicate ink regardless of how many marks stay unlabelled.
+
+Replaced the ratio with an absolute floor `_REDUNDANT_AXIS_MIN_LABELS = 2`, applied per
+mark-bearing panel as `labels >= min(2, marks)` (so a one- or two-mark panel still needs all its
+marks). `bars_two_labelled` (2 of 5) now flags; `bars_few_labelled` (1 of 5) stays silent - one
+label can't fix the scale. The message dropped the coverage percentage for the scale-fixing
+reason. Grouping stays per-axes (panel): the contract path is the place that reads per-series
+precisely; geometry only gets marks-per-panel cleanly. `dataviz_mcp/inspection.py`, tests,
+`dataviz-execution` (both), `docs/mcp.md`.
+
 ## 2026-09-04 - redundant value axis persisted when most (not all) values were labelled
 
 ### Context

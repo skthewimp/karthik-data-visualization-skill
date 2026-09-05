@@ -512,9 +512,9 @@ def test_redundant_value_axis_flagged_per_panel_without_a_contract(tmp_path: Pat
     assert report["passes_geometry_checks"] is False
 
 
-def test_redundant_value_axis_flagged_on_near_complete_coverage(tmp_path: Path) -> None:
-    # Four of five bars labelled (0.8 coverage), no inspection_contract: the geometry fallback must
-    # flag the redundant value axis from a near-complete label share, not require every mark.
+def test_redundant_value_axis_flagged_when_marks_are_labelled(tmp_path: Path) -> None:
+    # Four of five bars labelled, no inspection_contract: the geometry fallback must flag the
+    # redundant value axis without requiring every mark.
     _, report = render(tmp_path, "bars_mostly_labelled")
     assert "REDUNDANT_VALUE_AXIS" in _codes(report)
     assert report["redundant_value_axis"]
@@ -523,9 +523,16 @@ def test_redundant_value_axis_flagged_on_near_complete_coverage(tmp_path: Path) 
     assert report["passes_geometry_checks"] is False
 
 
-def test_no_redundant_axis_when_few_marks_labelled(tmp_path: Path) -> None:
-    # One of five bars labelled (0.2 coverage): the axis still carries the reading for the
-    # unlabelled marks, so the flag must stay silent.
+def test_redundant_value_axis_flagged_at_two_labelled_marks(tmp_path: Path) -> None:
+    # Exactly two of five bars labelled: two labels fix the linear scale, so the flag must fire
+    # even though most marks are unlabelled.
+    _, report = render(tmp_path, "bars_two_labelled")
+    assert "REDUNDANT_VALUE_AXIS" in _codes(report)
+    assert report["redundant_value_axis"]
+
+
+def test_no_redundant_axis_when_one_mark_labelled(tmp_path: Path) -> None:
+    # One of five bars labelled: a single label cannot fix the scale, so the flag must stay silent.
     _, report = render(tmp_path, "bars_few_labelled")
     assert "REDUNDANT_VALUE_AXIS" not in _codes(report)
     assert report["redundant_value_axis"] == []

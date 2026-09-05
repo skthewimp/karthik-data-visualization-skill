@@ -203,9 +203,23 @@ def bars_mostly_labelled():
     return fig, {"fixture": "bars_mostly_labelled"}
 
 
+def bars_two_labelled():
+    # Five bars, exactly two labelled: two labels fix the linear scale, so REDUNDANT_VALUE_AXIS
+    # must fire even though most marks are unlabelled.
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    heights = [2, 4, 3, 5, 1]
+    bars = ax.bar(["A", "B", "C", "D", "E"], heights, color="#245b78")
+    for index, (bar, value) in enumerate(zip(bars, heights)):
+        bar.set_gid(f"mark:bar{index}")
+        if index in (0, 3):
+            label = ax.text(bar.get_x() + bar.get_width() / 2, value + 0.2, f"{value}", fontsize=8)
+            label.set_gid(f"label:bar{index}")
+    return fig, {"fixture": "bars_two_labelled"}
+
+
 def bars_few_labelled():
-    # Five bars, only one labelled (coverage 0.2): the axis still carries the reading for the four
-    # unlabelled marks, so REDUNDANT_VALUE_AXIS must stay silent.
+    # Five bars, only one labelled: a single label cannot fix the scale, so REDUNDANT_VALUE_AXIS
+    # must stay silent - the axis still carries the reading for the four unlabelled marks.
     fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
     heights = [2, 4, 3, 5, 1]
     bars = ax.bar(["A", "B", "C", "D", "E"], heights, color="#245b78")
