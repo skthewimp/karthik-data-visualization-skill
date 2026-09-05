@@ -86,8 +86,7 @@ def _generate_distinguishable(
     min_contrast_mark: float,
 ) -> list[str]:
     """Algorithmically extend a palette when the curated/supplied pool is genuinely too
-    small for the requested series count (the count is the hard constraint; Okabe-Ito and
-    the other named palettes are recommendations, not a ceiling).
+    small for the requested series count (the count is the hard constraint).
 
     Honours the same priority as selection: candidates come from an HLS lattice whose
     lightness bands are picked for the background (darker marks on a light ground, lighter
@@ -329,14 +328,13 @@ def recommend_colours(
     as a tiebreak. Contrast stays SOFT, not a filter: a colour below the background bar is
     never dropped (that would starve the pool), only spent last - used to satisfy the count
     when readable colours run out - and reported by `validate_palette`. The default pool is
-    Okabe-Ito, extended with hand-vetted Paul Tol hues past eight series. These named palettes
-    are recommendations, not a ceiling: when even the extended/supplied pool holds fewer distinct
-    colours than `n_series`, the deficit is topped up algorithmically (`_generate_distinguishable`
-    - a background-aware HLS lattice picked farthest-first, so every extra reads on the background),
-    reported in `generated_additions`, so the hard count is met. `resolved` is false only in the
-    pathological case where even generation cannot produce enough colours clearing the background
-    bar (e.g. a mid-grey ground); then `route_to` is "select" to change the background or drop a
-    series.
+    Okabe-Ito, extended with hand-vetted Paul Tol hues past eight series. When even the
+    extended/supplied pool holds fewer distinct colours than `n_series`, the deficit is topped up
+    algorithmically (`_generate_distinguishable` - a background-aware HLS lattice picked
+    farthest-first, so every extra reads on the background), reported in `generated_additions`, so
+    the hard count is met. `resolved` is false only in the pathological case where even generation
+    cannot produce enough colours clearing the background bar (e.g. a mid-grey ground); then
+    `route_to` is "select" to change the background or drop a series.
 
     Without `semantic_hints`, the returned palette is **ordered and prefix-nested**: it
     is built by farthest-first traversal, so the first m colours are themselves a good
