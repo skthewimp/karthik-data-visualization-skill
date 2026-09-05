@@ -2592,7 +2592,6 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 ### Work done
 - Now tests. Let me see the existing layout test style.
 - All pass. Run full suite to confirm nothing broke and the tool registers.
-- Touched files: `dataviz_mcp/layout.py`, `dataviz_mcp/server.py`, `dataviz_mcp/tests/test_layout.py`
-- dataviz_mcp/layout.py | 189 +++++++++++++++++++++++++++++++++++++++++++++++++
 
 <!-- claude-session:26f1d4c5-6eb9-4cb7-b56c-7b4a14ebe346:end -->
+
