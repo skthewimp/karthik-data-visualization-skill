@@ -40,6 +40,12 @@ precision than the data supports, is not finished.
 
 ## Craft principles
 
+- **Information before whitespace.** Default to a compact, readable table with
+  small outer margins and modest cell padding. Space earns its place by separating
+  columns, grouping rows, or preventing collisions. Avoid oversized margins,
+  spacious dashboard-card styling, and tall rows around small text. Keep type
+  readable and tighten the surrounding space; never shrink type to create air.
+
 - **Order for the reader's task.** Sort rows and columns by the value being
   compared, not alphabetically or by source order, unless lookup by name is the
   task. Time runs across columns; rankings run top to bottom. Ordering is more
@@ -109,7 +115,7 @@ The planner balances measured header/body wrapping against shared row heights
 before construction, choosing compact columns without reducing type. A long
 header or occasional long cell must not leave the whole column needlessly wide.
 Do not equalise column widths or stretch cells to fill the delivery canvas. Keep
-padding intentional and preserve space needed for graphics. Specify
+padding compact and preserve space needed for graphics. Specify
 `visual_width_px` for inline graphics; `max_width_px` is an optional ceiling,
 not a requirement for automatic wrapping. Headers can use the full column width;
 body text shares it with its reserved inline graphic. Use the returned wrapped strings, column widths, row

@@ -112,8 +112,7 @@ def recommend_table_layout(
     profile = dict(PROFILES[delivery_profile])
     profile.update(delivery or {})
     typo = {"family": "sans", "body_pt": 11, "header_pt": 12,
-            "minimum_body_pt": 11, "minimum_header_pt": 11,
-            "padding_x_px": 10, "padding_y_px": 6}
+            "minimum_body_pt": 11, "minimum_header_pt": 11}
     typo.update(typography or {})
     dpi, max_w, max_h = (float(profile[k]) for k in ("dpi", "max_width_px", "max_height_px"))
     if min(dpi, max_w, max_h, *(float(typo[k]) for k in
@@ -128,7 +127,10 @@ def recommend_table_layout(
     header = max(float(typo["header_pt"]), float(typo["minimum_header_pt"]), minimum_px * 72 / dpi)
     if minimum_px:
         max_w = min(max_w, display_w * min(body, header) * dpi / 72 / minimum_px)
-    px, py = float(typo["padding_x_px"]), float(typo["padding_y_px"])
+    # Compact spacing scales with type; explicit delivery-specific padding wins.
+    em_px = body * dpi / 72
+    px = float(typo.get("padding_x_px", 0.35 * em_px))
+    py = float(typo.get("padding_y_px", 0.15 * em_px))
     if min(px, py) < 0:
         raise ValueError("Padding must be nonnegative")
     plan = dict(treatment or {"kind": "text"})

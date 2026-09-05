@@ -7,6 +7,7 @@
 - “the objective here is to get a set of reusable skills / MCPs.”
 - “don’t overdo tests” and read `AGENTS.md`.
 - “the white space inside the columsn etc need to be covered att his construction stage itself.”
+- “prefer to communicate information over whitespace”
 
 ### Work done
 
@@ -16,6 +17,8 @@
 - Construction now compares measured wrapping options and shared row heights to
   reduce internal whitespace before build, preserving fonts/padding and inline
   graphic space. Long headers/cells wrap automatically without manual width caps.
+- Made compact, type-relative padding the default and removed the renderer's
+  implicit outer margin; the table skill prioritises information over decorative space.
 - Updated both skill surfaces: treatment follows the reading task and scale
   semantics; tables use their own sizing and execution path.
 - Captured nested text and inherited type; distinguished text coverage from logical

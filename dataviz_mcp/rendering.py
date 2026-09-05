@@ -550,7 +550,6 @@ dpi <- as.numeric(args[[7]])
 build_function <- args[[8]]
 content_kind <- if (length(args) >= 9) args[[9]] else "chart"
 is_table_content <- identical(content_kind, "table")
-table_margin_in <- 0.12
 table_x_offset <- 0
 table_y_offset <- 0
 
@@ -588,6 +587,8 @@ if (is_table_content) {
   # Shrink-wrap the canvas to the table's natural size instead of centering a
   # small table in a fixed frame. Font-dependent (grobwidth) tracks need an open
   # device with real metrics to resolve, so measure on a scratch device first.
+  # Cell padding and builder text bands already provide breathing room. Do not
+  # silently add another outer margin beyond the content-sized delivery plan.
   measure_path <- tempfile(fileext=".png")
   ragg::agg_png(measure_path, width=width_px, height=height_px, units="px", res=dpi)
   grid.newpage()
@@ -595,15 +596,14 @@ if (is_table_content) {
   natural_h_in <- convertHeight(sum(gt$heights), "inches", valueOnly=TRUE)
   dev.off()
   unlink(measure_path)
-  margin_px <- round(table_margin_in * dpi)
   if (is.finite(natural_w_in) && natural_w_in > 0) {
     natural_w_px <- natural_w_in * dpi
-    width_px <- as.integer(max(1, round(natural_w_px + 2 * margin_px)))
+    width_px <- as.integer(max(1, ceiling(natural_w_px)))
     table_x_offset <- (width_px - natural_w_px) / 2
   }
   if (is.finite(natural_h_in) && natural_h_in > 0) {
     natural_h_px <- natural_h_in * dpi
-    height_px <- as.integer(max(1, round(natural_h_px + 2 * margin_px)))
+    height_px <- as.integer(max(1, ceiling(natural_h_px)))
     table_y_offset <- (height_px - natural_h_px) / 2
   }
 }

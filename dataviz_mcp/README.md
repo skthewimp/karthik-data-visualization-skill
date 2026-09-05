@@ -261,7 +261,10 @@ values separately for bars, shading, and sparklines. Each column has the same
 number of cells. `None` becomes a blank; use explicit strings for other missing
 value conventions. Headers accept explicit newlines. `max_width_px` includes
 padding and inline graphics; unbreakable tokens are preserved even when too wide.
-Typography also accepts `padding_x_px` and `padding_y_px`.
+Typography also accepts `padding_x_px` and `padding_y_px`. Defaults are compact:
+0.35 em on each horizontal side and 0.15 em above/below, based on body type. Explicit
+padding overrides those defaults. The R table renderer adds no outer margin beyond
+builder-provided padding and text bands, so export dimensions follow the plan.
 
 Construction compares measured word-wrap breakpoints for each column at unchanged
 type and padding. It prefers feasible delivery and fewer continuations, then a

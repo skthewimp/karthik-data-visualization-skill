@@ -4,6 +4,9 @@
 
 ### Measured table planning and nested text inspection
 
+- Compact, type-relative cell padding is the default. The renderer adds no hidden
+  outer margin, and the table skill prioritises information over decorative space.
+
 - Construction now balances header/body wrapping against shared row heights to
   reduce internal whitespace before building. Long headers or isolated long cells
   no longer force natural-width columns; type, padding and graphic space remain
