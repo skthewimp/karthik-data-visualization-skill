@@ -7,6 +7,13 @@ description: Post-render gate that critiques a built chart's execution - geometr
 
 The **post-render gate** of the construct process. It receives the built candidate at its delivery size and checks the **rendering, not the idea**. The idea gate already decided the chart is the right chart saying the right thing; this stage decides whether the actual export is clean enough to hand a reader. The verdict needs the pixels - which is why it runs *after* build.
 
+For a table, use the table layout/inspection path instead of chart refitting.
+Check cell overflow, header collisions and supplied type/display minimums on each
+page. A larger raster that shrinks in the delivery container is not a readability
+fix. `geometry_status: incomplete` cannot support a mechanical pass; inspect
+uncovered content explicitly and retain the limitation. Review the focal emphasis
+and conditional-formatting scale against the reading task, not just geometry.
+
 ## Check the execution
 
 Inspect the exact export at the declared delivery size and find every consequential defect:

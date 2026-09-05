@@ -40,6 +40,7 @@ def raster_info(path: Path) -> dict[str, Any]:
     try:
         with Image.open(path) as image:
             width, height = image.size
+            dpi = image.info.get("dpi")
             image_format = image.format or path.suffix.lstrip(".").upper()
     except OSError as exc:
         raise ValueError(f"Cannot inspect raster artifact {path}: {exc}") from exc
@@ -50,4 +51,5 @@ def raster_info(path: Path) -> dict[str, Any]:
         "width": width,
         "height": height,
         "format": image_format,
+        "dpi": list(dpi) if dpi else None,
     }

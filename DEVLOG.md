@@ -1,5 +1,27 @@
 # Devlog
 
+## 2026-09-05 - reusable table planning
+
+### User prompts
+
+- “the objective here is to get a set of reusable skills / MCPs.”
+- “don’t overdo tests” and read `AGENTS.md`.
+
+### Work done
+
+- Replaced the local count-based prototype with `recommend_table_layout`: formatted
+  content/file inputs, grid/ragg metrics, wrapping, typography/display floors and
+  continuation pages that preserve content and repeat identifiers.
+- Updated both skill surfaces: treatment follows the reading task and scale
+  semantics; tables use their own sizing and execution path.
+- Captured nested text and inherited type; distinguished text coverage from logical
+  cell coverage, added cell overflow and displayed-font checks. Free-form wrappers
+  cannot certify cell geometry.
+- Focused regressions cover wrapping/pagination, display constraints, scale scope
+  and nested inspection. A separate regional-revenue example exercised planning
+  through rendering and visual inspection.
+
+
 ## 2026-09-05 - redundant-axis geometry floor: two labelled marks, not an 80% share
 
 Karthik: the 0.8 share was still too conservative - "as long as at least 2 points per series are

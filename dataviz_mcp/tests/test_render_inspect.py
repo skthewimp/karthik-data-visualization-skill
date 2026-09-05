@@ -577,3 +577,43 @@ def test_clean_chart_has_no_colour_or_legend_flags(tmp_path: Path) -> None:
     codes = _codes(report)
     assert "REDUNDANT_COLOUR" not in codes
     assert "EXTERNAL_LEGEND" not in codes
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
+def test_nested_table_text_and_incomplete_viewports(tmp_path: Path) -> None:
+    source = tmp_path / "nested.R"
+    source.write_text('''library(grid)
+library(gtable)
+build_table <- function() {
+  children <- gTree(gp=gpar(fontsize=6), children=gList(
+    textGrob("Inherited small", x=.25, y=.6),
+    textGrob("Own small", x=.75, y=.4, gp=gpar(fontsize=7))))
+  gtable_matrix("nested", matrix(list(children),1),
+    widths=unit(5,"in"), heights=unit(2,"in"))
+}
+''')
+    bundle = render_and_inspect_chart(str(source), str(tmp_path / "nested"),
+                                    content="table", build_function="build_table")
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    assert {e["font_size_pt"] for e in layout["elements"]} == {6, 7}
+    assert layout["coverage"]["text_bounds"]
+    assert not layout["coverage"]["table_cell_bounds"]
+    report = inspect_rendered_chart(bundle["artifact"]["path"], bundle["layout_metadata_path"])
+    assert len(report["undersized_text"]) == 2
+    assert not report["passes_geometry_checks"]
+    report = inspect_rendered_chart(bundle["artifact"]["path"], bundle["layout_metadata_path"],
+        minimum_text_size_pt=5, display_width_px=200, minimum_text_size_px=16)
+    assert len(report["undersized_text"]) == 2
+    # A valid drawing with a named child viewport is not silently certified.
+    source.write_text(source.read_text().replace(
+        'gTree(gp=gpar(fontsize=6), children=gList(',
+        'gTree(childrenvp=viewport(name="inner"), gp=gpar(fontsize=6), children=gList(').replace(
+        'textGrob("Inherited small", x=.25, y=.6)',
+        'textGrob("Inherited small", x=.25, y=.6, vp="inner")'))
+    partial = render_and_inspect_chart(str(source), str(tmp_path / "partial"),
+                                      content="table", build_function="build_table")
+    report = inspect_rendered_chart(partial["artifact"]["path"], partial["layout_metadata_path"], minimum_text_size_pt=5)
+    assert not report["checks_complete"]

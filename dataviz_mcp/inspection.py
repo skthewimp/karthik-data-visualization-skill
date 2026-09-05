@@ -241,6 +241,7 @@ _DEFECT_CLASS: dict[str, str] = {
     "DIRECT_LABELS_INCOMPLETE": "placement",
     "LOW_TEXT_CONTRAST": "semantic",
     "DELIVERY_TEXT_TOO_SMALL": "semantic",
+    "CELL_OVERFLOW": "semantic",
     "REDUNDANT_COLOUR": "semantic",
     "REDUNDANT_VALUE_AXIS": "semantic",
     "EXTERNAL_LEGEND": "semantic",
@@ -293,6 +294,8 @@ def inspect_rendered_chart(
     max_unwrapped_annotation_chars: int = 45,
     delivery_profile: str | None = None,
     minimum_text_size_pt: float = 8.0,
+    display_width_px: float | None = None,
+    minimum_text_size_px: float | None = None,
 ) -> dict[str, Any]:
     """Inspect the exact raster plus matching deterministic layout metadata."""
     artifact_file = Path(artifact_path).expanduser().resolve()
@@ -305,6 +308,14 @@ def inspect_rendered_chart(
         raise ValueError("max_unwrapped_annotation_chars must be greater than zero")
     if minimum_text_size_pt <= 0:
         raise ValueError("minimum_text_size_pt must be greater than zero")
+
+    if display_width_px is not None and display_width_px <= 0:
+        raise ValueError("display_width_px must be positive")
+    if minimum_text_size_px is not None and (minimum_text_size_px <= 0 or display_width_px is None):
+        raise ValueError("A positive minimum_text_size_px requires display_width_px")
+    dpi = artifact.get("dpi", [None, None])
+    dpi = dpi[0] if isinstance(dpi, (list, tuple)) else dpi
+    display_scale = min(1.0, display_width_px / artifact["width"]) if display_width_px else 1.0
 
     metadata: dict[str, Any] | None = None
     metadata_file: Path | None = None
@@ -395,13 +406,23 @@ def inspect_rendered_chart(
                         {"bbox": bbox},
                     )
                 )
+            cell_box = element.get("cell_bbox")
+            if cell_box and not _contains(cell_box, bbox):
+                defects.append(_defect(
+                    "CELL_OVERFLOW", "high", [element["id"]],
+                    "Table text extends beyond its cell", {"bbox": bbox, "cell_bbox": cell_box},
+                ))
             font_size = element.get("font_size_pt")
-            if isinstance(font_size, (int, float)) and font_size < minimum_text_size_pt:
+            displayed_px = round(font_size * dpi / 72 * display_scale, 2) if isinstance(font_size, (int, float)) and dpi else None
+            if isinstance(font_size, (int, float)) and (font_size < minimum_text_size_pt or
+                    (minimum_text_size_px is not None and displayed_px is not None and displayed_px < minimum_text_size_px)):
                 record = {
                     "id": element["id"],
                     "role": element["role"],
                     "font_size_pt": font_size,
                     "minimum_text_size_pt": minimum_text_size_pt,
+                    "displayed_text_px": displayed_px,
+                    "minimum_text_size_px": minimum_text_size_px,
                 }
                 undersized_text.append(record)
                 defects.append(
@@ -409,7 +430,7 @@ def inspect_rendered_chart(
                         "DELIVERY_TEXT_TOO_SMALL",
                         "medium",
                         [element["id"]],
-                        f"{element['role']} {element['id']} is {font_size} pt at delivery scale",
+                        f"{element['role']} {element['id']} is below the supplied delivery text minimum",
                     )
                 )
             ratio = _contrast_ratio(element.get("colour"), metadata.get("background"))
@@ -823,7 +844,7 @@ def inspect_rendered_chart(
                 )
             )
 
-    if metadata is not None:
+    if metadata is not None and not metadata.get("coverage", {}).get("table_content"):
         underfill = _underfill_defect(occupied_utilization_ratio, bool(undersized_text))
         if underfill is not None:
             defects.append(underfill)
@@ -834,10 +855,14 @@ def inspect_rendered_chart(
     checks_complete = (
         metadata is not None
         and unsupported_marks == 0
+        and (minimum_text_size_px is None or bool(dpi))
+        and (not coverage.get("table_content") or bool(coverage.get("table_cell_bounds")))
         and bool(coverage.get("text_bounds"))
         and bool(coverage.get("line_series_paths"))
         and bool(coverage.get("patch_and_common_collection_bounds"))
     )
+    if minimum_text_size_px is not None and not dpi:
+        limitations.append("Raster has no DPI metadata; displayed font size could not be checked")
     if unsupported_marks:
         limitations.append(
             f"{unsupported_marks} non-line mark collection(s), patch(es), or image(s) lack collision geometry"
@@ -912,6 +937,8 @@ def inspect_rendered_chart(
         "inspection_mode": "raster+layout-metadata" if metadata else "raster-only",
         "delivery_profile": delivery_profile,
         "checks_complete": checks_complete,
+        "geometry_status": "fail" if blocking else "pass" if checks_complete else "incomplete",
+        "display_width_px": display_width_px,
         "passes_geometry_checks": checks_complete and not blocking,
         "width": artifact["width"],
         "height": artifact["height"],

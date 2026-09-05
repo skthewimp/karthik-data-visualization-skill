@@ -36,7 +36,7 @@ precision than the data supports, is not finished.
    precision, decorative shading.
 5. Render and inspect the actual table, not just the code: check that columns
    align, decimals line up, nothing wraps into a collision, and the smallest
-   font is still readable at delivery size.
+   font meets the supplied delivery minimum at displayed size.
 
 ## Craft principles
 
@@ -77,33 +77,51 @@ precision than the data supports, is not finished.
 - **Units and headers.** Put the unit once - in the header or a note - not in
   every cell. Keep headers short and their meaning unmistakable.
 
-## Conditional formatting
+## Treatment and layout
 
-Use it only when scanning for magnitude is part of the reader's task, and choose
-the scope deliberately:
+Choose treatment from the reading task, before sizing. Keep exact display strings
+separate from raw values: strings determine geometry; values determine scales.
 
-- **By column** (most common) - shade within each metric, so the scale compares
-  like with like down the column.
-- **By row** - shade within each row when the row is its own scale and
-  cross-row comparison is not the task.
-- **Whole table** - one shared scale only when every cell is commensurable
-  (same unit, same meaning).
+- **Lookup:** aligned text may be sufficient.
+- **Focal entity or winners:** identify the focal rows/cells and preserve ties.
+  Give the claim visible emphasis through weight or colour, not a barely changed grey.
+- **Magnitude comparison:** consider in-cell bars or dots with explicit domains
+  and baselines. Reserve space for both the number and its graphic.
+- **Hot/cold scanning:** use shading with an explicit scope: column, row, or whole
+  table. A shared scale requires comparable meaning and units, not just numeric
+  columns or percent signs. Diverging scales need a meaningful midpoint.
+- **Change over an ordered sequence:** consider a sparkline, specifying whether
+  its scale is shared across rows. Unrelated metrics are not a time series.
 
-Shading is colour, a weak channel for reading exact values: reserve it for
-spotting hot and cold regions across many cells, not for values the reader must
-read precisely. A perceptually ordered sequential scale for magnitude, a
-diverging scale only around a meaningful midpoint. If the shading does not change
-what the reader can see, remove it.
+State the treatment's scope, domain, direction, missing-value handling, and focal
+entities where relevant. Column count does not decide bars versus shading. Use
+`recommend_colours` for categorical/focal assignments and `recommend_precision`
+for display strings. For shading, choose an ordered sequential or meaningful
+midpoint diverging scale from the brand/style palette or renderer; the categorical
+picker's distinct-hue ordering is inappropriate. Use `validate_palette` as a
+diagnostic and inspect text contrast against the actual cell fills. A plain table needs no
+palette call; a magnitude or focal treatment must not disappear behind “no series”.
 
-## Inline micro-visualization
+When available, call `recommend_table_layout` with the formatted headers/cells,
+identifier columns, typography, and delivery constraints. For larger inputs pass
+a local JSON `content_path` rather than putting the table into the conversation.
+Specify `visual_width_px` for columns with inline graphics and `max_width_px` where
+wrapping is appropriate. Use the returned wrapped strings, column widths, row
+heights, font sizes, text bands, and continuation pages in the builder. Page column
+indices are zero-based and row ranges are half-open; repeat identifiers and headers.
+Do not silently drop rows or columns. Check that a split still supports the reading
+task; revise grouping or delivery if comparisons would be separated.
 
-A table can embed a visualization in a cell - an in-cell bar, a sparkline, a
-small dot plot. This is the strongest form of "a table is a visualization": it
-keeps the exact number for lookup while putting magnitude or trend on a strong
-channel (length, position) that shading cannot match. Prefer an in-cell bar or
-sparkline over heat shading when the reader needs to *compare* magnitudes or see
-a *shape*, not just spot hot cells. Keep it subordinate - one micro-visual
-column, aligned to a common scale, not a cell-by-cell zoo of glyphs.
+Set the intended display width and minimum displayed text pixels for screen
+outputs. DPI alone says nothing about readability after an image is fitted into a
+container. For print, use the intended physical size and point-size minimums.
+Never fit by shrinking below the supplied minimum. Widen within delivery limits,
+wrap, split/paginate, or revise supported wording/form. Reduce scope only when
+authorized. `cannot_fit` requires a revised plan, not acceptance of oversize pages.
+Fallback font metrics are estimates until checked in the target renderer.
+
+Without the MCP, use the renderer's text metrics to do the same work and inspect
+at delivery size; do not substitute a chart's slot-count layout for table content.
 
 ## Rendering
 
@@ -114,6 +132,13 @@ column, aligned to a common scale, not a cell-by-cell zoo of glyphs.
   object and render it through the same `ragg::agg_png` path as charts, so it
   can be inspected and gated deterministically. The craft principles are
   engine-agnostic and apply identically to both.
+- Pass the typography floor and screen constraints to inspection (the combined
+  renderer accepts `minimum_text_size_pt`, `display_width_px`, and
+  `minimum_text_size_px` in `dimensions`). Inspect each delivered page. Nested
+  text must be captured individually; `checks_complete: false` is incomplete
+  evidence, never a pass. Resolve `CELL_OVERFLOW` by changing cell geometry or
+  wrapping, not by moving table labels off their cells. Read decimal alignment,
+  contrast against cell fills, and treatment effectiveness from the actual render.
 
 ## Guardrails
 

@@ -30,7 +30,11 @@ A well-formatted table is a visualization, not the absence of one; treat it as a
 - **Table** when the task is reading exact values; rows are few and looked up by name; columns aren't commensurable on one scale (no honest shared axis); the artifact is a reference/monitoring surface read cell by cell; or a "chart" would just be a bar-chart of a handful of numbers read precisely.
 - **Chart** when the message is a shape, trend, comparison, or distribution the eye grabs pre-attentively - position, length, or slope carrying the claim faster than scanning numbers.
 
-When both work, decide by the dominant task. A table is chosen for exact lookup or non-commensurable values, never as a dumping ground for data a chart could show as a shape. On a table verdict, hand off to `karthik-table-style`.
+When both work, decide by the dominant task. A table is chosen for exact lookup or non-commensurable values, never as a dumping ground for data a chart could show as a shape. On a table verdict, hand off to `karthik-table-style` with the reading task,
+comparison scope and focal entities. Use `recommend_table_layout` after formatting
+content. Conditional or focal colour still needs a colour plan even without chart
+series; record sequential/diverging scales in `colour_role` and the comparison
+strategy, preserving their order rather than selecting distinct categorical hues.
 
 ## Fast chooser
 

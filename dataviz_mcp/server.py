@@ -7,6 +7,7 @@ from .inspection import inspect_rendered_chart as inspect_core
 from .labels import recommend_labels as recommend_labels_core
 from .frame import reserve_frame as reserve_frame_core
 from .layout import recommend_layout as recommend_layout_core
+from .table_layout import recommend_table_layout as recommend_table_layout_core
 from .text_fit import (
     place_on_marks as place_on_marks_core,
     recommend_text_placement as recommend_text_placement_core,
@@ -131,6 +132,8 @@ def create_server() -> Any:
         max_unwrapped_annotation_chars: int = 45,
         delivery_profile: str | None = None,
         minimum_text_size_pt: float = 8.0,
+        display_width_px: float | None = None,
+        minimum_text_size_px: float | None = None,
     ) -> dict[str, Any]:
         """Inspect one exact raster using matching renderer geometry when supplied."""
         return inspect_core(
@@ -141,6 +144,8 @@ def create_server() -> Any:
             max_unwrapped_annotation_chars,
             delivery_profile,
             minimum_text_size_pt,
+            display_width_px,
+            minimum_text_size_px,
         )
 
     @server.tool()
@@ -277,6 +282,39 @@ def create_server() -> Any:
             x_labels,
             longest_x_label_chars,
             delivery_profile,
+        )
+
+    @server.tool()
+    async def recommend_table_layout(
+        columns: list[dict[str, Any]] | None = None,
+        content_path: str | None = None,
+        delivery_profile: str = "chat",
+        typography: dict[str, Any] | None = None,
+        delivery: dict[str, Any] | None = None,
+        treatment: dict[str, Any] | None = None,
+        title: str = "",
+        subtitle: str = "",
+        notes: str = "",
+    ) -> dict[str, Any]:
+        """Measure formatted table content and return geometry or continuation pages.
+
+        columns: {header, cells: display strings[], identifier?, max_width_px?,
+        visual_width_px?}. Or content_path: local JSON {columns, title?, subtitle?, notes?}.
+        typography: family, body_pt, header_pt, minimum_body_pt, minimum_header_pt,
+        padding_x_px, padding_y_px. delivery: max_width_px, max_height_px, dpi,
+        display_width_px, minimum_text_px, allow_split. Set display width and minimum
+        displayed text pixels for screen delivery; export dpi alone cannot ensure legibility.
+        treatment: skill-selected {kind: text/emphasis/bar/dot/shading/sparkline,
+        scope: column/row/table, commensurable?, ...scale and focal details}.
+        Shared scales require commensurability. Reserve visual_width_px in columns
+        containing inline graphics. Fonts never shrink to fit. Pages carry zero-based
+        columns and half-open row ranges; repeat headers and identifier columns.
+        Apply returned widths, row heights, wrapped strings and typography in the builder;
+        render and inspect. Fallback metrics are explicitly identified.
+        """
+        return recommend_table_layout_core(
+            columns, content_path, delivery_profile, typography, delivery, treatment,
+            title, subtitle, notes,
         )
 
     @server.tool()

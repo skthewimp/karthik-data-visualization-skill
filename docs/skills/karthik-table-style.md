@@ -14,10 +14,19 @@ It is designed for the failure mode where data that wants exact lookup, or that 
 - **Tabular (lining) figures** - mono-width digits so columns align, with a clean text font.
 - **Conditional formatting, scoped deliberately** - by column (compare within a metric), by row (each row its own scale), or whole table (only when cells are commensurable); heat is a weak channel, for spotting hot and cold across many cells, not precise reading.
 
+## Measured planning
+
+`recommend_table_layout` accepts formatted headers/cells or a local JSON content
+file, typography, delivery constraints and a skill-selected treatment. It returns
+measured geometry, wrapped content and continuation pages while preserving type
+minimums. Screen delivery accounts for display width as well as export size.
+Bars, dots, shading and sparklines follow the reading task and scale semantics;
+column count does not determine the treatment. See the [MCP interface](../mcp.md).
+
 ## Rendering
 
 - **Delivered HTML or interactive tables:** the R `gt` package.
-- **A gated raster for inspection:** build the table as a `grid` / `tableGrob` object and render it through the same `ragg` path the charts use. In the MCP, that is `render_and_inspect_chart` with `content="table"`, which captures each cell's text, font size, and background fill at its exact bounding box.
+- **A gated raster for inspection:** build the table as a `grid` / `tableGrob` object and render it through the same `ragg` path the charts use. In the MCP, that is `render_and_inspect_chart` with `content="table"`, which captures nested text, inherited font sizes and cell overflow, and reports unsupported geometry as incomplete coverage.
 
 ## Relationship to other skills
 

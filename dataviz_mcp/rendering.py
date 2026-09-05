@@ -816,6 +816,79 @@ capture_panel_grob <- function(g, prefix, px, py, pw, ph) {
   captured
 }
 
+# Inspect table leaves in their actual viewport, preserving inherited graphics settings.
+# Unsupported viewport/grob forms are coverage gaps, not an empty successful inspection.
+capture_table_grob <- function(g, prefix, cell_box) {
+  captured <- list()
+  depth <- 0
+  on.exit(if (depth > 0) popViewport(depth))
+  if (!is.null(g$vp)) {
+    if (inherits(g$vp, "viewport")) {
+      pushViewport(g$vp); depth <- depth + 1
+    } else {
+      captured[[1]] <- row_frame(prefix, prefix, "", 0, 0, 0, 0, "unsupported")
+      return(captured)
+    }
+  }
+  if (!is.null(g$gp)) {
+    pushViewport(viewport(gp=g$gp)); depth <- depth + 1
+  }
+  if (inherits(g, "gtable")) {
+    ww <- convertWidth(unit(1, "npc"), "in", valueOnly=TRUE)*dpi
+    hh <- convertHeight(unit(1, "npc"), "in", valueOnly=TRUE)*dpi
+    ws <- resolve_tracks(g$widths, ww); hs <- resolve_tracks(g$heights, hh)
+    for (k in seq_along(g$grobs)) {
+      item <- g$layout[k,]
+      left <- sum(ws[seq_len(item$l-1)]); top <- sum(hs[seq_len(item$t-1)])
+      cw <- sum(ws[item$l:item$r]); ch <- sum(hs[item$t:item$b])
+      pushViewport(viewport(x=unit(left/dpi, "in"), y=unit(1,"npc")-unit(top/dpi,"in"),
+        width=unit(cw/dpi,"in"), height=unit(ch/dpi,"in"), just=c("left","top")))
+      loc <- deviceLoc(unit(c(0,1),"npc"), unit(c(1,0),"npc"), valueOnly=TRUE)
+      cb <- c(loc$x[1]*dpi, height_px-loc$y[1]*dpi, diff(loc$x)*dpi, -diff(loc$y)*dpi)
+      captured <- c(captured, capture_table_grob(g$grobs[[k]], paste0(prefix,"/",k), cb))
+      popViewport()
+    }
+    return(captured)
+  }
+  if (inherits(g, "gTree") && length(g$children)) {
+    # A free-form tree has text geometry but no per-cell layout tracks. Do not
+    # relabel the enclosing wrapper as the logical cell of every descendant.
+    captured[[1]] <- row_frame(prefix, prefix, "", 0, 0, 0, 0, "cell_coverage_gap")
+    if (!is.null(g$childrenvp)) {
+      captured[[length(captured)+1]] <- row_frame(prefix, prefix, "", 0, 0, 0, 0, "unsupported")
+    }
+    for (k in seq_along(g$children)) {
+      captured <- c(captured, capture_table_grob(g$children[[k]], paste0(prefix,"/",k), numeric()))
+    }
+    return(captured)
+  }
+  if (inherits(g, c("zeroGrob", "nullGrob"))) return(captured)
+  if (inherits(g, "text")) {
+    for (k in seq_along(g$label)) {
+      gp <- get.gpar()
+      # Resolve vector-valued settings individually, not just the first font in a grob.
+      for (field in names(gp)) if (length(gp[[field]]) > 1) gp[[field]] <- gp[[field]][((k-1) %% length(gp[[field]]))+1]
+      at <- function(v) if (length(v)) v[((k-1) %% length(v))+1] else NULL
+      tg <- textGrob(g$label[k], x=at(g$x), y=at(g$y), just=g$just,
+        hjust=at(g$hjust), vjust=at(g$vjust), rot=at(g$rot), gp=gp)
+      xx <- unit.c(grobX(tg,180), grobX(tg,0), grobX(tg,0), grobX(tg,180))
+      yy <- unit.c(grobY(tg,270), grobY(tg,270), grobY(tg,90), grobY(tg,90))
+      loc <- deviceLoc(xx, yy, valueOnly=TRUE)
+      xs <- loc$x*dpi; ys <- height_px-loc$y*dpi
+      captured[[length(captured)+1]] <- row_frame(paste0(prefix,"/text-",k), prefix,
+        as.character(g$label[k]), min(xs), min(ys), diff(range(xs)), diff(range(ys)),
+        "text", as.character(gp$col), "", as.character(gp$fontsize * gp$cex),
+        paste(cell_box, collapse=";"))
+    }
+    return(captured)
+  }
+  # Background rectangles have no text; other marks need the visual inspection gate.
+  if (!inherits(g, "rect")) {
+    captured[[1]] <- row_frame(prefix, prefix, "", 0, 0, 0, 0, "unsupported")
+  }
+  captured
+}
+
 panel_boxes <- list()
 rows <- vector("list", nrow(gt$layout))
 for (i in seq_len(nrow(gt$layout))) {
@@ -826,23 +899,13 @@ for (i in seq_len(nrow(gt$layout))) {
   pw <- sum(widths[item$l:item$r])
   ph <- sum(heights[item$t:item$b])
   if (is_table_content) {
-    cell_text <- extract_label(grob)
-    if (nzchar(cell_text)) {
-      font_size <- extract_gp(grob, "fontsize")
-      colour <- extract_fill(grob)
-      rows[[i]] <- row_frame(
-        paste0("gg-", i), as.character(item$name), cell_text,
-        px, py, pw, ph, "text", "", "",
-        if (is.na(font_size)) "" else as.character(font_size)
-      )
-    } else {
-      fill <- extract_fill(grob)
-      kind <- if (nzchar(fill)) "rect" else "zone"
-      rows[[i]] <- row_frame(
-        paste0("gg-", i), as.character(item$name), "",
-        px, py, pw, ph, kind, "", fill
-      )
-    }
+    pushViewport(viewport(x=unit(px/dpi,"in"), y=unit(1,"npc")-unit(py/dpi,"in"),
+      width=unit(pw/dpi,"in"), height=unit(ph/dpi,"in"), just=c("left","top")))
+    child_rows <- tryCatch(capture_table_grob(grob, paste0("gg-",i), c(px,py,pw,ph)),
+      error=function(e) list(row_frame(paste0("gg-",i), as.character(item$name), "",
+        px,py,pw,ph,"unsupported")))
+    panel_rows <- c(panel_rows, child_rows)
+    popViewport()
     next
   }
   # Skip empty guide-box placeholder cells. In ggplot >= 3.5 the guide-box-inside
@@ -1016,6 +1079,7 @@ def _render_ggplot2(
     legends: list[dict[str, Any]] = []
     transforms: list[dict[str, Any]] = []
     unsupported_marks = 0
+    table_cell_gaps = 0
     panel_ids = {
         row["id"]: row["id"]
         for row in rows
@@ -1083,6 +1147,9 @@ def _render_ggplot2(
             else:
                 unsupported_marks += 1
             continue
+        if kind == "cell_coverage_gap":
+            table_cell_gaps += 1
+            continue
         if kind == "unsupported":
             unsupported_marks += 1
             continue
@@ -1103,6 +1170,9 @@ def _render_ggplot2(
                     "clip_on": True,
                     "font_size_pt": float(row["font_size"]) if row.get("font_size") else None,
                     "colour": row.get("colour") or None,
+                    **({"cell_bbox": dict(zip(("x", "y", "width", "height"),
+                         [float(v) for v in row["x_points"].split(";")]))}
+                       if render_kind == "table" and row.get("x_points") else {}),
                 }
             )
             continue
@@ -1137,17 +1207,19 @@ def _render_ggplot2(
         "legends": legends,
         "background": "#ffffffff",
         "coverage": {
-            "text_bounds": True,
+            "text_bounds": render_kind != "table" or unsupported_marks == 0,
             "gtable_hierarchy_zones": True,
             "line_series_paths": True,
             "patch_and_common_collection_bounds": True,
-            "table_cell_bounds": render_kind == "table",
+            "table_cell_bounds": render_kind == "table" and unsupported_marks == 0 and table_cell_gaps == 0,
+            "table_content": render_kind == "table",
             "unsupported_non_line_mark_count": unsupported_marks,
             "limitations": (
                 [
-                    "Table cell bounding boxes, text, and fills are exact from the gtable"
-                    " tracks; decimal-point alignment and wrap/overflow within a cell are"
-                    " not automatically verified and must be read from the rendered raster."
+                    "Table text uses grid font bounds in resolved viewports. Unsupported grobs"
+                    " or viewport references make coverage incomplete; free-form trees have no"
+                    " logical cell tracks. Decimal alignment,"
+                    " inline graphics and visual emphasis still need rendered inspection."
                 ]
                 if render_kind == "table"
                 else ["Some ggplot2 panel grobs could not be normalized"]
@@ -1281,6 +1353,9 @@ def render_and_inspect_chart(
         bundle["layout_metadata_path"],
         str(destination / "inspection.json"),
         delivery_profile=delivery_profile,
+        minimum_text_size_pt=float(delivery_dimensions.get("minimum_text_size_pt", 8)),
+        display_width_px=delivery_dimensions.get("display_width_px"),
+        minimum_text_size_px=delivery_dimensions.get("minimum_text_size_px"),
     )
     view_paths = build_review_views(
         Path(bundle["artifact"]["path"]),

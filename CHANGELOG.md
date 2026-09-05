@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Measured table planning and nested text inspection
+
+- Added `recommend_table_layout`: formatted content or a local JSON file, grid/ragg
+  text metrics, wrapping, type floors, display-width constraints, and continuation
+  pages with repeated identifiers. An explicit fallback identifies non-R metrics.
+- Table skills choose emphasis, bars/dots, shading or sparklines from the reading
+  task and scale semantics. Build applies measured geometry; execution inspects
+  every page instead of using chart slot sizing/refitting.
+- Table inspection captures nested text and inherited typography, flags cell
+  overflow, checks displayed font size, and reports unsupported coverage honestly.
+
+
 ### The redundant-value-axis check no longer needs every mark labelled
 
 A chart directly labelling most of its values still shipped a numeric y-axis, ticks, and gridlines. Root cause was in the detection, not the skill wording: `REDUNDANT_VALUE_AXIS` had two paths and both demanded completeness. The contract path fires on the editorial key set - but only when the builder *declares* `inspection_contract.direct_labels`, which the pipeline usually didn't. The geometry fallback (no contract) required a value label on *every* mark of *every* panel, so a chart labelling a lot but not all of its marks tripped neither path and kept its axis. Two changes close the gap.

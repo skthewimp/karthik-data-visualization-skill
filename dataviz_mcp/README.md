@@ -230,6 +230,68 @@ Both referenced PNGs are re-hashed before comparison. The result lists resolved,
 
 These size the canvas, reserve the chrome, and place the text *before* (or with one measure render) so a weak model does not clip, squash, or collide on the first pass. All are mechanism only - they never choose the chart or write the annotation. See [`docs/mcp.md`](../docs/mcp.md) for the design rationale.
 
+### `recommend_table_layout`
+
+Table geometry comes from formatted content, not chart slots. The tool measures
+text with grid/ragg when available; otherwise it identifies its Matplotlib/Agg
+metrics as a fallback requiring verification in the target renderer. No new
+packages are required. The skill chooses visual treatment; the tool validates
+shared-scale scope and reserves space supplied for inline graphics.
+
+```json
+{
+  "columns": [
+    {"header": "Region", "identifier": true, "max_width_px": 190,
+     "cells": ["Northern district", "Central", "South"]},
+    {"header": "Revenue ($m)", "cells": ["12.5", "8.3", "15.0"],
+     "visual_width_px": 90}
+  ],
+  "title": "Revenue by region",
+  "typography": {"family": "sans", "body_pt": 11, "header_pt": 12,
+                 "minimum_body_pt": 11, "minimum_header_pt": 11},
+  "delivery": {"max_width_px": 1200, "max_height_px": 900,
+               "display_width_px": 600, "minimum_text_px": 14},
+  "treatment": {"kind": "bar", "scope": "column", "domain": [0, 15], "baseline": 0}
+}
+```
+
+Alternatively, `content_path` reads a local JSON object containing `columns` and
+optional `title`, `subtitle`, `notes`. Cells are final display strings; retain raw
+values separately for bars, shading, and sparklines. Each column has the same
+number of cells. `None` becomes a blank; use explicit strings for other missing
+value conventions. Headers accept explicit newlines. `max_width_px` includes
+padding and inline graphics; unbreakable tokens are preserved even when too wide.
+Typography also accepts `padding_x_px` and `padding_y_px`.
+
+The result includes `status` (`fits`, `split`, `cannot_fit`), `measurement_backend`,
+`col_widths_px`, `row_heights_px`, `header_height_px`, wrapped `headers` and
+column-oriented `cells`, wrapped title/note `blocks`, and `pages`. Each page gives
+its dimensions, zero-based column indices, and a half-open row range. Repeat
+headers, identifiers and the returned text bands on each continuation. A reading
+task that requires adjacent columns may require revising the proposed grouping.
+`allow_split: false` produces `cannot_fit` when multiple pages would be required.
+The tool does not remove content or reduce type to make it fit.
+
+Apply the returned geometry to the table builder: grid widths/heights in inches
+are pixels divided by `dpi`; fonts are points. Use the returned wrapped strings,
+font family and sizes, and padding. `blocks` use `block_font_pt` in bold; their
+reserved height is `reserved_band_px`. Render each page with
+`render_and_inspect_chart(content="table")`, passing its dimensions and `dpi`,
+plus `minimum_text_size_pt`, `display_width_px`, and `minimum_text_size_px` in
+`dimensions`. These inspection settings also work on `inspect_rendered_chart`.
+Check the exact artifact and its actual displayed size; export DPI is not a
+readability guarantee. Unsupported nested viewport references or graphics are
+reported as incomplete coverage, not silently passed. Decimal alignment, contrast
+against cell fills and visual emphasis still need visual review.
+
+Treatment kinds: `text`, `emphasis`, `bar`, `dot`, `shading`, `sparkline`. A `row` or
+`table` scale for quantitative graphics requires `commensurable: true`; sharing a
+unit alone is insufficient. The tool preserves scale and focal details for the
+builder, but cannot validate their meaning from display strings. The table skill
+owns that judgment. Categorical/focal assignments use the existing colour picker;
+heat scales retain their sequential/diverging order and use palette validation as
+a diagnostic, not the picker's distinct-hue ordering.
+
 ### `recommend_layout`
 
 Sizes a clip-safe canvas from the chart's shape expressed as counts. Inputs: `x_slots`, `y_slots`, `filled_marks`, `n_panels`, `facet_scales` (`fixed`/`free`/`free_x`/`free_y`), `n_direct_labels`, `title_lines`/`subtitle_lines`/`footer_lines`, `x_labels`, `longest_x_label_chars`, `delivery_profile` (`chat`/`slide`/`document`). Returns `width_px x height_px x dpi`, a facet grid, x-label rotation, and reserved title/subtitle/footer bands. Demand past the delivery ceiling is warned, never squashed. Call at select, before build; feed the dims into the renderer and `recommend_text_placement`.

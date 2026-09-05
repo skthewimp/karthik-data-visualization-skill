@@ -362,7 +362,8 @@ _DESIGN = {
                 "Palette size: the maximum number of series that share a single panel and "
                 "must be told apart by colour. Not the total category count - small multiples "
                 "with k lines per panel need k colours (reused across panels), and with one "
-                "line per panel need 0-1. One panel with N lines needs N."
+                "line per panel need 0-1. One panel with N lines needs N. For tables, count "
+                "semantic colour assignments or scale anchors, not rows/columns."
             ),
         },
     },
@@ -1024,7 +1025,16 @@ misread for the stated audience and medium; more than one chart is allowed when 
 cannot carry every message. Where the chart is a repair of an existing image, the source
 chart's form is not an input and gets no vote - select the form cold from the claim and data.
 A table is a valid verdict when the intent is exact lookup or the values are not commensurable
-on one scale - set ``builder`` to ``table`` in that case, otherwise ``chart``. Set
+on one scale - set ``builder`` to ``table`` in that case, otherwise ``chart``.
+For tables, state the reading task, focal entities and treatment (plain, emphasis,
+bars/dots, shading or sparklines) in the design, with comparison scope and scale
+semantics. Plan geometry with ``recommend_table_layout`` after display formatting,
+not chart slots. Table conditional/focal colour still sets ``needs_color_plan``:
+``colour_groups`` counts assignments or scale anchors, not chart series. Record an
+ordered heat scale in ``colour_role`` and ``comparison_strategy``; preserve its
+sequential/diverging order rather than running the categorical colour picker on
+its shades. The series-count rules below apply to charts.
+Set
 ``needs_annotations`` from whether the insight stage named any external-fact annotation: default
 it **false** when that candidate list is empty, and most charts have no outside fact to mark and
 carry the claim in the headline and direct labels. Do not set
@@ -1094,7 +1104,15 @@ _CONSTRUCT_BUILD = """You are the build stage of the dataviz construct process. 
 the plan (facts, headline claim, candidate annotations, and the select artifact with its
 form, build plan, and acceptance checks) and, for a repair, the source image. Build the
 deliverable exactly to the plan, carrying every message with its required content. Use the
-builder skill supplied for the chosen builder (chart or table). Assert the headline claim in
+builder skill supplied for the chosen builder (chart or table). For a table, call
+``recommend_table_layout`` on formatted content and the skill-selected treatment,
+apply its fonts, widths, wrapping and continuation pages, and inspect each page
+with the supplied type and display-size constraints. Do not run chart refitting
+on tables; table geometry replaces the chart frame/mark-placement instructions below.
+Return page paths in the artifact inventory; revise a cannot-fit plan
+without discarding content. Ordered heat scales follow the selected scale, not
+categorical series assignments; retain their scale order when validating colours.
+Assert the headline claim in
 the title, and word and place the candidate annotations the insight stage named - do not
 originate a different claim here. Honour every prompt constraint - requested chart type,
 annotations, wording, brand or style preferences. Apply the installed writing or brand-style
@@ -1102,7 +1120,7 @@ skill, if one exists in this environment, to every reader-facing phrase; if none
 installed, apply the prompt's stated preferences. Render one real artifact through the
 project's renderer, then inspect that exact export at its delivery size and correct
 consequential collision, hierarchy, comparison, labelling, colour, content, or
-prompt-compliance defects before returning. Do not hand-edit the canvas dimensions to chase
+prompt-compliance defects before returning. Do not hand-edit the canvas dimensions for charts to chase
 edge clipping, overflow, or squashed panels - that resizable geometry is settled
 deterministically by ``refit_chart`` at the execution gate, which grows the canvas by the exact
 measured overflow; spend your effort on the defects a resize cannot fix. Make no colour decision here: apply the ordered
@@ -1172,7 +1190,7 @@ plan. Check the RENDERING, not the idea (the idea gate owns substance): clipping
 label-to-mark association, typography hierarchy, duplicated scaffolding, colour contrast and
 grayscale / CVD survival, the numbers' precision as displayed, and any ink that carries no
 data, label, or necessary context (the eraser test). Settle the resizable geometry
-deterministically FIRST, before you spend a model turn on it: run ``refit_chart`` on the build's
+deterministically FIRST for charts, before you spend a model turn on it: run ``refit_chart`` on the build's
 source at its delivery size. It renders, inspects, and grows the canvas by the exact overflow the
 inspector measured - clearing edge clipping, overflow, and squashed panels in code, up to its
 iteration budget and honouring the delivery ceiling (warned, never squashed) - so you never hand
@@ -1208,7 +1226,14 @@ rather than styled-default - route composition fixes back through the same revis
 pass owns composition and premium feel; the defect checks above own rendering correctness, and
 the two do not re-check each other's territory. Treat ``REDUNDANT_VALUE_AXIS`` as
 revision-required, not optional polish. A connector on an adjacent direct label is also redundant
-ink; require the builder to reproduce ``leader_line`` only when the placement result contains one."""
+ink; require the builder to reproduce ``leader_line`` only when the placement result contains one.
+For tables, replace chart refitting and mark-placement with the table layout path.
+Inspect every delivered page at its supplied font/display minimums, including nested
+text, header collisions and cell overflow. Incomplete coverage is an explicit
+limitation, never a mechanical pass. Revise wrapping, widths or pagination rather
+than moving cell labels independently; check that emphasis and scale scope serve
+the reading task.
+"""
 
 _CONSTRUCT_EXPLAIN = """You are the explain stage of the dataviz construct process. You write
 the short prose that travels BESIDE the exhibit - the two lines in an email above the chart,
