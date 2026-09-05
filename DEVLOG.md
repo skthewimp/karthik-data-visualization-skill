@@ -2520,3 +2520,4 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. The `on_data_layer` WIP is gone — `rendering.py`, `inspection.py`, and the ggplot test are back to their committed state (the `data_label`-by-construction approach from `23463dd`). No `on_data_layer` references...
 
 <!-- claude-session:38df73ee-9b4c-4f1f-8618-071d6fddb2f4:end -->
+
