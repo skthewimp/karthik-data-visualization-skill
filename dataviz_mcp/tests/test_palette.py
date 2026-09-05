@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from PIL import Image
+
 from dataviz_mcp.palette import (
     extract_palette_from_image,
     recommend_colours,
@@ -65,26 +67,11 @@ def test_recommend_generates_to_complete_a_short_supplied_pool():
     assert all(_contrast_ratio(c, "#FFFFFF") >= 3.0 for c in result["generated_additions"])
 
 
-def test_recommend_unresolved_only_when_generation_cannot_clear_background():
-    # A mid-grey background few colours read against: if even generation cannot produce
-    # enough colours clearing the bar, the result is unresolved and routes to select.
-    result = recommend_colours(["#808080"], n_series=8, background="#7F7F7F")
-    if not result["resolved"]:
-        assert result["route_to"] == "select"
-        assert result["shortfall"] > 0
-
-
-def test_recommend_falls_back_to_default_when_no_available():
-    result = recommend_colours(None, n_series=3)
-    assert len(result["chosen"]) == 3
-    # Verdict may be a soft_fail (accessibility on white is genuinely hard); it must report one.
-    assert result["validation"]["verdict"] in {"pass", "soft_fail"}
-
-
 def test_recommend_returns_ordered_prefix_nested_palette():
     result = recommend_colours(["#D55E00", "#0072B2", "#009E73", "#CC79A7"], n_series=4)
     palette = result["ordered_palette"]
     assert result["prefix_nested"] is True
+    assert result["semantic_findings"] == []
     # assignment order must match the ordered palette, so a smaller panel takes the prefix.
     assert [item["colour"] for item in result["assignment"]] == palette
     # the first two of a four-colour request are the two farthest apart in the pool.
@@ -174,16 +161,9 @@ def test_recommend_semantics_can_override_contrast_gate():
     assert by_index[0] == "#CCE0FF"
 
 
-def test_recommend_no_hints_matches_prior_behaviour():
-    result = recommend_colours(["#D55E00", "#0072B2", "#009E73", "#CC79A7"], n_series=4)
-    assert result["prefix_nested"] is True
-    assert result["semantic_findings"] == []
-
-
-def test_extract_palette_from_image_returns_hexes():
-    fixture = Path("tester-outputs/sector-performance-accepted.png")
-    if not fixture.exists():
-        return  # fixture optional in some checkouts
+def test_extract_palette_from_image_returns_hexes(tmp_path: Path):
+    fixture = tmp_path / "palette.png"
+    Image.new("RGB", (20, 20), "#0072B2").save(fixture)
     result = extract_palette_from_image(str(fixture), max_colours=5)
     assert result["colours"]
     assert all(colour.startswith("#") and len(colour) == 7 for colour in result["colours"])

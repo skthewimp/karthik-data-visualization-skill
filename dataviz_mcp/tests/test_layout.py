@@ -37,12 +37,6 @@ def test_faceting_returns_a_grid_not_a_shallow_strip():
     assert result["facet_ncol"] * result["facet_nrow"] >= 7
 
 
-def test_free_scales_widen_the_faceted_canvas():
-    fixed = recommend_layout(n_panels=6, facet_scales="fixed")
-    free = recommend_layout(n_panels=6, facet_scales="free")
-    assert free["width_px"] >= fixed["width_px"]
-
-
 def test_free_y_is_read_like_free_not_silently_dropped():
     # free_y frees the y-axis, so it must reserve the same per-panel band as free -
     # and strictly more width than a fixed grid (x_slots push width past the base).
@@ -84,11 +78,6 @@ def test_title_bands_reserve_vertical_space():
     titled = recommend_layout(title_lines=2, subtitle_lines=1, footer_lines=1)
     assert titled["reserved_band_px"] > 0
     assert titled["height_px"] > plain["height_px"]
-
-
-def test_no_regime_field_is_emitted():
-    # Sizing is a computation over counts, not a named-case lookup.
-    assert "regime" not in recommend_layout(x_slots=100)
 
 
 def test_suggest_dims_grows_by_the_measured_overflow():

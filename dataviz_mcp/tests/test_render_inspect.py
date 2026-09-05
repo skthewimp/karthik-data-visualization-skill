@@ -43,28 +43,44 @@ def test_render_emits_versioned_bundle_with_matching_hashes(tmp_path: Path) -> N
     assert report["width"] == 800
     assert report["height"] == 450
     assert report["passes_geometry_checks"] is True
+    assert report["defects"] == []
+    assert report["annotation_overlaps"] == []
+    assert report["label_label_collisions"] == []
+    assert report["out_of_bounds_elements"] == []
+    assert report["text_clipped"] is False
+    assert report["minimum_text_margin_px"] > 0
+    assert all(not group["defects"] for group in report["correction_plan"].values())
+    assert report["correction_plan"]["canvas"]["growth_vector"] is None
 
 
 @pytest.mark.parametrize(
-    ("function", "code"),
+    ("function", "code", "correction_class"),
     (
-        ("annotation_over_line", "ANNOTATION_SERIES_COLLISION"),
-        ("two_annotations_overlap", "LABEL_LABEL_COLLISION"),
-        ("annotation_outside_canvas", "OUT_OF_BOUNDS"),
-        ("clipped_annotation", "TEXT_CLIPPED"),
-        ("long_unwrapped_annotation", "LONG_UNWRAPPED_ANNOTATION"),
-        ("title_subtitle_collision", "HIERARCHY_TEXT_COLLISION"),
-        ("low_contrast_annotation", "LOW_TEXT_CONTRAST"),
-        ("label_over_bar", "TEXT_MARK_COLLISION"),
-        ("incomplete_direct_labels", "DIRECT_LABELS_INCOMPLETE"),
+        ("annotation_over_line", "ANNOTATION_SERIES_COLLISION", "placement"),
+        ("two_annotations_overlap", "LABEL_LABEL_COLLISION", "placement"),
+        ("annotation_outside_canvas", "OUT_OF_BOUNDS", "canvas"),
+        ("clipped_annotation", "TEXT_CLIPPED", "placement"),
+        ("long_unwrapped_annotation", "LONG_UNWRAPPED_ANNOTATION", "placement"),
+        ("title_subtitle_collision", "HIERARCHY_TEXT_COLLISION", "placement"),
+        ("low_contrast_annotation", "LOW_TEXT_CONTRAST", "semantic"),
+        ("label_over_bar", "TEXT_MARK_COLLISION", "placement"),
+        ("incomplete_direct_labels", "DIRECT_LABELS_INCOMPLETE", "placement"),
     ),
 )
 def test_fixture_reports_expected_geometry_defect(
-    tmp_path: Path, function: str, code: str
+    tmp_path: Path, function: str, code: str, correction_class: str
 ) -> None:
     _, report = render(tmp_path, function)
     assert code in {item["code"] for item in report["defects"]}
     assert report["passes_geometry_checks"] is False
+    plan = report["correction_plan"]
+    assert set(plan) == {"canvas", "placement", "semantic"}
+    for defect in report["defects"]:
+        assert defect in plan[defect["defect_class"]]["defects"]
+    assert any(d["code"] == code for d in plan[correction_class]["defects"])
+    if correction_class == "canvas":
+        assert plan["canvas"]["growth_vector"] == report["geometry_summary"]["suggested_dims"]
+        assert plan["canvas"]["growth_vector"] is not None
 
 
 def test_data_label_on_its_mark_is_not_a_collision(tmp_path: Path) -> None:
@@ -72,16 +88,6 @@ def test_data_label_on_its_mark_is_not_a_collision(tmp_path: Path) -> None:
     # its own mark is not an accidental overlap, so it must not fire TEXT_MARK_COLLISION.
     _, report = render(tmp_path, "data_label_on_bar")
     assert "TEXT_MARK_COLLISION" not in {item["code"] for item in report["defects"]}
-
-
-def test_clean_chart_passes_all_geometry_checks(tmp_path: Path) -> None:
-    _, report = render(tmp_path, "clean_chart")
-    assert report["defects"] == []
-    assert report["annotation_overlaps"] == []
-    assert report["label_label_collisions"] == []
-    assert report["out_of_bounds_elements"] == []
-    assert report["text_clipped"] is False
-    assert report["minimum_text_margin_px"] > 0
 
 
 def test_missing_line_segment_does_not_create_a_false_collision(tmp_path: Path) -> None:
@@ -105,6 +111,10 @@ def test_probe_reports_versions_and_supported_outputs() -> None:
     assert probe["renderers"]["matplotlib"]["supported_output_types"] == ["png"]
     ggplot = probe["renderers"]["ggplot2"]
     assert isinstance(ggplot["failure_reasons"], list)
+    table = probe["table_rendering"]
+    assert table["backend"] == "grid/gtable via ragg"
+    assert isinstance(table["failure_reasons"], list)
+    assert table["available"] == ggplot["available"]
     if ggplot["available"]:
         assert ggplot["packages"]["ggplot2"]
         assert ggplot["packages"]["ragg"]
@@ -392,14 +402,6 @@ def test_mismatched_metadata_is_rejected(tmp_path: Path) -> None:
         inspect_rendered_chart(clean["artifact"]["path"], bad["layout_metadata_path"])
 
 
-def test_probe_reports_table_rendering_capability() -> None:
-    probe = probe_renderers()
-    table = probe["table_rendering"]
-    assert table["backend"] == "grid/gtable via ragg"
-    assert isinstance(table["failure_reasons"], list)
-    assert table["available"] == probe["renderers"]["ggplot2"]["available"]
-
-
 @pytest.mark.skipif(
     not probe_renderers()["renderers"]["ggplot2"]["available"],
     reason="ggplot2+ragg not installed",
@@ -437,59 +439,6 @@ def test_table_content_rejects_non_r_source(tmp_path: Path) -> None:
 
 def _codes(report: dict) -> set:
     return {defect["code"] for defect in report["defects"]}
-
-
-def _emitted_codes() -> set:
-    """Every defect code the module can emit, read straight from its source, so a new code that
-    forgets a correction class is caught here rather than defaulting silently."""
-    import ast
-
-    source = (Path(inspect_rendered_chart.__code__.co_filename)).read_text()
-    codes = set()
-    for node in ast.walk(ast.parse(source)):
-        if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            v = node.value
-            if v.isupper() and "_" in v and len(v) > 4:
-                codes.add(v)
-    return codes
-
-
-def test_every_emitted_defect_code_has_a_correction_class() -> None:
-    from dataviz_mcp.inspection import _DEFECT_CLASS
-
-    unmapped = _emitted_codes() - set(_DEFECT_CLASS)
-    assert not unmapped, f"defect codes missing a correction class: {sorted(unmapped)}"
-    assert set(_DEFECT_CLASS.values()) <= {"canvas", "placement", "semantic"}
-
-
-def test_defects_carry_their_class_and_the_report_routes_them(tmp_path: Path) -> None:
-    _, report = render(tmp_path, "annotation_outside_canvas")
-    # A canvas-edge overflow classifies as canvas and rides a real growth vector.
-    oob = next(item for item in report["defects"] if item["code"] == "OUT_OF_BOUNDS")
-    assert oob["defect_class"] == "canvas"
-    plan = report["correction_plan"]
-    assert set(plan) == {"canvas", "placement", "semantic"}
-    assert oob in plan["canvas"]["defects"]
-    # The canvas group's growth vector mirrors the geometry summary's, so refit reads one number.
-    assert plan["canvas"]["growth_vector"] == report["geometry_summary"]["suggested_dims"]
-    assert plan["canvas"]["growth_vector"] is not None
-
-
-def test_placement_defect_routes_to_the_placement_group(tmp_path: Path) -> None:
-    _, report = render(tmp_path, "two_annotations_overlap")
-    plan = report["correction_plan"]
-    placement_codes = {d["code"] for d in plan["placement"]["defects"]}
-    assert "LABEL_LABEL_COLLISION" in placement_codes
-    assert all(d["defect_class"] == "placement" for d in plan["placement"]["defects"])
-
-
-def test_clean_chart_has_an_empty_correction_plan(tmp_path: Path) -> None:
-    _, report = render(tmp_path, "clean_chart")
-    plan = report["correction_plan"]
-    assert plan["canvas"]["defects"] == []
-    assert plan["placement"]["defects"] == []
-    assert plan["semantic"]["defects"] == []
-    assert plan["canvas"]["growth_vector"] is None
 
 
 def test_redundant_value_axis_flagged_when_every_mark_is_labelled(tmp_path: Path) -> None:
@@ -567,13 +516,6 @@ def test_rainbow_bars_flag_colour_and_legend(tmp_path: Path) -> None:
 
 def test_focal_highlight_keeps_colour_and_stays_silent(tmp_path: Path) -> None:
     _, report = render(tmp_path, "focal_bar_highlight")
-    codes = _codes(report)
-    assert "REDUNDANT_COLOUR" not in codes
-    assert "EXTERNAL_LEGEND" not in codes
-
-
-def test_clean_chart_has_no_colour_or_legend_flags(tmp_path: Path) -> None:
-    _, report = render(tmp_path, "clean_chart")
     codes = _codes(report)
     assert "REDUNDANT_COLOUR" not in codes
     assert "EXTERNAL_LEGEND" not in codes

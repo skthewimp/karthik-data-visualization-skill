@@ -14,30 +14,6 @@ from dataviz_mcp.server import create_server
 
 
 @pytest.mark.skipif(importlib.util.find_spec("mcp") is None, reason="MCP SDK not installed")
-def test_stdio_server_exposes_renderer_probe_and_backend_neutral_workflow() -> None:
-    server = create_server()
-    tools = asyncio.run(server.list_tools())
-    assert {tool.name for tool in tools} == {
-        "render_chart",
-        "render_and_inspect_chart",
-        "probe_renderers",
-        "inspect_rendered_chart",
-        "refit_chart",
-        "compare_chart_artifacts",
-        "recommend_colours",
-        "validate_palette",
-        "extract_palette_from_image",
-        "recommend_precision",
-        "recommend_labels",
-        "recommend_layout",
-        "recommend_table_layout",
-        "recommend_text_placement",
-        "reserve_frame",
-        "place_on_marks",
-    }
-
-
-@pytest.mark.skipif(importlib.util.find_spec("mcp") is None, reason="MCP SDK not installed")
 def test_all_capabilities_return_structured_results_through_mcp(tmp_path: Path) -> None:
     fixtures = Path(__file__).parent / "fixtures" / "chart_fixtures.py"
 

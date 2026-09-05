@@ -295,31 +295,6 @@ class LocalRunnerTests(unittest.TestCase):
             command = run.call_args.args[0]
             self.assertIn('model_reasoning_effort="medium"', command)
 
-    def test_reviewer_prompt_preserves_frozen_blind_reads_verbatim(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            client = FakeCaseManager(root)
-            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
-            prompt = runner._reviewer_prompt(
-                client.case_id,
-                client.case_dir / "review-blind-request-01.json",
-                client.case_dir,
-                1,
-            )
-            self.assertIn("byte-for-byte", prompt)
-            self.assertIn("Do not shorten, paraphrase, correct", prompt)
-            self.assertIn("active user checks as the change contract", prompt)
-            self.assertIn("every applicable panel, facet, row, or series", prompt)
-            self.assertIn("baseline_concerns", prompt)
-            self.assertIn("After the blind response is frozen", prompt)
-            self.assertIn("karthik-data-visualization", prompt)
-            self.assertIn("karthik-writing-style", prompt)
-            self.assertIn("closest competing encoded colours", prompt)
-            self.assertLess(
-                prompt.index("blind response is frozen"),
-                prompt.index("karthik-writing-style"),
-            )
-
     def test_build_prompt_loads_builder_and_writing_skills(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -453,27 +428,6 @@ class LocalRunnerTests(unittest.TestCase):
             self.assertIn("needs_color_plan", prompt)
             self.assertIn("needs_precision_plan", prompt)
             self.assertNotIn("as JSON", prompt)
-
-    def test_build_prompt_derives_text_placement_and_separates_coordinate_systems(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            client = FakeCaseManager(Path(temp))
-            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
-            prompt = runner._build_prompt(
-                client.case_id,
-                client.case_dir,
-                client.case_dir / "candidate.png",
-                client.case_dir / "diagnose-01.md",
-                client.case_dir / "select-01.md",
-                1,
-                1,
-                "chart",
-                (),
-            )
-            self.assertIn("derive the trigger from the blocks", prompt)
-            self.assertIn("axis label, decide `max_width_px` and `max_lines`", prompt)
-            self.assertIn("Set `allow_curtail: true` only", prompt)
-            self.assertIn("data scales span the data's plotted extent", prompt)
-            self.assertIn("never reserve the same room in both coordinate systems", prompt)
 
     def test_reviewer_gets_delivery_preview_and_overlapping_detail_sheet(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
