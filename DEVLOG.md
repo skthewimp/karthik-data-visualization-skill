@@ -2521,3 +2521,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:38df73ee-9b4c-4f1f-8618-071d6fddb2f4:end -->
 
+<!-- claude-session:8f30f1f0-9b62-4476-945e-2120819351b7:start -->
+## 2026-09-05 13:37 IST | Claude session `8f30f1f0-9b6`
+
+### User prompts
+> there is an issue wiht the colour picker it seems. What needs fixing upstream: 1. Palette MCP must return a complete executable assignment. Case 04 requested seven series, but recommend_colours returned only four usab...
+> [Request interrupted by user]
+> wait don't use DETERMINISTIC FALLBACK as default. what the fuck are you doing?
+
+### Work done
+- Now the principle lives in exactly three surfaces — the code comment at the generation call, the tool docstring, and the SKILL build bullet (mirrored across codex/claude, which is required duplication, not echo). The...
+- Done. Pushed. To close the loop on your actual question: yes, it's genuinely wired in — the code extends past Okabe-Ito into Tol, and past the whole curated set via generation, proven above. The phrase was over-repeat...
+
+<!-- claude-session:8f30f1f0-9b62-4476-945e-2120819351b7:end -->
