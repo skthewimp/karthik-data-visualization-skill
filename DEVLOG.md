@@ -2506,3 +2506,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - dataviz_mcp/inspection.py | 7 +++++++
 
 <!-- claude-session:f9fc71c3-f7e4-4286-ae55-0aece8378831:end -->
+
+<!-- claude-session:38df73ee-9b4c-4f1f-8618-071d6fddb2f4:start -->
+## 2026-09-04 22:28 IST | Claude session `38df73ee-9b4`
+
+### User prompts
+> one big problem with recent outputs - even wehn a lot of values aredirectly labelled, we still get a Yaxis. why is this happening /
+> do both
+> Geometry fallback is still too conservative. As long as at lease 2 points per series are labelled we can dispense with the axis
+
+### Work done
+- Tree clean. Verify no `on_data_layer` traces remain and tests still pass:
+- Done. The `on_data_layer` WIP is gone — `rendering.py`, `inspection.py`, and the ggplot test are back to their committed state (the `data_label`-by-construction approach from `23463dd`). No `on_data_layer` references...
+
+<!-- claude-session:38df73ee-9b4c-4f1f-8618-071d6fddb2f4:end -->
