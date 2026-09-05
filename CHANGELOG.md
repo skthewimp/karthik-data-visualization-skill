@@ -4,6 +4,11 @@
 
 ### Measured table planning and nested text inspection
 
+- Construction now balances header/body wrapping against shared row heights to
+  reduce internal whitespace before building. Long headers or isolated long cells
+  no longer force natural-width columns; type, padding and graphic space remain
+  intact. Width caps are optional, and headers can use inline-graphic columns' full width.
+
 - Added `recommend_table_layout`: formatted content or a local JSON file, grid/ragg
   text metrics, wrapping, type floors, display-width constraints, and continuation
   pages with repeated identifiers. An explicit fallback identifies non-R metrics.

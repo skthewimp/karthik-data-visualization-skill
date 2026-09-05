@@ -263,6 +263,16 @@ value conventions. Headers accept explicit newlines. `max_width_px` includes
 padding and inline graphics; unbreakable tokens are preserved even when too wide.
 Typography also accepts `padding_x_px` and `padding_y_px`.
 
+Construction compares measured word-wrap breakpoints for each column at unchanged
+type and padding. It prefers feasible delivery and fewer continuations, then a
+smaller total page footprint, accounting for shared header/row heights. Narrow and
+wide starting arrangements help avoid a long header or isolated long body cell
+inflating every row's whitespace. This is a local layout search, not a guarantee
+of a globally optimal arrangement. Automatic wrapping does not require a manual
+`max_width_px`. Headers may use the full column width; body text shares its width
+with the reserved inline graphic. Do not stretch the resulting columns to fill
+spare canvas width.
+
 The result includes `status` (`fits`, `split`, `cannot_fit`), `measurement_backend`,
 `col_widths_px`, `row_heights_px`, `header_height_px`, wrapped `headers` and
 column-oriented `cells`, wrapped title/note `blocks`, and `pages`. Each page gives

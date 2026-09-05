@@ -306,6 +306,10 @@ def create_server() -> Any:
         displayed text pixels for screen delivery; export dpi alone cannot ensure legibility.
         treatment: skill-selected {kind: text/emphasis/bar/dot/shading/sparkline,
         scope: column/row/table, commensurable?, ...scale and focal details}.
+        Widths balance measured header/body wrapping against shared row heights
+        before construction; a manual max_width_px is optional. Type and padding
+        stay fixed while the planner reduces avoidable allocated space. Do not
+        stretch the returned columns to fill spare canvas width.
         Shared scales require commensurability. Reserve visual_width_px in columns
         containing inline graphics. Fonts never shrink to fit. Pages carry zero-based
         columns and half-open row ranges; repeat headers and identifier columns.

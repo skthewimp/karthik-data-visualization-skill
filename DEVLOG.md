@@ -6,12 +6,16 @@
 
 - “the objective here is to get a set of reusable skills / MCPs.”
 - “don’t overdo tests” and read `AGENTS.md`.
+- “the white space inside the columsn etc need to be covered att his construction stage itself.”
 
 ### Work done
 
 - Replaced the local count-based prototype with `recommend_table_layout`: formatted
   content/file inputs, grid/ragg metrics, wrapping, typography/display floors and
   continuation pages that preserve content and repeat identifiers.
+- Construction now compares measured wrapping options and shared row heights to
+  reduce internal whitespace before build, preserving fonts/padding and inline
+  graphic space. Long headers/cells wrap automatically without manual width caps.
 - Updated both skill surfaces: treatment follows the reading task and scale
   semantics; tables use their own sizing and execution path.
 - Captured nested text and inherited type; distinguished text coverage from logical

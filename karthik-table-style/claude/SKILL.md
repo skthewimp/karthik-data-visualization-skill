@@ -105,8 +105,14 @@ palette call; a magnitude or focal treatment must not disappear behind “no ser
 When available, call `recommend_table_layout` with the formatted headers/cells,
 identifier columns, typography, and delivery constraints. For larger inputs pass
 a local JSON `content_path` rather than putting the table into the conversation.
-Specify `visual_width_px` for columns with inline graphics and `max_width_px` where
-wrapping is appropriate. Use the returned wrapped strings, column widths, row
+The planner balances measured header/body wrapping against shared row heights
+before construction, choosing compact columns without reducing type. A long
+header or occasional long cell must not leave the whole column needlessly wide.
+Do not equalise column widths or stretch cells to fill the delivery canvas. Keep
+padding intentional and preserve space needed for graphics. Specify
+`visual_width_px` for inline graphics; `max_width_px` is an optional ceiling,
+not a requirement for automatic wrapping. Headers can use the full column width;
+body text shares it with its reserved inline graphic. Use the returned wrapped strings, column widths, row
 heights, font sizes, text bands, and continuation pages in the builder. Page column
 indices are zero-based and row ranges are half-open; repeat identifiers and headers.
 Do not silently drop rows or columns. Check that a split still supports the reading

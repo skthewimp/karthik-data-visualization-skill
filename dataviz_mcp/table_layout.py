@@ -91,6 +91,8 @@ def recommend_table_layout(
     except display_width_px and minimum_text_px, which refer to the displayed artifact.
     treatment is a skill-selected plan with kind (text/emphasis/bar/dot/shading/sparkline),
     scope (column/row/table), commensurable, and any renderer-specific scale/focal details.
+    Width selection balances measured wrapping and shared row heights at fixed type
+    and padding, preferring feasible delivery, fewer pages and a smaller footprint.
     Returned pages use zero-based column indices and half-open row ranges.
     """
     if content_path:
@@ -145,49 +147,107 @@ def recommend_table_layout(
         if bold_backend != backend:
             backend = bold_backend
     hm, header_backend = _metrics(headers + [title, subtitle, notes], typo["family"], header, dpi, True)
-    widths, wrapped_headers, wrapped_cells = [], [], []
     warnings = []
+    blocks = {k: _wrap(v, max(1, max_w - 2 * px), hm) for k, v in
+              [("title", title), ("subtitle", subtitle), ("notes", notes)] if v}
+    bands = sum((v.count("\n") + 1) * line_px(header, dpi) + 2 * py for v in blocks.values())
+    block_width = max([max(hm[line] for line in b.split("\n")) + 2 * px
+                       for b in blocks.values()] + [0])
+    options = []
     for c, values, label in zip(cols, cells, headers):
         visual = float(c.get("visual_width_px", 0))
         if visual < 0:
             raise ValueError("visual_width_px must be nonnegative")
-        natural = max([bm[line] for v in values for line in v.split("\n")] +
+        natural = max([bm[line] + visual for v in values for line in v.split("\n")] +
                       [hm[line] for line in label.split("\n")])
-        limit = float(c.get("max_width_px", max_w)) - 2 * px - visual
-        if limit <= 0:
+        limit = float(c.get("max_width_px", max_w)) - 2 * px
+        if limit <= visual:
             raise ValueError("Column width must leave room for text after padding and visuals")
-        # Never break an unbreakable token or clip it to satisfy a width cap.
-        token = max([bm[w] for v in values for w in v.split()] +
-                    [hm[w] for w in label.split()] + [0])
-        available = max(token, min(natural, limit))
-        widths.append(math.ceil(available + 2 * px + visual))
-        wrapped_headers.append(_wrap(label, available, hm))
-        wrapped_cells.append([_wrap(v, available, bm) for v in values])
-    hh = max(h.count("\n") + 1 for h in wrapped_headers) * line_px(header, dpi) + 2 * py
-    heights = [max(c[r].count("\n") + 1 for c in wrapped_cells) * line_px(body, dpi) + 2 * py for r in range(n)]
-    blocks = {k: _wrap(v, max(1, max_w - 2 * px), hm) for k, v in
-              [("title", title), ("subtitle", subtitle), ("notes", notes)] if v}
-    bands = sum((v.count("\n") + 1) * line_px(header, dpi) + 2 * py for v in blocks.values())
+        # Every change in word wrapping occurs at a measured phrase width. Search
+        # those breakpoints, not character-count caps or a fixed fill percentage.
+        token = max([bm[w] + visual for v in values for w in v.split()] +
+                    [hm[w] for w in label.split()] + [visual])
+        upper = max(token, min(natural, limit))
+        candidates = {token, upper}
+        for text, metrics, extra in [(label, hm, 0)] + [(v, bm, visual) for v in values]:
+            for paragraph in text.split("\n"):
+                words = paragraph.split()
+                candidates.update(metrics[" ".join(words[i:j])] + extra
+                    for i in range(len(words)) for j in range(i + 1, len(words) + 1)
+                    if token <= metrics[" ".join(words[i:j])] + extra <= upper)
+        variants, seen = [], set()
+        for available in sorted(candidates):
+            wh = _wrap(label, available, hm)
+            wc = [_wrap(v, available - visual, bm) for v in values]
+            signature = (wh, tuple(wc))
+            if signature in seen:
+                continue
+            seen.add(signature)
+            variants.append({"width": math.ceil(available + 2 * px),
+                "header": wh, "cells": wc,
+                "header_height": (wh.count("\n") + 1) * line_px(header, dpi) + 2 * py,
+                "heights": [(v.count("\n") + 1) * line_px(body, dpi) + 2 * py for v in wc]})
+        options.append(variants)
+
     ids = [i for i, c in enumerate(cols) if c.get("identifier")]
     remaining = [i for i in range(len(cols)) if i not in ids]
-    groups, group = [], list(ids)
-    for i in remaining:
-        if sum(widths[j] for j in group + [i]) > max_w and len(group) > len(ids):
-            groups.append(group)
-            group = list(ids)
-        group.append(i)
-    groups.append(group)
-    ranges, start, used = [], 0, hh + bands
-    for r, height in enumerate(heights):
-        if used + height > max_h and r > start:
-            ranges.append([start, r])
-            start, used = r, hh + bands
-        used += height
-    ranges.append([start, n])
-    pages = [{"columns": g, "rows": rr, "width_px": math.ceil(max(sum(widths[j] for j in g),
-                max([max(hm[line] for line in b.split("\n")) + 2 * px for b in blocks.values()] + [0]))),
-              "height_px": math.ceil(hh + bands + sum(heights[rr[0]:rr[1]]))}
-             for g in groups for rr in ranges]
+
+    def arrange(chosen):
+        widths = [v["width"] for v in chosen]
+        hh = max(v["header_height"] for v in chosen)
+        heights = [max(v["heights"][r] for v in chosen) for r in range(n)]
+        groups, group = [], list(ids)
+        for i in remaining:
+            if sum(widths[j] for j in group + [i]) > max_w and len(group) > len(ids):
+                groups.append(group)
+                group = list(ids)
+            group.append(i)
+        groups.append(group)
+        ranges, start, used = [], 0, hh + bands
+        for r, height in enumerate(heights):
+            if used + height > max_h and r > start:
+                ranges.append([start, r])
+                start, used = r, hh + bands
+            used += height
+        ranges.append([start, n])
+        pages = [{"columns": g, "rows": rr,
+                  "width_px": math.ceil(max(sum(widths[j] for j in g), block_width)),
+                  "height_px": math.ceil(hh + bands + sum(heights[rr[0]:rr[1]]))}
+                 for g in groups for rr in ranges]
+        return widths, hh, heights, pages
+
+    def score(chosen):
+        _, hh, heights, pages = arrange(chosen)
+        overflow = any(p["width_px"] > max_w or p["height_px"] > max_h for p in pages)
+        # Prefer feasible delivery, then fewer continuations, then less allocated
+        # space at unchanged type/padding. Shared row/header heights make excess
+        # wrapping expensive across the whole table, not just the changed column.
+        return (overflow, len(pages), sum(p["width_px"] * p["height_px"] for p in pages),
+                hh + sum(heights))
+
+    def tighten(chosen):
+        current = score(chosen)
+        while True:
+            improved = False
+            for i, variants in enumerate(options):
+                best, best_score = chosen[i], current
+                for variant in variants:
+                    trial = chosen[:i] + [variant] + chosen[i + 1:]
+                    trial_score = score(trial)
+                    if trial_score < best_score:
+                        best, best_score = variant, trial_score
+                if best_score < current:
+                    chosen[i], current, improved = best, best_score, True
+            if not improved:
+                return chosen
+
+    # Start from both ends: shared heights can make several columns need to wrap
+    # together, so a widest-only greedy pass misses useful compact arrangements.
+    alternatives = [tighten([v[0] for v in options]), tighten([v[-1] for v in options])]
+    chosen = min(alternatives, key=score)
+    widths, hh, heights, pages = arrange(chosen)
+    wrapped_headers = [v["header"] for v in chosen]
+    wrapped_cells = [v["cells"] for v in chosen]
     impossible = any(p["width_px"] > max_w or p["height_px"] > max_h for p in pages)
     split = len(pages) > 1
     if split and not profile.get("allow_split", True):
