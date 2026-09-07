@@ -5,9 +5,11 @@
 ### Part-to-whole check: hardened at evidence, softened at critique
 
 - `karthik-evidence-builder` now states the share-of-a-total constraint where it
-  derives a whole-and-parts story: components must be non-negative and reconcile
-  to the total, else name the quantity honestly (net/delta) and drop the
-  composition framing. Plans are born correct instead of bounced downstream.
+  derives a whole-and-parts story, tiered the same way (Insight runs on both the
+  creation and repair paths): the structural check - no negative share, no
+  net/delta dressed as a share - always applies; exact reconciliation to the
+  total only when the full dataset is in hand. Creation-path plans are born
+  correct instead of bounced; approximate repair reads don't false-fire.
 
 - `dataviz-idea-critique` splits the part-to-whole check into two evidence-scoped
   tiers. A structural signal (a negative "share", or a net/delta framed as a
