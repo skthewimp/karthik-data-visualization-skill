@@ -2746,3 +2746,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Ran the sizer on your exact table. It is **not** broken: ``` status: fits body_pt 11, header_pt 12, block_font_pt 12 col widths [107,99,100,96,69,95,83] sum 649 header_h 66.6 row_h 34.1 each reserved_band_px 109.8 (ti...
 
 <!-- claude-session:0ca43315-f722-46bd-b7ed-5f17d468351f:end -->
+
+<!-- claude-session:f7e17ad2-dfb3-4837-a8ae-b50e79feb07c:start -->
+## 2026-09-07 13:34 IST | Claude session `f7e17ad2-dfb`
+
+### User prompts
+> We seem to be having some issues right now where some decisions get postponed to after we have some revisions and things like that. But we have also recently architected such that we should have minimal revisions and...
+> [Request interrupted by user]
+> there is no separate cannoical examples. the pdf isit. go on
+
+### Work done
+- Done — `f4feb7d` pushed. Let me put the constructor output in front of you.
+- Status against all five harness findings, and what I did this pass: | # | Finding | Outcome | |---|---------|---------| | 1 | Require all final content before sizing; recompute on copy/type change | You didn't pick it...
+
+<!-- claude-session:f7e17ad2-dfb3-4837-a8ae-b50e79feb07c:end -->
