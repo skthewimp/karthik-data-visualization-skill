@@ -22,7 +22,7 @@ Inspect the exact export at the declared delivery size and find every consequent
 - **Association:** every label, value, and annotation clearly tied to its mark; no legend round-trips where a direct label would read. Direct values use one consistent small offset and series names sit adjacent to their line; a connector is earned only by a genuinely displaced label, not a decorative dash.
 - **Hierarchy and scaffolding:** title, subtitle, and emphasis read in the intended order; no duplicated axes, redundant gridlines, or leftover default furniture.
 - **Colour:** enough contrast against the background, series distinguishable, palette surviving grayscale and common CVD - not red/green alone.
-- **Precision as displayed:** the digits shown match the decided plan (the spread rule, or an exact-lookup override with its reason) - no fabricated or ragged precision.
+- **Precision as displayed:** the digits shown match the decided plan - the spread rule on axis ticks and data labels, an exact-lookup override with its reason, or a claim-text/annotation number reproduced verbatim from insight (its precision was set there, not by the spread rule) - no fabricated or ragged precision.
 - **Eraser test:** remove any ink carrying no data, label, or necessary context - including labels themselves. A direct label that only repeats a level or shape a labelled neighbour shows is redundant ink; confirm the labels left are the editorial set (a series' identity, endpoints, the focal comparison, genuine exceptions, exact lookups), not a value on every point.
 
 ## Rendering and inspection
