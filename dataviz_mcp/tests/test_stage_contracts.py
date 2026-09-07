@@ -81,6 +81,36 @@ def test_build_stage_swaps_builder_skill() -> None:
         build.skill_names()
 
 
+def test_selection_and_review_share_live_constraints_without_workflow_leakage(tmp_path) -> None:
+    selector = tmp_path / "dataviz-selector/codex/SKILL.md"
+    reviewer = tmp_path / "dataviz-idea-critique/codex/SKILL.md"
+    selector.parent.mkdir(parents=True)
+    reviewer.parent.mkdir(parents=True)
+    reviewer.write_text("# Review\nJudge the supplied plan.")
+    for rule in ("First constraint.", "Changed constraint."):
+        selector.write_text(
+            f"# Selector\n## Form constraints\n{rule}\n"
+            "### Details\nShared detail.\n## Workflow\nSelection-only procedure.\n"
+        )
+        select, _ = sc.stage_skill_bundle(sc.stage("repair", "select"), repository_root=tmp_path)
+        idea, sources = sc.stage_skill_bundle(sc.stage("repair", "idea"), repository_root=tmp_path)
+        assert rule in select and rule in idea
+        assert "Shared detail." in idea
+        assert "Selection-only procedure." in select
+        assert "Selection-only procedure." not in idea
+        assert "dataviz-selector/codex/SKILL.md" in sources
+
+
+@pytest.mark.parametrize("body", ["## Renamed\nRule", "## Form constraints\nA\n## Form constraints\nB"])
+def test_review_fails_if_shared_constraints_are_missing_or_ambiguous(tmp_path, body) -> None:
+    for name, text in (("dataviz-selector", body), ("dataviz-idea-critique", "Review")):
+        path = tmp_path / name / "codex/SKILL.md"
+        path.parent.mkdir(parents=True)
+        path.write_text(text)
+    with pytest.raises(RuntimeError, match="exactly one"):
+        sc.stage_skill_bundle(sc.stage("repair", "idea"), repository_root=tmp_path)
+
+
 def test_build_conditionals_load_only_when_active() -> None:
     build = sc.stage("repair", "build")
     without = set(build.skill_names(builder="chart"))

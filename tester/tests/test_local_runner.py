@@ -13,6 +13,7 @@ from unittest.mock import patch
 from PIL import Image
 
 from tester.local_runner import LocalCodexRunner, safe_environment
+from dataviz_mcp import stage_contracts as sc
 
 
 PNG_1X1 = base64.b64decode(
@@ -79,6 +80,15 @@ class FakeCaseManager:
 
 
 class LocalRunnerTests(unittest.TestCase):
+    def test_skill_directive_preserves_shared_section_scope(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            client = FakeCaseManager(Path(temp))
+            runner = LocalCodexRunner(client, Path(__file__).resolve().parents[2], enabled=True)
+            idea = sc.stage("repair", "idea")
+            prompt = runner._stage_skill_directive(idea)
+            for name, heading in idea.skill_sections.items():
+                self.assertIn(f"{runner._skill_path(name)} (only the {heading!r} section)", prompt)
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.codex_home = tempfile.TemporaryDirectory()

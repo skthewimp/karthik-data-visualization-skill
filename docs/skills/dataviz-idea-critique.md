@@ -13,7 +13,7 @@ The **pre-render gate** of the construct process. It receives the plan - the fac
 - **Is the INSIGHT right?** Is the headline claim the key thing to say and supported at the stated strength, and are the candidate marks the right marks rather than clutter?
 - **Is it HONEST and COMPLETE?** Is anything key silently dropped, and does the claim's strength match the evidence?
 
-The expression check enforces the form constraint: scatter requires two quantitative axes; categorical magnitudes use bars rather than isolated dots or lollipops; dumbbells are valid for paired comparisons. A violation is a major issue: return `revise`, route `select`.
+The expression check applies the selector’s shared **Form constraints**, including explicit prompt overrides, valid paired comparisons, and estimates with uncertainty. A major violation returns `revise` and routes to `select`.
 
 ## Verdict and routing
 

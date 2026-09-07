@@ -32,7 +32,7 @@ We have actual vs budget vs prior year by division. What visual should go into t
 ```
 
 ```text
-The user wants a pie chart of market share. What should we use instead?
+The user explicitly requests a pie chart of market share. Honour that form and keep its encoding honest.
 ```
 
 ## Recommendation format
@@ -56,28 +56,20 @@ If implementing: <short code/design note>
 - Use the simplest chart that exposes that comparison.
 - Add context only when it helps: event markers, thresholds, ribbons, counterfactuals, direct labels, facets, or short annotations.
 - Choose colour by analytical role: focal-plus-grey for emphasis, qualitative hues for identity, sequential scales for magnitude, and diverging scales only around a meaningful midpoint.
-- Match the visual channel to the job the data does: give the reader's main comparison the most accurate channel. Position on a common scale and length read magnitude and trends best; hue carries identity; area, angle, and colour intensity are for rough proportion, emphasis, or spotting regions - not for values a reader must compare. When the main quantity sits on a weak channel, move it to a stronger one.
+- Match the visual channel to the job the data does: give the reader's main comparison the most accurate channel. Position on a common scale and length read magnitude and trends best; hue carries identity; colour intensity may support emphasis or spotting regions; use length or position for quantities a reader must compare. When the main quantity sits on a weak channel, move it to a stronger one.
 - Keep the graphic proportional to the data (graphical integrity / lie factor): the visual effect should be as big as the effect in the data, no bigger. A common untruncated baseline for length, no area or volume for a one-dimensional quantity, no dimension the data lacks (3D, perspective). Bars-start-at-zero is one instance. The selector already leans Tufte elsewhere - comparison-first ("compared to what?"), the simplest form that exposes it, small multiples, showing the observations over a bare summary.
-- One faceted grid, one unit. A small-multiples grid asserts its panels are comparable; different units per panel (a length beside a currency beside a count) break that silently. Different units are a reason not to face them - use a table or separate individually-titled charts, never one grid. "Preserve the distinct units" is an argument against the grid, not for it.
+- Shared value scales require commensurable quantities. Different-unit charts may align on time when each has its own title and labelled value scale; use a table for lookup across measures.
 - For S-curves and other shaped time series, mark visible knee-bends/inflections, local maxima/minima, and temporary peaks/troughs when they change the story.
 - If the dataset does not support the user's question, say so and chart the evidence that exists.
 
-## Hard bans
+## Form constraints
 
-The skill should not recommend:
-
-- pie charts
-- donut charts
-- 3D charts
-- animated or moving charts
-- interactive charts as the main answer
-- gauges or speedometers
-- radar/spider charts
-- decorative infographic forms
-
-If the user asks for one of these, the skill should say it is not recommended and offer the closest static alternative.
-
-Scatter requires two quantitative axes. For categorical magnitudes, use bars rather than isolated dots or lollipops. Dumbbells are valid for paired comparisons.
+- **Prompt precedence.** Honour a chart form explicitly requested in the prompt; it overrides these default form exclusions. A form merely present in a source image is not a request. Preserve honest quantities, scales, and claims in the requested form.
+- **Default exclusions.** Do not choose pies, donuts, radar/spider charts, gauges/speedometers, decorative infographic forms, 3D charts, or animation/interaction as the main answer unless explicitly requested.
+- **Points and comparisons.** Scatter requires two quantitative axes. For categorical magnitudes, use bars rather than isolated dots or lollipops. Dumbbells are valid for paired comparisons; point-and-interval plots are valid for estimates with uncertainty.
+- **Magnitude channel.** Use length or position to compare quantities, not area or volume. Default to equal-size scatter points; do not add a bubble-size measure or choose a treemap. An explicit form request overrides this preference.
+- **Connections and accumulation.** Lines require a meaningful sequence or relationship between connected observations. Waterfall steps must reconcile a meaningful starting and ending quantity; unrelated changes do not form a waterfall.
+- **Reading task and space.** Choose an encoding that makes the intended comparison readable at delivery size. Grouped bars still fail if group identities or values cannot be followed. Related claims may share a chart; separate views only when the reading requires them. Arrange panels in a grid or strip according to the comparison and available space.
 
 ## Common mappings
 

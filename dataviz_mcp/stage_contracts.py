@@ -126,6 +126,8 @@ class Stage:
     builder_conditional_skills: dict[str, dict[str, str]] = field(default_factory=dict)
     routing_fields: tuple[str, ...] = ()
     also_reads: tuple[str, ...] = ()
+    # Reuse an authoritative section without loading an unrelated skill workflow.
+    skill_sections: dict[str, str] = field(default_factory=dict)
 
     def handoff_spec(self) -> str:
         """The 'emit these sections (+ routing block)' instruction for this stage.
@@ -229,10 +231,22 @@ def stage_skill_bundle(
                 f"{path.relative_to(root)} is missing from the checkout"
             )
         relative = path.relative_to(root).as_posix()
+        body = _skill_body(path.read_text(encoding="utf-8"))
+        if heading := stage.skill_sections.get(name):
+            lines = body.splitlines()
+            marker = f"## {heading}"
+            if lines.count(marker) != 1:
+                raise RuntimeError(f"{relative} must contain exactly one {marker!r} section")
+            start = lines.index(marker)
+            end = next(
+                (i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")),
+                len(lines),
+            )
+            body = "\n".join(lines[start:end]).strip()
         sources.append(relative)
         sections.append(
             f"## Canonical skill source: {relative}\n\n"
-            f"{_skill_body(path.read_text(encoding='utf-8'))}"
+            f"{body}"
         )
     return "\n\n".join(sections), tuple(sources)
 
@@ -1355,7 +1369,8 @@ _SELECT_STAGE = Stage(
 _IDEA_STAGE = Stage(
     stage_id="idea",
     title="Critique the idea",
-    skills=("dataviz-idea-critique",),
+    skills=("dataviz-idea-critique", "dataviz-selector"),
+    skill_sections={"dataviz-selector": "Form constraints"},
     input_schema=SELECT_SCHEMA,
     output_schema=IDEA_CRITIQUE_SCHEMA,
     instructions=_CONSTRUCT_IDEA,

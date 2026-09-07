@@ -30,6 +30,9 @@ reads only that stage's `<skill>/codex/SKILL.md` sources - never the whole repos
 a skill absent from a stage never enters its call. That per-stage bundling is the fix for
 the context rot the old single-creator all-skills bundle caused. `build_stage_adapter(...)`
 prepends the shared guardrails and the stage's focused instructions to that bundle.
+A stage can select a named section through `skill_sections`: idea review receives the
+selector's current **Form constraints**, without its selection workflow. Missing or
+ambiguous section headings fail bundling rather than silently omitting the constraints.
 
 The build stage's builder skill (`karthik-data-visualization` for a chart,
 `karthik-table-style` for a table) is chosen from the select stage's `builder` routing key;

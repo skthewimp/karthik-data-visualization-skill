@@ -550,7 +550,10 @@ class LocalCodexRunner:
         paths: list[str] = []
         for name in names:
             try:
-                paths.append(str(self._skill_path(name)))
+                path = str(self._skill_path(name))
+                if heading := stage.skill_sections.get(name):
+                    path += f" (only the {heading!r} section)"
+                paths.append(path)
             except RuntimeError:
                 if name in extra:
                     continue  # optional/environmental skill (e.g. installed writing style)

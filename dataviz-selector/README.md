@@ -9,7 +9,7 @@ This is not a chart-style skill. It should decide whether the evidence is best s
 - Identifies the real comparison: time, peers, baseline, target, counterfactual, distribution, geography, or decomposition.
 - Chooses chart form, encodings, ordering, scale, facets, labels, and context layers.
 - Explains why worse alternatives should be avoided.
-- Has hard guardrails against pie, donut, 3D, radar, gauge, decorative infographic, and animation-first recommendations.
+- Excludes pie, donut, 3D, radar, gauge, decorative infographic, and animation/interaction-first recommendations by default; honours explicit prompt requests. Its Form constraints section is also supplied to idea review.
 
 ## Files
 
