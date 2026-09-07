@@ -19,11 +19,7 @@ It is designed for the failure mode where data that wants exact lookup, or that 
 `recommend_table_layout` accepts formatted headers/cells or a local JSON content
 file, typography, delivery constraints and a skill-selected treatment. It returns
 measured geometry, wrapped content and continuation pages while preserving type
-minimums. The title, subtitle and footer are reserved and wrapped like the
-columns, and the header band is its own layer above the body - a block wider than
-the canvas is `cannot_fit`, resolved by narrowing, wrapping or splitting, never
-shipped clipped. This measured sizing is the mandatory first pass, not a revision
-step. Screen delivery accounts for display width as well as export size.
+minimums. Screen delivery accounts for display width as well as export size.
 Bars, dots, shading and sparklines follow the reading task and scale semantics;
 column count does not determine the treatment. See the [MCP interface](../mcp.md).
 

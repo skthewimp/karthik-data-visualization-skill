@@ -108,19 +108,8 @@ picker's distinct-hue ordering is inappropriate. Use `validate_palette` as a
 diagnostic and inspect text contrast against the actual cell fills. A plain table needs no
 palette call; a magnitude or focal treatment must not disappear behind “no series”.
 
-Size the table by measurement on the first pass, never by eye. Where the harness
-provides it, `recommend_table_layout` is that path - call it with the formatted
-headers/cells, identifier columns, typography, and delivery constraints; where it
-is absent, measure column, header, and frame-block widths explicitly and confirm
-the export by eye before delivering. A clipped title or a header band overlapping
-the rows is a reservation skipped on the first pass, not a revision owed later.
-
-The frame is reserved like the columns. The title, subtitle, and footer/notes are
-wrapped to the table width and given their own bands; a title, subtitle, or footer
-wider than the delivery canvas is a `cannot_fit` to resolve by narrowing, wrapping,
-or splitting - never shipped clipped at the edge. The header band is its own layer
-between them: it sits above the body and must not overlap the subtitle above it or
-the first data row below it. Supply each complete
+When available, call `recommend_table_layout` with the formatted headers/cells,
+identifier columns, typography, and delivery constraints. Supply each complete
 header, including units and explanatory sublabels; use explicit newlines for
 semantic breaks. Character counts or an omitted description cannot establish fit.
 Choose a per-column `max_header_lines` when the reading task or delivery limits

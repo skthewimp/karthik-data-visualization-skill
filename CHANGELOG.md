@@ -2,34 +2,6 @@
 
 ## Unreleased
 
-### Harden first-pass placement in the build skills
-
-- The construct pipeline now runs with minimal revisions, which exposed a latent
-  gap: `reserve_frame` - the blind, pre-render frame reservation that removes the
-  largest first-version defect (clipped titles) - was documented only in
-  `dataviz-construct` and `chart-annotations`, never in the build skills. Since the
-  build stage loads only the builder skill (`karthik-data-visualization` or
-  `karthik-table-style`), the build model never received the instruction; it
-  eyeballed the frame and relied on the post-render fix loop the new architecture
-  minimizes. Result: clipped titles/footers and header bands overlapping rows
-  shipped on the first pass.
-
-- `karthik-data-visualization` now carries a mandatory pre-render frame-reservation
-  step ahead of render-and-inspect, which is reframed as the safety net rather than
-  where placement is first decided. Added a label-vs-mark contrast default so a
-  value printed on a dark/saturated segment takes its colour from the mark, not the
-  canvas.
-
-- `karthik-table-style` elevates `recommend_table_layout` from "when available,
-  call" to the mandatory first-pass sizing path, and foregrounds the frame: title,
-  subtitle, and footer are reserved and wrapped like the columns, the header band is
-  its own layer that must not overlap the subtitle or first row, and a block wider
-  than the canvas is `cannot_fit` (narrow/wrap/split), never shipped clipped.
-
-- `dataviz-construct` gains a one-clause cross-reference noting the build skills now
-  carry the reservation. No tool/code changes - the geometry tools already do the
-  right thing; the fix is the producer invoking them on the first pass.
-
 ### Re-align `dataviz-eval` with its sibling gates
 
 - `dataviz-eval` had drifted into a maximalist compliance machine: it demanded an
