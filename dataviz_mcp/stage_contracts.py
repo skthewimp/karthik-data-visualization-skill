@@ -1123,7 +1123,12 @@ consequential collision, hierarchy, comparison, labelling, colour, content, or
 prompt-compliance defects before returning. Do not hand-edit the canvas dimensions for charts to chase
 edge clipping, overflow, or squashed panels - that resizable geometry is settled
 deterministically by ``refit_chart`` at the execution gate, which grows the canvas by the exact
-measured overflow; spend your effort on the defects a resize cannot fix. Make no colour decision here: apply the ordered
+measured overflow; spend your effort on the defects a resize cannot fix. An underfilled canvas -
+too much empty space for the ink, usually flagged with undersized text - is one such defect: it has
+no shrink vector, so ``refit_chart`` reports it but never resizes it away, and acting on it is not
+the forbidden canvas-chasing (that rule is about growing to hide overflow). It is a design call you
+own: shrink the canvas to fit the ink, enlarge the marks and text, choose a denser layout, or switch
+to the requested table - do not re-render the same sparse canvas expecting refit to shrink it. Make no colour decision here: apply the ordered
 palette resolved from the select stage's ``colour_plan`` by ``recommend_colours`` (supplied by
 the driver, or produced by calling the tool with the plan's available colours, ``colour_groups``,
 background, focal, and semantic hints), assign it in the palette's order, and record what you
