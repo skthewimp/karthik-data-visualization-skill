@@ -247,7 +247,13 @@ _DEFECT_CLASS: dict[str, str] = {
     "EXTERNAL_LEGEND": "semantic",
     "UNIDENTIFIED_SERIES": "semantic",
     "UNDERFILLED_CANVAS": "semantic",
+    "BLANK_RENDER": "semantic",
 }
+
+# Below this occupied fraction the render carries essentially no ink - a blank or failed
+# export (the patchwork/refit blank-PNG case), not a sparse-but-real design. It blocks, so a
+# blank canvas can never report passes_geometry_checks true.
+BLANK_RENDER_MAX = 0.02
 
 
 # A directly labelled value on its mark. Two gids carry it: ``data_label`` (an on-mark value the
@@ -359,9 +365,18 @@ def inspect_rendered_chart(
     occupied_utilization_ratio: float | None = None
     panel_heights_px: list[float] = []
     min_panel_height_px: float | None = None
+    table_bounds_unreliable = False
 
     if metadata is not None:
         canvas = metadata["canvas"]
+        # A table whose structure is not a recognised tableGrob/gt gtable carries no per-cell
+        # bounds; its element bboxes leak the enclosing wrapper's extent, so every bbox-derived
+        # geometry check (out-of-bounds, cell overflow, clipping, contrast) would be a false
+        # positive. Gate those off and report the pass as incomplete - inspect such a table by eye.
+        _cov = metadata.get("coverage", {})
+        table_bounds_unreliable = bool(_cov.get("table_content")) and not bool(
+            _cov.get("table_cell_bounds")
+        )
         plot_areas = {item["id"]: item["bbox"] for item in metadata.get("plot_areas", [])}
         panel_heights_px = [round(float(bbox["height"]), 1) for bbox in plot_areas.values()]
         min_panel_height_px = min(panel_heights_px) if panel_heights_px else None
@@ -383,7 +398,7 @@ def inspect_rendered_chart(
 
         for element in elements:
             bbox = element["bbox"]
-            if not _contains(canvas, bbox):
+            if not table_bounds_unreliable and not _contains(canvas, bbox):
                 overflow = _overflow(canvas, bbox)
                 record = {
                     "id": element["id"],
@@ -844,7 +859,25 @@ def inspect_rendered_chart(
                 )
             )
 
-    if metadata is not None and not metadata.get("coverage", {}).get("table_content"):
+    if (
+        metadata is not None
+        and occupied_utilization_ratio is not None
+        and occupied_utilization_ratio <= BLANK_RENDER_MAX
+    ):
+        # Blank or near-empty export - the build produced no visible content (e.g. the refit
+        # blank-PNG on a patchwork build). Blocks: never deliver, never report a clean pass.
+        defects.append(
+            _defect(
+                "BLANK_RENDER",
+                "high",
+                [],
+                f"The render is blank or near-empty ({occupied_utilization_ratio:.0%} ink); "
+                "the build produced no visible content - rebuild, do not deliver.",
+                {"occupied_utilization_ratio": occupied_utilization_ratio,
+                 "threshold": BLANK_RENDER_MAX},
+            )
+        )
+    elif metadata is not None and not metadata.get("coverage", {}).get("table_content"):
         underfill = _underfill_defect(occupied_utilization_ratio, bool(undersized_text))
         if underfill is not None:
             defects.append(underfill)
@@ -868,6 +901,12 @@ def inspect_rendered_chart(
             f"{unsupported_marks} non-line mark collection(s), patch(es), or image(s) lack collision geometry"
         )
     limitations.extend(str(item) for item in coverage_limitations)
+    if table_bounds_unreliable:
+        limitations.append(
+            "Table is not a recognised tableGrob/gt gtable; its element bounds are unreliable, "
+            "so out-of-bounds and cell-position geometry were not checked mechanically - "
+            "inspect the render visually"
+        )
     if metadata is not None and not checks_complete and not unsupported_marks and coverage_limitations:
         limitations.append("Renderer geometry coverage is incomplete for a full mechanical pass")
     blocking = [item for item in defects if item["severity"] in ("high", "medium")]

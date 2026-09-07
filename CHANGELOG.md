@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Fix two inspector false verdicts surfaced by the weak-model runs
+
+- **Blank render reported a clean pass.** A near-empty export
+  (`occupied_utilization_ratio` at ~0, the refit blank-PNG on a `patchwork` build)
+  only produced a low, non-blocking `UNDERFILLED_CANVAS`, so
+  `passes_geometry_checks` came back `true` on a blank canvas. A ratio at or below
+  `BLANK_RENDER_MAX` (0.02) now raises a high, blocking `BLANK_RENDER` for both
+  charts and tables - a blank export can never pass. Sparse-but-real layouts
+  (above the floor) still take the soft chart-only underfill path unchanged.
+- **Unrecognised table gtable manufactured false geometry defects.** A table that
+  is not a `tableGrob`/`gt::as_gtable` gtable carries no per-cell bounds; its
+  element bboxes leak the enclosing wrapper's extent, which raised spurious
+  `OUT_OF_BOUNDS`. The out-of-bounds/containment check is now gated on
+  `table_cell_bounds` being present, and the run degrades honestly to `incomplete`
+  with a limitation noting the render should be inspected visually. Bbox-independent
+  checks (undersized text, contrast) are unaffected, and a proper `tableGrob`/`gt`
+  table still flags a real out-of-bounds cell.
+- Both are in `dataviz_mcp/inspection.py`; covered by
+  `dataviz_mcp/tests/test_inspection_gating.py`.
+
 ### Front-load the first-pass placement mandate for weak build models
 
 - The construct pipeline now runs with minimal revisions, which exposed that
