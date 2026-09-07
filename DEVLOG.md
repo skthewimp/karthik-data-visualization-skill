@@ -2622,3 +2622,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Committed, pushed, installed. **Audited the construct pipeline pairs** (insight/select producers → idea/execution/aesthetic gates + MCP recommend_* → validate_palette). Most were already aligned — recent commits...
 
 <!-- claude-session:927b3022-42dd-482e-a5dc-e98765f58a95:end -->
+
+<!-- claude-session:9e2e68b0-cf22-4de2-bf05-acd0f07fe6d5:start -->
+## 2026-09-07 06:42 IST | Claude session `9e2e68b0-cf2`
+
+### User prompts
+> can you check if there are any remaining contradictions between generators and verifiers, and if verifiers have rules that genrators don't know about whi h can result in too many loops
+> how will you f ix 1? yes i find the "don't move data labels" thing a bit weird since you can have adjacent lines whose labels might overlap. now i've evern forgotten why we put in that rule.
+> how expensive will B be, in terms of runtime, token usage, etc?
+
+### Work done
+- Grounded it in the code. Here's the precise picture. ## The issue **What underfill is:** a canvas with too much empty space for the ink it carries — a sparse chart or a single big number floating in a large frame. The...
+- #2 done. Pushed `e0ea6f0`, `main` matches upstream. **Change:** scoped the build adapter's "don't hand-edit canvas dimensions" rule to overflow-chasing, and named underfill as a defect build owns — refit reports it bu...
+
+<!-- claude-session:9e2e68b0-cf22-4de2-bf05-acd0f07fe6d5:end -->
