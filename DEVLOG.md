@@ -2595,3 +2595,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:26f1d4c5-6eb9-4cb7-b56c-7b4a14ebe346:end -->
 
+<!-- claude-session:765eaf06-e157-4684-a781-e6681d3b2c77:start -->
+## 2026-09-07 05:56 IST | Claude session `765eaf06-e15`
+
+### User prompts
+> there is an issue with the "parts of the whole" rule that we have here. it's not explicit in idea but very explicit in idea critique, and that leasd to too amny revvisions. how od we fix this? and do we really need it...
+> see some of these thins work when we have the full dataset at hand and are constructing the chart from the beginning, but if we're repairing the chart we may not have the full underlying data.
+> also - i like your idea of "harden at evidence builder, soften at critique". and don't make any changes in seelctor.
+
+### Work done
+- Pushed. Updating memory to reflect the final call (dropped, not tiered).
+- Done. Pushed, synced (23 skills), memory updated. **Final state of the part-to-whole rule:** - **Kept** (both generator + verifier, both paths): structural category-error check - negative share, or a net/delta/differe...
+
+<!-- claude-session:765eaf06-e157-4684-a781-e6681d3b2c77:end -->
