@@ -55,14 +55,12 @@ alongside a mix-shift), name the primary headline and note the secondary message
 decomposition into one or several charts to selection.
 
 Before framing values as **shares of a total** (they "total 100%", they compose a whole), earn
-that framing, to the strength the data supports. A negative "share", or a quantity plainly a net
-/ delta / difference dressed as a share, is a category error - name it honestly and drop the
-composition framing, don't relabel it as a share; this holds however the data reached you. When
-you hold the **true underlying data** (a creation path from a full dataset), also confirm the
-components reconcile to the stated total, so the plan is born correct rather than bounced later.
-When the values are **read approximately off a source image** (a repair), a sum that lands near
-but not on the total is reading noise, not a mis-derivation - don't force the net/delta reframing
-on it.
+that framing. A negative "share", or a quantity plainly a net / delta / difference dressed as a
+share, is a category error - name it honestly and drop the composition framing, don't relabel it
+as a share. And don't present a partial decomposition as if it were the whole - if a slice is
+missing or the categories overlap, say so or name the residual, rather than letting a subset read
+as exhaustive. (No arithmetic sum-to-total check: correctly derived shares sum by construction,
+and values read off an image are approximate.)
 
 ## Candidate annotation claims
 

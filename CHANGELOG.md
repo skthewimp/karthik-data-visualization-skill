@@ -2,21 +2,20 @@
 
 ## Unreleased
 
-### Part-to-whole check: hardened at evidence, softened at critique
+### Part-to-whole check: keep the category-error test, drop the arithmetic one
 
-- `karthik-evidence-builder` now states the share-of-a-total constraint where it
-  derives a whole-and-parts story, tiered the same way (Insight runs on both the
-  creation and repair paths): the structural check - no negative share, no
-  net/delta dressed as a share - always applies; exact reconciliation to the
-  total only when the full dataset is in hand. Creation-path plans are born
-  correct instead of bounced; approximate repair reads don't false-fire.
+- Both the generator (`karthik-evidence-builder`) and the verifier
+  (`dataviz-idea-critique`) now apply only the **structural** part-to-whole check
+  on both paths: a negative "share", or a net / delta / difference dressed as a
+  share of a total, is a category error and fails. The **arithmetic
+  sum-to-total** check is dropped entirely - correctly derived shares sum by
+  construction, and parts read off a source image are approximate, so the test
+  only produced rounding-noise false-fires.
 
-- `dataviz-idea-critique` splits the part-to-whole check into two evidence-scoped
-  tiers. A structural signal (a negative "share", or a net/delta framed as a
-  share) fails on both creation and repair. Exact reconciliation (parts sum to
-  total) applies only when the true underlying data is in hand; on a repair, an
-  approximate sum read off an image is extraction noise, not a reason to revise.
-  Removes the false-fire revision loop on the repair path.
+- Completeness (a missing slice, overlapping categories, a subset shown as
+  exhaustive) now rides on the existing universe/denominator check rather than a
+  separate arithmetic reconciliation. Kills the part-to-whole revision loop on
+  both the creation and repair paths.
 
 ### Measured table planning and nested text inspection
 

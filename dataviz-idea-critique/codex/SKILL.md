@@ -22,16 +22,14 @@ Answer each against the evidence, and be specific about what fails and why.
 - **Is the DATA right?** Do the facts actually support the headline claim? Check the
   denominator and universe, the grain, the comparison, the time window and baseline, selection
   effects, and whether the uncertainty is acknowledged. A claim resting on a proxy pretending
-  to be the real measure, or on a bad denominator, fails here. A part-to-whole gets a check
-  scoped to the evidence in hand, in two tiers. **Structurally** - always available, both on the
-  creation path and on repair - a negative "share", or a quantity plainly a net / delta /
+  to be the real measure, or on a bad denominator, fails here. A part-to-whole gets one
+  structural check, on both paths: a negative "share", or a quantity plainly a net / delta /
   difference (a waterfall, a year-on-year change) framed as a share of a total, is a category
-  error visible in the framing alone: it fails here until the quantity is named correctly or the
-  composition framing is dropped. **Exact reconciliation** - the components summing to the stated
-  total - only when the true underlying data is in hand (a creation path with the full dataset,
-  where `karthik-evidence-builder` should already have earned the share framing). On a repair, the
-  parts are read approximately off an image, so a sum that lands near but not on the total is
-  extraction noise, not mis-derivation - do not revise on it; a footnote at most.
+  error visible in the framing alone - it fails here until the quantity is named correctly or the
+  composition framing is dropped. Whether the parts actually constitute the whole (a missing
+  slice, overlapping categories, a subset shown as exhaustive) is the universe/denominator
+  question above, not a separate arithmetic test - do not chase an exact sum-to-total: correctly
+  derived shares sum by construction, and parts read off an image are approximate.
 - **Is the EXPRESSION right?** Is the selected form the right vehicle for *this* claim, or will
   it mislead - hide the comparison the claim depends on, distort magnitudes, invite a wrong
   first read, or bury the message in a form no reader can follow (a deep stack for a per-series
