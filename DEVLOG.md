@@ -2636,3 +2636,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - #2 done. Pushed `e0ea6f0`, `main` matches upstream. **Change:** scoped the build adapter's "don't hand-edit canvas dimensions" rule to overflow-chasing, and named underfill as a defect build owns — refit reports it bu...
 
 <!-- claude-session:9e2e68b0-cf22-4de2-bf05-acd0f07fe6d5:end -->
+
+<!-- claude-session:78337a04-047a-4b2e-ab0a-840d79e18714:start -->
+## 2026-09-07 07:08 IST | Claude session `78337a04-047`
+
+### User prompts
+> dataviz-eval seems to have drifted away from th rest. or the other way round. basically it hasbecome very uselessand points out thigns that are not correc.t and keeps saying "redesign" for perfectlygood stuff
+
+### Work done
+- Done. Pushed to main (`ee13363`). This extends my standing *harden-producer-soften-gate* note — worth recording the specific lesson. Updating that memory:
+- Shipped. `dataviz-eval` re-aligned, pushed to main (`ee13363`), memory updated. What changed (eval only — no other skill touched): 1. **Stopped re-running the render gates.** Eval now sits above the construct loop and...
+
+<!-- claude-session:78337a04-047a-4b2e-ab0a-840d79e18714:end -->
