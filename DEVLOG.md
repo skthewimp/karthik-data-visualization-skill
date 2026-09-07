@@ -2648,3 +2648,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Shipped. `dataviz-eval` re-aligned, pushed to main (`ee13363`), memory updated. What changed (eval only — no other skill touched): 1. **Stopped re-running the render gates.** Eval now sits above the construct loop and...
 
 <!-- claude-session:78337a04-047a-4b2e-ab0a-840d79e18714:end -->
+
+<!-- claude-session:0ca43315-f722-46bd-b7ed-5f17d468351f:start -->
+## 2026-09-07 13:11 IST | Claude session `0ca43315-f72`
+
+### User prompts
+> our table sizer / font sizer seems broken. this is a recent output [Image #1]
+> [Request interrupted by user for tool use]
+
+### Work done
+- Ran the sizer on your exact table. It is **not** broken: ``` status: fits body_pt 11, header_pt 12, block_font_pt 12 col widths [107,99,100,96,69,95,83] sum 649 header_h 66.6 row_h 34.1 each reserved_band_px 109.8 (ti...
+
+<!-- claude-session:0ca43315-f722-46bd-b7ed-5f17d468351f:end -->
