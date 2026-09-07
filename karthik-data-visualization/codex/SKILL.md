@@ -21,11 +21,14 @@ Use for any chart, graph, dashboard, or data-visualization work: chart code, vis
 
 ## Get placement right before the first render
 
-Placement is arithmetic done up front, not a defect the render pass discovers. A clipped title or a label off the canvas is a reservation you skipped, not a revision you owe. Before you treat any render as a candidate, in order:
+Placement is resolved before the candidate render. Revision recovers from unexpected defects; it is not the planned place to settle layout. Before you treat any render as a candidate, in order:
 
-1. **Size the canvas from the chart's shape.** `recommend_layout` turns the slot and panel counts into a clip-safe `width_px x height_px x dpi` and facet grid. It sizes the box; it never picks the chart.
-2. **Reserve the frame - blind, no render needed.** Pass the raw title, subtitle, caption/footer, axis titles and legend strings, plus the canvas and font sizes, to `reserve_frame`. Draw marks **only** inside the `plot_area` it returns, and carry its `frame_blocks` forward. This is what stops a clipped title and a half-empty canvas, with no revision loop.
-3. **Place data-glued labels by measurement, not by eye.** For a value on a bar or a callout on a point, render once as a ruler, then pass that render's `transform` and `marks`, the labels in **data coordinates**, `plot_area`, and the `frame_blocks` to `place_on_marks`. Draw each label from the native coordinates it returns (`placed_data`, and `leader_line_data` only when it returns a `leader_line`). Never guess a label's pixels or hand-write a `geom_segment`.
+1. **Finalize the design to be measured.** Set reader-facing copy, wrapping constraints, legend position, fonts, and panel structure. Preserve these decisions through sizing and build; resolve measured wraps before accepting the final bounds.
+2. **Size and apply the canvas.** `recommend_layout` turns the slot and panel counts into `width_px x height_px x dpi` and a facet grid. Use the returned dimensions and grid in the renderer; calling the tool alone does not complete sizing.
+3. **Reserve and apply the frame.** Pass the finalized frame text and design to `reserve_frame`. Draw frame text with the returned wrapping and placement, draw marks **only** inside its `plot_area`, and carry its `frame_blocks` forward. Use the measured bounds rather than substituting renderer defaults or guessed margins.
+4. **Place data-glued labels from the marks' own transformation.** Derive mark positions and label anchors together from the same transformed data, retaining group, series, and panel identity. Reuse ordering, stacking, normalization, and dodging calculations; do not reconstruct label positions separately. Render once as a ruler, then pass that render's `transform` and `marks`, the labels in **data coordinates**, `plot_area`, and `frame_blocks` to `place_on_marks`. Draw each label from the native coordinates it returns (`placed_data`, and `leader_line_data` only when it returns a `leader_line`). Never guess a label's pixels or hand-write a `geom_segment`.
+
+If copy, wrapping, fonts, legend position, panel structure, or other geometry changes, update the sizing plan and rerun affected measurements before rendering. This includes changes made during revision. Bounds from the previous design are no longer evidence that the new one fits.
 
 Where the harness has none of these tools, do the same by hand: compute the margin each chrome block needs, keep marks inside it, render, and confirm by eye at delivery size. The order is the point either way - reserve, then draw, then confirm.
 
@@ -57,7 +60,7 @@ A dark, monospace, legend-dependent, or mechanically-titled chart is a defect to
 - **Bind labels by proximity.** The intended label-mark link must be visually stronger than competing ones. Judge distance to the visible target, not a shared row or edge; alignment alone doesn't bridge whitespace. If labels would collide or drift, change the label system or structure.
 - **Label contrast comes from the mark, not the canvas.** A value or name printed *on* a mark (inside a bar, on a filled segment, over an area) takes its legibility from that mark's fill, not the page background. Choose or invert the label colour against the fill it sits on - light text on a dark or saturated segment, dark on a pale one - so no label disappears into its own mark. Decide this at build, per segment, not as a render-time rescue.
 - **Type by hierarchy** at delivery size, not a fixed point recipe. Data labels/values may lead within the plot; axis titles, ticks, sources, notes stay readable without competing. Oversized secondary text is a hierarchy failure even when legible.
-- Check rendered text and mark bounds for collisions, clipping, occlusion; fix layout/wrapping/placement before shrinking legible type. Tune labels and spacing after rendering, not from code inspection alone.
+- Check rendered text and mark bounds for collisions, clipping, occlusion; fix layout/wrapping/placement before shrinking legible type. Confirm measured placement in the export; recover any unexpected defects through updated sizing and placement.
 - **Whitespace does one of three jobs:** group, separate, or emphasise. Inspect title-to-plot, label-to-mark, panel-to-panel, plot-to-note, and outer gaps; trim blank area that serves none.
 
 ## Grouping and emphasis
@@ -96,7 +99,7 @@ Full selection and validation workflow: `dataviz-color` (backed by `recommend_co
 
 ## Optional: audited repair plan
 
-Work output-first by default - build and inspect, no up-front plan. Only when an audited repair is explicitly requested, record a short plan first: measure and evidence scope; selected form and why the source form was rejected; one identification route per series; intended contents of title/subtitle/legend/plot/annotation/footer zones; colour's semantic role; one implementation requirement per fatal/major finding with affected zones and observable outcome; one preservation mapping per required source item with the observable state proving no regression; a layout plan for the delivery size naming longest text, dense regions, likely collisions, and their mitigation. Treat the plan as executable scope. A revision continues from the latest candidate and changes the smallest relevant region; a redesign returns to the evidence.
+Work output-first by default: settle sizing and placement, build, and inspect without a separate audit document. Only when an audited repair is explicitly requested, record a short plan first: measure and evidence scope; selected form and why the source form was rejected; one identification route per series; intended contents of title/subtitle/legend/plot/annotation/footer zones; colour's semantic role; one implementation requirement per fatal/major finding with affected zones and observable outcome; one preservation mapping per required source item with the observable state proving no regression; a layout plan for the delivery size naming longest text, dense regions, likely collisions, and their mitigation. Treat the plan as executable scope. A revision continues from the latest candidate and changes the smallest relevant region; a redesign returns to the evidence.
 
 ## Renderers and code
 

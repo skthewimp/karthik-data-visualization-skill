@@ -19,7 +19,7 @@ and conditional-formatting scale against the reading task, not just geometry.
 Inspect the exact export at the declared delivery size and find every consequential defect:
 
 - **Geometry:** clipping, elements off the canvas, misalignment, overlapping marks or text, collisions between labels, labels and axes, or panels.
-- **Association:** every label, value, and annotation clearly tied to its mark; no legend round-trips where a direct label would read. Direct values use one consistent small offset and series names sit adjacent to their line; a connector is earned only by a genuinely displaced label, not a decorative dash.
+- **Association:** verify label values and identities against the same transformed data that positioned their marks, including grouping, ordering, stacking, normalization, and panel assignment; proximity alone cannot prove the association is correct. Every label, value, and annotation must be clearly tied to its mark; no legend round-trips where a direct label would read. Direct values use one consistent small offset and series names sit adjacent to their line; a connector is earned only by a genuinely displaced label, not a decorative dash.
 - **Hierarchy and scaffolding:** title, subtitle, and emphasis read in the intended order; no duplicated axes, redundant gridlines, or leftover default furniture.
 - **Colour:** enough contrast against the background, series distinguishable, palette surviving grayscale and common CVD - not red/green alone.
 - **Precision as displayed:** the digits shown match the decided plan - the spread rule on axis ticks and data labels, an exact-lookup override with its reason, or a claim-text/annotation number reproduced verbatim from insight (its precision was set there, not by the spread rule) - no fabricated or ragged precision.
@@ -55,6 +55,8 @@ The named flags:
 Before judging a **redesign** candidate, confirm the build carries a recorded cold form decision. A redesign that is a tidied re-render of the source form with no form choice behind it is a flow violation - route it back to `select` to choose the form cold and rebuild, rather than polishing the wrong chart. (A `bounded-edit` legitimately keeps the source form; it records the retained form and is not a violation.)
 
 ## Loop, routing, and delivery
+
+Revision recovers unexpected defects; known layout decisions belong before sizing and build. If a fix changes the measured design, update the sizing plan and rerun affected measurements before rendering; apply the new bounds and placements.
 
 Consolidate the defects into **one focused revision**, re-render, and re-inspect the changed regions and their neighbours. Exit as soon as no fatal or major defect remains. **How many passes to run is the driver's budget, not a fixed number here.** If the render reveals the *idea* is wrong (the form can't carry the claim, the message doesn't land), route back to the idea gate rather than patching pixels.
 
