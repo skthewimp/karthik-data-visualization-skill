@@ -39,13 +39,9 @@ Answer each against the evidence, and be specific about what fails and why.
   beside a count), the form asserts a comparison that cannot be made - route back to `select`
   for a table or separate individually-titled charts. "The panels preserve the distinct units"
   is the rationalisation that gives this away, not a justification: distinct units are the
-  reason not to face them into one grid. Check the encoded axis variables too: Karthik's
-  scatter constraint requires quantitative × quantitative axes. An unconnected categorical dot plot
-  or a lollipop is a major form failure: return `revise`, route `select`
-  for bars, a table, or an appropriate paired-comparison form. A shared scale, numeric
-  category codes, legends, or shapes cannot make it pass. Dumbbells are valid when their
-  connections compare two values within each category; check that endpoint identities are
-  clear. Point marks on quantitative relationships or temporal trajectories remain valid.
+  reason not to face them into one grid. Check the form constraint: scatter requires two quantitative
+  axes; categorical magnitudes use bars rather than isolated dots or lollipops; dumbbells
+  are valid for paired comparisons. A violation is a major issue: return `revise`, route `select`.
 - **Is the INSIGHT right?** Is the headline claim the key thing to say, and is it supported at
   the strength stated? Are the candidate annotations the right marks - each pointing at
   something a reader would miss - or are they clutter, or restatements of what the axis already
