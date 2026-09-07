@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Re-align `dataviz-eval` with its sibling gates
+
+- `dataviz-eval` had drifted into a maximalist compliance machine: it demanded an
+  explicit finding for dozens of sub-checks, said `Send` required *every* gate,
+  release check, presentation check, semantic check, and carried action to
+  `Pass` (only `Pass` closes), and re-ran the render-defect and composition
+  checks that `dataviz-execution` and `dataviz-aesthetic` already own. The result
+  was false positives (defects manufactured to fill the checklist) and `Redesign`
+  fired on fixable execution nits or imagined ones.
+
+- Eval now sits **above** the construct gates and **defers** to them: when
+  execution and aesthetic verdicts are supplied it consumes them as the render
+  evidence instead of re-deriving geometry, colour, precision, and composition.
+  With no gate output it looks only for a render failure that *blocks the
+  reading* - not a full re-audit. The five duplicated "release checks" are gone.
+
+- Verdict discipline added: prefer the lightest verdict the evidence supports; a
+  clean chart gets `Send` and the loop stops; `Redesign` is reserved for the
+  *idea* (wrong question, form can't carry the claim, broken evidence-to-claim),
+  and a fixable render defect is at most a `Revise`. "Clean, nothing to flag" is
+  a valid result; `Unknown` and unavailable-evidence are footnotes, never
+  blockers, and are never turned into `Fail`.
+
+- SKILL trimmed ~250→~150 lines; framework reference and `docs/skills/` aligned.
+  Only `dataviz-eval` changed - no other skill was touched.
+
 ### Part-to-whole check: keep the category-error test, drop the arithmetic one
 
 - Both the generator (`karthik-evidence-builder`) and the verifier
