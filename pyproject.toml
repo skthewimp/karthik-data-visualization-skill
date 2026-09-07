@@ -28,5 +28,8 @@ test = [
 [tool.setuptools.packages.find]
 include = ["dataviz_mcp*"]
 
+[tool.setuptools.package-data]
+dataviz_mcp = ["r/*.R"]
+
 [tool.pytest.ini_options]
 testpaths = ["dataviz_mcp/tests"]

@@ -138,6 +138,23 @@ def recommend_table_layout(
     # Cap the export at the width that preserves the requested display font floor.
     body = max(float(typo["body_pt"]), float(typo["minimum_body_pt"]), minimum_px * 72 / dpi)
     header = max(float(typo["header_pt"]), float(typo["minimum_header_pt"]), minimum_px * 72 / dpi)
+
+    def _role_pt(name: str, default_pt: float) -> float:
+        pt = float(typo.get(f"{name}_pt", default_pt))
+        if pt <= 0:
+            raise ValueError(f"{name}_pt must be positive")
+        # A frame block may never render below the display floor either.
+        return max(pt, minimum_px * 72 / dpi)
+
+    # Each frame block has its own size and weight - a title is larger than a header
+    # and usually not bold, a note smaller. Measuring them at header/bold (as before)
+    # under-reserves the title band and clips it. Defaults are overridable via typography.
+    title_pt = _role_pt("title", round(header * 1.5, 1))
+    subtitle_pt = _role_pt("subtitle", header)
+    notes_pt = _role_pt("notes", body)
+    title_bold = bool(typo.get("title_bold", True))
+    subtitle_bold = bool(typo.get("subtitle_bold", False))
+    notes_bold = bool(typo.get("notes_bold", False))
     if minimum_px:
         max_w = min(max_w, display_w * min(body, header) * dpi / 72 / minimum_px)
     # Compact spacing scales with type; explicit delivery-specific padding wins.
@@ -161,13 +178,31 @@ def recommend_table_layout(
         bm = {text: max(width, bold_metrics[text]) for text, width in bm.items()}
         if bold_backend != backend:
             backend = bold_backend
-    hm, header_backend = _metrics(headers + [title, subtitle, notes], typo["family"], header, dpi, True)
+    hm, header_backend = _metrics(headers, typo["family"], header, dpi, True)
     warnings = []
-    blocks = {k: _wrap(v, max(1, max_w - 2 * px), hm) for k, v in
-              [("title", title), ("subtitle", subtitle), ("notes", notes)] if v}
-    bands = sum((v.count("\n") + 1) * line_px(header, dpi) + 2 * py for v in blocks.values())
-    block_width = max([max(hm[line] for line in b.split("\n")) + 2 * px
-                       for b in blocks.values()] + [0])
+    # Measure each frame block at its own font size and weight, wrap it, and reserve a
+    # band at that role's line height - not the header's. Returned as frame_bands so the
+    # constructor draws each block at the size it was reserved for.
+    blocks: dict[str, str] = {}
+    frame_bands: list[dict[str, Any]] = []
+    bands = 0.0
+    block_width = 0.0
+    for name, text, pt, bold in [("title", title, title_pt, title_bold),
+                                 ("subtitle", subtitle, subtitle_pt, subtitle_bold),
+                                 ("notes", notes, notes_pt, notes_bold)]:
+        if not text:
+            continue
+        fm, fm_backend = _metrics([text], typo["family"], pt, dpi, bold)
+        if fm_backend != header_backend:
+            header_backend = fm_backend
+        wrapped = _wrap(text, max(1, max_w - 2 * px), fm)
+        height = (wrapped.count("\n") + 1) * line_px(pt, dpi) + 2 * py
+        width = max(fm[line] for line in wrapped.split("\n")) + 2 * px
+        blocks[name] = wrapped
+        frame_bands.append({"role": name, "text": wrapped, "font_pt": pt, "bold": bold,
+                            "height_px": math.ceil(height), "width_px": math.ceil(width)})
+        bands += height
+        block_width = max(block_width, width)
     options = []
     for c, values, label in zip(cols, cells, headers):
         visual = float(c.get("visual_width_px", 0))
@@ -294,6 +329,6 @@ def recommend_table_layout(
             "padding_x_px": px, "padding_y_px": py,
             "col_widths_px": widths, "row_heights_px": heights, "header_height_px": hh,
             "headers": wrapped_headers, "cells": wrapped_cells, "blocks": blocks,
-            "block_font_pt": header, "reserved_band_px": bands,
+            "frame_bands": frame_bands, "reserved_band_px": math.ceil(bands),
             "pages": pages, "treatment": plan, "warnings": warnings,
             "delivery": profile}

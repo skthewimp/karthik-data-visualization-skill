@@ -1111,9 +1111,11 @@ off the canvas is a reservation you skipped, not a revision the gate must catch:
   2. Reserve the frame BLIND, before any render. Chart: pass the title/subtitle/caption/footer,
      axis and legend strings plus canvas and font sizes to ``reserve_frame`` and draw marks ONLY
      inside the ``plot_area`` it returns, carrying its ``frame_blocks`` forward. Table: call
-     ``recommend_table_layout`` and apply its column widths, header band, wrapping and
-     continuation pages; a title, subtitle, footer or column wider than the canvas is
-     ``cannot_fit`` - narrow, wrap or split, never clip.
+     ``recommend_table_layout``, then draw the plan through ``render_table_from_plan`` (the
+     shared constructor) so the measured column widths, row heights, header band and
+     title/subtitle/notes bands are applied verbatim, not re-normalised by hand; a title,
+     subtitle, footer or column wider than the canvas is ``cannot_fit`` - narrow, wrap or
+     split, never clip.
   3. Place every data-glued label (values on bars, callouts on points): render once as a ruler,
      then pass that render's ``transform`` and ``marks``, the labels in DATA coordinates,
      ``plot_area`` and ``frame_blocks`` to ``place_on_marks``; draw from the coordinates it

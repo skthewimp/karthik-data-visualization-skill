@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Per-role frame measurement and a shared table constructor (harness findings #2, #3)
+
+- **Measure each frame role at its own font and weight (#2).** The table planner
+  measured title, subtitle and notes bundled with the headers at header size, bold
+  (`table_layout.py`), so a real title - larger, not bold - was under-reserved and
+  clipped. The planner now measures each block at its own size/weight (defaults:
+  title 1.5x header and bold, subtitle at header, notes at body; all overridable via
+  `typography`), reserves its band at that role's line height, and returns
+  `frame_bands` (per-role text, `font_pt`, `bold`, `height_px`, `width_px`). The
+  bundled-header measurement and the misleading scalar `block_font_pt` are gone;
+  `reserved_band_px` is now the correct per-role sum.
+- **Shared table constructor (#3).** New `dataviz_mcp/r/table_from_plan.R` +
+  `dataviz_mcp/table_builder.py` build a gtable straight from a
+  `recommend_table_layout` plan - applying the measured column widths, row heights,
+  header band and the per-role frame bands verbatim - so a build model consumes the
+  reservation instead of re-normalising row positions and re-guessing the frame (the
+  hand-rolled failure that clipped a footer). It stays a recognised tableGrob, so the
+  geometry inspector still tracks every cell. Exposed as the `render_table_from_plan`
+  MCP tool; `karthik-table-style` (both variants) and the `_CONSTRUCT_BUILD` table
+  path now direct builds through it, with the by-hand degrade path retained for
+  harnesses without the tool.
+- Harness findings #1 (recompute-on-change) and #4 (font-file resolution parity) not
+  taken this pass; #5 (installed-skill sync) was already resolved locally.
+
 ### Fix two inspector false verdicts surfaced by the weak-model runs
 
 - **Blank render reported a clean pass.** A near-empty export

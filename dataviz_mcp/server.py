@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from .comparison import compare_chart_artifacts as compare_core
@@ -8,6 +9,7 @@ from .labels import recommend_labels as recommend_labels_core
 from .frame import reserve_frame as reserve_frame_core
 from .layout import recommend_layout as recommend_layout_core
 from .table_layout import recommend_table_layout as recommend_table_layout_core
+from .table_builder import write_table_build_source
 from .text_fit import (
     place_on_marks as place_on_marks_core,
     recommend_text_placement as recommend_text_placement_core,
@@ -325,6 +327,37 @@ def create_server() -> Any:
         return recommend_table_layout_core(
             columns, content_path, delivery_profile, typography, delivery, treatment,
             title, subtitle, notes,
+        )
+
+    @server.tool()
+    async def render_table_from_plan(
+        plan: dict[str, Any] | str,
+        output_dir: str,
+        page: int = 1,
+        artifact_name: str = "table.png",
+    ) -> dict[str, Any]:
+        """Render a recommend_table_layout plan through the shared table constructor and inspect it.
+
+        Applies the plan's measured geometry verbatim - exact column widths, row heights, header
+        band, and the per-role title/subtitle/notes frame bands - so the drawn table cannot
+        re-derive row positions or the frame and reintroduce clipping. `plan` is the
+        recommend_table_layout result (object) or a path to its JSON; `page` is 1-based for a
+        multi-page (split) plan. Returns the same bundle as render_and_inspect_chart with
+        content="table".
+        """
+        import tempfile
+
+        build_path = str(Path(tempfile.mkdtemp()) / "table_build.R")
+        write_table_build_source(plan, build_path, page=page)
+        return render_inspect_core(
+            build_path,
+            output_dir,
+            "auto",
+            None,
+            None,
+            artifact_name,
+            "build_table",
+            content="table",
         )
 
     @server.tool()

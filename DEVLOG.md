@@ -1,5 +1,38 @@
 # Devlog
 
+## 2026-09-07 - table harness findings: per-role measurement + shared constructor
+
+### User prompt
+
+- Relayed five harness findings on the table skill; asked which were already done and
+  to implement. Chose #2 (per-role measurement) and #3 (shared constructor).
+
+### Status reported
+
+- #1 recompute-on-change: partial (planner already requires full content; skill lacks
+  the explicit recompute rule) - not taken.
+- #2 per-role measurement: not done - confirmed live bug at `table_layout.py:164`
+  (title/subtitle/notes measured at header size + bold). Taken.
+- #3 shared constructor: not done. Taken.
+- #4 font-file resolution parity: not done.
+- #5 installed-skill sync: already resolved on this machine (installed == source,
+  199 lines); the /home/karthik sandbox is a separate checkout.
+
+### Work done
+
+- #2: planner measures each frame block at its own size/weight, returns `frame_bands`
+  (per-role font/weight/height/width), drops the bundled measurement and the scalar
+  `block_font_pt`. Tests in `test_table_layout.py` (per-role sizes; title_pt override
+  shrinks the band).
+- #3: `r/table_from_plan.R` + `table_builder.py` construct a gtable from the plan and
+  apply the measured geometry verbatim, widening columns to the plan's reserved page
+  width so a title wider than the columns cannot overflow. Stays a recognised
+  tableGrob (cell bounds intact). Exposed as MCP `render_table_from_plan`; skill +
+  `_CONSTRUCT_BUILD` route table builds through it. Rendered demo inspected by eye -
+  title/subtitle/header-band/body/notes all placed, nothing clipped. Test in
+  `test_table_builder.py` renders a plan and asserts recognised cells, no
+  OUT_OF_BOUNDS/CELL_OVERFLOW/BLANK_RENDER. Full suite 208 pass.
+
 ## 2026-09-07 - front-load first-pass placement, validated with weak-model subagents
 
 ### User prompts

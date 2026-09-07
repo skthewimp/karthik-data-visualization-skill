@@ -102,6 +102,7 @@ asyncio.run(main())
         "recommend_labels",
         "recommend_layout",
         "recommend_table_layout",
+        "render_table_from_plan",
         "recommend_text_placement",
         "reserve_frame",
         "place_on_marks",

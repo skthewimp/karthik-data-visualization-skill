@@ -58,10 +58,16 @@ owed later. Before you render, in order:
 3. **A block wider than the canvas is `cannot_fit`** - resolve it by narrowing,
    wrapping, or splitting, and never ship it clipped at the edge. Do not drop rows
    or columns to force a fit.
+4. **Draw the plan through the shared constructor**, not by hand-positioning rows.
+   Where the harness provides it, `render_table_from_plan` (the `r/table_from_plan.R`
+   constructor) applies the measured column widths, row heights, header band, and the
+   title/subtitle/notes bands verbatim, so nothing you reserved gets re-normalised
+   away - the failure mode where a hand-rolled table ignores measured heights and
+   clips the footer.
 
 Where the harness has no such tool, do the same by hand: measure each column,
-header, and frame block, keep them within the delivery width, render, and confirm
-by eye before delivering.
+header, and frame block, keep them within the delivery width, apply those exact
+widths and heights when you draw, render, and confirm by eye before delivering.
 
 ## Craft principles
 

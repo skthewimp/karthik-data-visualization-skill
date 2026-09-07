@@ -78,3 +78,37 @@ def test_header_budget_requires_complete_text_and_respects_column_ceiling():
     assert impossible["status"] == "cannot_fit"
     assert impossible["headers"][0].replace("\n", " ") == col["header"]
     assert impossible["header_pt"] == plan["header_pt"]
+
+
+def test_frame_bands_measure_each_role_at_its_own_size():
+    out = recommend_table_layout(
+        [{"header": "Region", "cells": ["North", "South"]},
+         {"header": "Revenue", "cells": ["12.5", "8.3"]}],
+        title="A deliberately long claim-style title that must not clip at the edge",
+        subtitle="a smaller subtitle line",
+        notes="source: internal",
+        delivery={"max_width_px": 1200, "max_height_px": 800},
+    )
+    bands = {b["role"]: b for b in out["frame_bands"]}
+    assert set(bands) == {"title", "subtitle", "notes"}
+    # Title is larger than a header and reserved bold; notes no larger than a header.
+    assert bands["title"]["font_pt"] > out["header_pt"]
+    assert bands["title"]["bold"] is True
+    assert bands["notes"]["font_pt"] <= out["header_pt"]
+    # A larger role gets a taller band (per-role line height, not the header's).
+    assert bands["title"]["height_px"] > bands["notes"]["height_px"]
+    assert out["reserved_band_px"] > 0
+
+
+def test_title_pt_override_shrinks_its_reserved_band():
+    kw = dict(delivery={"max_width_px": 1200, "max_height_px": 800})
+    big = recommend_table_layout([{"header": "H", "cells": ["1", "2"]}],
+                                 title="Long title text here", **kw)
+    small = recommend_table_layout([{"header": "H", "cells": ["1", "2"]}],
+                                   title="Long title text here",
+                                   typography={"title_pt": 8}, **kw)
+    tb = next(b for b in big["frame_bands"] if b["role"] == "title")
+    sb = next(b for b in small["frame_bands"] if b["role"] == "title")
+    assert tb["font_pt"] > sb["font_pt"]
+    assert tb["height_px"] > sb["height_px"]   # bigger font -> taller band
+    assert tb["width_px"] >= sb["width_px"]    # bigger font -> at least as wide
