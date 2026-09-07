@@ -28,9 +28,9 @@ _DIM_KEYS = ("width_px", "height_px", "dpi")
 
 
 def _grow_residual(geometry_summary: dict[str, Any]) -> float:
-    """Total px a resize must add to clear the render: overflow on every edge plus any
-    squashed-panel deficit. Zero means nothing is growable - the exact read-back scalar that
-    ``suggest_dims_for_overflow`` grows the canvas by, so it falls monotonically as refit works.
+    """Residual defect size: overflow on every edge plus the smallest panel's deficit.
+    Zero means nothing is growable. This is a progress metric, not canvas growth:
+    panel deficits must be scaled to canvas coordinates by ``suggest_dims_for_overflow``.
     """
     edge = geometry_summary.get("edge_overflow_px") or {}
     overflow = sum(max(0.0, float(value)) for value in edge.values())

@@ -313,6 +313,8 @@ def test_live_ggplot_grows_squashed_facet_panels(tmp_path):
     assert heights[0] < MIN_PANEL_H  # panels started squashed
     assert all(later > earlier for earlier, later in zip(heights, heights[1:]))  # each grow helps
     assert result["final_dimensions"]["height_px"] > 320
+    assert result["resolved"] is True
+    assert result["passes"] == 2
 
 
 def test_dimensions_override_the_starting_size(tmp_path, monkeypatch):
@@ -326,3 +328,24 @@ def test_dimensions_override_the_starting_size(tmp_path, monkeypatch):
         dimensions={"width_px": 1000, "height_px": 800, "dpi": 120},
     )
     assert fake.calls[0] == {"width_px": 1000, "height_px": 800, "dpi": 120}
+
+
+@pytest.mark.parametrize("panel_share", [0.5, 0.25, 0.13])
+@pytest.mark.parametrize("fixed_chrome", [0, 60])
+def test_panel_deficit_clears_in_one_growth(tmp_path, monkeypatch, panel_share, fixed_chrome):
+    # The old additive correction halves the 44px deficit when share=0.5,
+    # and converges even more slowly for smaller panels.
+    initial_h = int((MIN_PANEL_H - 44) / panel_share + fixed_chrome)
+
+    def geom(dims, _index):
+        panel_h = (dims["height_px"] - fixed_chrome) * panel_share
+        return _geometry_summary(dims, min_panel_h=panel_h), []
+
+    _install(monkeypatch, geom)
+    result = refit_chart(
+        str(tmp_path / "src.py"), str(tmp_path / "out"),
+        delivery_profile="document", dimensions={"height_px": initial_h},
+    )
+    assert result["resolved"] is True
+    assert result["passes"] == 2
+    assert result["history"][-1]["min_panel_height_px"] >= MIN_PANEL_H

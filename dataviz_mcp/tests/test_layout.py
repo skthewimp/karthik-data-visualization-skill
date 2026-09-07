@@ -88,7 +88,9 @@ def test_suggest_dims_grows_by_the_measured_overflow():
 
 def test_suggest_dims_grows_height_for_squashed_panels():
     out = suggest_dims_for_overflow(1200, 700, min_panel_height_px=MIN_PANEL_H - 50)
-    assert out["grow_height_px"] == 50
+    panel_fraction = (MIN_PANEL_H - 50) / 700
+    assert out["suggested_height_px"] * panel_fraction >= MIN_PANEL_H
+    assert (out["suggested_height_px"] - 1) * panel_fraction < MIN_PANEL_H
 
 
 def test_boxes_overlap_detects_and_clears():
@@ -97,3 +99,13 @@ def test_boxes_overlap_detects_and_clears():
     c = {"x": 100, "y": 100, "width": 10, "height": 10}
     assert boxes_overlap(a, b)
     assert not boxes_overlap(a, c)
+
+
+def test_fractional_overflow_rounds_up_to_clear_the_edge():
+    out = suggest_dims_for_overflow(1200, 700, top_overflow_px=0.2, right_overflow_px=0.2)
+    assert out["grow_height_px"] == out["grow_width_px"] == 1
+
+
+def test_zero_height_panel_keeps_a_finite_growth_proposal():
+    out = suggest_dims_for_overflow(1200, 700, min_panel_height_px=0)
+    assert out["suggested_height_px"] == 700 + MIN_PANEL_H
