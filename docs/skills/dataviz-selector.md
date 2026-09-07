@@ -77,7 +77,7 @@ The skill should not recommend:
 
 If the user asks for one of these, the skill should say it is not recommended and offer the closest static alternative.
 
-Scatter plots require quantitative × quantitative axes under Karthik's form constraint. Category × quantity dot comparisons are excluded regardless of legends, shapes, or numeric category codes. Point marks on temporal trajectories remain valid.
+Scatter plots require quantitative × quantitative axes under Karthik's form constraint. Unconnected category × quantity dot plots and lollipops are excluded regardless of legends, shapes, or numeric category codes. Dumbbells are valid for paired comparisons within categories when endpoint identities are clear. Point marks on temporal trajectories remain valid.
 
 ## Common mappings
 
@@ -89,7 +89,7 @@ Scatter plots require quantitative × quantitative axes under Karthik's form con
 | Forecast miss | Actual vs forecast + ribbon/gap annotation |
 | Ranking | Sorted horizontal bars, axis from zero (nominal categories only) |
 | Ordered/time category | Keep the sequence order and its natural direction (left-to-right, or top-to-bottom if vertical); never sort by magnitude or invert onto the y-axis so time climbs upward |
-| Single value per category, magnitude | Bars; grouped bars, suitable facets, or a table for multiple values. No categorical dot plots, lollipops, or dumbbells |
+| Single value per category, magnitude | Bars; grouped bars, suitable facets, or a table for multiple values. No unconnected categorical dot plots or lollipops; dumbbells are valid for paired comparisons |
 | Distribution/skew | Histogram, density, ECDF, boxplot, or violin |
 | Vote efficiency | Vote-share vs seat-share scatter |
 | Swing scenarios | Seat curves by swing, faceted by state |

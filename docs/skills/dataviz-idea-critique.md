@@ -13,7 +13,7 @@ The **pre-render gate** of the construct process. It receives the plan - the fac
 - **Is the INSIGHT right?** Is the headline claim the key thing to say and supported at the stated strength, and are the candidate marks the right marks rather than clutter?
 - **Is it HONEST and COMPLETE?** Is anything key silently dropped, and does the claim's strength match the evidence?
 
-The expression check rejects categorical dot comparisons (including lollipops and dumbbells) as a major issue and routes them to `select`. Scatter requires quantitative × quantitative axes; legends and distinct shapes do not repair the wrong axis types. Point marks on temporal trajectories remain valid.
+The expression check rejects unconnected categorical dot plots and lollipops as a major issue and routes them to `select`. Scatter requires quantitative × quantitative axes; legends and distinct shapes do not repair the wrong axis types. Dumbbells are valid for paired comparisons within categories when endpoint identities are clear. Point marks on temporal trajectories remain valid.
 
 ## Verdict and routing
 
