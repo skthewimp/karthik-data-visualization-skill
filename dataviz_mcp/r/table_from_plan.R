@@ -26,7 +26,7 @@ build_table_from_plan <- function(plan_path, page = 1L) {
   m <- do.call(cbind, col_cells)
   colnames(m) <- headers
 
-  pad <- unit(c(px, py), "bigpts")                               # bigpts == 1pt == 1/72in
+  pad <- unit(in_of(c(px, py)), "in")                         # plan padding is in export pixels
   th <- ttheme_minimal(
     base_family = fam, padding = pad,
     core = list(fg_params = list(fontsize = body_pt, fontfamily = fam)),
@@ -47,7 +47,7 @@ build_table_from_plan <- function(plan_path, page = 1L) {
   add_band <- function(g, b, side) {
     h <- unit(in_of(b$height_px), "in")
     face <- if (isTRUE(b$bold)) "bold" else "plain"
-    grob <- textGrob(b$text, x = unit(px, "bigpts"), hjust = 0,
+    grob <- textGrob(b$text, x = unit(in_of(px), "in"), hjust = 0,
                      gp = gpar(fontsize = as.numeric(b$font_pt), fontfamily = fam, fontface = face))
     pos <- if (side == "top") 0 else -1
     g <- gtable_add_rows(g, h, pos = pos)
