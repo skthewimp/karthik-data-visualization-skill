@@ -84,6 +84,7 @@ def refit_chart(
     content: str = "chart",
     artifact_name: str = "chart.png",
     build_function: str = "build_chart",
+    inspection_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Render, inspect, and grow the canvas until clipping/overflow/squash is cleared.
 
@@ -124,6 +125,7 @@ def refit_chart(
             artifact_name=artifact_name,
             build_function=build_function,
             content=content,
+            **({"inspection_contract": inspection_contract} if inspection_contract is not None else {}),
         )
         inspection = read_json(Path(bundle["inspection_path"]))
         geometry_summary = inspection.get("geometry_summary", {})
@@ -148,6 +150,11 @@ def refit_chart(
         if residual <= 0.0:
             entry["action"] = "resolved"
             resolved = True
+            break
+
+        if inspection_contract and "frame" in inspection_contract:
+            entry["action"] = "remeasure_required"
+            warnings.append("Resizing would invalidate the supplied frame plan; rerun sizing before rendering")
             break
 
         proposed = _propose_dims(geometry_summary, dims, max_w, max_h)

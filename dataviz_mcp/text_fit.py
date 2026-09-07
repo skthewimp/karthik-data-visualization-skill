@@ -798,6 +798,24 @@ def _plot_boundary_correction(
     return {"dx": dx, "dy": dy}
 
 
+def _anchor_hits_mark(x: float, y: float, mark: dict[str, Any]) -> bool:
+    """Check paths against their segments, filled/common marks against their bounds."""
+    tolerance = 1.0  # exported coordinates are rounded to pixels/subpixels
+    if "points" in mark or "segments" in mark:
+        segments = mark.get("segments", [mark.get("points", [])])
+        for points in segments:
+            for a, b in zip(points, points[1:]):
+                dx, dy = b[0] - a[0], b[1] - a[1]
+                length2 = dx * dx + dy * dy
+                t = max(0, min(1, ((x-a[0])*dx + (y-a[1])*dy) / length2)) if length2 else 0
+                if math.hypot(x-a[0]-t*dx, y-a[1]-t*dy) <= tolerance:
+                    return True
+        return False
+    box = mark.get("bbox")
+    return bool(box and box["x"] - tolerance <= x <= box["x"] + box["width"] + tolerance
+                and box["y"] - tolerance <= y <= box["y"] + box["height"] + tolerance)
+
+
 def place_on_marks(
     width_px: int,
     height_px: int,
@@ -829,7 +847,10 @@ def place_on_marks(
             the render's layout metadata (``transforms[i]``).
         labels: movable labels/annotations and on-mark data labels, each
             ``{id, text, role, data_x, data_y, placement?, max_width_px?, max_lines?, font_pt?,
-            anchors_data?}``. ``anchors_data`` is an optional list of ``{data_x, data_y}``
+            anchors_data?, mark_id?}``. A supplied ``mark_id`` must uniquely identify a mark
+            whose geometry contains every candidate anchor; no label-role inference is used.
+            Labels without a target ID are returned in ``unverified_attachments``.
+            ``anchors_data`` is an optional list of ``{data_x, data_y}``
             candidate marks for a category ``label`` (it may sit beside any of them). Roles
             follow ``recommend_text_placement``: ``label`` / ``annotation`` move, ``data_label``
             / ``axis_label`` stay on their projected spot.
@@ -848,7 +869,7 @@ def place_on_marks(
             nudged wholly inside and its exact move is reported - a clip that canvas growth cannot fix.
 
     Returns everything ``recommend_text_placement`` returns, plus ``projected_anchors``
-    (``{label_id: {x, y}}``) so the caller can see where each mark landed. Every movable label
+    (``{label_id: {x, y}}``) so the caller can see where each mark landed. Every data-anchored label
     also carries **native data coordinates** the builder draws from directly, so no data-space
     ``geom_segment``/``annotate`` has to be improvised (and pass through a neighbour): ``placed_data``
     (``{x, y}`` of the label box's **top-left** corner - draw the label left/top-anchored, e.g. ggplot
@@ -871,8 +892,23 @@ def place_on_marks(
         )
     blocks: list[dict[str, Any]] = list(fixed_blocks or [])
     projected: dict[str, dict[str, float]] = {}
+    unverified: list[str] = []
     for label in labels:
         px, py = _project(transform, label["data_x"], label["data_y"], x_trans, y_trans)
+        target_id = label.get("mark_id")
+        if target_id is None:
+            unverified.append(label["id"])
+        else:
+            targets = [m for m in (marks or []) if m.get("id") == target_id]
+            if len(targets) != 1:
+                raise ValueError(f"Label {label['id']}: mark_id {target_id!r} must identify one mark")
+            anchors = [(px, py)] + [
+                _project(transform, a["data_x"], a["data_y"], x_trans, y_trans)
+                for a in label.get("anchors_data", [])
+            ]
+            if not all(_anchor_hits_mark(x, y, targets[0]) for x, y in anchors):
+                raise ValueError(f"Label {label['id']}: anchor misses target mark {target_id!r}; "
+                                 "derive the anchor from the mark's transformed data")
         projected[label["id"]] = {"x": px, "y": py}
         block = {
             key: value
@@ -902,12 +938,13 @@ def place_on_marks(
         plot_area=plot_area,
     )
     result["projected_anchors"] = projected
+    result["unverified_attachments"] = unverified
 
-    # Hand the builder exact native coordinates for every movable label, so leaders and label
+    # Hand the builder exact native coordinates for every data-anchored label, so leaders and label
     # positions are drawn from the inverse of the projection - never improvised in data space.
     mark_data = {label["id"]: {"x": label["data_x"], "y": label["data_y"]} for label in labels}
     for placement in result.get("placements", []):
-        if placement["role"] in (FIXED_ROLES | ON_MARK_ROLES):
+        if placement["role"] in FIXED_ROLES:
             continue
         bbox = placement["bbox"]
         placed_data = _project_inverse(transform, bbox["x"], bbox["y"], x_trans, y_trans)

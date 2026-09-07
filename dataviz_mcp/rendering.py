@@ -1285,6 +1285,7 @@ def render_and_inspect_chart(
     artifact_name: str = "chart.png",
     build_function: str = "build_chart",
     content: str = "chart",
+    inspection_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Render with explicit precedence, inspect the exact PNG, and emit review views."""
     if renderer not in ("auto", "ggplot2", "matplotlib"):
@@ -1347,6 +1348,20 @@ def render_and_inspect_chart(
             width_px=int(delivery_dimensions["width_px"]),
             height_px=int(delivery_dimensions["height_px"]),
         )
+
+    # Persist the driver's measured design with either backend's exact geometry. The
+    # driver wins over builder metadata, so build cannot silently replace its reservation.
+    if inspection_contract is not None:
+        layout_path = Path(bundle["layout_metadata_path"])
+        layout = json.loads(layout_path.read_text(encoding="utf-8"))
+        layout["inspection_contract"] = {
+            **layout.get("inspection_contract", {}), **inspection_contract,
+        }
+        write_json(layout_path, layout)
+        manifest_path = Path(bundle["manifest_path"])
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["layout_metadata"]["sha256"] = sha256_file(layout_path)
+        write_json(manifest_path, manifest)
 
     inspection = inspect_rendered_chart(
         bundle["artifact"]["path"],

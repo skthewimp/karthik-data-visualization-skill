@@ -1120,6 +1120,13 @@ off the canvas is a reservation you skipped, not a revision the gate must catch:
      then pass that render's ``transform`` and ``marks``, the labels in DATA coordinates,
      ``plot_area`` and ``frame_blocks`` to ``place_on_marks``; draw from the coordinates it
      returns. Never guess a label's pixels or hand-write a segment.
+For charts, pass the returned frame as ``inspection_contract.frame`` and returned label
+placements as ``inspection_contract.placements`` to ``render_and_inspect_chart`` and
+``refit_chart``. These are the existing tool outputs, not a new text-classification scheme.
+For a known target, pass its exported ``mark_id`` in the label to ``place_on_marks``; derive
+the target and anchor from the same transformed data. Wrong anchors are rejected; report
+``unverified_attachments`` as a limitation rather than inventing a target. ggplot text roles
+do not identify which mark a label names.
 Only after 1-3 do you render the candidate; the inspect pass then only confirms the pixels.
 The paragraphs below carry the full detail of each step.
 

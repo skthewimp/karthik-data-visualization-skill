@@ -71,11 +71,15 @@ def create_server() -> Any:
         artifact_name: str = "chart.png",
         build_function: str = "build_chart",
         content: str = "chart",
+        inspection_contract: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Render backend-neutrally (ggplot2 first for auto), inspect, and build review views.
 
         Set content="table" to render a gtable (tableGrob / gt::as_gtable) from an .R
         source through the grid/ragg path and gate it like a chart.
+        For charts pass inspection_contract.frame = reserve_frame's result and
+        placements = place_on_marks' returned placements. The inspector compares text and
+        measured bounds without inferring label roles or requiring ggplot text IDs.
         """
         return render_inspect_core(
             source_path,
@@ -86,6 +90,7 @@ def create_server() -> Any:
             artifact_name,
             build_function,
             content=content,
+            inspection_contract=inspection_contract,
         )
 
     @server.tool()
@@ -99,6 +104,7 @@ def create_server() -> Any:
         content: str = "chart",
         artifact_name: str = "chart.png",
         build_function: str = "build_chart",
+        inspection_contract: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Render, inspect, and grow the canvas in code until clipping/overflow/squash clears.
 
@@ -123,6 +129,7 @@ def create_server() -> Any:
             content,
             artifact_name,
             build_function,
+            inspection_contract=inspection_contract,
         )
 
     @server.tool()
@@ -434,7 +441,10 @@ def create_server() -> Any:
         where the marks actually landed, killing text-mark and text-text overlaps on the first
         delivered chart instead of after a revision loop. Pass ``transform`` and ``marks``
         straight from the render's layout metadata, and ``fixed_blocks`` from ``reserve_frame``
-        so labels also clear the title. When the transform entry carries ``x_trans`` / ``y_trans``
+        so labels also clear the title. Supply each label's mark_id from that metadata to
+        verify its projected anchor touches the intended mark before placement; mismatches
+        raise an error, missing IDs are reported as unverified. This does not infer text roles.
+        When the transform entry carries ``x_trans`` / ``y_trans``
         (a log/sqrt/reverse ggplot axis), pass them through so the data coords are transformed
         before the affine. Canvas size, dpi, and per-block ``font_pt`` are inputs.
 

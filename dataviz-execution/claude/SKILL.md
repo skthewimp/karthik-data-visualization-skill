@@ -54,6 +54,8 @@ The named flags:
 
 Before judging a **redesign** candidate, confirm the build carries a recorded cold form decision. A redesign that is a tidied re-render of the source form with no form choice behind it is a flow violation - route it back to `select` to choose the form cold and rebuild, rather than polishing the wrong chart. (A `bounded-edit` legitimately keeps the source form; it records the retained form and is not a violation.)
 
+When supplied with `inspection_contract.frame` and `.placements`, the renderer blocks `FRAME_PLAN_MISMATCH` and `TEXT_PLAN_MISMATCH`. Return to build to apply the measured design or remeasure the changed design; resizing alone does not resolve these. Retain that contract through `refit_chart`. `plan_checks: not_supplied` and forward placement's `unverified_attachments` are coverage limitations. Never infer mark identity from ggplot's `label`/`data_label` role assignment.
+
 ## Loop, routing, and delivery
 
 Revision recovers unexpected defects; known layout decisions belong before sizing and build. If a fix changes the measured design, update the sizing plan and rerun affected measurements before rendering; apply the new bounds and placements.

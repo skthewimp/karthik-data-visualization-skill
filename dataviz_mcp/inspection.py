@@ -242,6 +242,8 @@ _DEFECT_CLASS: dict[str, str] = {
     "LOW_TEXT_CONTRAST": "semantic",
     "DELIVERY_TEXT_TOO_SMALL": "semantic",
     "CELL_OVERFLOW": "semantic",
+    "FRAME_PLAN_MISMATCH": "semantic",
+    "TEXT_PLAN_MISMATCH": "semantic",
     "REDUNDANT_COLOUR": "semantic",
     "REDUNDANT_VALUE_AXIS": "semantic",
     "EXTERNAL_LEGEND": "semantic",
@@ -290,6 +292,69 @@ def _defect(
     if geometry:
         value["geometry"] = geometry
     return value
+
+
+def _planned_geometry_defects(metadata: dict[str, Any]) -> list[dict[str, Any]]:
+    """Compare existing sizing/placement outputs with the export, without text-role inference."""
+    contract = metadata.get("inspection_contract", {})
+    frame = contract.get("frame")
+    placements = contract.get("placements", [])
+    defects: list[dict[str, Any]] = []
+    expected = list(placements)
+    if frame is not None:
+        canvas = metadata["canvas"]
+        planned = frame["canvas"]
+        actual_dpi = metadata.get("artifact", {}).get("dpi")
+        if any(abs(float(canvas[k]) - float(planned[k + "_px"])) > 1
+               for k in ("width", "height")) or not actual_dpi or any(
+                   abs(float(value) - planned["dpi"]) > 1 for value in actual_dpi):
+            defects.append(_defect("FRAME_PLAN_MISMATCH", "high", [],
+                                   "Canvas differs from the measured frame; rerun sizing"))
+        panels = metadata.get("plot_areas", [])
+        if not panels:
+            defects.append(_defect("FRAME_PLAN_MISMATCH", "high", [],
+                                   "No panel geometry is available to verify the reserved frame"))
+        for panel in panels:
+            if not _contains(frame["plot_area"], panel["bbox"]):
+                defects.append(_defect("FRAME_PLAN_MISMATCH", "high", [panel["id"]],
+                                       "Panel extends outside the reserved plot area",
+                                       {"bbox": panel["bbox"], "plot_area": frame["plot_area"]}))
+        # place_on_marks also returns fixed frame blocks; do not require those twice.
+        expected.extend(b for b in frame["frame_blocks"] if not any(
+            b["wrapped_text"] == p["wrapped_text"] and b["bbox"] == p["bbox"] for p in placements
+        ))
+
+    # Match text plus planned geometry, not adapter-generated IDs or label/data_label roles.
+    # The forward tools estimate glyph widths; they are not exact renderer metrics. Check
+    # application of the returned top-left anchor and wrapping, not equality of glyph widths.
+    # Actual clipping/collisions are checked separately against the export's true bounds.
+    # One rendered element can satisfy only one planned block, including repeated values.
+    available = list(metadata.get("elements", []))
+    for block in expected:
+        box = block["bbox"]
+        text = block["wrapped_text"]
+        matches = [e for e in available if e.get("text") == text
+                   and abs(e["bbox"]["x"] - box["x"]) <= 2
+                   and abs(e["bbox"]["y"] - box["y"]) <= 2]
+        leader = block.get("leader_line")
+        if leader is not None:
+            start, end = leader["from"], leader["to"]
+            def near(point, expected_point):
+                return math.hypot(point[0] - expected_point["x"], point[1] - expected_point["y"]) <= 2
+            segments = [segment for path in metadata.get("series", [])
+                        for segment in path.get("segments", [path.get("points", [])]) if len(segment) >= 2]
+            if not any((near(seg[0], start) and near(seg[-1], end)) or
+                       (near(seg[-1], start) and near(seg[0], end)) for seg in segments):
+                defects.append(_defect("TEXT_PLAN_MISMATCH", "high", [str(block.get("id", ""))],
+                                       "Planned leader endpoints were not preserved in the export",
+                                       {"expected_leader": leader}))
+        if matches:
+            available.remove(matches[0])
+        else:
+            defects.append(_defect("TEXT_PLAN_MISMATCH", "high", [str(block.get("id", ""))],
+                                   "Planned text or placement was not preserved in the export",
+                                   {"expected_text": text, "expected_bbox": box}))
+    return defects
 
 
 def inspect_rendered_chart(
@@ -368,6 +433,7 @@ def inspect_rendered_chart(
     table_bounds_unreliable = False
 
     if metadata is not None:
+        defects.extend(_planned_geometry_defects(metadata))
         canvas = metadata["canvas"]
         # A table whose structure is not a recognised tableGrob/gt gtable carries no per-cell
         # bounds; its element bboxes leak the enclosing wrapper's extent, so every bbox-derived
@@ -976,6 +1042,10 @@ def inspect_rendered_chart(
         "inspection_mode": "raster+layout-metadata" if metadata else "raster-only",
         "delivery_profile": delivery_profile,
         "checks_complete": checks_complete,
+        "plan_checks": {
+            key: ("checked" if metadata and key in metadata.get("inspection_contract", {}) else "not_supplied")
+            for key in ("frame", "placements")
+        },
         "geometry_status": "fail" if blocking else "pass" if checks_complete else "incomplete",
         "display_width_px": display_width_px,
         "passes_geometry_checks": checks_complete and not blocking,

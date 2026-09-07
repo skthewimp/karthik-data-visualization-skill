@@ -393,3 +393,31 @@ The default suite covers MCP tools, a real stdio tool listing, deterministic geo
 ## Local security boundary
 
 Rendering imports and executes the supplied Python or R file. Use it only with chart source you trust. The server is local-only, uses stdio, has no authentication layer, and does not sandbox arbitrary code.
+
+### Verify the chart build against its measured plan
+
+`render_and_inspect_chart` and `refit_chart` accept an `inspection_contract` on
+both backends. Pass `frame: <reserve_frame result>` and
+`placements: <place_on_marks result.placements>`. The contract is stored with the
+exact export's layout metadata, so standalone inspection repeats the checks.
+The driver's contract overrides corresponding builder-supplied metadata.
+
+`FRAME_PLAN_MISMATCH` blocks a stale canvas or panels outside the reserved plot
+area. `TEXT_PLAN_MISMATCH` blocks changed copy, wrapping or text placement. Text
+is matched by content and the returned top-left position (2 px rounding tolerance),
+not ggplot IDs or `label`/`data_label` classification. Repeated text must have a
+separate rendered element for each planned occurrence. Forward glyph widths are
+estimates, so actual glyph extents still use the export's clipping/collision checks.
+`plan_checks` records
+`not_supplied` when these inputs are absent; ordinary collision checks alone do
+not verify the planned design. Remeasure a changed design before rendering it. With a supplied frame, refit
+stops with `remeasure_required` if further canvas growth is needed.
+
+For forward attachment checks, a label passed to `place_on_marks` may name its
+intended rendered `mark_id`. The tool rejects missing/ambiguous targets or an
+anchor that misses that target's bounds (or actual path for a line). This applies
+regardless of label role. Derive the target and anchor from the same transformed
+data; this check cannot establish semantic identity from pixels. Labels lacking
+a target appear in `unverified_attachments`. Every data-anchored label receives
+`placed_data`, including labels nudged to clear nearby text, so builders can apply
+the returned position directly.
