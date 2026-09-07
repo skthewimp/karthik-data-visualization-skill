@@ -2760,3 +2760,4 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Status against all five harness findings, and what I did this pass: | # | Finding | Outcome | |---|---------|---------| | 1 | Require all final content before sizing; recompute on copy/type change | You didn't pick it...
 
 <!-- claude-session:f7e17ad2-dfb3-4837-a8ae-b50e79feb07c:end -->
+
