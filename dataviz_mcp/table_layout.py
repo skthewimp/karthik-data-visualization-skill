@@ -5,7 +5,6 @@ import csv
 import json
 import math
 from pathlib import Path
-import shutil
 import subprocess
 import tempfile
 from typing import Any
@@ -13,7 +12,7 @@ from typing import Any
 from .layout import PROFILES, line_px
 
 
-def _metrics(texts, family, size, dpi, bold=False):
+def _metrics(texts, family, size, dpi, bold=False, use_r=True):
     """Batch grid/ragg metrics; report a portable fallback rather than claiming parity."""
     candidates = {""}
     for text in texts:
@@ -23,7 +22,7 @@ def _metrics(texts, family, size, dpi, bold=False):
             candidates.update(" ".join(words[i:j]) for i in range(len(words))
                               for j in range(i + 1, len(words) + 1))
     strings = sorted(candidates)
-    if shutil.which("Rscript"):
+    if use_r:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with (root / "input.csv").open("w") as f:
@@ -48,11 +47,13 @@ dev.off()
                 widths = [float(s) for s in (root / "widths").read_text().split()]
                 if len(widths) == len(strings):
                     return dict(zip(strings, widths)), "grid/ragg"
+            raise RuntimeError("R table text measurement failed: " +
+                               (result.stderr.strip() or "invalid metric output"))
     from matplotlib.backends.backend_agg import RendererAgg
     from matplotlib.font_manager import FontProperties
     renderer = RendererAgg(100, 100, dpi)
     font = FontProperties(family=family, size=size, weight="bold" if bold else "normal")
-    return {s: renderer.get_text_width_height_descent(s, font, False)[0] for s in strings}, "matplotlib/Agg (verify in target renderer)"
+    return {s: renderer.get_text_width_height_descent(s, font, False)[0] for s in strings}, "matplotlib/Agg"
 
 
 def _wrap(text, width, metrics):
@@ -172,13 +173,15 @@ def recommend_table_layout(
     if kind in {"bar", "dot", "shading", "sparkline"} and scope in {"row", "table"} and not plan.get("commensurable"):
         raise ValueError("A shared scale requires explicit commensurability")
     headers = [c["header"] for c in cols]
-    bm, backend = _metrics([v for c in cells for v in c], typo["family"], body, dpi)
+    from .rendering import probe_renderers
+    use_r = probe_renderers()["table_rendering"]["r_available"]
+    bm, backend = _metrics([v for c in cells for v in c], typo["family"], body, dpi, use_r=use_r)
     if kind == "emphasis":
-        bold_metrics, bold_backend = _metrics([v for c in cells for v in c], typo["family"], body, dpi, True)
+        bold_metrics, bold_backend = _metrics([v for c in cells for v in c], typo["family"], body, dpi, True, use_r=use_r)
         bm = {text: max(width, bold_metrics[text]) for text, width in bm.items()}
         if bold_backend != backend:
             backend = bold_backend
-    hm, header_backend = _metrics(headers, typo["family"], header, dpi, True)
+    hm, header_backend = _metrics(headers, typo["family"], header, dpi, True, use_r=use_r)
     warnings = []
     # Measure each frame block at its own font size and weight, wrap it, and reserve a
     # band at that role's line height - not the header's. Returned as frame_bands so the
@@ -192,7 +195,7 @@ def recommend_table_layout(
                                  ("notes", notes, notes_pt, notes_bold)]:
         if not text:
             continue
-        fm, fm_backend = _metrics([text], typo["family"], pt, dpi, bold)
+        fm, fm_backend = _metrics([text], typo["family"], pt, dpi, bold, use_r=use_r)
         if fm_backend != header_backend:
             header_backend = fm_backend
         wrapped = _wrap(text, max(1, max_w - 2 * px), fm)
@@ -322,8 +325,8 @@ def recommend_table_layout(
     if status != "fits":
         warnings.append("Split/continuation required; retain all content and repeat headers and identifiers." if not impossible else
                         "Content cannot fit these constraints. Change delivery, supported wording, or form; do not shrink type.")
-    if backend != "grid/ragg" or header_backend != backend:
-        warnings.append("Metrics are not from the target R renderer; render and inspect before accepting fit.")
+    if header_backend != backend:
+        warnings.append("Mixed measurement backends; render and inspect before accepting fit.")
     return {"status": status, "measurement_backend": backend, "dpi": dpi,
             "body_pt": body, "header_pt": header, "font_family": typo["family"],
             "padding_x_px": px, "padding_y_px": py,

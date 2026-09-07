@@ -22,11 +22,11 @@ The MCP contract is backend-neutral through `render_and_inspect_chart`. It accep
 Renderer choice remains with the project and `karthik-data-visualization`:
 
 1. An explicit user requirement overrides automatic selection.
-2. Otherwise choose ggplot2 when `Rscript`, `ggplot2`, and `ragg` are available and the adapter supports the requested output.
-3. Use Matplotlib only when the probe fails or ggplot2 cannot produce the requested output, recording the reason in the manifest.
+2. Otherwise choose ggplot2 when `Rscript`, `ggplot2`, and `ragg` are available. Probe before generating R or Python source.
+3. Use Matplotlib only when that R backend is unavailable, recording the reason in the manifest. Do not switch after an R build error; fix the source. `auto` does not translate source languages.
 4. Specify every visible design choice rather than accepting either library's defaults.
 
-`probe_renderers` returns executable/package availability, versions, supported source/output types, and failure reasons. The ggplot2 adapter uses `build_chart()` returning a ggplot or `list(plot, metadata)`, exports through `ragg`, and captures title, subtitle, legend, panel, text, plot, and footer zones from the drawn gtable/grob tree. Uncovered child geometry remains explicit rather than being converted into a pass.
+`probe_renderers` returns executable/package availability, versions, supported source/output types, and failure reasons. `render_table_from_plan` uses R when its constructor dependencies exist and otherwise uses Python with measured cell-bound inspection; `table_rendering` reports both selected backend and R availability. The ggplot2 adapter uses `build_chart()` returning a ggplot or `list(plot, metadata)`, exports through `ragg`, and captures title, subtitle, legend, panel, text, plot, and footer zones from the drawn gtable/grob tree. Uncovered child geometry remains explicit rather than being converted into a pass.
 
 ## Why render metadata is primary
 

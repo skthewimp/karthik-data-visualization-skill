@@ -9,7 +9,7 @@ from .labels import recommend_labels as recommend_labels_core
 from .frame import reserve_frame as reserve_frame_core
 from .layout import recommend_layout as recommend_layout_core
 from .table_layout import recommend_table_layout as recommend_table_layout_core
-from .table_builder import write_table_build_source
+from .table_builder import render_table_from_plan as render_table_core
 from .text_fit import (
     place_on_marks as place_on_marks_core,
     recommend_text_placement as recommend_text_placement_core,
@@ -345,6 +345,8 @@ def create_server() -> Any:
     ) -> dict[str, Any]:
         """Render a recommend_table_layout plan through the shared table constructor and inspect it.
 
+        Uses the R constructor when its dependencies are available, otherwise the Python
+        constructor. A failed R render is reported, never retried in Python.
         Applies the plan's measured geometry verbatim - exact column widths, row heights, header
         band, and the per-role title/subtitle/notes frame bands - so the drawn table cannot
         re-derive row positions or the frame and reintroduce clipping. `plan` is the
@@ -352,20 +354,7 @@ def create_server() -> Any:
         multi-page (split) plan. Returns the same bundle as render_and_inspect_chart with
         content="table".
         """
-        import tempfile
-
-        build_path = str(Path(tempfile.mkdtemp()) / "table_build.R")
-        write_table_build_source(plan, build_path, page=page)
-        return render_inspect_core(
-            build_path,
-            output_dir,
-            "auto",
-            None,
-            None,
-            artifact_name,
-            "build_table",
-            content="table",
-        )
+        return render_table_core(plan, output_dir, page, artifact_name)
 
     @server.tool()
     async def reserve_frame(

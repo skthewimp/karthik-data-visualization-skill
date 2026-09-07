@@ -127,7 +127,7 @@ def _axes_id(artist: Any, axes_ids: dict[Any, str]) -> str | None:
     return axes_ids.get(axes)
 
 
-def _collect_layout(figure: Figure, artifact: dict[str, Any]) -> dict[str, Any]:
+def _collect_layout(figure: Figure, artifact: dict[str, Any], render_kind: str = "chart") -> dict[str, Any]:
     figure.canvas.draw()
     renderer = figure.canvas.get_renderer()
     width, height = figure.canvas.get_width_height()
@@ -183,6 +183,8 @@ def _collect_layout(figure: Figure, artifact: dict[str, Any]) -> dict[str, Any]:
                 "clip_on": bool(text.get_clip_on()),
                 "font_size_pt": _round(text.get_fontsize()),
                 "colour": _colour(text.get_color()),
+                **({"cell_bbox": _bbox_dict(text._dataviz_cell.get_window_extent(renderer).bounds, height)}
+                   if hasattr(text, "_dataviz_cell") else {}),
                 "horizontal_alignment": text.get_horizontalalignment(),
                 "vertical_alignment": text.get_verticalalignment(),
             }
@@ -364,6 +366,9 @@ def _collect_layout(figure: Figure, artifact: dict[str, Any]) -> dict[str, Any]:
             "line_series_paths": True,
             "patch_and_common_collection_bounds": True,
             "unsupported_non_line_mark_count": unsupported_marks,
+            **({"table_content": True,
+                "table_cell_bounds": bool(elements) and all("cell_bbox" in e for e in elements)}
+               if render_kind == "table" else {}),
         },
     }
 
@@ -376,6 +381,7 @@ def render_chart(
     dpi: int | None = None,
     width_px: int | None = None,
     height_px: int | None = None,
+    content: str = "chart",
 ) -> dict[str, Any]:
     """Render one trusted local Matplotlib builder into a versioned artifact bundle."""
     source = Path(source_path).expanduser().resolve()
@@ -397,7 +403,7 @@ def render_chart(
                 raise ValueError("dpi must be greater than zero")
             figure.set_dpi(dpi)
         render_dpi = int(round(figure.dpi))
-        if width_px is not None or height_px is not None:
+        if content != "table" and (width_px is not None or height_px is not None):
             if not width_px or not height_px or width_px <= 0 or height_px <= 0:
                 raise ValueError("width_px and height_px must both be greater than zero")
             figure.set_size_inches(width_px / render_dpi, height_px / render_dpi, forward=True)
@@ -412,7 +418,7 @@ def render_chart(
             bbox_inches=None,
         )
         artifact = raster_info(artifact_path)
-        layout = _collect_layout(figure, artifact)
+        layout = _collect_layout(figure, artifact, render_kind=content)
         if isinstance(user_spec.get("inspection_contract"), dict):
             layout["inspection_contract"] = user_spec["inspection_contract"]
     finally:
@@ -467,7 +473,7 @@ def probe_renderers() -> dict[str, Any]:
         "available": False,
         "rscript": rscript,
         "r_version": None,
-        "packages": {"ggplot2": None, "ragg": None, "gridExtra": None},
+        "packages": {p: None for p in ("ggplot2", "ragg", "gridExtra", "gtable", "jsonlite")},
         "supported_output_types": [],
         "supported_source_types": [".r"],
         "failure_reasons": [],
@@ -477,7 +483,7 @@ def probe_renderers() -> dict[str, Any]:
     else:
         expression = (
             'cat("R\\t", paste(R.version$major, R.version$minor, sep="."), "\\n", sep=""); '
-            'for (p in c("ggplot2", "ragg", "gridExtra")) {'
+            'for (p in c("ggplot2", "ragg", "gridExtra", "gtable", "jsonlite")) {'
             ' if (requireNamespace(p, quietly=TRUE)) '
             'cat(p, "\\t", as.character(packageVersion(p)), "\\n", sep="") '
             'else cat(p, "\\tMISSING\\n", sep="") }'
@@ -511,23 +517,25 @@ def probe_renderers() -> dict[str, Any]:
                         ggplot_probe["failure_reasons"].append(
                             f"R package {package} is not installed"
                         )
-                gridextra_version = values.get("gridExtra")
-                if gridextra_version and gridextra_version != "MISSING":
-                    ggplot_probe["packages"]["gridExtra"] = gridextra_version
+                for package in ("gridExtra", "gtable", "jsonlite"):
+                    version = values.get(package)
+                    if version and version != "MISSING":
+                        ggplot_probe["packages"][package] = version
     ggplot_probe["available"] = not ggplot_probe["failure_reasons"]
     if ggplot_probe["available"]:
         ggplot_probe["supported_output_types"] = ["png"]
     table_reasons = list(ggplot_probe["failure_reasons"])
-    if ggplot_probe["packages"].get("gridExtra") is None:
-        table_reasons.append(
-            "R package gridExtra is not installed (recommended for tableGrob tables)"
-        )
+    for package in ("gridExtra", "gtable", "jsonlite"):
+        if ggplot_probe["packages"].get(package) is None:
+            table_reasons.append(f"R package {package} is not installed (required by the table constructor)")
+    table_r_available = not table_reasons
     table_rendering = {
-        "available": ggplot_probe["available"],
-        "backend": "grid/gtable via ragg",
-        "recommends": "gridExtra::tableGrob or gt::as_gtable",
+        "available": True,
+        "backend": "grid/gtable via ragg" if table_r_available else "matplotlib/Agg",
+        "r_available": table_r_available,
+        "r_failure_reasons": table_reasons,
         "content": "table",
-        "failure_reasons": table_reasons,
+        "failure_reasons": [],
     }
     return {
         "schema_version": SCHEMA_VERSION,
@@ -1298,33 +1306,23 @@ def render_and_inspect_chart(
     probe = probe_renderers()
     requested = renderer
     fallback_reason: str | None = None
-    if content == "table":
-        if renderer == "matplotlib":
-            raise ValueError("table content renders through the R/grid path, not matplotlib")
-        if source.suffix.lower() != ".r":
-            raise ValueError("table content requires an .R source that returns a gtable")
-        if not probe["renderers"]["ggplot2"]["available"]:
-            reasons = "; ".join(probe["renderers"]["ggplot2"]["failure_reasons"])
-            raise RuntimeError(f"table rendering is unavailable: {reasons}")
-        selected = "ggplot2"
-        fallback_reason = None
-    elif renderer == "auto":
-        ggplot_available = probe["renderers"]["ggplot2"]["available"]
-        if ggplot_available and source.suffix.lower() == ".r":
-            selected = "ggplot2"
-        else:
-            selected = "matplotlib"
-            if not ggplot_available:
-                fallback_reason = "; ".join(
-                    probe["renderers"]["ggplot2"]["failure_reasons"]
-                )
-            else:
-                fallback_reason = (
-                    f"ggplot2 adapter does not support {source.suffix or 'extensionless'} source"
-                )
+    if renderer == "auto":
+        r_available = (probe["table_rendering"]["r_available"] if content == "table"
+                       else probe["renderers"]["ggplot2"]["available"])
+        selected = "ggplot2" if r_available else "matplotlib"
+        if not r_available:
+            reasons = (probe["table_rendering"]["r_failure_reasons"] if content == "table"
+                       else probe["renderers"]["ggplot2"]["failure_reasons"])
+            fallback_reason = "; ".join(reasons)
     else:
         selected = renderer
         fallback_reason = f"explicit renderer requirement: {renderer}"
+    required_suffix = ".r" if selected == "ggplot2" else ".py"
+    if source.suffix.lower() != required_suffix:
+        raise ValueError(
+            f"{selected} selected; generate {required_suffix} source for this backend. "
+            "Probe renderers before building; existing R/Python code is not automatically translated."
+        )
 
     delivery_dimensions = _delivery_dimensions(delivery_profile, dimensions)
     if selected == "ggplot2":
@@ -1347,6 +1345,7 @@ def render_and_inspect_chart(
             dpi=dpi,
             width_px=int(delivery_dimensions["width_px"]),
             height_px=int(delivery_dimensions["height_px"]),
+            content=content,
         )
 
     # Persist the driver's measured design with either backend's exact geometry. The

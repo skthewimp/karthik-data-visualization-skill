@@ -112,9 +112,9 @@ def test_probe_reports_versions_and_supported_outputs() -> None:
     ggplot = probe["renderers"]["ggplot2"]
     assert isinstance(ggplot["failure_reasons"], list)
     table = probe["table_rendering"]
-    assert table["backend"] == "grid/gtable via ragg"
+    assert table["backend"] == ("grid/gtable via ragg" if table["r_available"] else "matplotlib/Agg")
     assert isinstance(table["failure_reasons"], list)
-    assert table["available"] == ggplot["available"]
+    assert table["available"] is True
     if ggplot["available"]:
         assert ggplot["packages"]["ggplot2"]
         assert ggplot["packages"]["ragg"]
@@ -372,16 +372,15 @@ def test_guide_none_does_not_emit_phantom_panel_legend(tmp_path: Path) -> None:
     assert inspection["passes_geometry_checks"] is True
 
 
-def test_auto_renderer_records_ggplot_fallback_for_python_source(tmp_path: Path) -> None:
+def test_auto_renderer_uses_python_only_when_r_is_unavailable(tmp_path: Path, monkeypatch) -> None:
+    import dataviz_mcp.rendering as rendering
+    monkeypatch.setattr(rendering.shutil, "which", lambda _: None)
     bundle = render_and_inspect_chart(
-        str(FIXTURES),
-        str(tmp_path / "python"),
-        renderer="auto",
-        build_function="clean_chart",
-        dimensions={"dpi": 100},
+        str(FIXTURES), str(tmp_path / "python"), renderer="auto",
+        build_function="clean_chart", dimensions={"dpi": 100},
     )
     assert bundle["renderer"] == "matplotlib"
-    assert ".py source" in bundle["renderer_selection"]["fallback_reason"]
+    assert "Rscript" in bundle["renderer_selection"]["fallback_reason"]
 
 
 def test_raster_only_inspection_is_honestly_incomplete(tmp_path: Path) -> None:
@@ -429,11 +428,11 @@ def test_table_content_renders_and_captures_every_cell(tmp_path: Path) -> None:
 
 
 def test_table_content_rejects_non_r_source(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="table content requires an .R source"):
+    with pytest.raises(ValueError, match="generate .r source"):
         render_and_inspect_chart(
             str(FIXTURES),
             str(tmp_path / "bad-table"),
-            content="table",
+            content="table", renderer="ggplot2",
         )
 
 

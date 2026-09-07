@@ -131,7 +131,7 @@ def build_chart():
 ''')
     contract = {"frame": frame, "placements": [placement]}
     bundle = render_and_inspect_chart(str(source), str(tmp_path / "out"),
-                                      dimensions=frame["canvas"], inspection_contract=contract)
+                                      dimensions=frame["canvas"], inspection_contract=contract, renderer="matplotlib")
     report = json.loads(Path(bundle["inspection_path"]).read_text())
     assert not ({"FRAME_PLAN_MISMATCH", "TEXT_PLAN_MISMATCH"} & {d["code"] for d in report["defects"]})
 

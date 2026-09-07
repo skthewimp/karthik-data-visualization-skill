@@ -59,8 +59,8 @@ owed later. Before you render, in order:
    wrapping, or splitting, and never ship it clipped at the edge. Do not drop rows
    or columns to force a fit.
 4. **Draw the plan through the shared constructor**, not by hand-positioning rows.
-   Where the harness provides it, `render_table_from_plan` (the `r/table_from_plan.R`
-   constructor) applies the measured column widths, row heights, header band, and the
+   Where the harness provides it, `render_table_from_plan` (R when its required packages are available,
+   Python only when that backend is unavailable) applies the measured column widths, row heights, header band, and the
    title/subtitle/notes bands verbatim, so nothing you reserved gets re-normalised
    away - the failure mode where a hand-rolled table ignores measured heights and
    clips the footer.
@@ -181,10 +181,10 @@ at delivery size; do not substitute a chart's slot-count layout for table conten
 - **Delivered HTML or interactive tables:** author with the R `gt` package; it
   carries alignment, precision, grouping, and conditional formatting cleanly.
   Markdown or hand-built HTML is an acceptable fallback for non-R contexts.
-- **A gated raster (for inspection):** build the table as a `grid` / `tableGrob`
-  object and render it through the same `ragg::agg_png` path as charts, so it
-  can be inspected and gated deterministically. The craft principles are
-  engine-agnostic and apply identically to both.
+- **A gated raster (for inspection):** use `render_table_from_plan`. It uses
+  R/grid/ragg when available, otherwise Python/Matplotlib, with measured cell bounds
+  for inspection on both paths. A failed R render is reported, never retried in
+  Python. The same craft principles and delivery constraints apply to both.
 - Pass the typography floor and screen constraints to inspection (the combined
   renderer accepts `minimum_text_size_pt`, `display_width_px`, and
   `minimum_text_size_px` in `dimensions`). Inspect each delivered page. Nested

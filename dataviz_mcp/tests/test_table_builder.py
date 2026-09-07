@@ -16,8 +16,8 @@ def _codes(report: dict) -> set:
 
 
 @pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
+    not probe_renderers()["table_rendering"]["r_available"],
+    reason="R table constructor dependencies unavailable",
 )
 def test_constructor_renders_recognized_unclipped_table(tmp_path: Path) -> None:
     plan = recommend_table_layout(
@@ -48,8 +48,8 @@ def test_constructor_renders_recognized_unclipped_table(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
+    not probe_renderers()["table_rendering"]["r_available"],
+    reason="R table constructor dependencies unavailable",
 )
 @pytest.mark.parametrize("dpi", [72, 144, 216])
 def test_constructor_preserves_pixel_padding(tmp_path: Path, dpi: int) -> None:

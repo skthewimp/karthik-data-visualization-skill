@@ -1104,6 +1104,12 @@ _CONSTRUCT_BUILD = """You are the build stage of the dataviz construct process. 
 the plan (facts, headline claim, candidate annotations, and the select artifact with its
 form, build plan, and acceptance checks) and, for a repair, the source image.
 
+Probe renderer availability before generating source. Use R/ggplot2 whenever its required
+packages are available; generate Python/Matplotlib only when that backend is unavailable.
+An R build error is a defect to fix, not a reason to switch backends. ``auto`` does not
+translate existing source. For tables, ``render_table_from_plan`` selects the R constructor
+when available and otherwise applies the same plan through its Python constructor.
+
 GET PLACEMENT RIGHT BEFORE THE FIRST RENDER. Do these in order - a clipped title or a label
 off the canvas is a reservation you skipped, not a revision the gate must catch:
   1. Size the canvas from the chart's shape with ``recommend_layout`` (chart), or take the

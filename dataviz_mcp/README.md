@@ -105,8 +105,8 @@ No daemon is required. The client starts the Python process when it opens the st
 The MCP API is backend-neutral. Rendering infrastructure must not become the style system.
 
 - An explicit renderer requirement wins.
-- Otherwise `auto` chooses ggplot2 when `Rscript`, `ggplot2`, and `ragg` are available and the adapter supports the source/output.
-- Matplotlib fallback records an unavailable/unsupported reason in the manifest.
+- Otherwise `auto` chooses ggplot2 when `Rscript`, `ggplot2`, and `ragg` are available. Probe before generating source.
+- Matplotlib is the automatic fallback only when the R backend is unavailable; the manifest records why. R build errors are not retried in Python. A source-language mismatch requires regenerating source, not silently switching backends.
 - If Matplotlib is used, apply the rules in `karthik-data-visualization`; an unthemed default chart is not an acceptable MCP result.
 
 Both adapters emit the same artifact, spec, layout, inspection, review-view, and manifest contract. Matplotlib supplies text, line, patch, bar, point, and common-collection geometry. ggplot2 resolves the drawn gtable tracks and captures every panel plus rect, point, polygon, polyline, and text grobs; uncommon grobs remain explicit limitations.
@@ -233,8 +233,8 @@ These size the canvas, reserve the chrome, and place the text *before* (or with 
 ### `recommend_table_layout`
 
 Table geometry comes from formatted content, not chart slots. The tool measures
-text with grid/ragg when available; otherwise it identifies its Matplotlib/Agg
-metrics as a fallback requiring verification in the target renderer. No new
+text with grid/ragg when the R table backend is available; otherwise it uses
+Matplotlib/Agg metrics for the Python fallback. No new
 packages are required. The skill chooses visual treatment; the tool validates
 shared-scale scope and reserves space supplied for inline graphics.
 
@@ -421,3 +421,19 @@ data; this check cannot establish semantic identity from pixels. Labels lacking
 a target appear in `unverified_attachments`. Every data-anchored label receives
 `placed_data`, including labels nudged to clear nearby text, so builders can apply
 the returned position directly.
+
+### Portable table rendering
+
+`render_table_from_plan(plan, output_dir, page=1)` prefers the R constructor
+(`Rscript`, `ggplot2`, `ragg`, `gridExtra`, `gtable`, `jsonlite`). Only when that
+backend is unavailable does it use the Python constructor. `probe_renderers`
+reports the selected table backend, `r_available` and `r_failure_reasons`;
+table rendering remains available on a normal Python-only installation.
+An R measurement or render failure is reported without retrying in Python.
+
+Both constructors consume wrapped headers/cells, measured widths and heights,
+frame bands, fonts, padding and continuation pages from the same plan. Python
+exports include measured cell bounds, so overflow and delivery-size checks remain
+active. The existing shared constructor's text-table scope is unchanged; richer
+conditional formatting still needs a builder that implements the selected treatment.
+The Python dependencies already include Matplotlib; R is optional.
