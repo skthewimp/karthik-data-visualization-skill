@@ -1,5 +1,41 @@
 # Devlog
 
+## 2026-09-07 - first-pass placement hardening
+
+### User prompts
+
+- "we get it right on the first pass... includes all the placement both for the
+  tables and the graphs."
+- "I'll put the new run thing in canonical examples... it's a complete crime scene.
+  Figure out if there are any skills that need to be revised based on this."
+- "I'm also revising the harness in parallel."
+- Scope confirmed: placement only (fidelity failures left for a separate pass);
+  out-of-plot series end-labels left for the harness.
+
+### Diagnosis (from `case-comparisons.pdf`, 7 cases)
+
+- Two buckets. Placement (6/7): tables clipping title/subtitle/footer and header
+  bands overlapping rows (canonical-05, website-shared); series end-labels off both
+  edges (canonical-02/03); map labels/office box overflow (website-01); dark labels
+  vanishing on their own dark segments (canonical-01). Fidelity (2/7): series
+  identity swap + dropped reconstruction disclosure (canonical-04) and label/value
+  mis-binding (canonical-01).
+- Root cause verified in source: `reserve_frame` lived in `dataviz-construct` /
+  `chart-annotations` only, never the build skills; the build stage loads only the
+  builder skill (`stage_contracts.py:builder_skills`), so the build model never got
+  the pre-render reservation and leaned on the (now minimized) revision loop.
+  `recommend_table_layout` already measures title/subtitle/notes and returns
+  `cannot_fit` (`table_layout.py:164-169,242`) - the build just skipped it.
+
+### Work done
+
+- Producer hardened, gate left alone ("harden producer, soften gate"): mandatory
+  pre-render frame reservation added to `karthik-data-visualization` (+ label-vs-mark
+  contrast default) and `karthik-table-style` (mandatory `recommend_table_layout`,
+  frame + header-band reservation, `cannot_fit` not clipped). Both claude and codex
+  variants. One-clause cross-reference in `dataviz-construct`. Docs/CHANGELOG updated.
+  No `dataviz_mcp/` code changes - tools were already correct.
+
 ## 2026-09-05 - reusable table planning
 
 ### User prompts
