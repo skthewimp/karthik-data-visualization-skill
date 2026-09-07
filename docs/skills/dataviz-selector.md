@@ -77,6 +77,8 @@ The skill should not recommend:
 
 If the user asks for one of these, the skill should say it is not recommended and offer the closest static alternative.
 
+Scatter plots require quantitative × quantitative axes under Karthik's form constraint. Category × quantity dot comparisons are excluded regardless of legends, shapes, or numeric category codes. Point marks on temporal trajectories remain valid.
+
 ## Common mappings
 
 | Problem | Recommended visual |
@@ -87,12 +89,12 @@ If the user asks for one of these, the skill should say it is not recommended an
 | Forecast miss | Actual vs forecast + ribbon/gap annotation |
 | Ranking | Sorted horizontal bars, axis from zero (nominal categories only) |
 | Ordered/time category | Keep the sequence order and its natural direction (left-to-right, or top-to-bottom if vertical); never sort by magnitude or invert onto the y-axis so time climbs upward |
-| Single value per category, magnitude | Bars, not lollipops/dot-with-stem; reserve lollipops for many dense categories where the endpoint matters more than filled length |
+| Single value per category, magnitude | Bars; grouped bars, suitable facets, or a table for multiple values. No categorical dot plots, lollipops, or dumbbells |
 | Distribution/skew | Histogram, density, ECDF, boxplot, or violin |
 | Vote efficiency | Vote-share vs seat-share scatter |
 | Swing scenarios | Seat curves by swing, faceted by state |
 | Survey polarisation | Faceted response histograms |
-| Share substitution | 100% stacked bars/area only if broad mix is the story; use small multiples, grouped bars, lines, dots, or a table when intermediate or top components need precise comparison. Compositional data (parts summing to 100%) is not a compositional claim - a claim about how components move over time is a set of trajectories and goes to lines/small multiples regardless of the fixed total |
+| Share substitution | 100% stacked bars/area only if broad mix is the story; use small multiples, grouped bars, lines, or a table when intermediate or top components need precise comparison. Compositional data (parts summing to 100%) is not a compositional claim - a claim about how components move over time is a set of trajectories and goes to lines/small multiples regardless of the fixed total |
 | Many series × time, compare trajectories | Small multiples or direct-labelled lines (reduce to top-N + explicit "other" if crowded). Put the trajectory on position, not on colour. |
 | Risk | Downside distributions, scenarios, utility curves |
 | Root cause | Waterfall if reconciled; otherwise ranked driver bars or action table |

@@ -13,6 +13,8 @@ The **pre-render gate** of the construct process. It receives the plan - the fac
 - **Is the INSIGHT right?** Is the headline claim the key thing to say and supported at the stated strength, and are the candidate marks the right marks rather than clutter?
 - **Is it HONEST and COMPLETE?** Is anything key silently dropped, and does the claim's strength match the evidence?
 
+The expression check rejects categorical dot comparisons (including lollipops and dumbbells) as a major issue and routes them to `select`. Scatter requires quantitative × quantitative axes; legends and distinct shapes do not repair the wrong axis types. Point marks on temporal trajectories remain valid.
+
 ## Verdict and routing
 
 Returns `proceed`, `revise`, or `blocked`, with each issue's severity, a concrete fix, and where it routes back: `insight` (wrong or missing claim or evidence), `select` (wrong form), or `none` (a minor note build can absorb). It resolves on the evidence rather than deferring to "see how it renders", and never blocks on a missing external validation. The exact fields are `dataviz_mcp/stage_contracts.py:IDEA_CRITIQUE_SCHEMA`.
