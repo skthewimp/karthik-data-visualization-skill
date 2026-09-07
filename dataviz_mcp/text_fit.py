@@ -346,7 +346,11 @@ def recommend_text_placement(
             in canvas px. role in {title, subtitle, footer, caption} is fixed (box at the anchor,
             wrapped, never moved); role ``data_label`` is a value the plotting layer has already
             positioned on its mark or at a deliberate fixed offset from it - box at the anchor,
-            wrapped, never moved, never de-collided against its own mark. role ``axis_label`` is likewise
+            wrapped, never de-collided against its own mark, and never shoved a free callout's
+            unbounded distance. It is nudged at most about one line-height to clear ANOTHER
+            on-mark value it lands on (adjacent line ends), keeping it on its mark; when even
+            that will not separate two on-mark values, both stay put and a warning asks the build
+            to move the movable label, stack them, or cut one. role ``axis_label`` is likewise
             positioned by the plotting layer and wrapped without moving. role ``label`` (a category/series
             name) and ``annotation`` (a free callout) are movable: the anchor is the mark, and the
             box parks beside it. ``placement`` (one of right/above/below/left) sets the preferred
@@ -441,10 +445,32 @@ def recommend_text_placement(
             if (round(nx), round(ny)) != (round(ax), round(ay)):
                 warnings.append("would clip the canvas edge; nudged inward")
                 bbox["x"], bbox["y"] = nx, ny
+            pinned_suggested_anchor: Optional[dict[str, int]] = None
             if role in FIXED_ROLES and _hits_any(bbox, placed):
                 warnings.append(
                     "overlaps another fixed text block; widen its band or shorten the text"
                 )
+            elif role == "data_label" and _hits_any(bbox, placed):
+                # Two on-mark values can land on top of each other - adjacent line ends, a value
+                # beside a neighbour's. The pin forbids the UNBOUNDED shove that obstacle
+                # avoidance would give a free callout (which lands the value off its bar and
+                # clips it), not a small deliberate separation that keeps the value on its mark.
+                # Nudge it clear within about one line-height; if even that will not separate
+                # them, leave it and report the residual for the build to resolve by moving the
+                # movable label, stacking the two, or cutting one.
+                cap = 1.2 * line_px(font_pt, dpi)
+                found = _search_clear(
+                    bbox, placed, width_px, height_px, margin, step=max(2.0, cap / 12)
+                )
+                if found is not None and _distance(found, (bbox["x"], bbox["y"])) <= cap:
+                    bbox["x"], bbox["y"] = found
+                    pinned_suggested_anchor = {"x": round(found[0]), "y": round(found[1])}
+                    warnings.append("nudged clear of an adjacent on-mark label, kept on its mark")
+                else:
+                    warnings.append(
+                        "overlaps another on-mark label and cannot be separated on the mark; "
+                        "move the movable label, stack the two, or cut one"
+                    )
             placed.append(dict(bbox))
             results.append(
                 {
@@ -456,7 +482,7 @@ def recommend_text_placement(
                     "over_line_budget": over_budget,
                     "wrap_width_chars": max(1, int(avail / char_px(font_pt, dpi))),
                     "bbox": {k: round(v, 1) for k, v in bbox.items()},
-                    "suggested_anchor": None,
+                    "suggested_anchor": pinned_suggested_anchor,
                     "suggested_font_pt": None,
                     "suggested_wrap": None,
                     "leader_line": None,

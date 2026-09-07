@@ -1156,8 +1156,12 @@ by measurement, so nothing clips and the canvas is not left half-empty, with no 
 For labels glued to specific marks (values on bars, callouts on points), do not guess their
 pixels: render once as a ruler, then pass the render's ``transform`` and ``marks``, the labels in
 DATA coordinates, and the ``frame_blocks`` to ``place_on_marks`` - it projects each to its true
-pixel spot and de-collides against the real marks, so text-mark and text-text overlaps are gone
-on the first delivered chart. Both front doors resolve to ``recommend_text_placement``; reach for
+pixel spot and de-collides against the real marks, so text-mark and free-callout overlaps are gone
+on the first delivered chart. On-mark data values stay pinned to their marks (never shoved off);
+the tool nudges one at most a line-height to clear another value it lands on, but when two on-mark
+values genuinely overlap and cannot separate on their marks it says so - resolve that residual by
+moving the movable label (the series name at a crowded line end), flipping the value's offset side,
+stacking the two, or cutting one; do not leave them overlapping. Both front doors resolve to ``recommend_text_placement``; reach for
 it directly only when you already hold a block's canvas-pixel anchor and neither door fits; the
 presence of such blocks is the trigger, not a separately declared routing flag. For every
 series/category, on-mark data, and axis label, decide and pass ``max_width_px`` and ``max_lines``

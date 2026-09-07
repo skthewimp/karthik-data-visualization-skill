@@ -98,6 +98,46 @@ def test_on_mark_data_label_stays_on_its_mark():
     assert not placement["warnings"]
 
 
+def test_two_on_mark_values_at_adjacent_ends_are_nudged_apart_on_their_marks():
+    # Two line-end values land on nearly the same spot. Both are pinned data labels, so neither
+    # is shoved a callout's distance - but the second is nudged clear within a line-height and
+    # stays adjacent to its mark, so they no longer overlap.
+    first = {"x": 900, "y": 300}
+    second = {"x": 906, "y": 306}
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[
+            {"id": "a", "role": "data_label", "text": "44%", "anchor": first},
+            {"id": "b", "role": "data_label", "text": "41%", "anchor": second},
+        ],
+    )
+    a, b = _by_id(result, "a"), _by_id(result, "b")
+    assert a["bbox"]["x"] == first["x"] and a["bbox"]["y"] == first["y"]  # first claims its spot
+    assert b["suggested_anchor"] is not None
+    assert b["leader_line"] is None  # kept on its mark, no connector
+    assert any("nudged clear" in w for w in b["warnings"])
+    assert not boxes_overlap(a["bbox"], b["bbox"])
+    # The nudge is bounded: it stayed within about a line-height of its mark.
+    assert abs(b["bbox"]["x"] - second["x"]) + abs(b["bbox"]["y"] - second["y"]) < 60
+
+
+def test_two_on_mark_values_that_cannot_separate_report_the_residual():
+    # Two wide, tall on-mark boxes stacked on the same anchor cannot separate within a
+    # line-height in any direction, so the second reports the residual for the build to resolve
+    # (move the movable label, stack, or cut) rather than silently overlapping.
+    anchor = {"x": 600, "y": 350}
+    tall = {"role": "data_label", "text": "12345 67890 13579 24680", "max_width_px": 110, "max_lines": 3}
+    result = _recommend_text_placement(
+        1200, 700, 144,
+        blocks=[
+            {"id": "a", "anchor": anchor, **tall},
+            {"id": "b", "anchor": dict(anchor), **tall},
+        ],
+    )
+    b = _by_id(result, "b")
+    assert any("cannot be separated on the mark" in w for w in b["warnings"])
+
+
 def test_two_annotations_are_separated_from_each_other():
     result = recommend_text_placement(
         1200, 700, 144,
