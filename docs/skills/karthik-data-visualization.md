@@ -95,7 +95,8 @@ A good workflow is:
 
 1. Use `dataviz-selector` to identify the chart form and encodings.
 2. Use `karthik-data-visualization` to implement the chart cleanly.
-3. Inspect the rendered output.
-4. Fix labels, spacing, annotations, scales, and title after seeing the export.
+3. Reserve placement before the first render - size the canvas from the chart's shape, reserve the frame (title, subtitle, footer, axes, legend get their own measured bands), and place data-glued labels by measurement, so the marks fill only the plot rectangle that remains. A clipped title is a skipped reservation, not a defect for step 4 to find.
+4. Inspect the rendered output.
+5. Fix labels, spacing, annotations, scales, and title after seeing the export.
 
-The last step matters. A chart is not done when the code runs. It is done when the exported image reads correctly.
+Steps 3 and 5 divide the work: placement is reserved by measurement up front, and the render pass is the safety net that confirms the pixels. A chart is not done when the code runs. It is done when the exported image reads correctly.

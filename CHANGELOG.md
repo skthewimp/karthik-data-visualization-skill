@@ -2,6 +2,44 @@
 
 ## Unreleased
 
+### Front-load the first-pass placement mandate for weak build models
+
+- The construct pipeline now runs with minimal revisions, which exposed that
+  first-pass placement was not reliable: the seven canonical cases in
+  `case-comparisons.pdf` shipped clipped titles/footers and header bands
+  overlapping rows. Root cause was *not* a missing instruction - the build stage
+  already receives the placement mandate through the `_CONSTRUCT_BUILD` string in
+  `stage_contracts.py`. But that mandate sat ~55 lines deep in a single run-on
+  paragraph, and the builder *skills* (which are what the plain `dataviz-fix`
+  skill path loads, since the build stage loads only the builder skill) did not
+  state it at all. Weak build models read past it.
+
+- Both delivery carriers now front-load the mandate as a short, numbered,
+  tool-named "reserve before you render" block:
+  - `karthik-data-visualization` (chart): recommend_layout -> reserve_frame ->
+    place_on_marks, ahead of the render step, plus a label-vs-mark contrast
+    default (a value on a dark/saturated segment takes its colour from the mark,
+    not the canvas).
+  - `karthik-table-style` (table): recommend_table_layout as the mandatory
+    first-pass sizing path, the title/subtitle/footer reserved like the columns,
+    the header band as its own layer, and a block wider than the canvas treated
+    as `cannot_fit` (narrow/wrap/split), never clipped.
+  - `_CONSTRUCT_BUILD` (harness/benchmark path): the same numbered block prepended
+    ahead of the existing detailed prose.
+
+- Validated empirically before landing: sonnet and haiku subagents ran
+  `dataviz-fix` on two crime-scene sources (the clipped benchmark table and the
+  dense ~11-series usage chart). Both sonnet runs and the haiku chart produced
+  clean first-pass placement (tools invoked, direct labels, nothing clipped); the
+  haiku table fixed the header overlap but still clipped the footer because it took
+  the by-hand degrade path and skipped `recommend_table_layout`. Every result was
+  strictly better than the pre-change crime scene. The residual weak spot - a weak
+  model skipping the table-layout tool - is a harness-enforcement point (make that
+  call non-optional in-pipeline), not a skill-wording one.
+
+- No behavioural code changes to `dataviz_mcp/` tools; only the `_CONSTRUCT_BUILD`
+  instruction string was reordered.
+
 ### Re-align `dataviz-eval` with its sibling gates
 
 - `dataviz-eval` had drifted into a maximalist compliance machine: it demanded an

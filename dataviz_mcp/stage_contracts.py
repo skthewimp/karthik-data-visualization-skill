@@ -1102,7 +1102,26 @@ external validation - that is disclosed downstream, not a reason to stop."""
 
 _CONSTRUCT_BUILD = """You are the build stage of the dataviz construct process. You receive
 the plan (facts, headline claim, candidate annotations, and the select artifact with its
-form, build plan, and acceptance checks) and, for a repair, the source image. Build the
+form, build plan, and acceptance checks) and, for a repair, the source image.
+
+GET PLACEMENT RIGHT BEFORE THE FIRST RENDER. Do these in order - a clipped title or a label
+off the canvas is a reservation you skipped, not a revision the gate must catch:
+  1. Size the canvas from the chart's shape with ``recommend_layout`` (chart), or take the
+     delivery width (table).
+  2. Reserve the frame BLIND, before any render. Chart: pass the title/subtitle/caption/footer,
+     axis and legend strings plus canvas and font sizes to ``reserve_frame`` and draw marks ONLY
+     inside the ``plot_area`` it returns, carrying its ``frame_blocks`` forward. Table: call
+     ``recommend_table_layout`` and apply its column widths, header band, wrapping and
+     continuation pages; a title, subtitle, footer or column wider than the canvas is
+     ``cannot_fit`` - narrow, wrap or split, never clip.
+  3. Place every data-glued label (values on bars, callouts on points): render once as a ruler,
+     then pass that render's ``transform`` and ``marks``, the labels in DATA coordinates,
+     ``plot_area`` and ``frame_blocks`` to ``place_on_marks``; draw from the coordinates it
+     returns. Never guess a label's pixels or hand-write a segment.
+Only after 1-3 do you render the candidate; the inspect pass then only confirms the pixels.
+The paragraphs below carry the full detail of each step.
+
+Build the
 deliverable exactly to the plan, carrying every message with its required content. Use the
 builder skill supplied for the chosen builder (chart or table). For a table, call
 ``recommend_table_layout`` on formatted content and the skill-selected treatment,

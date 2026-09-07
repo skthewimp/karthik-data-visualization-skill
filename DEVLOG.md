@@ -1,5 +1,58 @@
 # Devlog
 
+## 2026-09-07 - front-load first-pass placement, validated with weak-model subagents
+
+### User prompts
+
+- "get it right on the first pass ... all the placement both for the tables and
+  the graphs." "the new run thing ... it's a complete crime scene." "I'm also
+  revising the harness in parallel."
+- "isn't dataviz-construct called in the build phase of dataviz-fix?" (corrected my
+  first, wrong root cause).
+- "reason we have these tools is for weak models to execute. do one thing - ...
+  start subagents (using sonnet and haiku), with input graphs from the pdf, and see
+  how they run a dataviz-fix. and then accept accordingly."
+
+### Diagnosis, corrected
+
+- First diagnosis was wrong: I claimed the build model never received the
+  `reserve_frame`/`recommend_table_layout` mandate. It does - via the
+  `_CONSTRUCT_BUILD` instruction string in `stage_contracts.py`, consumed by
+  `tester/local_runner.py` (the MCP server exposes only the deterministic tools,
+  not the stage adapters). That commit was reverted.
+- Real problem: the mandate sat ~55 lines into a single run-on paragraph in
+  `_CONSTRUCT_BUILD`, and the builder *skills* - what the plain `dataviz-fix` skill
+  path loads (build stage loads only the builder skill) - never stated it. Two
+  delivery carriers, one weak spot each.
+
+### Change
+
+- Front-loaded a numbered, tool-named "reserve before you render" block into both
+  builder skills (claude+codex) and prepended the same ordered block ahead of the
+  buried prose in `_CONSTRUCT_BUILD`. Added a label-vs-mark contrast default to the
+  chart skill. Docs/CHANGELOG updated. No `dataviz_mcp/` behaviour changes.
+
+### Validation (before committing)
+
+- Extracted two crime-scene sources from the PDF (clipped benchmark table; dense
+  ~11-series usage chart) and ran `dataviz-fix` in four subagents: {sonnet, haiku}
+  x {table, chart}. Judged by inspecting each rendered PNG, not the self-reports.
+- Results: sonnet-table (recommend_table_layout used) and sonnet-chart
+  (reserve_frame + direct labels) clean on all edges; haiku-chart clean via ggplot
+  defaults; haiku-table fixed the header overlap but clipped the footer because it
+  hand-rolled and skipped recommend_table_layout. All strictly better than the
+  crime scene. Confirms the tools carry weak models when actually called; the
+  degrade escape-hatch is where a weak model still clips a table.
+
+### Harness bugs surfaced by the subagents (for the parallel harness work)
+
+- `refit_chart`/`render_and_inspect_chart` returned a false pass
+  (`passes_geometry_checks: true`, `occupied_utilization_ratio 0.0`) on a blank PNG
+  for a `patchwork` multi-panel ggplot build.
+- The table geometry checker only tracks logical cells for
+  `gridExtra::tableGrob`/`gt::as_gtable`; on a hand-rolled `grid`/`gtable` tree it
+  returned `checks_complete: false` with spurious `OUT_OF_BOUNDS`/`LOW_TEXT_CONTRAST`.
+
 ## 2026-09-05 - reusable table planning
 
 ### User prompts

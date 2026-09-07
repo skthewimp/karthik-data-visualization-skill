@@ -34,9 +34,34 @@ precision than the data supports, is not finished.
 4. Apply the eraser test: remove any ink that does not carry data or necessary
    structure - full gridlines, vertical rules, repeated units, redundant
    precision, decorative shading.
-5. Render and inspect the actual table, not just the code: check that columns
-   align, decimals line up, nothing wraps into a collision, and the smallest
-   font meets the supplied delivery minimum at displayed size.
+5. **Reserve the whole table by measurement before you render** - see the numbered
+   steps below. Geometry is settled up front, not discovered by clipping.
+6. Render and inspect the actual table as the safety net, not just the code:
+   the geometry was reserved at step 5; this pass confirms columns align, decimals
+   line up, nothing wraps into a collision, and the smallest font meets the
+   supplied delivery minimum at displayed size.
+
+## Reserve the frame before you render
+
+Table geometry is measured, never eyeballed. A clipped title or a header band
+overlapping the rows is a reservation skipped on the first pass, not a revision
+owed later. Before you render, in order:
+
+1. **Call `recommend_table_layout`** with the formatted headers and cells,
+   identifier columns, typography, and delivery constraints. Apply the column
+   widths, wrapping, header band, row heights, and continuation pages it returns.
+   This is the mandatory sizing path, not an optional aid.
+2. **Reserve the frame like the columns.** The title, subtitle, and footer/notes
+   are wrapped to the table width and given their own bands; the header band is its
+   own layer that must not overlap the subtitle above it or the first data row
+   below it.
+3. **A block wider than the canvas is `cannot_fit`** - resolve it by narrowing,
+   wrapping, or splitting, and never ship it clipped at the edge. Do not drop rows
+   or columns to force a fit.
+
+Where the harness has no such tool, do the same by hand: measure each column,
+header, and frame block, keep them within the delivery width, render, and confirm
+by eye before delivering.
 
 ## Craft principles
 
@@ -108,8 +133,9 @@ picker's distinct-hue ordering is inappropriate. Use `validate_palette` as a
 diagnostic and inspect text contrast against the actual cell fills. A plain table needs no
 palette call; a magnitude or focal treatment must not disappear behind “no series”.
 
-When available, call `recommend_table_layout` with the formatted headers/cells,
-identifier columns, typography, and delivery constraints. Supply each complete
+The `recommend_table_layout` call from the reservation steps above takes the
+formatted headers/cells, identifier columns, typography, and delivery constraints.
+Supply each complete
 header, including units and explanatory sublabels; use explicit newlines for
 semantic breaks. Character counts or an omitted description cannot establish fit.
 Choose a per-column `max_header_lines` when the reading task or delivery limits
