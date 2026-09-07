@@ -54,6 +54,13 @@ When more than one message genuinely must be carried (a whole-and-parts story, a
 alongside a mix-shift), name the primary headline and note the secondary message; leave the
 decomposition into one or several charts to selection.
 
+Before framing values as **shares of a total** (they "total 100%", they compose a whole), earn
+that framing: the components must be non-negative and reconcile to the stated total. A negative
+"share", or parts that don't sum to the whole, means the quantity is a net, a delta, or a
+difference - name it honestly and drop the composition framing, don't relabel it as a share. Do
+this here, when you derive the quantity from the data in hand, so the plan is born correct
+rather than bounced later.
+
 ## Candidate annotation claims
 
 A candidate annotation is **a fact from outside the dataset that explains what the data shows**, tied to the datum, series, period, or region it explains: rainfall behind a spike when rainfall isn't a column, a regulation/tax/ban that shifts the level, an acquisition/election/war/strike at a trend break, a definition or collection-method change behind a jump. The chart can't draw these - that is why they earn a mark. (`chart-annotations` owns their wording and placement at build.)
