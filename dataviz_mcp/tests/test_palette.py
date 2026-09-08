@@ -5,8 +5,11 @@ from PIL import Image
 from dataviz_mcp.palette import (
     extract_palette_from_image,
     recommend_colours,
+    recommend_continuous_scale,
     validate_palette,
+    validate_scale,
 )
+from dataviz_mcp.color_math import hue_delta, lightness_delta, _contrast_ratio
 
 
 def test_validate_flags_confusable_blues():
@@ -173,3 +176,99 @@ def test_extract_palette_missing_file_reports_error():
     result = extract_palette_from_image("/nonexistent/none.png")
     assert result["colours"] == []
     assert "error" in result
+
+
+# --- Continuous scales (heatmaps / colour-mapped magnitudes) -----------------
+# A continuous encoding is NOT a set of categorical series. It needs a scale kind
+# (sequential vs diverging), a data-derived domain and midpoint, ordered stops,
+# and a distinct off-scale colour for missing values.
+
+
+def _stop_colours(scale):
+    return [stop["colour"] for stop in scale["stops"]]
+
+
+def test_continuous_auto_one_sided_is_sequential():
+    # All-positive magnitude with no external reference has no intrinsic centre:
+    # auto must not fabricate one. Sequential, no midpoint.
+    scale = recommend_continuous_scale([12, 34, 58, 91], kind="auto")
+    assert scale["scale_kind"] == "sequential"
+    assert scale["midpoint"] is None
+    assert scale["domain"] == [12, 91]
+
+
+def test_continuous_auto_signed_data_diverges_about_zero():
+    # Values straddling zero have a real centre; auto diverges about 0.
+    scale = recommend_continuous_scale([-40, -10, 5, 30], kind="auto")
+    assert scale["scale_kind"] == "diverging"
+    assert scale["midpoint"] == 0
+    assert scale["midpoint_source"] == "zero"
+
+
+def test_continuous_reference_forces_diverging_at_reference():
+    scale = recommend_continuous_scale([20, 45, 60, 88], reference=50)
+    assert scale["scale_kind"] == "diverging"
+    assert scale["midpoint"] == 50
+    assert scale["midpoint_source"] == "reference"
+
+
+def test_continuous_diverging_midpoint_is_data_median_when_unreferenced():
+    # The score-heatmap case: caller asks for diverging to separate low/mid/high,
+    # but supplies no external reference. Midpoint comes from the data (median),
+    # never a hardcoded constant.
+    scale = recommend_continuous_scale([10, 20, 40, 80], kind="diverging")
+    assert scale["scale_kind"] == "diverging"
+    assert scale["midpoint"] == 30  # median of [10,20,40,80]
+    assert scale["midpoint_source"] == "median"
+
+
+def test_continuous_missing_colour_is_distinct_and_off_scale():
+    scale = recommend_continuous_scale([10, 20, None, 80], kind="diverging")
+    assert scale["n_missing"] == 1
+    miss = scale["missing_colour"]
+    # Off-scale: readable on the ground and separated from every ramp stop,
+    # especially the diverging midpoint (a white/neutral mid must not be confused
+    # with a missing cell).
+    for colour in _stop_colours(scale):
+        assert lightness_delta(miss, colour) >= 0.1 or hue_delta(miss, colour) >= 25
+
+
+def test_continuous_poles_drawn_from_supplied_pool_not_invented():
+    # A brand pool must drive the poles - colours are recommended, not fabricated.
+    pool = ["#762A83", "#1B7837", "#F7F7F7"]  # purple / green / near-white
+    scale = recommend_continuous_scale([0, 25, 50, 75, 100], kind="diverging", available=pool)
+    assert scale["poles_from_pool"] is True
+    for colour in _stop_colours(scale):
+        assert colour.upper() in {c.upper() for c in pool}
+
+
+def test_continuous_no_pool_synthesises_readable_poles():
+    scale = recommend_continuous_scale([0, 50, 100], kind="diverging")
+    assert scale["poles_from_pool"] is False
+    for colour in _stop_colours(scale):
+        assert _contrast_ratio(colour, "#FFFFFF") is not None
+
+
+def test_validate_scale_passes_good_sequential_ramp():
+    # A single-hue light->dark ramp is a correct sequential scale. Its interior
+    # neighbours are deliberately close; that must NOT be flagged as a categorical
+    # distinctness failure.
+    result = validate_scale(
+        ["#DEEBF7", "#9ECAE1", "#4292C6", "#08519C"],
+        scale_kind="sequential",
+        background="#FFFFFF",
+    )
+    assert result["verdict"] == "pass"
+    assert not any(f["rule"] == "series_distinctness" for f in result["findings"])
+
+
+def test_validate_scale_flags_poles_that_collapse_in_grayscale():
+    # Two equal-lightness hues for the extremes fail: the scale loses its ends in
+    # grayscale / for CVD viewers.
+    result = validate_scale(
+        ["#D55E00", "#009E73"],  # similar lightness, opposite hue
+        scale_kind="diverging",
+        background="#FFFFFF",
+    )
+    assert result["verdict"] == "soft_fail"
+    assert any("pole" in f["rule"] for f in result["findings"])

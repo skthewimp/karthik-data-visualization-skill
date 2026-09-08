@@ -200,6 +200,207 @@ def _nudge(report: dict[str, Any]) -> str:
     return "shift one hue further away, or add a lightness difference"
 
 
+def _median(values: Sequence[float]) -> float:
+    ordered = sorted(values)
+    n = len(ordered)
+    mid = n // 2
+    if n % 2:
+        return ordered[mid]
+    pair = (ordered[mid - 1] + ordered[mid]) / 2
+    return int(pair) if pair == int(pair) else pair
+
+
+def recommend_continuous_scale(
+    values: Sequence[Any],
+    available: Optional[Sequence[str]] = None,
+    background: str = "#FFFFFF",
+    reference: Optional[float] = None,
+    kind: str = "auto",
+    min_contrast_mark: float = 3.0,
+) -> dict[str, Any]:
+    """Recommend a *continuous* colour scale for a magnitude encoding (a heatmap fill,
+    a colour-mapped size), as opposed to categorical series.
+
+    A continuous encoding is one variable, not N series: it needs a scale *kind*, a
+    data-derived domain and midpoint, ordered stops the renderer interpolates between,
+    and an off-scale colour for missing cells - none of which ``recommend_colours``
+    (which returns N distinct categorical colours) can express. Routing a magnitude
+    through the categorical path is the classic failure: it collapses the variable to a
+    single series colour, and ``validate_palette`` then judges the real ramp as if its
+    stops were confusable series.
+
+    ``kind``:
+      * ``"auto"`` never fabricates a centre. It diverges only when the data has a real
+        one - an external ``reference``, or values that straddle zero - and is otherwise
+        sequential (a one-sided magnitude, like 0-100 scores, has no intrinsic middle).
+      * ``"diverging"`` is the caller asserting that splitting low/mid/high aids reading
+        (e.g. a score heatmap). The midpoint is the external ``reference`` if given, else
+        the data **median** - derived from the data, never a hardcoded constant.
+      * ``"sequential"`` forces a single-hue light->dark ramp.
+
+    Colours are *recommended, not hardcoded*: poles are drawn from ``available`` (a brand
+    or context pool) when one is supplied, and only synthesised (background-aware HLS)
+    when none is. ``missing_colour`` is a neutral off the scale, kept distinct from the
+    (often near-background) diverging midpoint so a missing cell never reads as a mid one.
+    """
+    numeric = [float(v) for v in values if isinstance(v, (int, float)) and v == v]
+    n_missing = len(list(values)) - len(numeric)
+    lo, hi = (min(numeric), max(numeric)) if numeric else (0.0, 1.0)
+    domain = [_as_number(lo), _as_number(hi)]
+
+    scale_kind = kind
+    midpoint: Optional[float] = None
+    midpoint_source: Optional[str] = None
+    if kind == "auto":
+        if reference is not None:
+            scale_kind, midpoint, midpoint_source = "diverging", reference, "reference"
+        elif lo < 0 < hi:
+            scale_kind, midpoint, midpoint_source = "diverging", 0, "zero"
+        else:
+            scale_kind = "sequential"
+    elif kind == "diverging":
+        if reference is not None:
+            midpoint, midpoint_source = reference, "reference"
+        elif lo < 0 < hi:
+            midpoint, midpoint_source = 0, "zero"
+        else:
+            midpoint, midpoint_source = (_median(numeric) if numeric else 0.0), "median"
+
+    low_pole, high_pole, mid_colour, poles_from_pool = _pick_scale_poles(
+        available, background, scale_kind, min_contrast_mark
+    )
+
+    stops: list[dict[str, Any]] = [{"position": 0.0, "colour": low_pole, "role": "low"}]
+    if scale_kind == "diverging":
+        stops.append({"position": 0.5, "colour": mid_colour, "role": "mid"})
+    stops.append({"position": 1.0, "colour": high_pole, "role": "high"})
+
+    missing_colour = _missing_marker(
+        [s["colour"] for s in stops] + [background], background
+    )
+
+    return {
+        "scale_kind": scale_kind,
+        "domain": domain,
+        "midpoint": _as_number(midpoint) if midpoint is not None else None,
+        "midpoint_source": midpoint_source,
+        "stops": stops,
+        "missing_colour": missing_colour,
+        "n_missing": n_missing,
+        "poles_from_pool": poles_from_pool,
+        "background": background,
+    }
+
+
+def _as_number(value: float) -> Any:
+    return int(value) if float(value) == int(value) else value
+
+
+def _pick_scale_poles(
+    available: Optional[Sequence[str]],
+    background: str,
+    scale_kind: str,
+    min_contrast_mark: float,
+) -> tuple[str, str, str, bool]:
+    """Two pole colours (+ a light mid for diverging), from the pool if one is given."""
+    pool = [c for c in (available or []) if to_rgb(c) is not None]
+    if pool:
+        by_sat = sorted(pool, key=lambda c: (_saturation(c) or 0.0), reverse=True)
+        lightest = max(pool, key=lambda c: (hue_lightness(c) or (0, 0))[1])
+        if scale_kind == "diverging":
+            low, high = by_sat[0], (by_sat[1] if len(by_sat) > 1 else by_sat[0])
+            # Prefer a genuinely light pool colour for the midpoint; else synthesise one.
+            mid_light = (hue_lightness(lightest) or (0, 0))[1]
+            mid = lightest if mid_light >= 0.85 and (_saturation(lightest) or 0) <= 0.2 else _hls_to_hex(0, 0.97, 0.0)
+            return low, high, mid, True
+        # Sequential: darkest saturated pool colour as the high pole, lightest as low.
+        high = by_sat[0]
+        low = lightest if lightest != high else _tint_of(high)
+        return low, high, low, True
+
+    # No pool: synthesise. Distinct pole lightness keeps the scale alive in grayscale/CVD.
+    if scale_kind == "diverging":
+        return _hls_to_hex(20, 0.50, 0.75), _hls_to_hex(215, 0.34, 0.72), _hls_to_hex(0, 0.97, 0.0), False
+    return _hls_to_hex(215, 0.90, 0.45), _hls_to_hex(215, 0.30, 0.80), _hls_to_hex(215, 0.90, 0.45), False
+
+
+def _tint_of(colour: str) -> str:
+    hl = hue_lightness(colour)
+    sat = _saturation(colour) or 0.5
+    hue = hl[0] if hl else 215
+    return _hls_to_hex(hue, 0.92, min(sat, 0.4))
+
+
+def _missing_marker(avoid: Sequence[str], background: str) -> str:
+    """A neutral grey, off the scale, kept distinct from every ramp stop and readable."""
+    for lightness in (0.55, 0.62, 0.48, 0.68, 0.40):
+        candidate = _hls_to_hex(0, lightness, 0.0)
+        if (_contrast_ratio(candidate, background) or 0) < 1.6:
+            continue
+        if all(
+            (lightness_delta(candidate, other) or 0) >= 0.1
+            or (hue_delta(candidate, other) or 0) >= 25
+            for other in avoid
+        ):
+            return candidate
+    return "#7A7A7A"
+
+
+def validate_scale(
+    stops: Sequence[str],
+    scale_kind: str = "sequential",
+    background: str = "#FFFFFF",
+    min_contrast_mark: float = 3.0,
+    min_gray_delta: float = 20.0,
+) -> dict[str, Any]:
+    """Validate a *continuous* scale by its ends, not as categorical series.
+
+    Interior stops of a ramp are deliberately close - flagging them for
+    ``series_distinctness`` (as ``validate_palette`` would) is wrong. What matters:
+    at least one stop reads on the background (mid values may fade into it), and the
+    two poles stay separated on lightness so the extremes survive grayscale and CVD.
+    """
+    findings: list[dict[str, Any]] = []
+    parseable = [c for c in stops if to_rgb(c) is not None]
+    for colour in stops:
+        if to_rgb(colour) is None:
+            findings.append({"rule": "parse", "colours": [colour], "detail": "unparseable colour"})
+
+    if parseable and not any(
+        (_contrast_ratio(c, background) or 0) >= min_contrast_mark for c in parseable
+    ):
+        findings.append(
+            {
+                "rule": "scale_vs_background",
+                "colours": list(parseable),
+                "target": min_contrast_mark,
+                "nudge": "no stop reads on the background - darken the high pole",
+            }
+        )
+
+    if len(parseable) >= 2:
+        low, high = parseable[0], parseable[-1]
+        gray = grayscale_value(low), grayscale_value(high)
+        if gray[0] is not None and gray[1] is not None and abs(gray[0] - gray[1]) < min_gray_delta:
+            findings.append(
+                {
+                    "rule": "scale_poles_grayscale",
+                    "colours": [low, high],
+                    "gray_delta": round(abs(gray[0] - gray[1]), 1),
+                    "target": min_gray_delta,
+                    "nudge": "give the two poles different lightness so the ends survive grayscale/CVD",
+                }
+            )
+
+    return {
+        "verdict": "pass" if not findings else "soft_fail",
+        "scale_kind": scale_kind,
+        "n_stops": len(stops),
+        "background": background,
+        "findings": findings,
+    }
+
+
 def validate_palette(
     colours: Sequence[str],
     background: str = "#FFFFFF",

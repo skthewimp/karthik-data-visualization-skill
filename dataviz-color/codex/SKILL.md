@@ -10,7 +10,7 @@ metadata:
 
 Own the colour decision for one visualization: which colours to use and how to assign them to this chart's series or categories. This is a *decision for the specific graph*, not a palette look-up - even with a brand palette or recommended set in hand, a chart with N series and a given background still needs a call on which to use and how to assign them. Don't design the form, write annotations, or set number precision (those belong to `karthik-data-visualization`, `chart-annotations`, `dataviz-precision`).
 
-The mechanical checks live in the dataviz MCP: `recommend_colours`, `validate_palette`, `extract_palette_from_image`. Use them; keep the judgement here. Inside the construct pipeline, that judgement (available source, focal series, semantic meaning) is made at `select` as a compact `colour_plan`, resolved by `recommend_colours`, and applied at build - so this full skill is the standalone authority the plan distils, not a body loaded into the build call.
+The mechanical checks live in the dataviz MCP: `recommend_colours`, `validate_palette`, `recommend_continuous_scale`, `validate_scale`, `extract_palette_from_image`. Use them; keep the judgement here. Inside the construct pipeline, that judgement (available source, focal series, semantic meaning) is made at `select` as a compact `colour_plan`, resolved by `recommend_colours`, and applied at build - so this full skill is the standalone authority the plan distils, not a body loaded into the build call.
 
 ## 1. Where the available colours come from (precedence, higher wins)
 
@@ -32,6 +32,20 @@ Call `recommend_colours(available, colour_groups, background, focal)`. It picks 
 - Colours **dropped for low background contrast** → respect it; a light mark on a light ground is not a real option for a thin line (a large fill tolerates less).
 
 Picking a subset from an available set is the normal case.
+
+## 3a. Categorical series vs continuous magnitude - decide this first
+
+Before calling anything, decide what colour encodes. Two different problems:
+
+- **Categorical** - colour tells apart *series or categories* (lines, bars, groups). N distinct colours. This is `recommend_colours` / `validate_palette`, everything above and below.
+- **Continuous** - colour encodes *one ordered quantity* (a heatmap/matrix fill, a choropleth, a colour-mapped value). This is **not** N series; it is a scale. Use `recommend_continuous_scale(values, available, background, reference, kind)` and `validate_scale(stops, scale_kind, background)`. Do **not** run a magnitude through `recommend_colours` - it collapses the variable to one series colour, and `validate_palette` then judges the ramp's stops as if they were confusable series (a sequential ramp *should* have close neighbours). A heatmap of scores is the common trap.
+
+For a continuous scale:
+
+- **Sequential vs diverging.** A one-sided magnitude (0-100 scores, counts, durations - higher is just more) has no intrinsic centre; sequential is the honest default. Reach for **diverging** when a midpoint carries meaning and separating low / middle / high aids the read - a signed quantity straddling zero, a value above/below a target, or a dense score matrix where a diverging ramp simply discriminates better. Diverging is often the better *read* for a matrix; choose it on that judgement, not by rote.
+- **Midpoint from the data, never a constant.** If an external reference exists (a target, a break-even, zero), that is the midpoint - pass it as `reference`. Otherwise the midpoint is derived from the data (the median), so the ramp splits *these* values, not an arbitrary 50. `kind="auto"` will only diverge when a real centre exists; pass `kind="diverging"` to assert the split for a score matrix.
+- **Colours are recommended, not hardcoded.** Poles come from the brand/context pool when there is one (`available`), synthesised only when there isn't. Never bake a fixed red-white-blue (or any fixed ramp) into the decision - let brand and background choose the hues; the tool only needs to know it is a diverging scale.
+- **Missing values are off the scale.** NA cells get the returned `missing_colour` - a distinct neutral, kept separate from a near-background diverging midpoint so an empty cell never reads as a mid-value one. Never leave missing cells to fall on a scale colour.
 
 ## 3b. Semantic colour - use it whenever it fits
 

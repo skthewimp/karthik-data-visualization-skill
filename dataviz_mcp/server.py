@@ -17,7 +17,9 @@ from .text_fit import (
 from .palette import (
     extract_palette_from_image as extract_palette_core,
     recommend_colours as recommend_colours_core,
+    recommend_continuous_scale as recommend_continuous_scale_core,
     validate_palette as validate_palette_core,
+    validate_scale as validate_scale_core,
 )
 from .precision import recommend_precision as recommend_precision_core
 from .refit import refit_chart as refit_core
@@ -200,6 +202,51 @@ def create_server() -> Any:
         Unmet and collided hints are reported in ``semantic_findings``.
         """
         return recommend_colours_core(available, n_series, background, focal, semantic_hints)
+
+    @server.tool()
+    async def recommend_continuous_scale(
+        values: list[float],
+        available: list[str] | None = None,
+        background: str = "#FFFFFF",
+        reference: float | None = None,
+        kind: str = "auto",
+    ) -> dict[str, Any]:
+        """Recommend a CONTINUOUS colour scale for a magnitude encoding (heatmap fill,
+        colour-mapped value) - NOT categorical series. Use this, not ``recommend_colours``,
+        whenever colour encodes one ordered quantity; routing a magnitude through the
+        categorical path collapses it to a single series colour and mis-validates the ramp.
+
+        Returns the scale ``kind`` (sequential vs diverging), a data-derived ``domain`` and
+        ``midpoint``, ordered ``stops`` to interpolate between, and a distinct off-scale
+        ``missing_colour`` for NA cells. ``kind="auto"`` diverges only when the data has a
+        real centre (an external ``reference`` or values straddling zero) and is otherwise
+        sequential. ``kind="diverging"`` asserts that separating low/mid/high helps reading
+        (e.g. a bounded-score heatmap); its midpoint is ``reference`` if given, else the data
+        median - never a hardcoded constant. Poles are drawn from ``available`` (brand/context)
+        when supplied, synthesised only when it is not. Pass the same list to ``validate_scale``.
+        """
+        return recommend_continuous_scale_core(
+            values, available=available, background=background, reference=reference, kind=kind
+        )
+
+    @server.tool()
+    async def validate_scale(
+        stops: list[str],
+        scale_kind: str = "sequential",
+        background: str = "#FFFFFF",
+        min_contrast_mark: float = 3.0,
+    ) -> dict[str, Any]:
+        """Validate a CONTINUOUS scale by its ends, not as categorical series.
+
+        Checks that at least one stop reads on the background (mid values may fade into it)
+        and that the two poles stay separated in lightness so the extremes survive grayscale
+        and CVD. It deliberately does NOT flag interior stops for series-distinctness - a ramp
+        is meant to have close neighbours. Use for heatmap/magnitude scales; use
+        ``validate_palette`` for categorical series.
+        """
+        return validate_scale_core(
+            stops, scale_kind=scale_kind, background=background, min_contrast_mark=min_contrast_mark
+        )
 
     @server.tool()
     async def validate_palette(
