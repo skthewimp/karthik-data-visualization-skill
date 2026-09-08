@@ -2772,3 +2772,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Shipped. Committed + pushed to `origin/main`. **Fixed here (skill reasoning, no schema change):** 1. `dataviz-idea-critique` - one exhaustive pass; surface every visible fatal/major at once (kills the drip-feed "adopt...
 
 <!-- claude-session:ecf086bf-c714-42af-9f88-b6d334086947:end -->
+
+<!-- claude-session:7d67c216-0d17-4a12-ab8a-d4863cc05903:start -->
+## 2026-09-08 07:38 IST | Claude session `7d67c216-0d1`
+
+### User prompts
+> [Image #1] this is from a recent run. horrible clipping of this table. wonder wha happened?
+> from downstream: • I checked the latest run, 7 September at 14:46 UTC. The heatmap choice was appropriate. The failures happened in layout, colour handling, and the repair loop—and I found a data error too. 1. Clippin...
+> [Request interrupted by user]
+
+### Work done
+- `reserve_frame` already budgets the left band from `longest_y_tick` (frame.py:155-159) — so it wasn't the gap; the gap was **recommend_layout** sizing the canvas too small, so reserve_frame then carved that band out o...
+- Audited the whole layout/geometry MCP family. Status: | MCP tool | Same bug class? | State | |----------|----------------|-------| | `recommend_layout` | **Yes — root of the 29% panel** (no y-label budget) | **Fixed**...
+
+<!-- claude-session:7d67c216-0d17-4a12-ab8a-d4863cc05903:end -->
