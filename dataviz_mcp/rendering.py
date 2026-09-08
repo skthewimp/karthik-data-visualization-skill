@@ -740,6 +740,16 @@ just_to_hv <- function(just, hjust, vjust) {
 panel_rows <- list()
 capture_panel_grob <- function(g, prefix, px, py, pw, ph) {
   captured <- list()
+  # A gtable (an axis strip, a titleGrob's wrapper) holds its parts in $grobs, not
+  # $children; recurse those over the same cell box so nested text (tick labels) is
+  # reached. Their native y/x positions are fractions of this cell, placed by the
+  # arithmetic below, so the enclosing box is the right coordinate frame.
+  if (inherits(g, "gtable") && length(g$grobs)) {
+    for (k in seq_along(g$grobs)) {
+      captured <- c(captured, capture_panel_grob(g$grobs[[k]], paste0(prefix, "/g", k), px, py, pw, ph))
+    }
+    return(captured)
+  }
   if (inherits(g, "gTree") && length(g$children)) {
     for (child_name in names(g$children)) {
       child_rows <- capture_panel_grob(
@@ -801,11 +811,17 @@ capture_panel_grob <- function(g, prefix, px, py, pw, ph) {
   } else if (inherits(g, "text")) {
     labels <- as.character(g$label)
     count <- min(length(labels), length(absolute_x), length(absolute_y))
+    rot <- if (length(g$rot)) as.numeric(g$rot[1]) else 0
     for (j in seq_len(count)) {
       size_pt <- suppressWarnings(as.numeric(gp_value(gp, "fontsize", j, "11")))
       if (!is.finite(size_pt)) size_pt <- 11
-      label_width <- max(1, nchar(labels[j], type="width") * size_pt * dpi / 72 * 0.55)
-      label_height <- max(1, size_pt * dpi / 72 * 1.2)
+      # Exact glyph ink from grid font metrics (not an nchar estimate, which over-
+      # reports and manufactures false clips/collisions), swapped for rotated labels.
+      tg <- textGrob(labels[j], gp=gpar(fontsize=size_pt))
+      ink_w <- max(1, convertWidth(grobWidth(tg), "in", valueOnly=TRUE) * dpi)
+      ink_h <- max(1, convertHeight(grobHeight(tg), "in", valueOnly=TRUE) * dpi)
+      if (abs((rot %% 180) - 90) < 45) { label_width <- ink_h; label_height <- ink_w }
+      else { label_width <- ink_w; label_height <- ink_h }
       hjust <- if (length(g$hjust)) as.numeric(g$hjust[((j - 1) %% length(g$hjust)) + 1]) else 0.5
       vjust <- if (length(g$vjust)) as.numeric(g$vjust[((j - 1) %% length(g$vjust)) + 1]) else 0.5
       captured[[length(captured) + 1]] <- row_frame(
@@ -926,6 +942,41 @@ for (i in seq_len(nrow(gt$layout))) {
   if (grob_empty && startsWith(grob_name, "guide-box")) {
     next
   }
+  # Text chrome (title, subtitle, caption, axis titles, tick-label strips, facet
+  # strips) was emitted as a single allocated-cell row: the title bbox was its whole
+  # gtable cell (so an overflowing title never exceeded the canvas) and tick labels
+  # collapsed into one merged strip (so overlapping ticks were invisible to the
+  # collision checks). Walk these cells into per-glyph text rows with real ink bounds,
+  # the same way panel text is captured, so clipping and tick collisions are detectable.
+  is_text_cell <- grepl("^(title|subtitle|caption|xlab|ylab|axis|strip)", grob_name) &&
+    !startsWith(grob_name, "guide")
+  if (is_text_cell && inherits(grob, "grob") && !grob_empty) {
+    # Tick-label strips hold one text grob with per-tick native positions - capture
+    # them by cell arithmetic (deviceLoc through their nested viewports collapses the
+    # ticks together). Single-label chrome (title/subtitle/caption/axis titles/strips)
+    # is placed by its own justification, which the exact-ink walk reads correctly.
+    is_tick_strip <- grepl("^axis[-.]", grob_name)
+    if (is_tick_strip) {
+      cell_rows <- tryCatch(capture_panel_grob(grob, paste0("gg-", i), px, py, pw, ph),
+        error=function(e) list())
+    } else {
+      pushViewport(viewport(x=unit(px/dpi, "in"), y=unit(1, "npc") - unit(py/dpi, "in"),
+        width=unit(pw/dpi, "in"), height=unit(ph/dpi, "in"), just=c("left", "top")))
+      cell_rows <- tryCatch(capture_table_grob(grob, paste0("gg-", i), numeric()),
+        error=function(e) list())
+      popViewport()
+    }
+    text_rows <- Filter(function(r) r$kind == "text" && nzchar(r$text), cell_rows)
+    if (length(text_rows)) {
+      for (j in seq_along(text_rows)) {
+        text_rows[[j]]$name <- grob_name
+        text_rows[[j]]$kind <- "textzone"
+        text_rows[[j]]$x_points <- ""
+      }
+      panel_rows <- c(panel_rows, text_rows)
+      next
+    }
+  }
   rows[[i]] <- row_frame(
     paste0("gg-", i), grob_name, extract_label(grob),
     px, py, pw, ph
@@ -1011,9 +1062,9 @@ def _ggplot_role(name: str) -> str:
         return "footer"
     if clean.startswith("strip-"):
         return "panel_heading"
-    if clean.startswith("axis.title"):
+    if clean.startswith("axis.title") or clean.startswith("xlab") or clean.startswith("ylab"):
         return "axis_label"
-    if clean.startswith("axis-"):
+    if clean.startswith("axis-") or clean.startswith("axis."):
         return "tick_label"
     if clean.startswith("guide-box"):
         return "legend"
@@ -1183,6 +1234,25 @@ def _render_ggplot2(
                        if render_kind == "table" and row.get("x_points") else {}),
                 }
             )
+            continue
+        if kind == "textzone":
+            # Chrome text (title/subtitle/caption/axis title/tick label/strip) captured
+            # per glyph with real ink bounds. Role comes from the cell name; the ink bbox
+            # is what the clipping and collision checks read.
+            role = _ggplot_role(name)
+            if role != "layout_zone" and row.get("text", "").strip():
+                elements.append(
+                    {
+                        "id": row["id"],
+                        "role": role,
+                        "text": row["text"],
+                        "bbox": bbox,
+                        "axes_id": axes_id,
+                        "clip_on": False,
+                        "font_size_pt": float(row["font_size"]) if row.get("font_size") else None,
+                        "colour": row.get("colour") or None,
+                    }
+                )
             continue
         role = _ggplot_role(name)
         if name.startswith("panel"):

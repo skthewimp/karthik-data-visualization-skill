@@ -153,6 +153,58 @@ def test_auto_renderer_prefers_ggplot2_and_emits_full_contract(tmp_path: Path) -
     not probe_renderers()["renderers"]["ggplot2"]["available"],
     reason="ggplot2+ragg not installed",
 )
+def test_ggplot_emits_per_tick_axis_labels_with_glyph_bounds(tmp_path: Path) -> None:
+    # The 7-Sep heatmap failure: axis cells were emitted as a single allocated-box row,
+    # so inspection saw no per-tick labels and could not detect overlapping ticks. Each
+    # tick label must be its own element with its own glyph bbox.
+    source = Path(__file__).parent / "fixtures" / "ggplot_axis_labels_fixture.R"
+    bundle = render_and_inspect_chart(
+        str(source),
+        str(tmp_path / "ggplot-axis"),
+        renderer="ggplot2",
+        dimensions={"width_px": 900, "height_px": 520, "dpi": 144},
+    )
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    ticks = [e for e in layout["elements"] if e.get("role") == "tick_label"]
+    tick_texts = {e["text"] for e in ticks}
+    # The six category ticks each appear as their own element (not one merged strip).
+    assert {"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"} <= tick_texts, tick_texts
+    # Distinct boxes, not the same allocated strip repeated.
+    xs = sorted(round(e["bbox"]["x"]) for e in ticks if e["text"] in
+                {"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"})
+    assert len(set(xs)) >= 5, xs
+    # The axis titles are captured too.
+    axis_labels = {e["text"] for e in layout["elements"] if e.get("role") == "axis_label"}
+    assert "Category" in axis_labels and "Value" in axis_labels, axis_labels
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
+def test_ggplot_title_bbox_is_glyph_ink_not_allocated_cell(tmp_path: Path) -> None:
+    # The title bbox once described its allocated gtable cell (full canvas width), so an
+    # overflowing title never exceeded the canvas and clipping went undetected. It must be
+    # the glyph ink extent, and an overlong title must trip OUT_OF_BOUNDS.
+    source = Path(__file__).parent / "fixtures" / "ggplot_overlong_title_fixture.R"
+    bundle = render_and_inspect_chart(
+        str(source),
+        str(tmp_path / "ggplot-title"),
+        renderer="ggplot2",
+        dimensions={"width_px": 640, "height_px": 400, "dpi": 144},
+    )
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    inspection = json.loads(Path(bundle["inspection_path"]).read_text())
+    title = next(e for e in layout["elements"] if e.get("role") == "title")
+    # Ink extent overflows the 640px canvas rather than being clamped to the cell.
+    assert title["bbox"]["x"] + title["bbox"]["width"] > 640, title["bbox"]
+    assert "OUT_OF_BOUNDS" in {d["code"] for d in inspection["defects"]}
+
+
+@pytest.mark.skipif(
+    not probe_renderers()["renderers"]["ggplot2"]["available"],
+    reason="ggplot2+ragg not installed",
+)
 def test_ggplot_value_labels_on_marks_are_data_labels_not_collisions(tmp_path: Path) -> None:
     # ggplot cannot gid a geom_text value label as data_label, so the adapter tags in-panel data
     # text as data_label by construction. It must be exempt from the text-mark collision check even

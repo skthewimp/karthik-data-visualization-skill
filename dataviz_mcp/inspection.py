@@ -929,9 +929,14 @@ def inspect_rendered_chart(
         metadata is not None
         and occupied_utilization_ratio is not None
         and occupied_utilization_ratio <= BLANK_RENDER_MAX
+        and not marks
+        and not series
     ):
         # Blank or near-empty export - the build produced no visible content (e.g. the refit
-        # blank-PNG on a patchwork build). Blocks: never deliver, never report a clean pass.
+        # blank-PNG on a patchwork build). A blank export has nothing in the data layer; a
+        # sparse-but-real chart (a few small points, mostly-ink-light text) has marks or
+        # series drawn and is underfilled, not blank - it must not be blocked as failed.
+        # Blocks: never deliver, never report a clean pass.
         defects.append(
             _defect(
                 "BLANK_RENDER",
