@@ -48,6 +48,25 @@ Answer each against the evidence, and be specific about what fails and why.
   needs, a caveat that changes the reading)? Does the claim's strength match the evidence, or
   is a weak signal dressed as a strong one?
 
+## One pass, exhaustive - and reconcile on re-review
+
+Run **all four questions to completion every pass** and surface **every** fatal and major
+issue you can already see in one verdict. A defect visible on the plan in front of you is
+raised now, not saved for a later round - drip-feeding objections (fixing the issues you
+named, only to raise a fresh "major" that was equally visible the first time) is what turns
+one revision into a loop that never converges. If the claim's key term is undefined or the
+measure is unnamed, that is a first-pass issue, not a second-pass discovery. Rank by severity,
+but list them together.
+
+When a **prior critique of this same plan** is supplied (a re-review after a revise), do not
+restart cold. Reconcile each earlier issue against the revised plan and classify it:
+**fixed** (the change resolved it), **still-open** (the change did not, or introduced a new
+way to fail the same point), or **regression** (the revision broke something the earlier plan
+had right). Only genuinely new problems - ones the earlier plan did not exhibit - are raised
+fresh; a "new major" that was present and unraised last round is a first-pass miss to own, not
+a reason to keep the plan in revision. Return `proceed` when nothing fatal or major remains
+open.
+
 ## Verdict and routing
 
 Return a verdict - `proceed`, `revise`, or `blocked` - with a short summary and, for each
@@ -58,6 +77,13 @@ issue, its severity (fatal / major / minor), a concrete fix, and where it **rout
 - `select` - the claim is right but the form cannot carry it (choose a form that shows the
   comparison the claim depends on).
 - `none` - a minor note the build stage can absorb without re-planning.
+
+Every fix must be **directly usable by the stage it routes to** - one it can apply without
+re-litigating. Respect the constraints the plan already declares: if you propose replacement
+copy, keep it inside the limit that stage enforces (a headline within its character cap, a
+label within its width), and if a compliant literal will not fit, describe the change to make
+rather than hand over an over-budget string the next stage must reinterpret - reinterpretation
+is another round for you to object to. State the fix at the grain the receiving stage acts on.
 
 Resolve on the evidence what the evidence can resolve; do not defer everything to "see how it
 renders" - that defeats the gate. Never return `blocked` for a missing **external** validation

@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Idea gate converges: one exhaustive pass, reconciled re-review, usable fixes, bounded revision
+
+Downstream harness runs were looping at the planning stage - the idea gate would fix
+the issues it named on round one, then raise a fresh "major" (an undefined claim term)
+that was equally visible the first time, and the revision budget expired mid-loop. The
+skill reasoning, not any schema, drove this. Four rules added:
+
+- **One pass, exhaustive (`dataviz-idea-critique`).** Run all four questions to
+  completion every pass and surface every fatal/major issue you can already see in one
+  verdict; a defect visible on the plan is raised now, not saved for a later round.
+- **Reconcile on re-review (`dataviz-idea-critique`).** When a prior critique of the
+  same plan is supplied, classify each earlier issue fixed / still-open / regression
+  instead of restarting cold; only genuinely new problems are raised fresh.
+- **Usable fixes (`dataviz-idea-critique`).** Every fix must be directly applicable by
+  the stage it routes to and respect the constraints that stage declares (a headline
+  within its character cap); if a compliant literal will not fit, describe the change
+  rather than hand over an over-budget string to reinterpret.
+- **One authoritative claim, bounded revision (`dataviz-construct`).** The headline
+  claim lives only in the insight artifact (later stages reference, never recopy a
+  diverging version); a `revise` call gives the routed stage its own prior handoff so
+  it corrects only what the critique names and preserves the rest, and gives the gate
+  its prior critique on re-review.
+
+`docs/skills/` mirrors for both skills brought current.
+
 ### Per-role frame measurement and a shared table constructor (harness findings #2, #3)
 
 - **Measure each frame role at its own font and weight (#2).** The table planner
