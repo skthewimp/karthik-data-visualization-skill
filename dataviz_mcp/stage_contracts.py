@@ -1140,6 +1140,19 @@ off the canvas is a reservation you skipped, not a revision the gate must catch:
      then pass that render's ``transform`` and ``marks``, the labels in DATA coordinates,
      ``plot_area`` and ``frame_blocks`` to ``place_on_marks``; draw from the coordinates it
      returns. Never guess a label's pixels or hand-write a segment.
+  4. Settle the editorial set and the scaffolding it makes redundant BEFORE this first render, not
+     as a later revision. Label only the marks that carry the reading - a series' identity, an
+     endpoint, the focal comparison, a genuine exception, an exact lookup - never a value on every
+     point of every series (over-labelling is the top reason a chart reads busy and cheap). Then:
+     when you directly label the marks that carry the reading, do NOT also draw that value axis's
+     tick numbers and gridlines - they are duplicate ink, so drop them in this first render and
+     declare the labelled set as ``inspection_contract.direct_labels`` so the redundant-axis check
+     scores your key set. Keep a value axis, ticks, or gridline only for a task the labels don't do
+     (estimating an unlabelled mark, alignment, a baseline/threshold). Colour every series to clear
+     the actual PLOT-PANEL background - the paper/tint inside the panel, not the page - by passing
+     that panel background to ``recommend_colours``; a thin mark (a line or point) needs real
+     luminance separation from it, so a pale hue (yellow, light green, light grey) on a light panel
+     is not eligible for a line unless it is the single focal-plus-grey highlight.
 For charts, pass the returned frame as ``inspection_contract.frame`` and returned label
 placements as ``inspection_contract.placements`` to ``render_and_inspect_chart`` and
 ``refit_chart``. These are the existing tool outputs, not a new text-classification scheme.
@@ -1147,7 +1160,7 @@ For a known target, pass its exported ``mark_id`` in the label to ``place_on_mar
 the target and anchor from the same transformed data. Wrong anchors are rejected; report
 ``unverified_attachments`` as a limitation rather than inventing a target. ggplot text roles
 do not identify which mark a label names.
-Only after 1-3 do you render the candidate; the inspect pass then only confirms the pixels.
+Only after 1-4 do you render the candidate; the inspect pass then only confirms the pixels.
 The paragraphs below carry the full detail of each step.
 
 Build the

@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+### Canonical-run fixes: front-load label economy, guard heatmap scale, un-letterbox paired panels
+
+Five defects from the latest canonical run, traced to producer-application gaps (the gate
+knew the rule; the weak build model didn't act on it first-pass) and two genuine gaps:
+
+- **Front-load editorial labelling + redundant-axis removal + panel-background contrast
+  (`_CONSTRUCT_BUILD`).** A new first-pass step 4 in the placement mandate: label only the
+  editorial set (identity, endpoints, focal, exceptions, exact lookups), never a value on
+  every point; when the reading-carrying marks are directly labelled, drop that value axis's
+  ticks/gridlines in the *first* render (declaring `inspection_contract.direct_labels`), not
+  as a later revision; and colour every series to clear the actual plot-*panel* background, so
+  a thin line/point needs real luminance separation (a pale yellow/green on a light panel is
+  not an eligible line unless it is the focal-plus-grey highlight). Fixes the small-multiples
+  case that labelled every point *and* kept the axis, and the pale-line-on-cream case.
+- **Heatmap scale must resolve the reading (`dataviz-selector`).** A single sequential ramp
+  only separates values within reach of one another; when one cell/row/column dwarfs the rest
+  (a runaway "Other", one huge period) it saturates on the outlier and flattens everyone else
+  into one shade. New guard: before choosing a heatmap, check the spread the colour must span;
+  pull the dominant out, map a within-strip share/rank, use a quantile/log scale only when the
+  skew is the honest story, or move the quantity to length/position. General principle, not an
+  enumerated case.
+- **Don't split a two-state comparison across shared-axis panels (`dataviz-selector`).** Two
+  side-by-side panels sharing one category axis put each category's pair in separate frames -
+  the reader matches position across a gap and two half-panels waste the frame on chrome. One
+  frame (dumbbell, slope, diverging bars) is the default; separate panels only for genuinely
+  non-commensurable states, not two shares.
+- **Paired/few-row filled panels no longer letterbox (`layout.py`).** `recommend_layout` set a
+  horizontal-bar panel's height from row demand alone, so a few-row panel on a wide canvas got
+  a squat strip that flattened marks and crowded category labels (the token-vs-dollar share
+  failure). Height now grows so a panel is no wider than `MAX_PANEL_ASPECT` (2.0); row demand
+  already exceeds this once there are enough rows, so a tall ranked strip is unaffected. Two
+  new tests in `test_layout.py`.
+- **In-cell magnitude bars trail the number (`karthik-table-style`).** The number is the
+  primary read (decimal-aligned, left, where the eye lands); the bar sits to its right as the
+  secondary cue, not leading in from the left before the figure it encodes.
+
 ### Idea gate converges: one exhaustive pass, reconciled re-review, usable fixes, bounded revision
 
 Downstream harness runs were looping at the planning stage - the idea gate would fix

@@ -1,4 +1,5 @@
 from dataviz_mcp.layout import (
+    MAX_PANEL_ASPECT,
     MIN_PANEL_H,
     boxes_overlap,
     recommend_layout,
@@ -22,6 +23,34 @@ def test_x_slots_grow_width_toward_the_density_floor():
 def test_y_slots_grow_height_directly_because_labels_stack():
     few = recommend_layout(y_slots=5, filled_marks=True)
     many = recommend_layout(y_slots=40, filled_marks=True)
+    assert many["height_px"] > few["height_px"]
+
+
+def test_wide_few_row_filled_panels_do_not_letterbox():
+    # Paired share panels / a few-row horizontal bar chart on a wide canvas used to get a
+    # squat plot height from row demand alone, flattening marks and crowding category labels
+    # (the token-vs-dollar share failure). Height now grows so the canvas is no wider than the
+    # panel-aspect cap; chrome only adds height, so canvas aspect stays under the cap too.
+    from dataviz_mcp.layout import FONT_PT, PANEL_GUTTER, pt_to_px
+
+    result = recommend_layout(
+        x_slots=0, y_slots=4, filled_marks=True, n_panels=2, facet_scales="free_x",
+        y_labels=True, longest_y_label_chars=10, title_lines=1, subtitle_lines=1,
+    )
+    ncol, nrow = result["facet_ncol"], result["facet_nrow"]
+    axis_band = pt_to_px(FONT_PT["axis"], result["dpi"]) * 3.0
+    panel_w = (result["width_px"] - ncol * result["reserved_left_px"]
+               - (ncol - 1) * PANEL_GUTTER) / ncol
+    panel_h = (result["height_px"] - result["reserved_band_px"] - axis_band) / nrow
+    assert panel_w / panel_h <= MAX_PANEL_ASPECT + 0.05  # the panel itself is not letterboxed
+    assert result["data_panel_fraction"] >= 0.4          # and it is not starved
+
+
+def test_many_row_horizontal_bars_still_grow_height_by_rows():
+    # The letterbox floor must not shrink a tall ranked strip: row demand dominates there,
+    # so the floor never binds and height keeps scaling with the row count.
+    few = recommend_layout(y_slots=6, filled_marks=True)
+    many = recommend_layout(y_slots=30, filled_marks=True)
     assert many["height_px"] > few["height_px"]
 
 

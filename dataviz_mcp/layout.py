@@ -45,6 +45,8 @@ POINT_SLOT_PX = 6.0         # a point / line-vertex position needs this much sep
 FILLED_SLOT_PX = 22.0       # a bar / tile / column must show its own width
 MIN_PANEL_W = 240.0         # a facet panel below this reads as a thumbnail
 MIN_PANEL_H = 150.0
+MAX_PANEL_ASPECT = 2.0      # a data panel wider than this (few rows, wide canvas) letterboxes:
+                            #   marks flatten and category labels crowd - grow height to this cap
 PANEL_GUTTER = 24.0         # space between facet panels
 FREE_AXIS_BAND = 42.0       # extra per-panel left width when scales are free
 
@@ -214,6 +216,12 @@ def recommend_layout(
         panel_plot_h = max(MIN_PANEL_H if n_panels > 1 else 0.0, y_slots * max(slot_px, row_floor))
     else:
         panel_plot_h = panel_w_final / 1.6
+    # Don't letterbox: a panel far wider than tall (a few-row horizontal bar panel on a wide
+    # canvas, or paired share panels) flattens its marks and crowds its category labels into a
+    # thin strip. Give it enough height that it is no wider than MAX_PANEL_ASPECT. Row demand or a
+    # continuous aspect already exceeds this whenever there are enough rows, so this only binds on
+    # the wide-and-short case and only ever grows height.
+    panel_plot_h = max(panel_plot_h, panel_w_final / MAX_PANEL_ASPECT)
     height_plot = nrow * panel_plot_h + (nrow - 1) * PANEL_GUTTER
     height = height_plot + bands + axis_band
 

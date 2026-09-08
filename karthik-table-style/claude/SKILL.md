@@ -123,7 +123,11 @@ separate from raw values: strings determine geometry; values determine scales.
 - **Focal entity or winners:** identify the focal rows/cells and preserve ties.
   Give the claim visible emphasis through weight or colour, not a barely changed grey.
 - **Magnitude comparison:** consider in-cell bars or dots with explicit domains
-  and baselines. Reserve space for both the number and its graphic.
+  and baselines. Reserve space for both the number and its graphic. The number is
+  the primary read; place the bar so it *trails* the number in reading order - the
+  value on the left where the eye lands first (its decimal alignment intact), the
+  magnitude bar to its right as the secondary cue - not a bar leading in from the
+  left that the reader hits before the figure it encodes.
 - **Hot/cold scanning:** use shading with an explicit scope: column, row, or whole
   table. A shared scale requires comparable meaning and units, not just numeric
   columns or percent signs. Diverging scales need a meaningful midpoint.
