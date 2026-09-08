@@ -2761,3 +2761,14 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:f7e17ad2-dfb3-4837-a8ae-b50e79feb07c:end -->
 
+<!-- claude-session:ecf086bf-c714-42af-9f88-b6d334086947:start -->
+## 2026-09-07 20:21 IST | Claude session `ecf086bf-c71`
+
+### User prompts
+> ok we seem to be getting into a lot of loops at the planning stage itself. seems quite stupid. this is from the downstream harness: What happened in that latest revision: 1. Insight proposed “Digital adoption is stron...
+
+### Work done
+- Now a CHANGELOG entry under Unreleased.
+- Shipped. Committed + pushed to `origin/main`. **Fixed here (skill reasoning, no schema change):** 1. `dataviz-idea-critique` - one exhaustive pass; surface every visible fatal/major at once (kills the drip-feed "adopt...
+
+<!-- claude-session:ecf086bf-c714-42af-9f88-b6d334086947:end -->
