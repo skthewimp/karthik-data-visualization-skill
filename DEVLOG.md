@@ -2786,3 +2786,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Audited the whole layout/geometry MCP family. Status: | MCP tool | Same bug class? | State | |----------|----------------|-------| | `recommend_layout` | **Yes — root of the 29% panel** (no y-label budget) | **Fixed**...
 
 <!-- claude-session:7d67c216-0d17-4a12-ab8a-d4863cc05903:end -->
+
+<!-- claude-session:a50c4d09-4c02-4998-bc02-e072ace5599e:start -->
+## 2026-09-08 09:38 IST | Claude session `a50c4d09-4c0`
+
+### User prompts
+> look at @canonical-examples.pdf . This is from our latest run. some of the things that I can think of that are problematic in this. First graph has all the values labeled and still has the axes. I don't know why we ne...
+> <task-notification> <task-id>a1f15042705a727c3</task-id> <tool-use-id>toolu_01XNuQ5Bh2B3AXWUavk4f7N9</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/7d...
+> anything the downstream harnesses need to do?
+
+### Work done
+- Good question — let me verify how the harness consumes this before answering (MCP packaging + version), not guess.
+- Checked. Here's what the harness side needs — nothing structural, but two must-dos: **Must do** 1. **Update + restart the `karthik-dataviz-mcp` server** (pull to `059ffb2`, reinstall the Python package). This is the c...
+
+<!-- claude-session:a50c4d09-4c02-4998-bc02-e072ace5599e:end -->
