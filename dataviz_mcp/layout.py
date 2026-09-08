@@ -143,6 +143,8 @@ def recommend_layout(
     footer_lines: int = 0,
     x_labels: bool = False,
     longest_x_label_chars: int = 0,
+    y_labels: bool = False,
+    longest_y_label_chars: int = 0,
     delivery_profile: str = "chat",
 ) -> dict[str, Any]:
     """Recommend ``width_px x height_px x dpi``, a facet grid, and x-label rotation.
@@ -197,6 +199,12 @@ def recommend_layout(
     # Width comes from the x-slot demand (or a pleasant base); floored, then it fixes the aspect.
     panel_plot_w = max(MIN_PANEL_W if n_panels > 1 else base_w * 0.6, x_slots * slot_px)
     left_band = axis_band + (FREE_AXIS_BAND if (n_panels > 1 and y_scales_free) else 0.0)
+    # Long y-axis category labels (ranked names, model labels on a heatmap) must be budgeted
+    # into the left band, or the renderer grows the margin at the panel's expense. axis_band
+    # already covers a short (~4-char) tick plus the axis title; anything longer adds width.
+    if y_labels and longest_y_label_chars > 0:
+        y_tick_extra = max(0.0, (longest_y_label_chars - 4) * char_px(FONT_PT["axis"], dpi))
+        left_band += y_tick_extra
     width = max(base_w, ncol * (panel_plot_w + left_band) + (ncol - 1) * PANEL_GUTTER)
 
     # Plot height: y-slot demand when the axis is discrete, else a pleasant aspect off the final
@@ -222,6 +230,20 @@ def recommend_layout(
             f"{max_h:.0f}px: rows will cramp - show a top-N, page, or split."
         )
         height = max_h
+
+    # Data-panel share of the finished canvas, measured after any ceiling clamp. A long left
+    # label band or reserved text bands can starve the panel (the 29%-panel heatmap failure);
+    # report the fraction so the caller sees it, and warn when the labels dominate.
+    panel_w_after = max(0.0, (width - ncol * left_band - (ncol - 1) * PANEL_GUTTER) / ncol)
+    panel_h_after = max(0.0, (height - bands - axis_band - (nrow - 1) * PANEL_GUTTER) / nrow)
+    data_panel_area = panel_w_after * panel_h_after * ncol * nrow
+    data_panel_fraction = round(data_panel_area / (width * height), 3) if width and height else 0.0
+    if data_panel_fraction < 0.4:
+        warnings.append(
+            f"the data panel is only {data_panel_fraction:.0%} of the canvas; the axis labels "
+            "and text bands dominate - shorten or abbreviate the category labels, drop a text "
+            "band, or reduce the category count so the plot area carries the ink."
+        )
 
     # Horizontal x labels crowd: the style bans slanted ticks, so never recommend rotation -
     # keep them horizontal and thin, abbreviate, or widen instead. rotate_x_labels stays False.
@@ -262,6 +284,8 @@ def recommend_layout(
         "facet_scales": facet_scales_canonical,
         "rotate_x_labels": rotate_x_labels,
         "reserved_band_px": round(bands, 1),
+        "reserved_left_px": round(left_band, 1),
+        "data_panel_fraction": data_panel_fraction,
         "warnings": warnings,
         "rationale": rationale,
     }

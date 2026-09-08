@@ -311,6 +311,8 @@ def create_server() -> Any:
         footer_lines: int = 0,
         x_labels: bool = False,
         longest_x_label_chars: int = 0,
+        y_labels: bool = False,
+        longest_y_label_chars: int = 0,
         delivery_profile: str = "chat",
     ) -> dict[str, Any]:
         """Size a clip-safe canvas (width/height/dpi), facet grid, and x-label rotation.
@@ -321,9 +323,16 @@ def create_server() -> Any:
         when labels still won't fit, triggers rotation. Faceting multiplies via a grid. Set
         ``filled_marks`` for bar/tile/column slots. ``facet_scales`` takes the ggplot
         ``scales=`` value directly (fixed / free / free_x / free_y); a free y-axis reserves
-        a per-panel band and the canonical value is echoed back. Overflow past the profile
-        ceiling is warned, never squashed. Call at select, before build; feed the dims into the renderer
-        and into ``recommend_text_placement``. It sizes the box, never picks the chart.
+        a per-panel band and the canonical value is echoed back.
+
+        Pass ``longest_y_label_chars`` (with ``y_labels=True``) for long category labels on
+        the y-axis - ranked names, model labels on a heatmap - so the left band is budgeted
+        from the real label width and the canvas grows, instead of the renderer stealing the
+        panel to fit them. The result reports ``reserved_left_px`` and ``data_panel_fraction``
+        (the plot area's share of the canvas); a panel starved below 40% is warned. Overflow
+        past the profile ceiling is warned, never squashed. Call at select, before build; feed
+        the dims into the renderer and into ``recommend_text_placement``. It sizes the box,
+        never picks the chart.
         """
         return recommend_layout_core(
             x_slots,
@@ -337,6 +346,8 @@ def create_server() -> Any:
             footer_lines,
             x_labels,
             longest_x_label_chars,
+            y_labels,
+            longest_y_label_chars,
             delivery_profile,
         )
 

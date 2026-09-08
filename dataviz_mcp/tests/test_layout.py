@@ -80,6 +80,48 @@ def test_title_bands_reserve_vertical_space():
     assert titled["height_px"] > plain["height_px"]
 
 
+def test_long_y_labels_reserve_left_width_and_grow_the_canvas():
+    # The 7-Sep heatmap failure: long model labels on the y-axis were not budgeted, so
+    # the renderer grew the left margin at the panel's expense (panel fell to 29%). The
+    # left band must scale with the longest y label and the canvas grow to keep the panel.
+    short = recommend_layout(
+        x_slots=11, y_slots=24, filled_marks=True, y_labels=True, longest_y_label_chars=4
+    )
+    long = recommend_layout(
+        x_slots=11, y_slots=24, filled_marks=True, y_labels=True, longest_y_label_chars=60
+    )
+    assert long["reserved_left_px"] > short["reserved_left_px"]
+    # Once the label band plus the panel floor exceeds the base width, the canvas grows
+    # rather than shrinking the panel behind the labels.
+    assert long["width_px"] > short["width_px"]
+
+
+def test_reports_data_panel_fraction_and_keeps_it_healthy():
+    result = recommend_layout(
+        x_slots=11, y_slots=24, filled_marks=True, y_labels=True, longest_y_label_chars=34,
+        delivery_profile="chat",
+    )
+    assert 0.0 < result["data_panel_fraction"] <= 1.0
+    # With the left band budgeted and the canvas grown, the plot panel keeps a real share
+    # of the canvas rather than collapsing behind the labels.
+    assert result["data_panel_fraction"] >= 0.4
+
+
+def test_a_left_band_that_would_dominate_is_warned():
+    # Extreme labels the ceiling cannot fully absorb must be surfaced, not silently squashed.
+    result = recommend_layout(
+        x_slots=6, y_slots=10, filled_marks=True, y_labels=True, longest_y_label_chars=90,
+        delivery_profile="chat",
+    )
+    assert any("label" in w.lower() for w in result["warnings"])
+
+
+def test_short_labels_leave_layout_unchanged():
+    # Regression: the new label budgeting must not perturb the default sizing.
+    with_flag = recommend_layout(y_slots=8, filled_marks=True)
+    assert with_flag["width_px"] == recommend_layout(y_slots=8, filled_marks=True)["width_px"]
+
+
 def test_suggest_dims_grows_by_the_measured_overflow():
     out = suggest_dims_for_overflow(1200, 700, top_overflow_px=14, right_overflow_px=8)
     assert out["grow_height_px"] == 14
