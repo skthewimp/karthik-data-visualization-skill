@@ -54,6 +54,19 @@ def test_many_row_horizontal_bars_still_grow_height_by_rows():
     assert many["height_px"] > few["height_px"]
 
 
+def test_continuous_y_facets_use_the_profile_height_not_a_starved_panel_width():
+    # A 2-panel continuous-y chart with long y labels used to collapse to a wide, short strip
+    # (1318x357): the left label band starved each panel's width, and height was derived only
+    # from that starved width, dropping the profile's own 675px height. Height must now floor
+    # to the profile so the canvas is not squished.
+    squished = recommend_layout(
+        x_slots=6, y_slots=0, filled_marks=True, n_panels=2, y_labels=True,
+        longest_y_label_chars=35, title_lines=1, subtitle_lines=1, footer_lines=1,
+    )
+    assert squished["height_px"] >= 650  # ~profile height, not a 357px strip
+    assert squished["width_px"] / squished["height_px"] < 2.2  # not letterboxed
+
+
 def test_overflow_past_the_ceiling_is_warned_not_squashed():
     result = recommend_layout(x_slots=1000, delivery_profile="chat")
     assert result["width_px"] <= 1600  # clamped to the chat ceiling
