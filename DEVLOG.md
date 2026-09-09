@@ -2800,3 +2800,14 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Checked. Here's what the harness side needs — nothing structural, but two must-dos: **Must do** 1. **Update + restart the `karthik-dataviz-mcp` server** (pull to `059ffb2`, reinstall the Python package). This is the c...
 
 <!-- claude-session:a50c4d09-4c02-4998-bc02-e072ace5599e:end -->
+
+<!-- claude-session:63ddbd2a-ebcc-4b86-a72a-972a2a340b00:start -->
+## 2026-09-09 10:22 IST | Claude session `63ddbd2a-ebc`
+
+### User prompts
+> these graphs show time taken by various stges and tool calls of a recent run. can we figure out how to squeeze more efficiencies? [Image #1]
+
+### Work done
+- Efficiency levers, ranked by time recoverable: **Tool side (deterministic, easiest wins)** 1. **probe_renderers → cache once per run.** 8 calls, 13.7s. Renderer capability is environment-stable within a run/machine. P...
+
+<!-- claude-session:63ddbd2a-ebcc-4b86-a72a-972a2a340b00:end -->
