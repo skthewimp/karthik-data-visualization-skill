@@ -1348,8 +1348,12 @@ only its own territory, but both report into this one review.
 
 Then consolidate every finding into ONE correction: state it as ``proposed_fixes`` with the
 ``preservation_constraints`` it must not disturb (a revise is a bounded edit, not a silent
-re-composition), route it once to build, and re-render. If the render reveals the idea itself
-is wrong, route back to the idea gate rather than patching pixels.
+re-composition), route it once to build, and re-render. Write ``proposed_fixes`` as a NUMBERED
+list, one fix per item; build must address every item in order and write ``changes_made`` as
+the SAME numbered list, one line per item - what it changed, or "couldn't: <reason>" when it
+could not. The echo is what forces completeness: a builder that must restate items 1..N and
+answer each cannot silently drop one the way it can with a prose blob. If the render reveals
+the idea itself is wrong, route back to the idea gate rather than patching pixels.
 
 Verification is a distinct pass, not another review: against ``verification_criteria`` (each
 fix landed, plus a regression check on the regions the fixes touched and their neighbours),

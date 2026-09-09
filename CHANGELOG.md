@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Execution gate: numbered correction checklist, echoed back by build
+
+Audits of the review->build handoff showed the builder implementing only some of the
+reviewer's fixes: a reviewer listing five corrections got two or three applied, the rest
+silently dropped. `proposed_fixes` was an unordered prose blob, so a skipped item left no
+trace.
+
+- **`proposed_fixes` is now a numbered list and `changes_made` must echo it item-for-item**
+  (`dataviz-execution` `claude`, `codex`, `docs/skills/dataviz-execution.md`, and the
+  `stage_contracts.py` execution comment). Build addresses every numbered item in order and
+  restates the same numbered list saying what it changed or `couldn't: <reason>`. The echo
+  forces completeness - a dropped fix surfaces as a gap or an explicit "couldn't" instead of
+  vanishing. No new stage, no schema change, no re-measure loop.
+
 ### Frame: the renderer owns the chrome, so the reserved bands are not a margin
 
 A two-panel chart with long y labels collapsed to a wide, short strip. The builder had read
