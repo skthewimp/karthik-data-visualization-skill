@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Layout: floor every facet panel to the profile height, not just continuous ones
+
+A two-panel chart with long y labels and a wide left label band came out as a wide, short
+strip (1,318 x 390-427): the panel width was starved by the labels and the canvas height was
+derived from that starved width, dropping the delivery profile's own height entirely.
+
+- **`recommend_layout` now floors each panel's plot height to the profile's per-row plotting
+  height regardless of the y axis** (`dataviz_mcp/layout.py`). The first pass gated the floor
+  on a continuous y axis (`y_slots == 0`), so a sparse discrete panel (`y_slots = 5`) still
+  collapsed. The floor now covers both; row demand still wins once there are enough rows, so a
+  tall ranked strip keeps scaling with its row count. The profile's `height_px` is loaded and
+  used instead of being dropped.
+
 ### Execution gate: numbered correction checklist, echoed back by build
 
 Audits of the review->build handoff showed the builder implementing only some of the

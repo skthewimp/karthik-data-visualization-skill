@@ -216,12 +216,16 @@ def recommend_layout(
     if y_slots > 0:
         panel_plot_h = max(MIN_PANEL_H if n_panels > 1 else 0.0, y_slots * max(slot_px, row_floor))
     else:
-        # Continuous y: a pleasant aspect off the panel width, but never shorter than the
-        # profile's own plotting height would give per row. Otherwise a label-starved panel
-        # width (a wide left band eating the facet's width) collapses the whole canvas to a
-        # squashed strip - the base profile height was being dropped instead of used.
-        base_panel_h = max(0.0, base_h - bands - axis_band - (nrow - 1) * PANEL_GUTTER) / nrow
-        panel_plot_h = max(panel_w_final / 1.6, base_panel_h)
+        # Continuous y: a pleasant aspect off the panel width.
+        panel_plot_h = panel_w_final / 1.6
+    # Floor every panel to the profile's own per-row plotting height, whatever the y axis is.
+    # Otherwise the canvas collapses to a wide, squashed strip: a label-starved panel width
+    # (continuous) or a sparse category count (a few discrete rows) leaves too little height and
+    # the base profile height is dropped instead of used. Row demand or a wide continuous aspect
+    # already exceeds this whenever there are enough rows, so it only binds on the short cases
+    # and only ever grows height.
+    base_panel_h = max(0.0, base_h - bands - axis_band - (nrow - 1) * PANEL_GUTTER) / nrow
+    panel_plot_h = max(panel_plot_h, base_panel_h)
     # Don't letterbox: a panel far wider than tall (a few-row horizontal bar panel on a wide
     # canvas, or paired share panels) flattens its marks and crowds its category labels into a
     # thin strip. Give it enough height that it is no wider than MAX_PANEL_ASPECT. Row demand or a

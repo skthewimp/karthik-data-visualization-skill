@@ -67,6 +67,25 @@ def test_continuous_y_facets_use_the_profile_height_not_a_starved_panel_width():
     assert squished["width_px"] / squished["height_px"] < 2.2  # not letterboxed
 
 
+def test_sparse_discrete_y_facets_also_use_the_profile_height():
+    # The height floor must cover a few-category discrete y axis too, not only continuous y:
+    # a 2-panel chart with y_slots=5 and long labels came out 1318x427 (a wide strip) because
+    # the profile-height floor was gated on y_slots==0. Row demand still wins once there are
+    # enough rows.
+    sparse = recommend_layout(
+        x_slots=6, y_slots=5, filled_marks=True, n_panels=2, y_labels=True,
+        longest_y_label_chars=35, title_lines=1, subtitle_lines=1, footer_lines=1,
+    )
+    assert sparse["height_px"] >= 650  # profile height, not a 427px strip
+    assert sparse["width_px"] / sparse["height_px"] < 2.2
+    # Many rows still dominate the floor and grow height further.
+    many = recommend_layout(
+        x_slots=6, y_slots=40, filled_marks=True, n_panels=2, y_labels=True,
+        longest_y_label_chars=35, title_lines=1, subtitle_lines=1, footer_lines=1,
+    )
+    assert many["height_px"] > sparse["height_px"]
+
+
 def test_overflow_past_the_ceiling_is_warned_not_squashed():
     result = recommend_layout(x_slots=1000, delivery_profile="chat")
     assert result["width_px"] <= 1600  # clamped to the chat ceiling
