@@ -2846,3 +2846,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed. `main` up to date with origin. ## Done — what changed Fixed the token sink: the execution gate ran **two revision loops** (defects, then composition "once defects clean") → composition fixes reopened geometry...
 
 <!-- claude-session:371c435b-5421-41b5-8cf4-1677845f9196:end -->
+
+<!-- claude-session:4f8acceb-504e-414f-b813-264f4db8e1f0:start -->
+## 2026-09-09 12:58 IST | Claude session `4f8acceb-504`
+
+### User prompts
+> had a production case recently where hte axis labels didn't get read though they were available. as per the harness: • The model saw the years, then discarded them during extraction. The saved diagnosis explicitly say...
+
+### Work done
+- All 5 files are my task. Committing:
+- Done. Pushed `405b7ec`, local == origin/main. **Fix:** `dataviz-extract` rule #2 now separates printed axis anchors (legible tick labels, positions, axis meaning) from inferred per-observation position. Readable label...
+
+<!-- claude-session:4f8acceb-504e-414f-b813-264f4db8e1f0:end -->
