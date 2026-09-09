@@ -2811,3 +2811,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Efficiency levers, ranked by time recoverable: **Tool side (deterministic, easiest wins)** 1. **probe_renderers → cache once per run.** 8 calls, 13.7s. Renderer capability is environment-stable within a run/machine. P...
 
 <!-- claude-session:63ddbd2a-ebcc-4b86-a72a-972a2a340b00:end -->
+
+<!-- claude-session:371c435b-5421-41b5-8cf4-1677845f9196:start -->
+## 2026-09-09 12:19 IST | Claude session `371c435b-542`
+
+### User prompts
+> Looks like the the what is called as a execution loop which is where we verify whether a visualization is right and then like make changes and things like that that seems to be going very slow and consuming a lot of t...
+
+### Work done
+- Committed. Now push (fast-forward, no divergence):
+- Pushed. `main` up to date with origin. ## Done — what changed Fixed the token sink: the execution gate ran **two revision loops** (defects, then composition "once defects clean") → composition fixes reopened geometry...
+
+<!-- claude-session:371c435b-5421-41b5-8cf4-1677845f9196:end -->
