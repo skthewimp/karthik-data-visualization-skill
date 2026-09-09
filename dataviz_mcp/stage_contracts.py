@@ -929,8 +929,48 @@ _INSPECTION_EVIDENCE = {
     "additionalProperties": False,
 }
 
+# One consolidated review finding: a single defect OR composition problem, from the one
+# review the execution gate runs. ``area`` spans both rendering defects (geometry ... ink) and
+# composition (what reads first, competing emphasis, unearned ink, whitespace) so the first
+# review names them together - not composition deferred to a second loop after the defect
+# budget is spent.
+_EXECUTION_FINDING = {
+    "type": "object",
+    "properties": {
+        "area": {
+            "type": "string",
+            "enum": [
+                "geometry",
+                "association",
+                "hierarchy",
+                "colour",
+                "precision",
+                "ink",
+                "composition",
+            ],
+        },
+        "severity": {"type": "string", "enum": ["fatal", "major", "minor"]},
+        "problem": {"type": "string"},
+    },
+    "required": ["area", "severity", "problem"],
+    "additionalProperties": False,
+}
+
 # Execution stage output: the post-render craft checker's verdict and the delivered
 # artifact. Replaces the old ``refine`` stage; the idea gate now owns the substance check.
+#
+# The handoff splits the ONE review from the correction and its verification, so the driver
+# never conflates "what I found" with "what I did":
+#   * ``findings`` - the single consolidated review: every consequential rendering defect AND
+#     every composition problem, named together in one pass (not composition deferred to a
+#     second loop). Empty when the first render is already clean.
+#   * ``proposed_fixes`` - the one consolidated correction derived from ``findings``, stated
+#     before it is applied. Empty when nothing needs fixing.
+#   * ``preservation_constraints`` - what the correction must leave unchanged, so a revise is a
+#     bounded edit and not a silent re-composition.
+#   * ``verification_criteria`` - the observable checks the verification pass runs on the
+#     revised candidate, including regression checks on the regions a fix touched.
+#   * ``changes_made`` - what was actually applied and confirmed by the verification pass.
 EXECUTION_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
@@ -938,6 +978,10 @@ EXECUTION_SCHEMA: dict[str, object] = {
         "summary": {"type": "string"},
         "artifact_path": {"type": "string"},
         "inspection": _INSPECTION_EVIDENCE,
+        "findings": {"type": "array", "items": _EXECUTION_FINDING},
+        "proposed_fixes": _STRING_ARRAY,
+        "preservation_constraints": _STRING_ARRAY,
+        "verification_criteria": _STRING_ARRAY,
         "changes_made": _STRING_ARRAY,
         "residual_limitations": _STRING_ARRAY,
     },
@@ -946,6 +990,10 @@ EXECUTION_SCHEMA: dict[str, object] = {
         "summary",
         "artifact_path",
         "inspection",
+        "findings",
+        "proposed_fixes",
+        "preservation_constraints",
+        "verification_criteria",
         "changes_made",
         "residual_limitations",
     ],
@@ -1278,23 +1326,38 @@ null and report geometry as UNKNOWN, never as a pass - a ``deliver`` verdict may
 description of colour or ink, but its geometry claim must come from the tool or be marked unknown.
 Before judging a redesign build, confirm it carries a recorded cold form
 decision; a redesign candidate that is a tidied re-render of the source form with no form
-choice behind it is a flow violation - route it back to the select stage. Consolidate the
-defects you find into one focused revision, re-render, and re-inspect the changed regions and
-their neighbours. If the render reveals that the idea itself is wrong, route back to the idea
-gate rather than patching pixels. How many revision passes to run is the driver's budget, not
-a fixed number in this stage: exit as soon as no fatal or major defect remains. Deliver the
+choice behind it is a flow violation - route it back to the select stage.
+
+Run ONE review, then ONE consolidated correction, then verify - do not run a defect loop and
+a composition loop back to back. In that single review, look at the export both ways: element
+by element for the rendering defects above, AND stepped back as a whole picture for
+composition, loading ``dataviz-aesthetic`` (carried with this stage) as part of THIS review,
+not after the defects are clean. Composition is what reads first, whether anything competes
+with the subject, whether every box / rule / colour / bold phrase earns its place, whether
+whitespace groups rather than fills, and whether it looks composed rather than styled-default.
+Gathering composition findings only after the defect budget is spent forces a second revision
+loop and lets a composition fix reopen a geometry defect - so name every consequential
+rendering defect AND every composition problem together now, in ``findings``. The defect
+checks own rendering correctness and the composition lens owns premium feel; each still judges
+only its own territory, but both report into this one review.
+
+Then consolidate every finding into ONE correction: state it as ``proposed_fixes`` with the
+``preservation_constraints`` it must not disturb (a revise is a bounded edit, not a silent
+re-composition), route it once to build, and re-render. If the render reveals the idea itself
+is wrong, route back to the idea gate rather than patching pixels.
+
+Verification is a distinct pass, not another review: against ``verification_criteria`` (each
+fix landed, plus a regression check on the regions the fixes touched and their neighbours),
+re-inspect the revised candidate, choose the baseline or the revision - whichever reads better
+with no new fatal or major defect - record what actually held in ``changes_made``, and stop.
+Exit as soon as no fatal or major defect remains; how many correction/verify passes to run is
+the driver's budget, not a fixed number in this stage. Deliver the
 best valid candidate with a plain summary and any residual limitation. An acceptance check
 left ``unknown`` because its ``external_validation`` ground truth was unavailable is not a
 defect and never a reason to withhold: carry it into ``residual_limitations`` as a footnote
 and still return ``deliver``. Reserve the ``blocked`` verdict for a genuine inability to
 produce any valid artifact at all - never for a missing external denominator, dataset, or
-methodology. Once the defects are clean, run the composition pass (``dataviz-aesthetic``,
-loaded with this stage) as the final step before delivering: step back from the whole export and
-check what is seen first, whether anything competes with it, whether every box/rule/colour/bold
-phrase earns its place, whether whitespace groups rather than fills, and whether it looks composed
-rather than styled-default - route composition fixes back through the same revision loop. That
-pass owns composition and premium feel; the defect checks above own rendering correctness, and
-the two do not re-check each other's territory. Treat ``REDUNDANT_VALUE_AXIS`` as
+methodology. Treat ``REDUNDANT_VALUE_AXIS`` as
 revision-required, not optional polish. A connector on an adjacent direct label is also redundant
 ink; require the builder to reproduce ``leader_line`` only when the placement result contains one.
 For tables, replace chart refitting and mark-placement with the table layout path.

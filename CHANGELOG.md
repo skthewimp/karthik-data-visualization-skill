@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Execution gate: one review, one correction, one verification (fold composition in)
+
+The post-render execution gate ran two revision loops back to back - defects first, then
+composition ("once the defects are clean") - so composition findings arrived after the
+correction budget was already spent, and a composition fix (move the claim onto the focal
+mark, demote a series to grey) could reopen a geometry defect a further loop then had to
+catch. That ping-pong was the gate's biggest token/time cost.
+
+- **Composition is now found in the same single review as the defects** (`dataviz-execution`,
+  `dataviz-aesthetic`, `dataviz-construct`, `_CONSTRUCT_EXECUTION`). `dataviz-aesthetic` is
+  still carried into the execution call, but the review looks at the export both ways - element
+  by element for rendering defects and stepped back for composition - and names every
+  consequential rendering defect *and* composition problem together, then consolidates both
+  into one correction. Each still judges only its own territory; neither re-checks the other's.
+- **The handoff splits the review from the correction and its verification**
+  (`EXECUTION_SCHEMA`). `changes_made` alone conflated "what I found" with "what I did"; the
+  schema now carries `findings` (the one consolidated review - each defect/composition problem
+  with its `area` and `severity`), `proposed_fixes` (the correction before it is applied),
+  `preservation_constraints` (what the revision must not disturb), `verification_criteria`
+  (each fix plus a regression check on the touched regions), and `changes_made` (what the
+  verification pass confirmed held).
+- **Verification is a distinct step, not another review.** Refit first (deterministic) → one
+  review → one consolidated correction → verify (fixes landed, regressions checked,
+  baseline-or-revision chosen) → stop. How many correction/verify passes run stays the
+  driver's budget.
+
 ### Canonical-run fixes: front-load label economy, guard heatmap scale, un-letterbox paired panels
 
 Five defects from the latest canonical run, traced to producer-application gaps (the gate

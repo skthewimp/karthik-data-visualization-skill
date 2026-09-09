@@ -1,10 +1,10 @@
 # Dataviz Aesthetic
 
-The **composition gate** of the construct process. It runs after the chart is built and after the execution gate has cleared the rendering defects, and it asks a different question with a different lens: not "is any element wrong" but "does the whole thing read as one composed, premium image, or like styled default output with the finding buried in it".
+The **composition lens** of the execution review. It runs as part of that single review - alongside the element-by-element defect checks, in the same pass, not deferred to a second loop after the defects are clean - and it asks a different question with a different lens: not "is any element wrong" but "does the whole thing read as one composed, premium image, or like styled default output with the finding buried in it". Folding it into the one review is what stops the old two-loop ping-pong, where composition fixes arrived after the defect budget was spent and reopened geometry defects.
 
 ## Not the same as `dataviz-execution`
 
-`dataviz-execution` hunts defects element by element - clipping, overlap, label-to-mark association, precision, colour contrast, CVD and grayscale survival. This gate does the opposite move: step back and look at the whole export at delivery size as a picture, before reading any single label. Most of what makes a chart look cheap is invisible up close and obvious from a step back. The two gates do not re-check each other's territory: aesthetic assumes the defects are already clean and never re-runs the geometry or colour checks.
+`dataviz-execution` hunts defects element by element - clipping, overlap, label-to-mark association, precision, colour contrast, CVD and grayscale survival. This lens does the opposite move: step back and look at the whole export at delivery size as a picture, before reading any single label. Most of what makes a chart look cheap is invisible up close and obvious from a step back. The two never re-check each other's territory, but they run in the same review: composition problems are named alongside the defects, then both are corrected together in one consolidated revision - aesthetic does not wait for the defects to be fixed first, and never re-runs the geometry or colour checks itself.
 
 ## The five questions
 

@@ -5,15 +5,16 @@ description: Post-render composition gate - does the finished chart read as one 
 
 # Dataviz Aesthetic
 
-The **composition gate**. It runs after the chart is built and the execution gate has cleared the defects, asking a different question with a different lens: not "is any element wrong" but "does the whole thing read as one composed, premium image, or like styled default output with the finding buried in it".
+The **composition lens** of the execution review. It runs as part of that single review - alongside the element-by-element defect checks, in the *same* pass, not deferred to a second loop after the defects are clean - asking a different question with a different lens: not "is any element wrong" but "does the whole thing read as one composed, premium image, or like styled default output with the finding buried in it". Running it only after the defect budget is spent forces a second revision loop and lets a composition fix reopen a geometry defect; report composition problems into the one review so a single correction handles both.
 
-Execution hunts element by element. This gate does the opposite: **step back and look at the whole export at delivery size as a picture**, before reading any single label. Most of what makes a chart look cheap is invisible up close and obvious from a step back.
+Execution hunts element by element. This lens does the opposite: **step back and look at the whole export at delivery size as a picture**, before reading any single label. Most of what makes a chart look cheap is invisible up close and obvious from a step back.
 
 ## Keep the roles separate
 
 - `dataviz-execution` owns rendering **defects**: clipping, overlap, label-to-mark association,
-  precision as displayed, colour contrast, CVD and grayscale survival. This gate never re-checks
-  those - it assumes they are already clean.
+  precision as displayed, colour contrast, CVD and grayscale survival. This lens never re-checks
+  those - but it does not wait for them to be fixed first: both are found in the one review, then
+  corrected together in a single consolidated revision.
 - `dataviz-eval` owns the **send / revise / redesign** decision and semantic meaning.
 - `dataviz-critique` reviews a chart standalone and proposes alternative forms.
 - This gate owns **composition**: what the reader sees first, whether anything competes with it,
