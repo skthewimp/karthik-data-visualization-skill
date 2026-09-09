@@ -2858,3 +2858,19 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Pushed `405b7ec`, local == origin/main. **Fix:** `dataviz-extract` rule #2 now separates printed axis anchors (legible tick labels, positions, axis meaning) from inferred per-observation position. Readable label...
 
 <!-- claude-session:4f8acceb-504e-414f-b813-264f4db8e1f0:end -->
+
+<!-- claude-session:42be53a8-04d2-41f3-9224-725361f6deac:start -->
+## 2026-09-09 15:12 IST | Claude session `42be53a8-04d`
+
+### User prompts
+> some issues downstream. basically the reocmmendations of hte reviewer are not being properly used by the builder for the next phase. only some of the stuff is being done, not all. wonder if there is some context rot h...
+> i don't care about teh verify. we're not adading another loop. we need a simple solution that all the recommendations of the reviewer are implemented. don't suggest somethign verbose or that involves JSONs.
+> ok do it
+
+### Work done
+- Missing PIL in bare python3 (env issue, not my edit — I only touched a docstring comment). Syntax-check the file directly:
+- Done. Shipped + pushed. **What changed:** `proposed_fixes` is now a **numbered list**; build must address every item in order and echo the **same numbered list** in `changes_made` (what changed, or `couldn't: <reason>...
+- Touched files: `CHANGELOG.md`, `dataviz-execution/claude/SKILL.md`, `dataviz-execution/codex/SKILL.md`, `dataviz_mcp/stage_contracts.py`, `docs/skills/dataviz-execution.md`
+- CHANGELOG.md | 14 ++++++++++++++
+
+<!-- claude-session:42be53a8-04d2-41f3-9224-725361f6deac:end -->
