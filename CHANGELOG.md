@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Extract: printed axis labels survive per-observation date uncertainty
+
+A production repair read a time axis labelled by year (2017-2026 visible), but because it
+was unsure of each bar's exact month, it discarded the readable year ticks and substituted
+synthetic sequential ids (P01-P118). That erasure propagated into the extracted table, the
+chart plan, and a reused cached diagnosis - the rebuilt chart lost its calendar anchoring.
+
+- **`dataviz-extract` now separates printed axis anchors from inferred per-observation
+  position** (`claude`, `codex`, `docs/skills/dataviz-extract.md`). Legible tick labels,
+  their positions, and the axis's stated meaning are directly-read source data and are
+  preserved exactly; uncertainty about where an observation sits *inside* a labelled interval
+  is recorded on its own and never licenses dropping the coarser labels the axis prints.
+  Synthetic sequential ids stand in only when the axis prints no labels at all. Mirrors the
+  existing "a missing label is not a missing category" guard, now extended to axis labels.
+
 ### Execution gate: one review, one correction, one verification (fold composition in)
 
 The post-render execution gate ran two revision loops back to back - defects first, then

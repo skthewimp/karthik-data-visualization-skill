@@ -16,7 +16,7 @@ The **full period-by-category table**: a value for every period and every catego
 Produce, explicitly:
 
 1. **The category members**, one per visually distinct series - listed by name where the source identifies them. If the chart encodes more distinct series than the legend names, still list every distinct series: name the ones you can and label the rest generically (an unlabelled series is still a row). Never shrink the category count to only the ones you could name - a missing label is not a missing category.
-2. **The periods or x-positions**, listed.
+2. **The periods or x-positions**, listed - and alongside them the axis anchors exactly as printed: every legible axis tick label (a year, a category name, a value gridline), its position, and the axis's stated meaning and unit. Tick labels are read directly off the image, not inferred - preserve them exactly, and keep them separate from any finer per-observation position you infer. Uncertainty about where an individual observation sits inside a labelled interval (which month within a printed year, which day within a printed week) never licenses discarding the coarser labels the axis actually prints: carry the printed labels through, and record the finer uncertainty on its own. Synthetic sequential ids (P01, P02 ...) stand in for positions only when the axis prints no labels at all - never as a replacement for labels you could read.
 3. **A value for every (period × category) cell.** No gaps. If a cell cannot be read, estimate it - but it must exist.
 4. **Units and any transformation** visible on the source (counts, %, index, log axis, share-of-total, cumulative), so the rebuild does not silently change the measure.
 
@@ -45,3 +45,4 @@ p1, c2,  3.1
 
 - Do not choose a chart form or decide what matters - that is `dataviz-brief` and `dataviz-selector`.
 - Do not drop a category because its values are hard to read; estimate it and keep it. Deciding a category is not key is the brief's job, made in message terms, not a consequence of extraction difficulty.
+- Do not replace readable axis labels with synthetic indices because individual observations are hard to place. A printed label is directly-read data; erasing it over per-observation uncertainty discards information the source actually gave you, exactly as dropping a hard-to-read category would.

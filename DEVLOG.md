@@ -1,5 +1,28 @@
 # Devlog
 
+## 2026-09-09 - extract: preserve printed axis labels through per-observation uncertainty
+
+### User prompt
+
+- Relayed a production case: a repair saw yearly x-axis labels (2017-2026) but, unsure of
+  each bar's exact start/end month, replaced the dates with synthetic ids P01-P118. The
+  erasure propagated into the extracted table, the chart plan (told to preserve the ids and
+  avoid adding calendar dates), and a reused cached diagnosis. Diagnosis: an extraction/handoff
+  failure - uncertainty about individual months erased clearly readable year labels. Core fix
+  belongs upstream in this repo; website carries the handoff safeguard and cache invalidation.
+
+### Decision
+
+- Scope: extract-only (producer hardening), per harden-producer-soften-gate. Website-side
+  handoff/cache/review-check kept out of this repo.
+
+### Change
+
+- `dataviz-extract` rule #2 now pairs the period list with axis anchors "exactly as printed"
+  and forbids swapping readable labels for synthetic indices over per-observation uncertainty;
+  a new boundary bullet mirrors the "hard-to-read category" guard. Applied to `claude`,
+  `codex`, and the `docs/skills` prose copy. Generalized (no hardcoded years/months/P118).
+
 ## 2026-09-07 - table harness findings: per-role measurement + shared constructor
 
 ### User prompt
