@@ -73,6 +73,26 @@ def test_a_longer_y_axis_reserves_a_wider_left_band():
     assert wide["plot_area"]["x"] > narrow["plot_area"]["x"]
 
 
+def test_plot_margin_is_the_edge_only_and_decoupled_from_the_bands():
+    # The renderer lays out the chrome natively; the builder must set plot.margin to the outer
+    # edge alone. If it summed the reserved bands into plot.margin, the axis/legend/title would
+    # be reserved twice and the panel would collapse (the 2-panel squish). So plot_margin_px
+    # must NOT grow when the bands grow - it stays the edge margin regardless of frame text.
+    plain = reserve_frame()
+    heavy = reserve_frame(
+        title="A rather long headline that wraps across the width of the canvas",
+        subtitle="and a subtitle too", caption="Source: internal finance",
+        x_axis_title="Quarter", longest_x_tick="Q1'24", y_axis_title="Revenue ($MM)",
+        longest_y_tick="$1,250,000", legend_side="right", longest_legend_label="Google Network",
+    )
+    # Bands grew a lot; the plot margin did not.
+    assert heavy["reserved_px"]["top"] > plain["reserved_px"]["top"]
+    assert heavy["plot_margin_px"] == plain["plot_margin_px"]
+    # It is only the outer edge, not the reserved band.
+    assert heavy["plot_margin_px"]["top"] < heavy["reserved_px"]["top"]
+    assert heavy["plot_margin_px"]["left"] < heavy["reserved_px"]["left"]
+
+
 def test_a_canvas_too_small_for_the_frame_is_warned_not_squashed():
     result = reserve_frame(
         title="A rather long title that cannot possibly fit",

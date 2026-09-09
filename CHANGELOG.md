@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Frame: the renderer owns the chrome, so the reserved bands are not a margin
+
+A two-panel chart with long y labels collapsed to a wide, short strip. The builder had read
+`reserve_frame`'s `reserved_px` (which looks exactly like a `margin()` call) and set it as
+ggplot's `plot.margin`, while ggplot *also* laid out the title, axis and legend itself - so
+the chrome was reserved twice (an empty band plus the renderer's own text) and the data panel
+was squeezed toward zero.
+
+- **`reserve_frame` now returns `plot_margin_px` - the outer edge alone - and its `plot_area`
+  / `reserved_px` are documented as advisory** (`dataviz_mcp/frame.py`, `server.py`). The
+  renderer lays out title/subtitle/axis/legend/caption natively inside the `recommend_layout`-
+  sized canvas; the builder sets `plot.margin` to `plot_margin_px` and never derives margins
+  from the bands. `plot_area` stays the blind clip check and the `place_on_marks` boundary;
+  `frame_blocks` stay obstacles. Build contract, `karthik-data-visualization` and
+  `dataviz-construct` skills, and docs updated to match. The margin is decoupled from the band
+  sizes by construction, so growing the frame text can no longer grow the margin.
+
 ### Extract: printed axis labels survive per-observation date uncertainty
 
 A production repair read a time axis labelled by year (2017-2026 visible), but because it

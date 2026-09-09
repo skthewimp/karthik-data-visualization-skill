@@ -1,9 +1,16 @@
 """Reserve the frame - title, subtitle, caption, footer, axis and legend bands - blind.
 
 The chrome of a chart (its title and axis labels) sits in the margins; where it goes does
-not depend on where the data landed. So it can be placed with text-measuring arithmetic
+not depend on where the data landed. So it can be measured with text-measuring arithmetic
 *before* anything is drawn: wrap each block to the canvas width, count the lines, reserve a
-pixel band, and hand back the rectangle the marks get to fill. No render needed.
+pixel band, and estimate the rectangle the marks get to fill. No render needed.
+
+The renderer lays out that chrome natively - inside the canvas ``recommend_layout`` already
+sized to hold it - so this tool does NOT set the plot's margins from the bands. Doing that
+reserves the chrome twice (an empty band, plus the renderer's own title/axis/legend) and
+collapses the panel. The bands are advisory: they drive the blind clip check (does a block
+fit the width?) and give ``place_on_marks`` its obstacle boxes and plot boundary. The only
+margin returned for the builder is ``plot_margin_px`` - the outer edge alone.
 
 This is the forward companion to ``recommend_layout``: layout sizes the whole box from the
 data's shape; this carves the frame off the top/bottom/sides so the plot area is known before
@@ -71,14 +78,20 @@ def reserve_frame(
     font_pt: Optional[dict[str, float]] = None,
     edge_margin_px: Optional[float] = None,
 ) -> dict[str, Any]:
-    """Reserve the frame blind and return the plot rectangle the marks may fill.
+    """Reserve the frame blind and return an advisory plot rectangle plus the edge margin.
 
     Wraps each frame block to the canvas width with text metrics (no render), reserves a
-    pixel band for it, and subtracts the bands from the canvas to leave the plot area. The
+    pixel band for it, and subtracts the bands from the canvas to estimate the plot area. The
     title/subtitle/caption/footer come back as placement-ready ``frame_blocks`` (roles that
-    ``recommend_text_placement`` / ``place_on_marks`` treat as fixed) so the same boxes can be
-    drawn and passed on as obstacles. Axis and legend bands are reserved but not emitted as
-    blocks - the plotting layer draws those itself.
+    ``recommend_text_placement`` / ``place_on_marks`` treat as fixed obstacles). Axis and
+    legend bands are reserved but not emitted as blocks - the plotting layer draws those itself.
+
+    The renderer owns the chrome layout: it draws title, subtitle, axis and legend inside the
+    ``recommend_layout``-sized canvas natively. The builder sets ``plot.margin`` to the returned
+    ``plot_margin_px`` (the outer edge only) and NEVER derives margins from the reserved bands -
+    that would reserve the chrome twice and squash the panel. ``plot_area`` / ``reserved_px``
+    are advisory: they size the blind clip check and give ``place_on_marks`` its obstacles and
+    plot boundary.
 
     Canvas size, dpi, and per-role font sizes are all inputs: pass ``width_px`` / ``height_px``
     / ``dpi`` to fix the canvas (else the ``delivery_profile`` default) and ``font_pt`` to
@@ -96,9 +109,10 @@ def reserve_frame(
         font_pt: per-role point-size overrides merged over the house sizes.
         edge_margin_px: outer margin; defaults to 3% of width.
 
-    Returns ``canvas``, ``plot_area`` (x/y/width/height), ``reserved_px`` (top/bottom/left/
-    right), ``frame_blocks`` (each with wrapped_text, font_pt, anchor, bbox), ``warnings`` and
-    a ``rationale``.
+    Returns ``canvas``, ``plot_area`` (advisory x/y/width/height), ``plot_margin_px`` (the outer
+    edge margin to set as ``plot.margin``), ``reserved_px`` (advisory top/bottom/left/right band
+    sizes, NOT a margin), ``frame_blocks`` (each with wrapped_text, font_pt, anchor, bbox),
+    ``warnings`` and a ``rationale``.
     """
     profile = PROFILES.get(delivery_profile, PROFILES["chat"])
     width = float(width_px if width_px is not None else profile["width_px"])
@@ -171,6 +185,19 @@ def reserve_frame(
         bottom += line_px(fonts["axis"], dpi_f) * 1.6
     right = margin + right_band
 
+    # The renderer lays out its own chrome (title, subtitle, axis, legend, caption) natively,
+    # inside the canvas that ``recommend_layout`` already sized to hold it. So the ONLY margin
+    # the builder hands the renderer is the outer edge - never the reserved bands. Handing the
+    # bands to ``plot.margin`` reserves the chrome twice (an empty band plus the renderer's own
+    # text) and collapses the panel. ``reserved_px`` / ``plot_area`` below are advisory: they
+    # size the blind clip check and give ``place_on_marks`` its obstacle boxes and plot boundary.
+    plot_margin_px = {
+        "top": round(margin, 1),
+        "right": round(margin, 1),
+        "bottom": round(margin, 1),
+        "left": round(margin, 1),
+    }
+
     plot_area = {
         "x": round(left, 1),
         "y": round(top, 1),
@@ -192,6 +219,7 @@ def reserve_frame(
     return {
         "canvas": {"width_px": int(width), "height_px": int(height), "dpi": resolved_dpi},
         "plot_area": plot_area,
+        "plot_margin_px": plot_margin_px,
         "reserved_px": {
             "top": round(top, 1),
             "bottom": round(bottom, 1),

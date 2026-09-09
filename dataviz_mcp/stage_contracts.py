@@ -1177,8 +1177,10 @@ off the canvas is a reservation you skipped, not a revision the gate must catch:
   1. Size the canvas from the chart's shape with ``recommend_layout`` (chart), or take the
      delivery width (table).
   2. Reserve the frame BLIND, before any render. Chart: pass the title/subtitle/caption/footer,
-     axis and legend strings plus canvas and font sizes to ``reserve_frame`` and draw marks ONLY
-     inside the ``plot_area`` it returns, carrying its ``frame_blocks`` forward. Table: call
+     axis and legend strings plus canvas and font sizes to ``reserve_frame``, set ``plot.margin`` to
+     the ``plot_margin_px`` it returns (the outer edge alone - never derive margins from the
+     reserved bands, or the renderer's own chrome is reserved twice and the panel collapses), and
+     carry its advisory ``plot_area`` and ``frame_blocks`` forward as label boundary and obstacles. Table: call
      ``recommend_table_layout``, then draw the plan through ``render_table_from_plan`` (the
      shared constructor) so the measured column widths, row heights, header band and
      title/subtitle/notes bands are applied verbatim, not re-normalised by hand; a title,
@@ -1264,9 +1266,12 @@ its reason. Let the renderer's own fitted range and nice breaks stand for the va
 override them with the measure's natural domain (a percentage is not a 0-100 axis unless the data
 reaches it). Set an explicit range only for a deliberate zero baseline or a genuine full-range
 case. Place the frame before you draw: pass the raw title/subtitle/caption/footer, axis and legend
-strings, and the canvas and font sizes to ``reserve_frame`` (all inputs), draw the marks into
-the ``plot_area`` it returns, and carry its ``frame_blocks`` forward - this reserves the chrome
-by measurement, so nothing clips and the canvas is not left half-empty, with no revision loop.
+strings, and the canvas and font sizes to ``reserve_frame`` (all inputs); the renderer lays out
+the chrome natively inside the sized canvas, so set ``plot.margin`` to the returned
+``plot_margin_px`` (the outer edge alone) and never derive margins from the reserved bands -
+summing a band into the margin reserves the chrome twice and collapses the panel. Carry the
+advisory ``plot_area`` and ``frame_blocks`` forward as label boundary and obstacles - this
+measures the chrome up front, so nothing clips and the canvas is not left half-empty.
 For labels glued to specific marks (values on bars, callouts on points), do not guess their
 pixels: render once as a ruler, then pass the render's ``transform`` and ``marks``, the labels in
 DATA coordinates, and the ``frame_blocks`` to ``place_on_marks`` - it projects each to its true

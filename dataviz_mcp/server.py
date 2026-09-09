@@ -436,13 +436,16 @@ def create_server() -> Any:
         """Reserve the frame (title/subtitle/caption/footer/axes/legend) blind, before any draw.
 
         Chart chrome lives in the margins; its position does not depend on the data, so it is
-        placed with text-measuring arithmetic - wrap each block to the canvas width, count the
-        lines, reserve a pixel band - with no render. Returns the plot rectangle the marks may
-        fill, so the title never clips and the canvas never sits half-empty, without a revision
-        loop. Canvas size, dpi, and per-role font sizes are all inputs (``font_pt`` overrides
-        the house sizes, e.g. ``{"title": 20}``); a frame too big for the canvas is warned,
-        never squashed. Call at build, before the first render; feed ``plot_area`` to the
-        renderer and pass ``frame_blocks`` on to ``place_on_marks`` as fixed obstacles.
+        measured with text-measuring arithmetic - wrap each block to the canvas width, count the
+        lines, reserve a pixel band - with no render, so the title never clips and the canvas
+        never sits half-empty, without a revision loop. Canvas size, dpi, and per-role font sizes
+        are all inputs (``font_pt`` overrides the house sizes, e.g. ``{"title": 20}``); a frame
+        too big for the canvas is warned, never squashed. The renderer lays out the chrome
+        natively inside the sized canvas: set ``plot.margin`` to the returned ``plot_margin_px``
+        (the outer edge alone) and NEVER derive margins from the reserved bands - that reserves
+        the chrome twice and collapses the panel. Call at build, before the first render; the
+        advisory ``plot_area`` is the label boundary and ``frame_blocks`` are ``place_on_marks``
+        obstacles.
         """
         return reserve_frame_core(
             title,

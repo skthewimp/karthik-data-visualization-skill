@@ -95,7 +95,7 @@ A good workflow is:
 
 1. Use `dataviz-selector` to identify the chart form and encodings.
 2. Use `karthik-data-visualization` to implement the chart cleanly.
-3. Reserve placement before the first render - size the canvas from the chart's shape, reserve the frame (title, subtitle, footer, axes, legend get their own measured bands), and place data-glued labels by measurement, so the marks fill only the plot rectangle that remains. A clipped title is a skipped reservation, not a defect for step 4 to find.
+3. Reserve placement before the first render - size the canvas from the chart's shape, reserve the frame (title, subtitle, footer, axes, legend get their own measured bands - the renderer lays them out natively, so set `plot.margin` to the returned edge margin, never the bands), and place data-glued labels by measurement. A clipped title is a skipped reservation, not a defect for step 4 to find.
 4. Inspect the rendered output.
 5. Fix labels, spacing, annotations, scales, and title after seeing the export.
 
