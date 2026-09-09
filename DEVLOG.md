@@ -2874,3 +2874,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - CHANGELOG.md | 14 ++++++++++++++
 
 <!-- claude-session:42be53a8-04d2-41f3-9224-725361f6deac:end -->
+
+<!-- claude-session:28bd6a9a-4688-4a67-8e75-c9fa9f8e8321:start -->
+## 2026-09-09 15:26 IST | Claude session `28bd6a9a-468`
+
+### User prompts
+> there seems to be some issue with the image sizing thing. the input was a graph with 2 panels and it recommended a 1390 x 390 canvas. and then the whole thing got really squished. from downstream: The sizing code expl...
+> now test this on t his image [Image #2] . alkso sometimes when we have tables, 300px height is fine. i hope we don't have a minium and st uff. we'll keep the double count f or later
+> ok now let's get to the dbuole count. this was the first response from downstream when i started investigating this chhart gbeing squished: The immediate cause was double-counting the space for titles, labels and note...
+
+### Work done
+- 262 pass, validate + whitespace clean, and this time all 4 changed files are mine - no entanglement. Committing, pushing, installing:
+- Both points handled. Committed + pushed (`085a03f`), skills reinstalled. **1. Sizing fix now covers `y_slots=5`.** The first commit gated the profile-height floor on `y_slots==0`; I lifted it out so it applies to ever...
+
+<!-- claude-session:28bd6a9a-4688-4a67-8e75-c9fa9f8e8321:end -->
