@@ -1,5 +1,40 @@
 # Devlog
 
+## 2026-09-10 - selector/execution: redundant axes, facet-by-series legends, trend-table mismatch
+
+### User prompt
+
+- Reviewed `canonical-examples.pdf` (gpt-5.6-luna runs) and flagged three failures: case 01's
+  direct-labelled line chart still carries a value Y axis that adds nothing; case 03's
+  small-multiples (faceted by series, panels titled) has legends despite the skill saying avoid
+  legends; case 04 rebuilt a nested-donut into a plain table when a sparkline hybrid would show
+  the trend the headline asserts. Asked where the selector is failing and to fix all.
+
+### Diagnosis
+
+- Common thread: `dataviz-selector` states the right general principles but never emits the
+  specific enforceable contract the build/execution gate needs, and under-specializes three
+  high-frequency cases.
+- Case 01: selector never emits a `direct_labels` contract, so the execution gate's
+  `REDUNDANT_VALUE_AXIS` falls back to conservative geometry-only mode; and the flag's scope was
+  ticks/gridlines only, so a lone axis line + rotated title survives regardless.
+- Case 03: the small-multiples layout section had no facet-by-series corollary (colour is not a
+  channel when each panel is one titled series); `EXTERNAL_LEGEND`/`REDUNDANT_COLOUR` were low,
+  non-blocking; the broken composition panel is a redundant restatement of per-series shares.
+- Case 04: all seven columns share `%` (commensurable), so the "columns aren't commensurable"
+  table criterion was misapplied; the trend headline wanted a shape the table hides. The
+  table-chart hybrid was named in the skill but never routed to from Table-or-chart.
+
+### Change
+
+- `dataviz-selector` (both copies): emit the direct-label contract + declare the value axis
+  carries no reading; facet-by-series colour/legend corollary + drop redundant composition
+  panel; shared-unit columns are commensurable + route trend headlines to sparkline hybrid.
+- `dataviz-execution` (both copies): `REDUNDANT_VALUE_AXIS` scope now includes axis line + title;
+  legend/colour round-trips block under by-series faceting.
+- Fixes are general (no case-number triggers). Producer hardened, gate scope tightened where
+  cheap. Validated (`./sync.sh --no-pull --validate-only`) and installed locally.
+
 ## 2026-09-10 - layout: heterogeneous panel groups (overview set apart from detail grid)
 
 ### User prompt

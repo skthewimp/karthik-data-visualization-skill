@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Selector/execution: redundant value axes, facet-by-series legends, and trend-table mismatch
+
+Three canonical-example failures traced to `dataviz-selector` stating the right principles but
+not emitting the enforceable contracts the build and execution gate need, plus two gate-scope
+gaps.
+
+- **Direct-labelled forms must emit the direct-label contract** (`dataviz-selector`, both copies).
+  When the form is direct-labelled (lines, slopes, points carrying their own values), the plan
+  names the labelled key set and declares that the value axis carries no reading, so the build
+  drops its ticks, gridlines, axis line, and axis title (zero baseline only if a mark needs it).
+- **Faceting by series makes colour a non-channel** (`dataviz-selector`, both copies). One titled
+  series per panel: no legend or per-series colour key (pure round-trip against panel titles);
+  one ink or focal-plus-grey. Drop a redundant 100%-composition mini-panel beside per-series
+  share panels.
+- **Shared-unit columns are commensurable** (`dataviz-selector`, both copies). Don't cite
+  non-commensurability to justify a table when columns share a unit; route trend/shape headlines
+  that also want exact values to a sparkline table-chart hybrid.
+- **Execution gate scope widened** (`dataviz-execution`, both copies). `REDUNDANT_VALUE_AXIS` now
+  covers the axis line and axis title, not just ticks/gridlines; `EXTERNAL_LEGEND`/
+  `REDUNDANT_COLOUR` require revision (not a note) when panels are faceted by series.
+
 ### Layout: heterogeneous panel groups so an overview is not flattened into the detail grid
 
 `select` can set an aggregate/overview panel apart from a small-multiple detail grid (the
