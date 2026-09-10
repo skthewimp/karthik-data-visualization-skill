@@ -1,5 +1,45 @@
 # Devlog
 
+## 2026-09-10 - layout: heterogeneous panel groups (overview set apart from detail grid)
+
+### User prompt
+
+- Relayed a downstream-harness regression: for a weekly-usage chart, `select` specified one
+  prominent total panel, one aligned composition panel, and a two-column grid of ten category
+  panels, but the sizing helper received only a total panel count, converted twelve panels into
+  a uniform 4x3 grid, and the website then told build to apply those dimensions / facet
+  rows+columns directly. Build got conflicting instructions; the numeric layout discarded the
+  overview/detail distinction, producing equally-weighted compressed panels. Handoff dates to
+  Aug 31; latest planning pass exposed it by retaining ten category panels and adding
+  composition.
+
+### Decision
+
+- Scope (chosen by Karthik): panel-group sizer, generalized - not a hardcoded total+composition+10
+  case. `recommend_layout` learns a heterogeneous layout; the construct build handoff stops
+  telling build to flatten. Both are in this repo (producer + skill contract).
+- Root cause is two coupled halves: (1) `recommend_layout` modelled faceting as one uniform grid
+  (`n_panels` -> `_facet_grid`), with no vocabulary for panels of unequal role/emphasis; (2)
+  `dataviz-construct` told build to apply the returned facet grid directly, overriding the
+  `dataviz-selector` aggregate-and-parts guardrail (set the total apart, never as one more cell).
+
+### Change
+
+- `recommend_layout(panel_groups=...)`: optional list of `{role, n_panels, emphasis?,
+  filled_marks?, x_slots?, y_slots?}`. New `_size_panel_groups` helper sizes each group as its
+  own sub-grid (reusing the existing per-slot floors and letterbox cap) and stacks them as
+  full-width bands with a `GROUP_BREAK` between; `emphasis` scales a band's height. Returns
+  `regions` (per-band grid + canvas-pixel bounds). Ceiling clamp scales bands proportionally and
+  warns. Scalar path untouched; `regions` is `null` there. Appended `panel_groups` as the last
+  positional arg so the server's positional core call stays valid.
+- `dataviz-construct` (claude + codex), `docs/skills/dataviz-construct.md`, `docs/mcp.md`,
+  `dataviz_mcp/README.md`: document `panel_groups`/`regions`; instruct build to lay out `regions`
+  as-is and never flatten an overview and its detail into equally-weighted cells.
+- Tests: 12 new `panel_groups` cases in `test_layout.py` (region-per-group, disjoint full-width
+  bands, overview taller than a detail cell, emphasis grows the band, roles echoed verbatim /
+  not enumerated, data_panel_fraction reported, ceiling clamp + warning, scalar back-compat).
+  Full suite 270 passed.
+
 ## 2026-09-09 - extract: preserve printed axis labels through per-observation uncertainty
 
 ### User prompt

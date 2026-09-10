@@ -317,7 +317,9 @@ a diagnostic, not the picker's distinct-hue ordering.
 
 ### `recommend_layout`
 
-Sizes a clip-safe canvas from the chart's shape expressed as counts. Inputs: `x_slots`, `y_slots`, `filled_marks`, `n_panels`, `facet_scales` (`fixed`/`free`/`free_x`/`free_y`), `n_direct_labels`, `title_lines`/`subtitle_lines`/`footer_lines`, `x_labels`, `longest_x_label_chars`, `delivery_profile` (`chat`/`slide`/`document`). Returns `width_px x height_px x dpi`, a facet grid, x-label rotation, and reserved title/subtitle/footer bands. Demand past the delivery ceiling is warned, never squashed. Call at select, before build; feed the dims into the renderer and `recommend_text_placement`.
+Sizes a clip-safe canvas from the chart's shape expressed as counts. Inputs: `x_slots`, `y_slots`, `filled_marks`, `n_panels`, `facet_scales` (`fixed`/`free`/`free_x`/`free_y`), `n_direct_labels`, `title_lines`/`subtitle_lines`/`footer_lines`, `x_labels`, `longest_x_label_chars`, `delivery_profile` (`chat`/`slide`/`document`), and optional `panel_groups`. Returns `width_px x height_px x dpi`, a facet grid, x-label rotation, reserved title/subtitle/footer bands, and `regions`. Demand past the delivery ceiling is warned, never squashed. Call at select, before build; feed the dims into the renderer and `recommend_text_placement`.
+
+For a heterogeneous layout - an aggregate/overview panel set apart from a small-multiple detail grid (the aggregate-and-parts guardrail) - pass `panel_groups`: a list of `{role, n_panels, emphasis?, filled_marks?, x_slots?, y_slots?, ncol?, nrow?}`. Each group is sized as its own sub-grid and stacked as a full-width band (`emphasis` >1 makes a band taller so the overview reads apart, not as one more equal cell); the per-band structure comes back as `regions` (`{role, facet_ncol, facet_nrow, n_panels, x, y, width, height}`) for the renderer to place. `role` is a free-text label echoed back per band. Without `panel_groups`, `regions` is `null` and the single-grid behaviour is unchanged.
 
 ### `reserve_frame`
 

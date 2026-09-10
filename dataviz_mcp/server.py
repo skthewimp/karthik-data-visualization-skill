@@ -314,6 +314,7 @@ def create_server() -> Any:
         y_labels: bool = False,
         longest_y_label_chars: int = 0,
         delivery_profile: str = "chat",
+        panel_groups: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Size a clip-safe canvas (width/height/dpi), facet grid, and x-label rotation.
 
@@ -333,6 +334,14 @@ def create_server() -> Any:
         past the profile ceiling is warned, never squashed. Call at select, before build; feed
         the dims into the renderer and into ``recommend_text_placement``. It sizes the box,
         never picks the chart.
+
+        For a heterogeneous layout - an aggregate/overview panel set apart from a small-multiple
+        detail grid (the selector's aggregate-and-parts guardrail) - pass ``panel_groups``: a
+        list of ``{role, n_panels, emphasis?, filled_marks?, x_slots?, y_slots?, ncol?, nrow?}``. Each group
+        is sized as its own sub-grid and stacked as a full-width band (``emphasis`` >1 makes a
+        band taller so the overview reads apart, not as one more equal cell), and the per-band
+        structure comes back as ``regions`` for Build to place - do not flatten it to one grid.
+        ``role`` is a free-text label echoed back per band.
         """
         return recommend_layout_core(
             x_slots,
@@ -349,6 +358,7 @@ def create_server() -> Any:
             y_labels,
             longest_y_label_chars,
             delivery_profile,
+            panel_groups,
         )
 
     @server.tool()

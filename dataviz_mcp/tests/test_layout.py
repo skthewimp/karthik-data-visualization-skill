@@ -212,3 +212,104 @@ def test_fractional_overflow_rounds_up_to_clear_the_edge():
 def test_zero_height_panel_keeps_a_finite_growth_proposal():
     out = suggest_dims_for_overflow(1200, 700, min_panel_height_px=0)
     assert out["suggested_height_px"] == 700 + MIN_PANEL_H
+
+
+# --- Heterogeneous panel groups (overview/detail hierarchy) ------------------
+# A uniform facet grid flattens a deliberately heterogeneous layout: an aggregate
+# total panel set apart, a composition panel, and a small-multiple detail grid
+# (the selector's aggregate-and-parts guardrail). panel_groups lets recommend_layout
+# size each group's own sub-grid into its own full-width band, so Build no longer
+# collapses overview and detail into one equally-weighted grid.
+
+def _weekly_usage_groups():
+    return [
+        {"role": "overview", "n_panels": 1, "emphasis": 2.0, "filled_marks": True, "x_slots": 12},
+        {"role": "composition", "n_panels": 1, "emphasis": 1.0, "x_slots": 12},
+        {"role": "detail", "n_panels": 10, "emphasis": 1.0, "filled_marks": True, "x_slots": 12},
+    ]
+
+
+def test_scalar_path_reports_no_regions():
+    # Back-compat: the single-grid API is unchanged and carries a null regions key.
+    result = recommend_layout(n_panels=12, x_slots=12, filled_marks=True)
+    assert result["regions"] is None
+    assert result["facet_ncol"] * result["facet_nrow"] >= 12
+
+
+def test_panel_groups_return_one_region_per_group_in_order():
+    result = recommend_layout(panel_groups=_weekly_usage_groups(), delivery_profile="chat")
+    regions = result["regions"]
+    assert regions is not None and len(regions) == 3
+    assert [r["role"] for r in regions] == ["overview", "composition", "detail"]
+    # Every panel is accounted for; the twelve are NOT one 4x3 uniform grid.
+    assert sum(r["facet_ncol"] * r["facet_nrow"] >= r["n_panels"] for r in regions) == 3
+    assert regions[0]["n_panels"] == 1 and regions[2]["n_panels"] == 10
+
+
+def test_panel_groups_stack_as_disjoint_full_width_bands():
+    result = recommend_layout(panel_groups=_weekly_usage_groups())
+    regions = result["regions"]
+    width = result["width_px"]
+    # Each band spans the canvas width, and bands are stacked top to bottom without overlap.
+    for r in regions:
+        assert r["x"] == 0 and r["width"] == width
+    for a, b in zip(regions, regions[1:]):
+        assert b["y"] >= a["y"] + a["height"]
+
+
+def test_overview_band_is_taller_than_a_single_detail_cell():
+    # The aggregate panel must be set apart, not read as one more equal cell.
+    result = recommend_layout(panel_groups=_weekly_usage_groups())
+    overview, detail = result["regions"][0], result["regions"][2]
+    detail_cell_h = detail["height"] / detail["facet_nrow"]
+    assert overview["height"] > detail_cell_h
+
+
+def test_emphasis_grows_the_prominent_band():
+    groups = _weekly_usage_groups()
+    low = recommend_layout(panel_groups=[dict(groups[0], emphasis=1.0), groups[1], groups[2]])
+    high = recommend_layout(panel_groups=[dict(groups[0], emphasis=3.0), groups[1], groups[2]])
+    assert high["regions"][0]["height"] > low["regions"][0]["height"]
+
+
+def test_group_roles_are_echoed_verbatim_not_enumerated():
+    # Roles are free-text labels for Build, never a fixed vocabulary the sizer branches on.
+    groups = [
+        {"role": "headline_kpi", "n_panels": 1, "x_slots": 4, "filled_marks": True},
+        {"role": "whatever the model calls it", "n_panels": 6, "x_slots": 8, "filled_marks": True},
+    ]
+    result = recommend_layout(panel_groups=groups)
+    assert [r["role"] for r in result["regions"]] == [
+        "headline_kpi",
+        "whatever the model calls it",
+    ]
+
+
+def test_group_honours_a_declared_column_count():
+    # select may declare the grid shape ("a two-column grid of ten panels"); the sizer must
+    # not override it with its own near-square guess.
+    result = recommend_layout(panel_groups=[
+        {"role": "detail", "n_panels": 10, "ncol": 2, "filled_marks": True, "x_slots": 6},
+    ])
+    detail = result["regions"][0]
+    assert detail["facet_ncol"] == 2 and detail["facet_nrow"] == 5
+
+
+def test_panel_groups_still_report_data_panel_fraction():
+    result = recommend_layout(panel_groups=_weekly_usage_groups())
+    assert 0.0 < result["data_panel_fraction"] <= 1.0
+
+
+def test_tall_group_stack_is_clamped_to_the_ceiling_with_a_warning():
+    # Many emphasized groups exceed the profile height; clamp and warn, never overflow.
+    groups = [
+        {"role": f"g{i}", "n_panels": 6, "emphasis": 3.0, "x_slots": 10, "filled_marks": True}
+        for i in range(6)
+    ]
+    result = recommend_layout(panel_groups=groups, delivery_profile="chat")
+    from dataviz_mcp.layout import PROFILES
+    assert result["height_px"] <= PROFILES["chat"]["max_height_px"]
+    assert any("height" in w.lower() for w in result["warnings"])
+    # Regions stay inside the clamped canvas.
+    last = result["regions"][-1]
+    assert last["y"] + last["height"] <= result["height_px"]

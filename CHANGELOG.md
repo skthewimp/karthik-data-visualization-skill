@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Layout: heterogeneous panel groups so an overview is not flattened into the detail grid
+
+`select` can set an aggregate/overview panel apart from a small-multiple detail grid (the
+aggregate-and-parts guardrail: a total panel, a composition panel, and a grid of category
+panels). But `recommend_layout` only took a scalar `n_panels`, so twelve heterogeneous panels
+became one uniform 4x3 grid, and the build handoff told the renderer to apply that grid
+directly - discarding the overview/detail distinction and producing equally-weighted,
+compressed panels.
+
+- **`recommend_layout` gains an optional `panel_groups`** (`dataviz_mcp/layout.py`,
+  `dataviz_mcp/server.py`). Each group `{role, n_panels, emphasis?, filled_marks?, x_slots?,
+  y_slots?}` is sized as its own facet sub-grid and stacked as a full-width band; `emphasis`
+  (>1) makes a band taller so an overview panel reads apart, not as one more equal cell. The
+  per-band structure is returned as `regions` (`{role, facet_ncol, facet_nrow, n_panels, x, y,
+  width, height}`) for the renderer to place. `role` is a free-text label echoed back, never
+  branched on. Without `panel_groups` the single-grid behaviour is unchanged and `regions` is
+  `null`.
+- **The `dataviz-construct` build step now routes a declared overview/detail hierarchy through
+  `panel_groups` and lays out `regions` as-is** (both skill copies, `docs/`), instead of
+  flattening it into one `n_panels` grid.
+
 ### Layout: floor every facet panel to the profile height, not just continuous ones
 
 A two-panel chart with long y labels and a wide left label band came out as a wide, short
