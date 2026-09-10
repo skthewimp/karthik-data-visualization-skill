@@ -2985,3 +2985,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Skill already tells the model to choose `max_header_lines`. The gap is a website code path that ignores it — one-line fix, out of repo. Repo-side, the honest hardening is to stop letting an absent cap wrap silently. L...
 
 <!-- claude-session:ce2fa974-8584-4b37-87b3-94080a661941:end -->
+
+<!-- claude-session:ec72092b-287f-473b-a07f-a0cae48135ec:start -->
+## 2026-09-10 09:26 IST | Claude session `ec72092b-287`
+
+### User prompts
+> check out @canonical-examples.pdf ; lots of failures. why does the first chart even have the Y axis? adds no value. then we have ugly legends in 3rd chart (forget the formatting issues there - that's been fixed) despi...
+> fix all of them
+> yeah commit and push
+
+### Work done
+- Pushed. `0511a99` on `origin/main`, clean + in sync. CHANGELOG (Unreleased) and DEVLOG both carry the selector/execution fix entries. Still open (offered earlier): re-run the 5 canonical cases to verify pixels change....
+- Got it. All done — fixes + docs pushed to `origin/main`.
+
+<!-- claude-session:ec72092b-287f-473b-a07f-a0cae48135ec:end -->
