@@ -2937,3 +2937,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:41f9a850-675d-4301-a74a-81dee493d2b1:end -->
 
+<!-- claude-session:ce2fa974-8584-4b37-87b3-94080a661941:start -->
+## 2026-09-10 08:30 IST | Claude session `ce2fa974-858`
+
+### User prompts
+> We have had some regressions in the model outputs right now and there are some issues that the downstream harness has found out. See how we can fix the MCPs based on this. Weekly usage: the website overrides the plann...
+> this is another: Separately, Select specified a two-line header limit. The website’s table compiler doesn’t pass max_header_lines into measurement, although the underlying tool supports it. That allows six- or seven-l...
+> [Request interrupted by user]
+
+### Work done
+- Tool already fully supports `max_header_lines` (`table_layout.py:241-249`): when set, over-budget variants are excluded → narrower or `cannot_fit`. When **absent** (`None`), no cap → headers wrap to 6-7 lines silently...
+- Skill already tells the model to choose `max_header_lines`. The gap is a website code path that ignores it — one-line fix, out of repo. Repo-side, the honest hardening is to stop letting an absent cap wrap silently. L...
+
+<!-- claude-session:ce2fa974-8584-4b37-87b3-94080a661941:end -->
