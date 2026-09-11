@@ -107,6 +107,34 @@ build_chart <- function() {
 
 Do not remove the legend until every series has one legible, correctly coloured endpoint label. Remove redundant categorical scaffolding, but retain quantitative axes that still support comparison.
 
+## Direct-labelled distributions
+
+A summary mark - boxplot, violin, error bar, range band - is a mark whose position *is* a set of computed statistics. Label those statistics off the same stat that drew them, so the number can never drift from the mark. `after_stat(y)` reads back the value the stat computed; never hand-type it.
+
+```r
+build_chart <- function() {
+  q <- function(p) function(x) stats::quantile(x, p)
+  lab <- function(prefix) function(x) paste0(prefix, scales::number(x, accuracy = 1))
+  plot <- ggplot2::ggplot(frame, ggplot2::aes(group, value)) +
+    ggplot2::geom_boxplot(width = 0.5, outlier.size = 0.6) +
+    ggplot2::stat_summary(fun = median, geom = "text",
+                          ggplot2::aes(label = ggplot2::after_stat(lab("median ")(y))),
+                          vjust = -0.4, size = 3) +
+    ggplot2::stat_summary(fun = q(0.25), geom = "text",
+                          ggplot2::aes(label = ggplot2::after_stat(lab("Q1 ")(y))),
+                          vjust = 1.3, size = 3) +
+    ggplot2::stat_summary(fun = q(0.75), geom = "text",
+                          ggplot2::aes(label = ggplot2::after_stat(lab("Q3 ")(y))),
+                          vjust = -0.4, size = 3) +
+    ggplot2::labs(title = "Replace with the supported distribution claim", x = NULL, y = NULL) +
+    ggplot2::theme_minimal(base_size = 12)
+  chart_result(plot, "direct-labelled distribution", "median and both hinges labelled per box",
+               "value axis retired by the labels")
+}
+```
+
+Same restraint as any direct label: label the few statistics that carry the reading (usually the median and the two hinges), let them retire the value axis they duplicate, and leave the whiskers and outliers to the geometry. On a log scale keep the labels on their box statistics - they still read the untransformed value.
+
 ## Multi-panel charts
 
 ```r

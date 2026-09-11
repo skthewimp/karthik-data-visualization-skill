@@ -43,6 +43,8 @@ I've labelled every point and it's a mess. Which few should carry labels?
 
 **A label is one mark's value; label only the few that carry the point.** Not a change, rank, or comparison - those narrate the shape and go in the title. Labels carry no external bar - a single value is always legitimate - but a wall of 200 values is as unreadable as clutter callouts. Endpoints, the extreme, the one the claim rests on. "Keep every value" means every value stays reconstructable in the data, not printed on the chart.
 
+**A summary mark carries its own statistics as direct labels.** A box, violin, error bar, or range band is one mark whose position *is* computed statistics (hinges, median, whiskers, a mean and its interval); those are its direct labels, under the same restraint - label the few that carry the reading, retire the value axis they duplicate. Compute each label off the stat that drew the mark (`stat_summary(geom = "text", aes(label = after_stat(y)))`), never a typed number, so label and mark can't drift apart.
+
 **Compute every number and every comparative word.** A hand-typed count is right until a filter changes and then silently wrong. "Flat", "doubled", "unchanged" are quantitative claims in plain clothes - a label reading "flat for the 45 years before" is false if that period rises 1.5 points per decade, and a false mark is worse than none.
 
 **Placement by proximity.** Anchor the mark to the datum it explains and compute the offset from it, so it stays correct under filtering and rescaling. Bare text in whitespace next to the thing; a hairline connector only when the nearest free space is ambiguous, and never crossing data. Anchor on a group, then offset to the outside edge - a centroid is the worst resting place.

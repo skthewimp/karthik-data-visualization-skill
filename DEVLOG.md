@@ -1,5 +1,30 @@
 # Devlog
 
+## 2026-09-11 - summary marks carry their own statistics as direct labels
+
+### User prompt
+
+- Was working with boxplots and realised direct labelling is wanted there too. Shared ggplot code
+  direct-labelling Q1/median/Q3 via `stat_summary(fun = ..., geom = "text", after_stat(y))` on a
+  log scale. Asked how to institutionalise this in the skill.
+
+### What changed
+
+- Generalised rather than hardcoding the boxplot case: a **summary mark** (box, violin, error bar,
+  range band) is a single mark whose position *is* computed statistics, and each statistic is a
+  direct label of that mark - subject to the same restraint as any direct label.
+- `chart-annotations` (claude + codex) Direct labels section + `docs/skills/chart-annotations.md`:
+  added the summary-mark principle.
+- `ggplot2-repair-patterns.md` (claude + codex): added "Direct-labelled distributions" pattern
+  building the label string off `after_stat(y)` from the same stat that positioned the mark, so
+  the number can't drift; noted the log-scale case and the value-axis retirement.
+
+### Notes
+
+- Kept the vehicle general (`after_stat(y)`), not the user's exact three-quantile snippet, per the
+  no-hardcoded-cases rule. The median-plus-two-hinges default is stated as the usual key set, not a
+  fixed count.
+
 ## 2026-09-10 - selector/execution: redundant axes, facet-by-series legends, trend-table mismatch
 
 ### User prompt

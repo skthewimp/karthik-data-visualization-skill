@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Summary marks carry their own statistics as direct labels
+
+Generalised the direct-label rule to distributional/summary marks - boxplots, violins, error bars,
+range bands - where a single mark's position *is* a set of computed statistics.
+
+- **Direct-label principle extended** (`chart-annotations`, both copies + `docs/skills`). A box's
+  hinges/median/whiskers (or a mean and its interval) are direct labels of that mark, under the
+  same editorial restraint: label the few that carry the reading, retire the value axis they
+  duplicate, leave the rest in the geometry.
+- **R vehicle added** (`ggplot2-repair-patterns.md`, both copies). New "Direct-labelled
+  distributions" pattern using `stat_summary(geom = "text", aes(label = after_stat(y)))` so the
+  label is computed off the same stat that positioned the mark - never a hand-typed number.
+
 ### Selector/execution: redundant value axes, facet-by-series legends, and trend-table mismatch
 
 Three canonical-example failures traced to `dataviz-selector` stating the right principles but
