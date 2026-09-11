@@ -3146,3 +3146,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Session captured, but there was not enough structured activity to summarize.
 
 <!-- claude-session:5fc19099-a770-47b7-bb33-e70e70bf6bdc:end -->
+
+<!-- claude-session:a8ce4e82-3a12-4508-8b65-c7800f93470e:start -->
+## 2026-09-11 11:49 IST | Claude session `a8ce4e82-3a1`
+
+### User prompts
+> next issue from the recent runs, and this has been a persistent one. we are too faithful to input stacked bar graphss, and keep them (with legends) even when they are not insightful. from the harness: For the oil char...
+
+### Work done
+- Committed + pushed. Adding a memory - this justification principle will recur in skill work.
+- Done. Shipped + pushed. **Problem:** pipeline too faithful to input stacked bars - keeps them (with legends) even when not insightful. Root cause (harness): converts source features (category count, stacking, grain) i...
+
+<!-- claude-session:a8ce4e82-3a12-4508-8b65-c7800f93470e:end -->
