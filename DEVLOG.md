@@ -3261,3 +3261,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Both tasks done, pushed (`0af2808`). **#2 MCP helper — shipped.** `place_bar_value_labels`: per bar, inside/outside from `bar_length_px`, text colour by WCAG contrast against the surface (fill inside, canvas outside),...
 
 <!-- claude-session:2f52c555-e1a2-4692-b7f5-e56a04ae44bd:end -->
+
+<!-- claude-session:1e2c99d7-a0bd-4f95-bfe0-31b5ec21437a:start -->
+## 2026-09-11 14:59 IST | Claude session `1e2c99d7-a0b`
+
+### User prompts
+> there are stillway toomany build failures. downstream harness suggests : Improve first Build by reducing what it has to invent The current Build prompt (public_site/runner.py:6816) already tells it to preserve identit...
+> yeah
+> full thread now
+
+### Work done
+- Pre-existing auto-devlog commit, fine to push along. Staging and committing my work:
+- Shipped. `0af2808..b9f35a3` on `origin/main`, upstream matches. **Done:** - `prepare_plot_data` tool (stdlib, 11 tests) - whitelists mapped columns (helper cols can't leak), pins one `order` shared by marks+labels (as...
+
+<!-- claude-session:1e2c99d7-a0bd-4f95-bfe0-31b5ec21437a:end -->
