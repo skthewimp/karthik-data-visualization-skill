@@ -3112,3 +3112,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Sounds good. All shipped and pushed. Ping me when you want the weak-model validation or the execution gate.
 
 <!-- claude-session:4d2b4202-3a8a-4020-b7b8-a97cd47c4429:end -->
+
+<!-- claude-session:87f0e30e-558d-46fb-ac71-e8259267bb45:start -->
+## 2026-09-11 11:19 IST | Claude session `87f0e30e-558`
+
+### User prompts
+> We have a serious problem. A recent trip actually produced a barcraft that didn't start its access at zero, which is an absolute no-no, it's a rule. And I think the problem here happened in the diagnosis. I'll I'll pa...
+
+### Work done
+- All changes mine, remote can fast-forward (local ahead 1, no divergence). Committing + pushing.
+- Pushed `d106d80`, local matches upstream. **Root cause:** zero-baseline rule existed in selector but was a *stated principle with no hard trip* → a plan re-labelled the truncation "meaningful" and every stage accepted...
+
+<!-- claude-session:87f0e30e-558d-46fb-ac71-e8259267bb45:end -->
