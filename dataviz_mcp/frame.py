@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from .layout import FONT_PT, PROFILES, char_px, line_px, pt_to_px
+from .layout import FONT_PT, PROFILES, char_px, house_font_pt, line_px, pt_to_px
 from .text_fit import _wrap
 
 
@@ -119,7 +119,8 @@ def reserve_frame(
     height = float(height_px if height_px is not None else profile["height_px"])
     resolved_dpi = int(dpi if dpi is not None else profile["dpi"])
     dpi_f = float(resolved_dpi)
-    fonts = {**FONT_PT, **(font_pt or {})}
+    # House sizes scale to the actual canvas (never a flat constant), then explicit overrides win.
+    fonts = {**house_font_pt(width, height), **(font_pt or {})}
     margin = float(edge_margin_px) if edge_margin_px is not None else round(0.03 * width)
     avail_w = width - 2 * margin
     warnings: list[str] = []

@@ -80,7 +80,7 @@ If implementing: <short code/design note>
 | S-curve/adoption/diffusion | Line with muted raw values, emphasized smoothed trend, and sparse labels for takeoff knee, acceleration/deceleration knees, plateau/peak, and temporary local extrema |
 | Slowing growth | Raw line + marked slowdown/knee + dotted earlier-growth projection |
 | Forecast miss | Actual vs forecast + ribbon/gap annotation |
-| Ranking | Sorted horizontal bars, axis from zero (nominal categories only) |
+| Ranking | Sorted bars, largest first, axis from zero (nominal categories only); orientation is reasoned from label width - short labels stay vertical, labels too wide for their slot go horizontal (rows) |
 | Ordered/time category | Keep the sequence order and its natural direction (left-to-right, or top-to-bottom if vertical); never sort by magnitude or invert onto the y-axis so time climbs upward |
 | Single value per category, magnitude | Bars; grouped bars, suitable facets, or a table for multiple values |
 | Distribution/skew | Histogram, density, ECDF, boxplot, or violin |

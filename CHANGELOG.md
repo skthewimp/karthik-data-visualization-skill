@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+### A sparse 5-bar repair exposed six defaults tuned for the wrong case
+
+A before/after of a 5-food calorie bar chart came back flipped to horizontal for no reason, with a
+numeric value axis and a categorical axis title that direct labels made redundant, 11pt type on a
+canvas with acres of space, every value floating outside its bar, and a subtitle carrying only
+caveats. None was a single bug: each was a default tuned for a many-category, long-label, time-trend
+chart, fired mechanically on a small nominal ranking where every one is backwards. Fixes make each a
+computed, generate-stage decision - general principle only, no case-specific counts or the example.
+
+- **`dataviz-selector`** (both copies): ranking no longer defaults to horizontal bars. Orientation is
+  a reasoned call from label-width-vs-slot (`recommend_layout`'s new `bar_orientation`): short labels
+  that sit flat keep bars vertical, labels too wide for their slot go horizontal (rows). Hand fallback
+  when no tool: do the longest labels fit horizontally under the bars?
+- **`recommend_layout`** (`dataviz_mcp/layout.py`): returns `bar_orientation` + `bar_orientation_reason`
+  for filled marks, and a `recommended_data_label_pt` sized to the slot each mark has (sparse bars →
+  larger values), so on-mark type never falls back to a fixed small size.
+- **Font sizes are canvas-derived, not constants** (`layout.house_font_pt`, wired into `reserve_frame`):
+  the house per-role sizes scale with the canvas diagonal (floored at the base, capped so a poster
+  doesn't shout); explicit `font_pt` overrides still win. This is why 11pt landed on a 1200px canvas.
+- **Redundant value axis is a build-time eraser keyed to the key points, not every mark**
+  (`dataviz_mcp/inspection.py`, `karthik-data-visualization` both copies): on a zero-baseline encoding
+  two labelled anchors fix the scale, so the numeric axis is redundant once the extremes/focal/endpoints
+  are labelled - the contract path no longer requires the declared set complete. Decide it at build
+  (don't draw the axis); the render check is the safety net.
+- **No approximation glyphs on exact values** (`dataviz-precision` both copies; `_looks_numeric`
+  tolerance): a plotted datum held precisely is labelled `610`, not `≈610`. The `≈` fakes uncertainty
+  and also defeated the redundant-axis check (tick text no longer matched the mark value), keeping the
+  axis it should have retired.
+- **Bar value labels default inside the bar** (`karthik-data-visualization` both copies): inside at the
+  value end, out only when the bar is too short to hold the label (computed per bar); colour follows the
+  surface - inverted against the fill inside, against the canvas outside - so no value fails contrast.
+- **A subtitle only when there is a second message** (`karthik-data-visualization` both copies): a
+  static snapshot/ranking gets no subtitle; units, denominator, and scope caveats go to the caption/
+  footer, never a manufactured subtitle.
+- Regression tests: contract-path redundant axis with partial labels, and redundant axis seen through an
+  `≈` glyph (`test_render_inspect.py`, two new fixtures). Full suite 280 passing.
+
 ### Stacked bars kept out of fidelity: justify a form by the reading, not by faithfulness
 
 A repair of a dense multi-category stacked bar (per-series composition shifting over many periods)

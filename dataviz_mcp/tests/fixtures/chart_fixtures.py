@@ -217,6 +217,41 @@ def bars_two_labelled():
     return fig, {"fixture": "bars_two_labelled"}
 
 
+def bars_two_labelled_with_contract():
+    # Five bars, a contract declaring all five as expected labels, but only the two key marks
+    # labelled. The contract path must now flag REDUNDANT_VALUE_AXIS on the key set - it no longer
+    # requires the declared set to be complete.
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    heights = [2, 4, 3, 5, 1]
+    bars = ax.bar(["A", "B", "C", "D", "E"], heights, color="#245b78")
+    for index, (bar, value) in enumerate(zip(bars, heights)):
+        bar.set_gid(f"mark:bar{index}")
+        if index in (0, 3):
+            label = ax.text(bar.get_x() + bar.get_width() / 2, value + 0.2, f"{value}", fontsize=8)
+            label.set_gid(f"label:bar{index}")
+    return fig, {
+        "fixture": "bars_two_labelled_with_contract",
+        "inspection_contract": {
+            "direct_labels": [
+                {"axes_id": None, "role": "label", "expected_count": len(heights)}
+            ]
+        },
+    }
+
+
+def bars_all_labelled_approx():
+    # Every bar labelled, but with an approximation glyph (≈). The value is known exactly, so the
+    # label still duplicates the axis: the redundant-axis check must see through the ≈ and flag it.
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    heights = [2, 4, 3, 5, 1]
+    bars = ax.bar(["A", "B", "C", "D", "E"], heights, color="#245b78")
+    for index, (bar, value) in enumerate(zip(bars, heights)):
+        bar.set_gid(f"mark:bar{index}")
+        label = ax.text(bar.get_x() + bar.get_width() / 2, value + 0.2, f"≈{value}", fontsize=8)
+        label.set_gid(f"label:bar{index}")
+    return fig, {"fixture": "bars_all_labelled_approx"}
+
+
 def bars_few_labelled():
     # Five bars, only one labelled: a single label cannot fix the scale, so REDUNDANT_VALUE_AXIS
     # must stay silent - the axis still carries the reading for the four unlabelled marks.

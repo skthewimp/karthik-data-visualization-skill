@@ -57,6 +57,48 @@ def pt_to_px(pt: float, dpi: float) -> float:
     return pt * dpi / 72.0
 
 
+# Base canvas the house FONT_PT sizes are tuned for (the chat profile's plot area). Type is sized
+# RELATIVE to this, never as a constant: a bigger or emptier canvas has more room and should carry
+# larger type, so 11pt axis text never lands on a 1200px canvas with acres of white space.
+_FONT_BASE_DIAG_PX = math.hypot(1200.0, 675.0)
+
+
+def house_font_pt(
+    width_px: float,
+    height_px: float,
+    *,
+    scale_floor: float = 1.0,
+    scale_ceiling: float = 1.7,
+) -> dict[str, float]:
+    """House per-role font sizes scaled to the actual canvas, not fixed constants.
+
+    Sizes scale with the canvas diagonal relative to the base chat canvas, so a large or sparse
+    delivery grows type instead of leaving it at the base 11/16pt. Never shrinks below the base
+    (``scale_floor`` >= 1.0) - the base sizes are legibility floors - and is capped so a poster
+    canvas doesn't shout. Callers merge explicit ``font_pt`` overrides on top of this.
+    """
+    diag = math.hypot(float(width_px), float(height_px))
+    scale = max(scale_floor, min(scale_ceiling, diag / _FONT_BASE_DIAG_PX))
+    return {role: round(pt * scale, 1) for role, pt in FONT_PT.items()}
+
+
+def data_label_pt(slot_px: float, dpi: float, *, floor_pt: float = 12.0, ceiling_pt: float = 34.0) -> float:
+    """On-mark value/data-label size derived from the room one slot actually has.
+
+    The emphasis tier grows most when the panel is sparse: a five-bar chart on a wide canvas gives
+    each bar a fat slot, so its value should be read at a glance, not set at the base 11pt. Sized to
+    a fraction of the slot width, floored for legibility and capped so it stays bold-but-not-shouting
+    and never overpowers the mark.
+    """
+    by_room = pt_to_px_inverse(slot_px * 0.28, dpi)
+    return round(max(floor_pt, min(ceiling_pt, by_room)), 1)
+
+
+def pt_to_px_inverse(px: float, dpi: float) -> float:
+    """Point size whose device height is ``px`` at ``dpi`` - the inverse of :func:`pt_to_px`."""
+    return px * 72.0 / dpi
+
+
 def char_px(font_pt: float, dpi: float) -> float:
     """Approximate width of one average character at ``font_pt`` and ``dpi``."""
     return pt_to_px(font_pt, dpi) * AVG_CHAR_ADVANCE
@@ -443,15 +485,43 @@ def recommend_layout(
     # Horizontal x labels crowd: the style bans slanted ticks, so never recommend rotation -
     # keep them horizontal and thin, abbreviate, or widen instead. rotate_x_labels stays False.
     rotate_x_labels = False
+    # Bar orientation is a reasoned, geometry-driven call, not a default. For filled marks
+    # (bars/columns) the category labels decide it: short names that sit flat under vertical
+    # columns keep the bars vertical; names too wide for their slot (they would need rotation or
+    # truncation) read far better as left-aligned rows, so the bars go horizontal. Advisory: the
+    # tool sizes the box and reports the fit; the selector/build owns the final chart choice.
+    bar_orientation: Optional[str] = None
+    bar_orientation_reason: Optional[str] = None
     if x_labels and longest_x_label_chars > 0 and x_slots > 0:
         slot = (width / ncol - left_band) / max(1, x_slots)
         label_w = longest_x_label_chars * char_px(FONT_PT["axis"], dpi)
-        if label_w > slot:
+        if filled_marks:
+            if label_w <= slot:
+                bar_orientation = "vertical"
+                bar_orientation_reason = (
+                    f"longest category label (~{longest_x_label_chars} chars, {label_w:.0f}px) fits "
+                    f"its {slot:.0f}px slot horizontally, so vertical columns read cleanly."
+                )
+            else:
+                bar_orientation = "horizontal"
+                bar_orientation_reason = (
+                    f"longest category label (~{longest_x_label_chars} chars, {label_w:.0f}px) exceeds "
+                    f"its {slot:.0f}px slot; horizontal bars turn the names into left-aligned rows."
+                )
+        if label_w > slot and not filled_marks:
             warnings.append(
                 f"x tick labels (~{longest_x_label_chars} chars) exceed their {slot:.0f}px "
                 "slot: keep them horizontal and abbreviate, thin to every-Nth tick, or widen "
                 "the slot - do not rotate."
             )
+
+    # On-mark value/data-label size, derived from the slot each filled mark actually has (sparse
+    # bars → fat slots → larger values), so the build never falls back to the base 11pt on a canvas
+    # with room to spare. Advisory: apply it to geom_text size unless a house/brand size overrides.
+    recommended_data_label_pt: Optional[float] = None
+    if filled_marks and x_slots > 0:
+        slot_for_labels = (width / ncol - left_band) / max(1, x_slots)
+        recommended_data_label_pt = data_label_pt(slot_for_labels, dpi)
 
     labels_per_panel = n_direct_labels / max(1, n_panels)
     if labels_per_panel >= 8:
@@ -478,6 +548,9 @@ def recommend_layout(
         "facet_nrow": nrow,
         "facet_scales": facet_scales_canonical,
         "rotate_x_labels": rotate_x_labels,
+        "bar_orientation": bar_orientation,
+        "bar_orientation_reason": bar_orientation_reason,
+        "recommended_data_label_pt": recommended_data_label_pt,
         "reserved_band_px": round(bands, 1),
         "reserved_left_px": round(left_band, 1),
         "data_panel_fraction": data_panel_fraction,

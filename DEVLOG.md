@@ -1,5 +1,39 @@
 # Devlog
 
+## 2026-09-11 - a sparse 5-bar repair exposed six wrong-case defaults
+
+### User report
+
+- Before/after of a 5-food calorie bar chart. The "after" flipped to horizontal for no reason, kept a
+  numeric value axis and a "Food" axis title that direct labels made redundant, set 11pt type on a
+  1200px canvas with space to spare, floated every value outside its bar, and used the subtitle for
+  caveats only. User: "inspect skills and MCPs to see why this happened" - a root-cause hunt, not a
+  rebuild. Then, on the eraser: "as long as KEY POINTS are labelled we don't need axis... infer the
+  whole thing from build."
+
+### Diagnosis
+
+- Not one bug. Six defaults each tuned for a many-category, long-label, time-trend chart (the
+  female-height-by-country lineage), fired on a small nominal ranking where each is backwards.
+  Root sites: selector's "Ranking: sorted horizontal bars" default; `FONT_PT` constants in
+  `layout.py`; the contract path in `inspection.py` requiring *every* mark labelled; `_looks_numeric`
+  rejecting `≈610` (so the value labels counted as zero and the redundant-axis check never fired);
+  no inside-bar default in the skill; a subtitle rule that implied a subtitle should always exist.
+
+### Fix
+
+- Orientation → computed `bar_orientation` from label-width-vs-slot in `recommend_layout`; selector
+  stops defaulting horizontal. Fonts → `house_font_pt` scales the house sizes to the canvas diagonal,
+  wired into `reserve_frame`; new `recommended_data_label_pt` from slot room. Eraser → contract path
+  loosened from complete to "key anchors labelled" (two fix the scale), reframed as a build-time
+  decision; `_looks_numeric` sees through `≈/~`; precision skill bans approximation glyphs on exact
+  values. Inside-bar default + per-bar contrast added to `karthik-data-visualization`. Subtitle rule:
+  none without a second message; caveats to caption/footer.
+- Proven by rebuilding the exact fries chart through the new outputs (vertical, no axis, inside labels
+  with per-bar contrast - dark on grey, white on the red focal - values at canvas-derived size, no
+  subtitle, exact `610`). Two new regression fixtures/tests; full MCP suite 280 passing. General
+  principle only - no case-specific counts or the example hardcoded.
+
 ## 2026-09-11 - truncated-bar baseline slipped every gate
 
 ### User report

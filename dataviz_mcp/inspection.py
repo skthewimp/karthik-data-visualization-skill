@@ -179,6 +179,15 @@ def _looks_numeric(text: str) -> bool:
     stripped = text.strip()
     if not stripped:
         return False
+    # Leading approximation glyphs/words don't stop a label duplicating the axis - "≈610" is
+    # still the value 610. Strip them so a stray approximate label can't defeat the eraser check
+    # (the label tools should not emit these in the first place; this is belt-and-suspenders).
+    for prefix in ("≈", "~", "≃", "≅"):
+        if stripped.startswith(prefix):
+            stripped = stripped[len(prefix):].strip()
+    for word in ("approx.", "approx", "about", "~"):
+        if stripped.lower().startswith(word):
+            stripped = stripped[len(word):].strip()
     for token in ("$", "€", "£", "%", ",", " ", "+", "−"):
         stripped = stripped.replace(token, "")
     stripped = stripped.lstrip("-")
@@ -729,15 +738,19 @@ def inspect_rendered_chart(
                     )
                 )
     if metadata is not None:
-        # Redundant value axis: when every mark carries its own value label, the numeric axis
-        # ticks duplicate that ink. Category ticks (non-numeric) still name marks, so only
-        # numeric ticks flag. The trigger is conservative enough to require revision: the
-        # declared reading-carrying label set is complete, or every mark is labelled.
-        labels_complete = any(
-            item.get("complete") and item.get("expected_count", 0) > 0
+        # Redundant value axis: the numeric axis is justified only by a reading task the direct
+        # labels don't already do - estimating an unlabelled mark. On a zero-baseline encoding
+        # (bars/columns) length carries magnitude, so once the *reading-carrying* marks (extremes,
+        # focal, endpoints) are labelled, an unlabelled interior mark is read off its labelled
+        # neighbours, not the axis. The trigger therefore does NOT require every mark labelled:
+        # two labelled anchors fix the linear scale, so a declared set that covers the key points
+        # is enough to call the numeric ticks duplicate ink.
+        labels_sufficient = any(
+            item.get("expected_count", 0) > 0
+            and item.get("observed_count", 0) >= min(_REDUNDANT_AXIS_MIN_LABELS, item.get("expected_count", 0))
             for item in direct_label_coverage
         )
-        if labels_complete:
+        if labels_sufficient:
             numeric_ticks = [
                 element
                 for element in metadata.get("elements", [])
@@ -751,8 +764,9 @@ def inspect_rendered_chart(
                         "REDUNDANT_VALUE_AXIS",
                         "medium",
                         ids,
-                        "The reading-carrying marks are directly labelled; the numeric value axis duplicates the "
-                        "labels - consider dropping its ticks and gridlines (eraser test).",
+                        "The key reading-carrying marks are directly labelled; on a zero-baseline encoding the "
+                        "labelled anchors fix the scale, so the numeric value axis duplicates them - drop its "
+                        "ticks and gridlines (eraser test). Not every mark need be labelled for this to hold.",
                     )
                 )
 

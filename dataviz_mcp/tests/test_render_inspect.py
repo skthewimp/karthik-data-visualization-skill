@@ -531,6 +531,22 @@ def test_redundant_value_axis_flagged_at_two_labelled_marks(tmp_path: Path) -> N
     assert report["redundant_value_axis"]
 
 
+def test_redundant_value_axis_flagged_with_contract_and_partial_labels(tmp_path: Path) -> None:
+    # A contract declares all five bars as expected labels but only the two key marks are labelled.
+    # The contract path must flag the redundant axis on the key set - it no longer requires the
+    # declared set to be complete.
+    _, report = render(tmp_path, "bars_two_labelled_with_contract")
+    assert "REDUNDANT_VALUE_AXIS" in _codes(report)
+    assert report["redundant_value_axis"]
+
+
+def test_redundant_value_axis_flagged_through_approx_glyph(tmp_path: Path) -> None:
+    # Every bar labelled with "≈value": the value is exact, so the ≈ must not hide the redundancy.
+    _, report = render(tmp_path, "bars_all_labelled_approx")
+    assert "REDUNDANT_VALUE_AXIS" in _codes(report)
+    assert report["redundant_value_axis"]
+
+
 def test_no_redundant_axis_when_one_mark_labelled(tmp_path: Path) -> None:
     # One of five bars labelled: a single label cannot fix the scale, so the flag must stay silent.
     _, report = render(tmp_path, "bars_few_labelled")
