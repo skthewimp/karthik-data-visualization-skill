@@ -22,6 +22,7 @@ from .palette import (
     validate_palette as validate_palette_core,
     validate_scale as validate_scale_core,
 )
+from .plot_data import prepare_plot_data as prepare_plot_data_core
 from .precision import recommend_precision as recommend_precision_core
 from .scale_transform import recommend_scale_transform as recommend_scale_transform_core
 from .refit import refit_chart as refit_core
@@ -279,6 +280,47 @@ def create_server() -> Any:
     ) -> dict[str, Any]:
         """Sample dominant hues from a source chart image as a repair prior (brand/WCAG may override)."""
         return extract_palette_core(image_path, max_colours, ignore_near_white_black)
+
+    @server.tool()
+    async def prepare_plot_data(
+        output_dir: str,
+        x: str,
+        value: str,
+        dataset_path: str | None = None,
+        columns: list[str] | None = None,
+        rows: list[list[Any]] | None = None,
+        series: str | None = None,
+        facet: str | None = None,
+        category_order: list[str] | None = None,
+        series_order: list[str] | None = None,
+        aggregate: str | None = None,
+    ) -> dict[str, Any]:
+        """Reshape the source into a tidy plotting frame so the builder reshapes nothing.
+
+        Keeps ONLY the mapped columns (``x`` -> category, ``value``, optional ``series`` /
+        ``facet``) - an unmapped helper column cannot leak in as a plotted series - and writes
+        a long-format ``plot-data.csv`` with fixed canonical names and one canonical ``order``
+        column shared by every mark and label, so a category/value association cannot reverse
+        and a stamped label cannot drift onto the wrong mark. Read the data from ``dataset_path``
+        (dataset-to-story) or inline ``columns``/``rows`` (a repair artifact's recovered table).
+        Duplicate (category, series, facet) keys need an ``aggregate`` (sum/mean/min/max/first/
+        last); a duplicate with none is an error, not a silent pick. Decided at ``select`` (the
+        role map), applied at ``build`` by loading the returned file - the fourth mechanical
+        resolution beside recommend_colours / recommend_precision / reserve_frame.
+        """
+        return prepare_plot_data_core(
+            output_dir,
+            x,
+            value,
+            dataset_path,
+            columns,
+            rows,
+            series,
+            facet,
+            category_order,
+            series_order,
+            aggregate,
+        )
 
     @server.tool()
     async def recommend_precision(

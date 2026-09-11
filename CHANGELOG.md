@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### Prepare the plotting frame mechanically; split copy out of the design blob
+
+Downstream harness audit: too many Build failures, in recurring classes - reversed category/value
+associations, internal helper columns leaking in as plotted series, and copy/wording mismatches.
+These are determinism failures a weak build model makes when it hand-builds its dataframe and rewords
+its copy inline, so the fix removes them in code rather than adding more instructions to the Build
+prompt. Layout geometry was already covered by the forward-geometry tools; that class stays a harness
+integration matter, not a contract gap.
+
+- **`prepare_plot_data`** (new tool, `dataviz_mcp/plot_data.py`): a deterministic tidy-frame builder.
+  Takes a role map (which column is category/x, value, series, facet) plus the data (a `dataset_path`
+  or a repair's inline `columns`/`rows`) and emits one long-format `plot-data.csv`. It keeps **only**
+  the mapped columns - a helper column cannot become a series - and writes an explicit `order` column
+  pinning one canonical order shared by marks and labels, so a stamped value cannot land on the wrong
+  category. Duplicate `(category, series, facet)` keys need an `aggregate`; a duplicate with none is an
+  error, not a silent pick. Stdlib `csv` only.
+- **`stage_contracts.py`**: `select` now carries a `plot_data` role map; `build` records the
+  `plot_data_path` it loaded (absence on a tabular chart is a skipped-tool violation the execution gate
+  reads); `insight` carries a `data_source` (a dataset path, or the recovered table) threaded to the
+  tool via the stages that already read insight. The tool is the fourth decide-at-select /
+  resolve-by-tool / apply-at-build mechanical resolution beside colour, precision, and the frame.
+- **`design.public_copy`** replaces the prose `copy_and_context` blob: title (the insight headline
+  claim, verbatim), subtitle, axis titles, direct labels, and annotation wording as discrete frozen
+  strings - so copy is finalized before sizing and a copy-only defect is corrected on its own instead
+  of re-running the whole build.
+- **`dataviz-construct`** (both copies), `docs/mcp.md`, `docs/skills/dataviz-construct.md`: document the
+  new mechanical resolution and the copy/code/metadata split.
+
 ### A sparse 5-bar repair exposed six defaults tuned for the wrong case
 
 A before/after of a 5-food calorie bar chart came back flipped to horizontal for no reason, with a

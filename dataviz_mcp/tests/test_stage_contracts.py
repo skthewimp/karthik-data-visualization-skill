@@ -212,6 +212,41 @@ def test_only_select_stages_declare_routing_fields() -> None:
             assert stage.routing_fields == ()
 
 
+def test_plot_data_map_is_carried_by_select_for_the_mechanical_frame() -> None:
+    """select names the role map so build reshapes nothing; the map whitelists x + value."""
+    props = sc.SELECT_SCHEMA["properties"]
+    assert "plot_data" in props
+    plot_data = props["plot_data"]
+    assert set(plot_data["required"]) == {"x", "value"}
+    for role in ("x", "value", "series", "facet", "category_order", "series_order", "aggregate"):
+        assert role in plot_data["properties"]
+    # It is not mandatory - a table or single-number stat carries no plotting frame.
+    assert "plot_data" not in sc.SELECT_SCHEMA["required"]
+
+
+def test_build_records_the_plot_data_file_it_loaded() -> None:
+    assert "plot_data_path" in sc.BUILD_SCHEMA["properties"]
+
+
+def test_insight_carries_machine_readable_data_apart_from_prose_facts() -> None:
+    """data_source threads the actual data to the tool via insight (read by select and build)."""
+    props = sc.INSIGHT_SCHEMA["properties"]
+    assert "data_source" in props
+    source = props["data_source"]["properties"]
+    assert {"dataset_path", "columns", "rows"} <= set(source)
+
+
+def test_public_copy_split_out_of_design_prose() -> None:
+    """Reader-facing copy is discrete strings (title mandatory), not a single prose blob."""
+    design = sc._DESIGN["properties"]
+    assert "public_copy" in design
+    assert "copy_and_context" not in design
+    copy = design["public_copy"]
+    assert copy["required"] == ["title"]
+    for field in ("title", "subtitle", "axis_titles", "direct_labels", "annotation_texts"):
+        assert field in copy["properties"]
+
+
 def test_handoff_spec_lists_content_sections_and_routing_block() -> None:
     select = sc.stage("repair", "select")
     spec = select.handoff_spec()

@@ -100,6 +100,7 @@ asyncio.run(main())
         "validate_palette",
         "validate_scale",
         "extract_palette_from_image",
+        "prepare_plot_data",
         "recommend_precision",
         "recommend_scale_transform",
         "recommend_labels",

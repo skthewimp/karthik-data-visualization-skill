@@ -1,5 +1,48 @@
 # Devlog
 
+## 2026-09-11 - prepare the plotting frame mechanically; split copy from the design blob
+
+### User report
+
+- Downstream harness feedback: "there are still way too many build failures." Its audit named recurring
+  classes - reversed category/value associations, internal helper columns becoming plotted series, copy
+  wording mismatches, and improvised layout geometry - and suggested three changes: prepare plotting data
+  mechanically from the plan, give Build measured layout inputs it can use directly, and separate chart
+  code / public copy / machine metadata. User: "what should we do for this", then chose the deterministic
+  tool for #1 and "full thread now" for the whole change.
+
+### Diagnosis
+
+- Read the actual contract, not the downstream harness's `runner.py` (a separate repo). `render_chart`
+  loads a model-written Python file, so the dataframe reshape is inline in the chart code - nothing stops
+  the reversed-association or helper-column classes.
+- #2 (measured layout) was already fully covered by `recommend_layout`/`reserve_frame`/`place_on_marks`;
+  its failures are the harness not wiring the existing tools, a downstream integration matter, not a
+  contract gap. So no new layout system - matches the downstream "no universal chart compiler" note.
+- #1 and #3 were real contract gaps. `_DESIGN` carried only prose strategy and one `copy_and_context`
+  blob; nothing carried the plotting frame or a pinned order.
+
+### Decisions
+
+- **#1 deterministic tool.** `prepare_plot_data` reshapes from a role map, whitelists the mapped columns
+  (helper columns cannot leak), and pins one `order` column shared by marks and labels. Data reaches it
+  either as a `dataset_path` (story) or inline `columns`/`rows` (repair, already in the artifact) - so the
+  thread is a single new `data_source` field in `insight` output (already read by select and build), not
+  edits across every front-half stage. Kept stdlib-only.
+- **#3 copy split.** `copy_and_context` -> structured `public_copy` (title = headline claim verbatim,
+  subtitle, axis titles, direct labels, annotation texts). Enforces "finalize copy before sizing" by shape
+  and lets a copy-only fix be targeted.
+- Both `plot_data` (select) and `plot_data_path` (build) left non-required, so tables and single-number
+  stats that carry no plotting frame are not forced to invent one.
+
+### Tests
+
+- `test_plot_data.py`: whitelist drops helper columns, role map fixes the association, explicit `order`
+  column, series/facet kept and ordered, missing-from-order appended not dropped, duplicate-without-aggregate
+  raises, aggregate sum, missing mapped column raises, non-numeric dropped with warning, reads from file.
+- `test_stage_contracts.py`: new fields present and correctly (non-)required; `copy_and_context` gone.
+- Updated `test_server.py` tool set. Full mechanical suite green.
+
 ## 2026-09-11 - a sparse 5-bar repair exposed six wrong-case defaults
 
 ### User report

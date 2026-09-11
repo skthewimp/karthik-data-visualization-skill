@@ -361,13 +361,94 @@ _DATA_TABLE = {
     "additionalProperties": False,
 }
 
+# Reader-facing copy, split OUT of the old prose ``copy_and_context`` blob into discrete
+# frozen strings. Kept separate from chart code and machine metadata (#3): the title asserts
+# the ONE headline claim from insight verbatim (never a reworded copy), and every string is
+# finalized here so sizing measures the real copy - "finalize copy before sizing" is now
+# enforced by the artifact shape, not just asked for in prose. A copy-only defect at the
+# execution gate is corrected here alone, not by re-running the whole build.
+_PUBLIC_COPY = {
+    "type": "object",
+    "description": (
+        "Every reader-facing string, finalized before sizing and kept apart from chart code "
+        "and machine metadata. The title states the insight headline claim verbatim; build "
+        "reproduces these strings, it does not reword them."
+    ),
+    "properties": {
+        "title": {
+            "type": "string",
+            "description": "The title, asserting the insight stage's headline claim verbatim.",
+        },
+        "subtitle": {"type": "string"},
+        "axis_titles": {
+            "type": "object",
+            "description": "Axis titles by role, e.g. {\"x\": \"...\", \"y\": \"...\"}. Empty when self-evident.",
+            "additionalProperties": {"type": "string"},
+        },
+        "direct_labels": {
+            **_STRING_ARRAY,
+            "description": (
+                "In-data quantities stamped directly on marks (a value on a bar, an end-of-line "
+                "series name). Placed mechanically by place_on_marks; worded here."
+            ),
+        },
+        "annotation_texts": {
+            **_STRING_ARRAY,
+            "description": (
+                "The wording for each external-fact annotation insight named (empty when there "
+                "are none). One string per candidate annotation carried forward."
+            ),
+        },
+        "caption": {"type": "string"},
+        "footer": {"type": "string"},
+    },
+    "required": ["title"],
+    "additionalProperties": False,
+}
+
+# The role map for prepare_plot_data: which source column is the category/x, the value, the
+# optional series and facet, plus the canonical orders and any aggregation. Decided at select;
+# the deterministic tool consumes it to emit the tidy frame; build reads the frame. This is
+# what removes the reversed-association and helper-column-as-series classes in code (#1) rather
+# than warning against them - the builder never reshapes the data itself.
+_PLOT_DATA_MAP = {
+    "type": "object",
+    "description": (
+        "The role map handed to prepare_plot_data so the plotting frame is built mechanically, "
+        "not reshaped by the builder. Names the source columns by role; the tool keeps only "
+        "these (a helper column cannot leak in as a series) and pins one canonical order shared "
+        "by marks and labels. Empty/omitted only when no tabular data is plotted."
+    ),
+    "properties": {
+        "x": {"type": "string", "description": "Source column that is the category / x position."},
+        "value": {"type": "string", "description": "Source column that is the numeric value."},
+        "series": {"type": ["string", "null"], "description": "Column that splits series / colour, if any."},
+        "facet": {"type": ["string", "null"], "description": "Column that splits panels, if any."},
+        "category_order": {
+            **_STRING_ARRAY,
+            "description": "Explicit canonical category order; empty for first-appearance order.",
+        },
+        "series_order": {
+            **_STRING_ARRAY,
+            "description": "Explicit canonical series order; empty for first-appearance order.",
+        },
+        "aggregate": {
+            "type": ["string", "null"],
+            "enum": ["sum", "mean", "min", "max", "first", "last", None],
+            "description": "How to collapse duplicate (category, series, facet) keys; null when keys are unique.",
+        },
+    },
+    "required": ["x", "value"],
+    "additionalProperties": False,
+}
+
 _DESIGN = {
     "type": "object",
     "properties": {
         "chart_form": {"type": "string"},
         "comparison_strategy": {"type": "string"},
         "identification_strategy": {"type": "string"},
-        "copy_and_context": {"type": "string"},
+        "public_copy": _PUBLIC_COPY,
         "colour_role": {"type": "string"},
         "colour_groups": {
             "type": "integer",
@@ -385,7 +466,7 @@ _DESIGN = {
         "chart_form",
         "comparison_strategy",
         "identification_strategy",
-        "copy_and_context",
+        "public_copy",
         "colour_role",
         "colour_groups",
     ],
@@ -692,9 +773,31 @@ _CANDIDATE_ANNOTATIONS = {
 # Insight stage output: the evidence AND the chosen headline claim + candidate annotations,
 # decided before any form is chosen. Supersedes the old skill-less FACTS placeholder - the
 # headline the chart asserts is now computed here, from the data, not improvised at build.
+# The machine-readable data carried forward to the plot-data tool. ONE field threaded here
+# (insight is read by both select and build, via input_schema and also_reads) rather than
+# editing every front-half stage. Dataset-to-story names the prepared dataset file; a repair
+# echoes the recovered table (columns + rows) it already holds, so no stage has to write a
+# file. prepare_plot_data reads whichever is populated.
+_DATA_SOURCE = {
+    "type": "object",
+    "description": (
+        "The machine-readable data prepare_plot_data will reshape at build. Set dataset_path "
+        "(dataset-to-story: the prepared dataset file) OR columns + rows (a repair's recovered "
+        "table, already in hand). Exactly one form is populated; this is the data itself, kept "
+        "apart from the prose facts."
+    ),
+    "properties": {
+        "dataset_path": {"type": ["string", "null"]},
+        "columns": _STRING_ARRAY,
+        "rows": {"type": "array", "items": {"type": "array", "items": {}}},
+    },
+    "additionalProperties": False,
+}
+
 INSIGHT_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
+        "data_source": _DATA_SOURCE,
         "facts": {
             "type": "array",
             "minItems": 1,
@@ -738,6 +841,7 @@ SELECT_SCHEMA: dict[str, object] = {
         "needs_precision_plan": {"type": "boolean"},
         "number_display_groups": _NUMBER_DISPLAY_GROUPS,
         "colour_plan": _COLOUR_PLAN,
+        "plot_data": _PLOT_DATA_MAP,
         "design": _DESIGN,
         "layout_plan": _LAYOUT_PLAN,
         "acceptance_checks": _ACCEPTANCE_CHECKS,
@@ -854,6 +958,15 @@ BUILD_SCHEMA: dict[str, object] = {
             ),
         },
         "render_code_path": {"type": "string"},
+        "plot_data_path": {
+            "type": "string",
+            "description": (
+                "The tidy frame from prepare_plot_data that the render code loaded and plotted "
+                "verbatim. Present whenever select supplied a plot_data map; its absence on a "
+                "tabular chart means the builder reshaped data by hand - a skipped-tool "
+                "violation the execution gate reads, not a shortcut."
+            ),
+        },
         "delivery_condition": {"type": "string"},
         "self_inspection": {"type": "string"},
         "acceptance_results": {
