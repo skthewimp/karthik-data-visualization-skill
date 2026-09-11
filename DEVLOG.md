@@ -3061,3 +3061,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Got it. All done — fixes + docs pushed to `origin/main`.
 
 <!-- claude-session:ec72092b-287f-473b-a07f-a0cae48135ec:end -->
+
+<!-- claude-session:4d2b4202-3a8a-4020-b7b8-a97cd47c4429:start -->
+## 2026-09-11 06:56 IST | Claude session `4d2b4202-3a8`
+
+### User prompts
+> random - i was working with some boxplots and realised i prefer direct laberlling for box plots as well! like this is hte code i generted: ```{r} brand_types %>% ggplot(aes(x = brand_type, y = num_city)) + geom_boxplo...
+> Across the scales, how are we handling log scales by the do we instinctively generate them or is it ge does it get recommended in the selector or does it get recommended in the picker or what?
+> That locked in there was there in my original code that I had given and then and then GPT Luna decided to retain it. we need to figure out a way properly to select log axes when necessary. It has to come as part of I...
+
+### Work done
+- Done. Shipped and pushed. **What now exists:** **Tool — `recommend_scale_transform(values, encoding)`** (`dataviz_mcp/scale_transform.py`) - Computes: positive dynamic range, orders of magnitude, Bowley skew of raw vs...
+- Sounds good. All shipped and pushed. Ping me when you want the weak-model validation or the execution gate.
+
+<!-- claude-session:4d2b4202-3a8a-4020-b7b8-a97cd47c4429:end -->
