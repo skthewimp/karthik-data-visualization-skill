@@ -37,7 +37,17 @@ Answer each against the evidence, and be specific about what fails and why.
   value scales require commensurable quantities. Different-unit charts may align on time
   when each owns its title and labelled value scale. Apply the **Form constraints** section of
   `dataviz-selector` (read that section if it is not supplied). Judge both the permitted
-  form and whether the plan makes the actual comparison readable. A **length encoding** (bar,
+  form and whether the plan makes the actual comparison readable. The justification must be
+  **affirmative**: for each key message the plan must name the comparison it needs and the
+  visible element a reader traces it on at delivery size, and the form passes only when that
+  trace holds. Reject a form defended by fidelity to the source (its category count, that it
+  was a stack, its grain, its series set) or by beating a worse alternative ("at least it keeps
+  everything", "better than a table") - neither establishes that the reader can see the
+  comparison, and leaning on them is the pipeline ratifying its own plan instead of testing
+  whether that plan repairs the original problem. When a per-series or per-category message
+  rides an untraceable element - an interior stack band with no common baseline, a colour
+  matched across distant marks - route it to `select` with `revise`, naming the message whose
+  comparison fails. A **length encoding** (bar,
   column, filled area or arc) whose baseline is not the encoded quantity's zero is a **fatal**
   integrity failure here, however the plan justifies it: a baseline the plan calls *meaningful*,
   *natural*, *contextual*, or *the interesting range* is the tell, not a defense, and this check

@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Stacked bars kept out of fidelity: justify a form by the reading, not by faithfulness
+
+A repair of a dense multi-category stacked bar (per-series composition shifting over many periods)
+pulled one series out as its own line - a real improvement - but kept the crowded stack for the rest,
+defending it by "it keeps all the categories" and "it beats a table". Neither test asked whether a
+reader could actually trace the per-category changes the chart exists to show; the interior bands
+have no common baseline and can't be followed. The pipeline had converted source features (category
+count, that it was a stack, the grain) into obligations, then checked the plan against itself instead
+of against the original problem. Fix makes form justification **affirmative** at the producer and a
+trip-wire at the pre-render gate. General principle only - no case-specific counts, grain, or domain.
+
+- **`dataviz-selector`** (both copies + `docs/skills`): the "One chart, one main job" guardrail now
+  requires, per message, a named comparison and the visible element a reader traces it on at delivery
+  size - a form passes only when that trace survives. Source features (categories shown at once,
+  stacking/faceting, grain, series set) are properties of the old picture, not requirements; they are
+  honoured by preserving the data and messages, never the form. Two justifications are inadmissible:
+  "it keeps all the categories" (confuses keeping data with keeping a form) and "it beats a
+  [table/pie/worse form]" (a strawman). Cold-selection note in docs carries the same rule.
+- **`dataviz-idea-critique`** (both copies + `docs/skills`): the EXPRESSION question now rejects a
+  form defended by fidelity to the source or by beating a worse alternative, and names this as the
+  pipeline ratifying its own plan instead of testing whether it repairs the original problem. A
+  per-series/per-category message on an untraceable element (interior stack band with no common
+  baseline, colour matched across distant marks) routes to `select` with `revise`, naming the message
+  whose comparison fails.
+
 ### Source tooltips and boxed text: keep the information, drop the box
 
 A phone-screenshot redesign kept a source tooltip - a floating "4:16/km" readout - as an output

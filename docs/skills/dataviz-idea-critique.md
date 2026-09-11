@@ -32,9 +32,15 @@ Answer each against the evidence, and be specific about what fails and why.
   value scales require commensurable quantities. Different-unit charts may align on time
   when each owns its title and labelled value scale. Apply the **Form constraints** section of
   `dataviz-selector` (read that section if it is not supplied). Judge both the permitted
-  form and whether the plan makes the actual comparison readable. Respect explicit prompt
-  requests and the valid comparison/uncertainty forms; route a major violation to `select`
-  with `revise`.
+  form and whether the plan makes the actual comparison readable. The justification must be
+  **affirmative**: for each key message the plan names the comparison it needs and the visible
+  element a reader traces it on at delivery size, and the form passes only when that trace
+  holds. Reject a form defended by fidelity to the source (its category count, that it was a
+  stack, its grain) or by beating a worse alternative ("at least it keeps everything", "better
+  than a table") - neither establishes that the reader can see the comparison, and leaning on
+  them is the pipeline ratifying its own plan instead of testing whether that plan repairs the
+  original problem. Respect explicit prompt requests and the valid comparison/uncertainty
+  forms; route a major violation to `select` with `revise`.
 - **Is the INSIGHT right?** Is the headline claim the key thing to say, and is it supported at
   the strength stated? Are the candidate annotations the right marks - each pointing at
   something a reader would miss - or are they clutter, or restatements of what the axis already

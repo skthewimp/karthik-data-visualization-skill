@@ -13,7 +13,7 @@ It is designed for situations where the failure mode is not bad styling, but bad
 
 ## Cold selection inside a repair
 
-When `dataviz-selector` is invoked inside a chart repair (`dataviz-fix`), it runs on the extracted intent (`dataviz-brief`) and data, **cold**: the source chart's form is not an input and gets no vote. There is no "the source form is clearly correct, so keep it" shortcut. A many-series stacked bar whose message is per-series comparison is not correct enough to inherit - it becomes small multiples, direct-labelled lines, or a ranked view. Preserving the categories means keeping the data, not the chart type.
+When `dataviz-selector` is invoked inside a chart repair (`dataviz-fix`), it runs on the extracted intent (`dataviz-brief`) and data, **cold**: the source chart's form is not an input and gets no vote. There is no "the source form is clearly correct, so keep it" shortcut. A many-series stacked bar whose message is per-series comparison is not correct enough to inherit - it becomes small multiples, direct-labelled lines, or a ranked view. Preserving the categories means keeping the data, not the chart type. Source features - how many categories sit in one view, that the source stacked or faceted, its grain, its series set - are properties of the old picture, not requirements. A form earns its place only by an **affirmative** test: for each message, name the comparison it needs and the visible element a reader traces it on at delivery size. "It keeps all the categories" and "it beats a table" are not justifications - the first confuses keeping the data with keeping a form, the second is a strawman.
 
 ## Trigger examples
 
@@ -50,7 +50,7 @@ If implementing: <short code/design note>
 
 ## Core decision rules
 
-- One chart, one main job.
+- One chart, one main job - justified by the reading it enables, not by fidelity to the source or beating a worse alternative.
 - Start from the claim, not the chart taxonomy.
 - Identify the comparison: time, peers, baseline, threshold, counterfactual, distribution, spatial context, model expectation, or decomposition.
 - Use the simplest chart that exposes that comparison.
