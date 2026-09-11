@@ -48,6 +48,8 @@ A direct label is **one mark's value** or its name - "42%", "Karnataka", the end
 
 **A summary mark carries its own statistics as direct labels.** A boxplot's box, a violin, an error bar, a range band is a single mark whose position *is* a set of computed quantities - the hinges, the median, the whiskers, a mean and its interval. Those quantities are the direct labels for that mark, under the same restraint: label the few that carry the reading, let them retire the value axis they duplicate, and leave the rest in the geometry. Build each label string from the same statistic that positioned the mark - in ggplot, `stat_summary(geom = "text", aes(label = after_stat(y)))`, never a hand-typed number - so the label and the mark can never disagree and both move together when the data changes.
 
+**A source image's tooltip or hover readout is not an output element - its value is a direct label.** When you redesign a chart whose source shows a floating callout (a tooltip, crosshair readout, hover card, selection popover), the number inside it is one mark's quantity. Recover that quantity and, if it carries the point, render it as a direct label anchored to its datum; the floating box itself is source-UI chrome, so drop it. **Preserving the information the box held never means preserving the box.** A reproduced overlay sits untethered in figure space and, dropped back onto the plot, lands across the very marks it describes. A label that obstructs a line or point is a defect even when a collision check reports it clear - the box was never a legitimate mark to place, so the reading it destroys outweighs any inspector's zero-collision report.
+
 ## Wording
 
 - **Every number and comparative word is computed, never typed.** A hand-typed count is wrong the moment a filter changes; **flat, unchanged, doubled, halved, steady** each assert a number - check it before writing it ("Flat for 45 years" is false if the slope is 1.5 points/decade). Build the label string from the same computation that produced the mark.
@@ -77,6 +79,7 @@ Where the harness ships forward placement tools, let them settle the geometry de
 
 - **Primary** (the annotation, or the one label the claim rests on): accent colour, bold, slightly larger; the datum it points at also takes the accent.
 - **Supporting** (context labels, series names, period labels): grey, regular weight, smaller than axis labels.
+- **Text is freestanding, never boxed.** An annotation or direct label is text laid on the plot - no background fill, border, drop-shadow, or enclosing bubble. In ggplot that is `geom_text`, never `geom_label`. If the text won't read against the marks behind it, move it into whitespace or lift its colour and weight; boxing it to force contrast just stamps an opaque panel over the data it sits on.
 
 Never let the text outweigh the mark it explains. Orienting furniture (series names, period labels, axis units) doesn't compete with the annotation but must still be collision-checked against it.
 
@@ -106,6 +109,8 @@ Fix and re-render. Don't declare done from code inspection.
 | Text clipped at a panel edge | Reserve room in the margin (or via `reserve_frame`), not by stretching the data scale |
 | Group label parked at the cluster centroid | Anchor on the group, offset to the outside edge |
 | External fact asserted with no source | Cite where it comes from; it is a factual claim about the world |
+| Text set in a filled or bordered bubble (`geom_label`) | Freestanding text (`geom_text`); move it into whitespace or lift its weight, never box it over the data |
+| A source tooltip or hover box reproduced as a floating element | Its value is a direct label on its datum; drop the box - keeping the information never means keeping the box, and an overlay lands on the marks it describes |
 | Declared done without rendering | Export and inspect |
 
 ## Relationship to other skills

@@ -65,7 +65,7 @@ If implementing: <short code/design note>
 
 ## Form constraints
 
-- **Prompt precedence.** Honour a chart form explicitly requested in the prompt; it overrides these default form exclusions. A form merely present in a source image is not a request. Preserve honest quantities, scales, and claims in the requested form.
+- **Prompt precedence.** Honour a chart form explicitly requested in the prompt; it overrides these default form exclusions. A form merely present in a source image is not a request. Preserve honest quantities, scales, and claims in the requested form. A source-UI overlay in the image - a tooltip, hover card, crosshair readout - is chrome, not a chart element: carry the value inside it as a direct label on its datum, never reproduce the floating box.
 - **Default exclusions.** Do not choose pies, donuts, radar/spider charts, gauges/speedometers, decorative infographic forms, 3D charts, or animation/interaction as the main answer unless explicitly requested.
 - **Points and comparisons.** Scatter requires two quantitative axes. For categorical magnitudes, use bars rather than isolated dots or lollipops. Dumbbells are valid for paired comparisons; point-and-interval plots are valid for estimates with uncertainty.
 - **Magnitude channel.** Use length or position for precise quantity comparisons, not area or volume. Heatmaps are valid when colour reveals patterns or clusters across a matrix. Default to equal-size scatter points; do not add a bubble-size measure or choose a treemap. An explicit form request overrides this preference.

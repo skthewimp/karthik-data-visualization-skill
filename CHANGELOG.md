@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Source tooltips and boxed text: keep the information, drop the box
+
+A phone-screenshot redesign kept a source tooltip - a floating "4:16/km" readout - as an output
+element. Diagnose flagged its content as required, select carried the whole box into the rebuild,
+and the correction moved it inside the canvas straight across the heart-rate line; execution had to
+override the inspector's zero-collision report to catch it, and it shipped `best_available` on a
+still-revise verdict. The information inside the box was worth keeping; the obstructive floating box
+was not. Fix encodes the general rule at the two decision points, plus a standing rule that on-chart
+text is freestanding. General principle only - no case-specific triggers, numbers, or the source app.
+
+- **`chart-annotations`** (both copies + `docs/skills`): a source image's tooltip / hover readout /
+  crosshair / selection popover is **not an output element** - its value is one mark's quantity, so
+  recover it as a **direct label anchored to its datum** and drop the box. Preserving the information
+  the box held never means preserving the box; a reproduced overlay floats untethered and lands
+  across the marks it describes, and a label that obstructs a line or point is a defect even when a
+  collision check reports it clear.
+- **`chart-annotations`** (both copies + `docs/skills`): standing rule under Visual weight - on-chart
+  text is **freestanding, never boxed** (no fill, border, shadow, or bubble). `geom_text`, never
+  `geom_label`; if text won't read against the marks behind it, move it into whitespace or lift its
+  weight, don't stamp an opaque panel over the data. Two new Common-mistakes rows.
+- **`dataviz-selector`** (both copies + `docs/skills`): the Prompt-precedence bullet now names a
+  source-UI overlay as chrome, not a chart element - carry its value as a direct label, never
+  reproduce the floating box.
+
 ### Truncated-bar baseline: hardened producer, hard trip in the gates
 
 A repair let a bar chart of country heights keep a non-zero (5-foot) baseline, so the shortest
