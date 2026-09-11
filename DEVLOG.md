@@ -3124,3 +3124,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Pushed `d106d80`, local matches upstream. **Root cause:** zero-baseline rule existed in selector but was a *stated principle with no hard trip* → a plan re-labelled the truncation "meaningful" and every stage accepted...
 
 <!-- claude-session:87f0e30e-558d-46fb-ac71-e8259267bb45:end -->
+
+<!-- claude-session:e9d06037-b90a-4c3a-8b76-13952331b1e4:start -->
+## 2026-09-11 11:28 IST | Claude session `e9d06037-b90`
+
+### User prompts
+> another critical error from the recent set of runs. a tool tip in an input imge got retained. and that overwrote the line. according to the harness:
+> another critical error from the recent set of runs. a tool tip in an input imge got retained. and that overwrote the line. according to the harness: The tooltip failure followed a related preservation mistake, but its...
+> i wonder if we're b eing too faithful to tooltips, though -0 sometimes it's just there as part of the input dashboard and may not really add value. we need judgment on whether to really keep it or not.
+
+### Work done
+- Pushed; local matches upstream. Updating memory to carry the judgment nuance:
+- Done. Pushed, local matches `origin/main`. The rule now cuts both ways: - **Box** → always dropped. - **Value** → a judgment, not a default. Kept only if that mark carries the point (then a direct label on its datum,...
+
+<!-- claude-session:e9d06037-b90a-4c3a-8b76-13952331b1e4:end -->
