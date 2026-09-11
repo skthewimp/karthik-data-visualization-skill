@@ -3204,3 +3204,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Done. Shipped + pushed. **Problem:** pipeline too faithful to input stacked bars - keeps them (with legends) even when not insightful. Root cause (harness): converts source features (category count, stacking, grain) i...
 
 <!-- claude-session:a8ce4e82-3a12-4508-8b65-c7800f93470e:end -->
+
+<!-- claude-session:2f52c555-e1a2-4692-b7f5-e56a04ae44bd:start -->
+## 2026-09-11 11:56 IST | Claude session `2f52c555-e1a`
+
+### User prompts
+> this is a classic case wiht before-after. a few clear problems wiht after - 1. why did we flip axes? there is no reason for that; 2. we don't need the "y axis" (or x axis inthe flipped chart) since we are labelling di...
+> NO. that's the wrong thing to do. i want you to inspect skills and MCPs to see why this happend.
+> all of these are problems. all need to be fixed. how will you do this? 1. no subtitle when no "message" is easy; 2. bar labels inside or outside - is a choice. maybe default inside but outside when bar is short. and i...
+
+### Work done
+- Done - pushed (`0af2808`). Let me record the reusable lesson from validation.
+- Both tasks done, pushed (`0af2808`). **#2 MCP helper — shipped.** `place_bar_value_labels`: per bar, inside/outside from `bar_length_px`, text colour by WCAG contrast against the surface (fill inside, canvas outside),...
+
+<!-- claude-session:2f52c555-e1a2-4692-b7f5-e56a04ae44bd:end -->
