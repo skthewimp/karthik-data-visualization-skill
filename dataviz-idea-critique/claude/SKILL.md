@@ -37,7 +37,13 @@ Answer each against the evidence, and be specific about what fails and why.
   value scales require commensurable quantities. Different-unit charts may align on time
   when each owns its title and labelled value scale. Apply the **Form constraints** section of
   `dataviz-selector` (read that section if it is not supplied). Judge both the permitted
-  form and whether the plan makes the actual comparison readable. Respect explicit prompt
+  form and whether the plan makes the actual comparison readable. A **length encoding** (bar,
+  column, filled area or arc) whose baseline is not the encoded quantity's zero is a **fatal**
+  integrity failure here, however the plan justifies it: a baseline the plan calls *meaningful*,
+  *natural*, *contextual*, or *the interesting range* is the tell, not a defense, and this check
+  is never tradeable against preserving the source's "context". Route it to `select` to re-anchor
+  the bars at zero, or - when the variation against a large common level is the story - to switch
+  to a position form (dot, dumbbell, slope) whose scale may zoom. Respect explicit prompt
   requests and the valid comparison/uncertainty forms; route a major violation to `select`
   with `revise`.
 - **Is the INSIGHT right?** Is the headline claim the key thing to say, and is it supported at

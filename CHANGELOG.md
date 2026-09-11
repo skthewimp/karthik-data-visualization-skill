@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Truncated-bar baseline: hardened producer, hard trip in the gates
+
+A repair let a bar chart of country heights keep a non-zero (5-foot) baseline, so the shortest
+country rendered as a zero-length bar. The zero-baseline rule already existed in `dataviz-selector`
+("Bars start at zero"), but it was rationalized around at every stage - the plan called the
+truncated baseline "meaningful", the idea gate endorsed that as "avoiding misleading truncation",
+diagnose carried the source's zoomed range forward as context to preserve, and execution treated
+the geometry as a bounded-edit preservation constraint. No stage tripped. Fix hardens the producer
+and turns the rule into a non-gameable gate check. General principle only - no case-specific
+triggers or numbers.
+
+- **`dataviz-selector`** (both copies + `docs/skills`): rewrote the graphical-integrity bullet.
+  A length encoding's baseline is the quantity's zero by construction, not an editorial choice;
+  calling a non-zero baseline *meaningful* / *natural* / *contextual* / *the interesting range* is
+  the tell that it is being truncated, not a defense. Names the escape hatch: small variation on a
+  large common level goes to a **position** form (dot, dumbbell, slope) whose scale may zoom -
+  never a bar starting above zero.
+- **`dataviz-idea-critique`** (both copies): the EXPRESSION question now trips **fatal** on a
+  length encoding whose baseline is not zero, however the plan justifies it, and states the check
+  is never tradeable against preserving the source's "context". Routes to `select`.
+- **`dataviz-brief`** (both copies): a magnitude scale or baseline is **never a keep-note**. A
+  source whose bars/areas start above zero is defective; its baseline is dropped, not preserved.
+- **`dataviz-execution`** (both copies): a graphical-integrity failure visible in the pixels
+  (a length mark off its zero) is an idea defect that no `bounded-edit` scope shields - widen and
+  route back.
+
 ### Log vs linear axis: a computed, advisory recommendation
 
 Log axes were being chosen (or retained) by model instinct - no skill computed the spread and

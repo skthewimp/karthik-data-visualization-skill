@@ -1,5 +1,42 @@
 # Devlog
 
+## 2026-09-11 - truncated-bar baseline slipped every gate
+
+### User report
+
+- A repair produced a horizontal bar chart of average female height by country that kept the
+  source's non-zero baseline (bars starting at 5'0"), so the shortest country rendered as a
+  zero-length bar - a hard graphical-integrity violation. User pasted the before/after and a
+  traced diagnosis of the handoffs: diagnose recorded the 5-foot baseline as context to preserve;
+  select designed "bars begin at the meaningful 5'0" baseline"; the idea gate endorsed it as
+  "avoids misleading truncation"; build implemented it literally; execution protected the geometry
+  under a caption-only edit.
+
+### Diagnosis
+
+- The rule was not missing. `dataviz-selector` already said "Bars start at zero; scatters need
+  not." The failure was that the rule was a stated principle with no hard trip, so a plan could
+  re-label the truncation as "meaningful" and every downstream stage accepted the framing. Classic
+  value-gate gaming: the gate checked a justification, and the justification got written to pass.
+
+### What changed
+
+- **Producer hardening (`dataviz-selector`).** The integrity bullet now ties the baseline to the
+  encoding by construction (length = ratio of lengths → zero baseline is a property, not a choice),
+  names the exact rationalization vocabulary as the tell, and points the small-variation case at a
+  position form with a zoomable scale instead of a truncated bar.
+- **Gate trips (`dataviz-idea-critique`, `dataviz-execution`).** Idea gate: fatal on a non-zero
+  length baseline regardless of justification, not tradeable against "context". Execution gate: an
+  integrity failure in the pixels is an idea defect no bounded-edit scope shields.
+- **Diagnose (`dataviz-brief`).** A magnitude scale/baseline is never a keep-note; a truncated
+  source baseline is a defect to drop, closing the "preserve the context" entry point at the top.
+
+### Notes
+
+- Kept general per the no-hardcoded-cases rule: no country/height/inch specifics in any skill body;
+  the principle is length-encoding baselines and the rationalization vocabulary, not this chart.
+- Both `claude` and `codex` copies edited in lockstep; `docs/skills` mirror updated for selector.
+
 ## 2026-09-11 - log vs linear axis: a computed advisory recommendation
 
 ### User prompt

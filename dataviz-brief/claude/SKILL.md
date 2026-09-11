@@ -54,7 +54,9 @@ When in doubt, choose `redesign` - a bounded-edit that needs a form change can b
 
 ### 6. Keep-notes (thin)
 
-Optional: is anything in the source worth carrying forward as an idea - a smart annotation, a sensible top-N-plus-"other" grouping, a good baseline or period window? List only real, reusable ideas. Not a fault-list, not a defence of the form. If nothing stands out, say so.
+Optional: is anything in the source worth carrying forward as an idea - a smart annotation, a sensible top-N-plus-"other" grouping, a sensible period window? List only real, reusable ideas. Not a fault-list, not a defence of the form. If nothing stands out, say so.
+
+A magnitude **scale or baseline is never a keep-note.** Where a length encoding starts, and the range an axis spans, are form decisions the cold selector and build own from the data - not context to inherit. A source whose bars/areas start above the quantity's zero is *defective*, so its baseline is dropped, never preserved; recording a zoomed magnitude range as context to carry is exactly how a truncated source reproduces itself. The data and messages survive the repair; the source's scale choices do not.
 
 ## Output shape
 
