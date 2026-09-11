@@ -475,3 +475,39 @@ def test_delta_annotation_whose_number_is_on_no_label_is_not_flagged():
         ],
     )
     assert result["redundant_annotations"] == []
+
+
+def test_bar_value_labels_inside_with_per_bar_contrast():
+    # A saturated focal bar and pale grey context bars, all long enough to hold their value: every
+    # label sits inside, and the colour flips per bar so neither vanishes into its fill.
+    from dataviz_mcp.text_fit import place_bar_value_labels
+
+    result = place_bar_value_labels(
+        [
+            {"id": "focal", "value_text": "610", "fill": "#B23A2E", "bar_length_px": 600, "bar_thickness_px": 160},
+            {"id": "grey", "value_text": "540", "fill": "#C9C5BE", "bar_length_px": 540, "bar_thickness_px": 160},
+        ],
+        dpi=144,
+        font_pt=21,
+    )
+    by_id = {p["id"]: p for p in result["placements"]}
+    assert by_id["focal"]["placement"] == "inside"
+    assert by_id["grey"]["placement"] == "inside"
+    # White on the red focal fill, dark on the pale grey - never one colour for both.
+    assert by_id["focal"]["colour"] == "#ffffff"
+    assert by_id["grey"]["colour"] == "#1a1a1a"
+    assert by_id["grey"]["contrast_ratio"] >= 4.5
+
+
+def test_bar_value_label_too_long_for_short_bar_goes_outside():
+    from dataviz_mcp.text_fit import place_bar_value_labels
+
+    result = place_bar_value_labels(
+        [{"id": "short", "value_text": "260", "fill": "#C9C5BE", "bar_length_px": 30, "bar_thickness_px": 160}],
+        dpi=144,
+        font_pt=21,
+    )
+    placement = result["placements"][0]
+    assert placement["placement"] == "outside"
+    # Outside sits on the canvas, so contrast is judged against the background, not the fill.
+    assert placement["surface"] == "#ffffff"

@@ -683,3 +683,13 @@ build_table <- function() {{
         assert report["passes_geometry_checks"], report["defects"]
         rendered_headers = {e["text"] for e in layout["elements"] if e["font_size_pt"] == plan["header_pt"]}
         assert rendered_headers == {plan["headers"][c] for c in columns}
+
+
+def test_on_mark_label_contrast_judged_against_fill_not_background(tmp_path: Path) -> None:
+    # White value text inside a medium-blue bar: ~3.5:1 against the fill, but white-vs-white-canvas
+    # would pass. The gate must flag LOW_TEXT_CONTRAST judged against the mark fill.
+    _, report = render(tmp_path, "bar_white_label_on_midtone_fill")
+    assert "LOW_TEXT_CONTRAST" in _codes(report)
+    rec = next(r for r in report["low_contrast_elements"] if r["role"] == "data_label")
+    assert rec["against"] == "mark_fill"
+    assert rec["contrast_ratio"] < 4.5

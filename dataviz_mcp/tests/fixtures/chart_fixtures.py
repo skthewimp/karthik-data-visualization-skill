@@ -346,3 +346,18 @@ def coffee_fixed():
         price = float(COFFEE_PRICES[np.where(COFFEE_YEARS == year)][0])
         _annotation(ax, identifier, label, (year, price), offset, ha=alignment)
     return fig, {"fixture": "coffee_fixed", "repair_scope": "annotation placement only"}
+
+
+def bar_white_label_on_midtone_fill():
+    # A value label in white text sitting inside a medium-blue bar: white-on-#5B8DBE is ~3.5:1,
+    # below 4.5, but a background-only contrast check (white vs white canvas) would miss it. The
+    # gate must judge the on-mark label against the FILL and flag it.
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    bar = ax.barh(["A"], [500], color="#5B8DBE")[0]
+    bar.set_gid("mark:bar0")
+    label = ax.text(
+        bar.get_width() / 2, 0, "610", color="#ffffff", fontsize=13,
+        ha="center", va="center",
+    )
+    label.set_gid("data_label:bar0")
+    return fig, {"fixture": "bar_white_label_on_midtone_fill", "background": "#ffffff"}

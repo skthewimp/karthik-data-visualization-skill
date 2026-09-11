@@ -33,6 +33,17 @@ computed, generate-stage decision - general principle only, no case-specific cou
 - **Bar value labels default inside the bar** (`karthik-data-visualization` both copies): inside at the
   value end, out only when the bar is too short to hold the label (computed per bar); colour follows the
   surface - inverted against the fill inside, against the canvas outside - so no value fails contrast.
+- **New `place_bar_value_labels` tool** (`dataviz_mcp/text_fit.py` + server): given each bar's
+  `bar_length_px` and `fill`, returns per-bar `inside`/`outside` and the text colour chosen by WCAG
+  contrast against the surface it lands on - the deterministic producer for the rule above.
+- **The execution gate now judges an on-mark label against its mark fill, not the canvas**
+  (`dataviz_mcp/inspection.py`): a value printed inside a coloured bar is scored against that bar's
+  fill, so white-on-mid-blue (3.5:1) is flagged instead of sailing through a background-only check.
+- **Validated cold on sonnet + haiku** rebuilding the same fries chart from the updated skills/MCP.
+  Both produced clean charts (axis/legend/gridline/subtitle all correctly dropped, values inside,
+  reasoned orientation). Haiku defaulted a value label to white on a mid-blue fill (3.5:1) - which
+  drove the two fixes directly above: the stronger "never default to white" prose and the gate's
+  against-fill contrast check.
 - **A subtitle only when there is a second message** (`karthik-data-visualization` both copies): a
   static snapshot/ranking gets no subtitle; units, denominator, and scope caveats go to the caption/
   footer, never a manufactured subtitle.

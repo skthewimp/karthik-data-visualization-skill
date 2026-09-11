@@ -109,4 +109,5 @@ asyncio.run(main())
         "recommend_text_placement",
         "reserve_frame",
         "place_on_marks",
+        "place_bar_value_labels",
     }

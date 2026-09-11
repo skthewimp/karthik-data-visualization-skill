@@ -18,6 +18,19 @@ def _edges(bbox: dict[str, Any]) -> tuple[float, float, float, float]:
     return left, top, left + float(bbox["width"]), top + float(bbox["height"])
 
 
+def _bbox_center(box: dict[str, Any]) -> tuple[float, float]:
+    left, top, right, bottom = _edges(box)
+    return (left + right) / 2.0, (top + bottom) / 2.0
+
+
+def _point_in_bbox(point: tuple[float, float], box: Any) -> bool:
+    if not isinstance(box, dict):
+        return False
+    left, top, right, bottom = _edges(box)
+    x, y = point
+    return left <= x <= right and top <= y <= bottom
+
+
 def _intersection_area(first: dict[str, Any], second: dict[str, Any]) -> float:
     a_left, a_top, a_right, a_bottom = _edges(first)
     b_left, b_top, b_right, b_bottom = _edges(second)
@@ -523,7 +536,21 @@ def inspect_rendered_chart(
                         f"{element['role']} {element['id']} is below the supplied delivery text minimum",
                     )
                 )
-            ratio = _contrast_ratio(element.get("colour"), metadata.get("background"))
+            # A label printed ON a mark (a value inside a bar/segment) takes its legibility from
+            # that mark's fill, not the page background - so judge its contrast against the fill it
+            # sits on, else white-on-a-mid-tone-fill (3.5:1) sails through a background-only check.
+            surface = metadata.get("background")
+            surface_is_fill = False
+            if element.get("role") in _VALUE_LABEL_ROLES:
+                center = _bbox_center(bbox)
+                for mark in marks:
+                    if element.get("axes_id") and mark.get("axes_id") != element.get("axes_id"):
+                        continue
+                    if mark.get("fill") and _point_in_bbox(center, mark.get("bbox")):
+                        surface = mark["fill"]
+                        surface_is_fill = True
+                        break
+            ratio = _contrast_ratio(element.get("colour"), surface)
             if ratio is not None:
                 target = 3.0 if isinstance(font_size, (int, float)) and font_size >= 14 else 4.5
                 if ratio < target:
@@ -532,14 +559,16 @@ def inspect_rendered_chart(
                         "role": element["role"],
                         "contrast_ratio": round(ratio, 3),
                         "target": target,
+                        "against": "mark_fill" if surface_is_fill else "background",
                     }
                     low_contrast_elements.append(record)
+                    against = f" against its mark fill ({surface})" if surface_is_fill else ""
                     defects.append(
                         _defect(
                             "LOW_TEXT_CONTRAST",
                             "medium",
                             [element["id"]],
-                            f"{element['role']} {element['id']} contrast is {ratio:.2f}:1",
+                            f"{element['role']} {element['id']} contrast is {ratio:.2f}:1{against}",
                         )
                     )
             axes_id = element.get("axes_id")

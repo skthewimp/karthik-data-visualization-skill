@@ -11,6 +11,7 @@ from .layout import recommend_layout as recommend_layout_core
 from .table_layout import recommend_table_layout as recommend_table_layout_core
 from .table_builder import render_table_from_plan as render_table_core
 from .text_fit import (
+    place_bar_value_labels as place_bar_value_labels_core,
     place_on_marks as place_on_marks_core,
     recommend_text_placement as recommend_text_placement_core,
 )
@@ -550,6 +551,46 @@ def create_server() -> Any:
             edge_margin_px=edge_margin_px,
             min_font_pt=min_font_pt,
             plot_area=plot_area,
+        )
+
+    @server.tool()
+    async def place_bar_value_labels(
+        bars: list[dict[str, Any]],
+        dpi: int,
+        font_pt: float = 14.0,
+        background: str = "#ffffff",
+        ink_light: str = "#ffffff",
+        ink_dark: str = "#1a1a1a",
+        pad_px: float | None = None,
+        orientation: str = "vertical",
+    ) -> dict[str, Any]:
+        """Decide inside-vs-outside and the text colour for each bar's value label, deterministically.
+
+        Bar value labels default INSIDE the bar at its value end - bound to the mark, no extra ink -
+        and fall to OUTSIDE only when the bar is too short to hold the label, decided per bar from
+        geometry (a long bar labels inside while a short one in the same chart labels outside). The
+        text colour is chosen by WCAG contrast against the surface it lands on: the bar's own fill
+        when inside (light ink on a dark/saturated fill, dark ink on a pale one), the canvas
+        background when outside - so a value never vanishes into its own bar, and never floats
+        outside a bar that could hold it.
+
+        Pass one entry per bar ``{id, value_text, fill, bar_length_px[, bar_thickness_px]}`` where
+        ``bar_length_px`` is the pixel extent from baseline to value end (column height / bar width)
+        and the optional ``bar_thickness_px`` is the cross extent. Returns per bar ``{id, placement,
+        colour, contrast_ratio, fits_inside, label_px, low_contrast}``; apply each returned colour to
+        that bar's ``geom_text`` and nudge inside labels in from the value end, outside labels just
+        past it. A ``low_contrast`` bar clears neither ink on its fill - restyle the fill, don't ship
+        it. Run it at build, before the first render, from the bar geometry the layout already fixes.
+        """
+        return place_bar_value_labels_core(
+            bars,
+            dpi,
+            font_pt=font_pt,
+            background=background,
+            ink_light=ink_light,
+            ink_dark=ink_dark,
+            pad_px=pad_px,
+            orientation=orientation,
         )
 
     @server.tool()

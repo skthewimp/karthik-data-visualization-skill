@@ -31,8 +31,20 @@
   none without a second message; caveats to caption/footer.
 - Proven by rebuilding the exact fries chart through the new outputs (vertical, no axis, inside labels
   with per-bar contrast - dark on grey, white on the red focal - values at canvas-derived size, no
-  subtitle, exact `610`). Two new regression fixtures/tests; full MCP suite 280 passing. General
-  principle only - no case-specific counts or the example hardcoded.
+  subtitle, exact `610`). General principle only - no case-specific counts or the example hardcoded.
+
+### Follow-up: #2 gets a deterministic tool, and cold validation on weak models
+
+- Built `place_bar_value_labels` (server tool + `text_fit.py`): per bar, inside-vs-outside from
+  `bar_length_px` and the text colour by WCAG contrast against the surface (fill inside, canvas
+  outside). The producer half of the inside-label rule, so a weak model isn't left to eyeball it.
+- Validated cold on sonnet + haiku, both rebuilding the same fries chart from the updated skills/MCP.
+  Both dropped the value axis/legend/gridlines/subtitle, put values inside the bars, and reasoned an
+  orientation - the structural fixes carry. Haiku shipped white value text on a mid-blue fill (3.5:1):
+  the contrast decision was the weak-model gap. Two fixes from that finding - (1) skill prose "never
+  default to white; take the colour from `place_bar_value_labels` or the higher-contrast ink", and
+  (2) the execution gate now scores an on-mark label against its mark fill (it had checked only the
+  canvas background, so white-on-blue passed). New fixture + test; full suite 283 passing.
 
 ## 2026-09-11 - truncated-bar baseline slipped every gate
 

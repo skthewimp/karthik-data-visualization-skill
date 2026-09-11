@@ -962,3 +962,82 @@ def place_on_marks(
                     "to": {"x": dst[0], "y": dst[1]},
                 }
     return result
+
+
+def place_bar_value_labels(
+    bars: list[dict[str, Any]],
+    dpi: float,
+    *,
+    font_pt: float = 14.0,
+    background: str = "#ffffff",
+    ink_light: str = "#ffffff",
+    ink_dark: str = "#1a1a1a",
+    pad_px: Optional[float] = None,
+    orientation: str = "vertical",
+) -> dict[str, Any]:
+    """Decide, per bar, whether its value label sits INSIDE the bar or OUTSIDE past its end, and
+    which text colour keeps it legible on whatever surface it lands on.
+
+    Inside is the default - the value stays bound to its mark and spends no extra ink. A bar too
+    short to hold its own label falls to outside, decided per bar from geometry, so a long bar
+    labels inside while a short one in the same chart labels outside. Colour is chosen by contrast
+    against the surface the text actually sits on: the bar's own fill when inside (light ink on a
+    dark/saturated fill, dark ink on a pale one), the canvas background when outside. This is the
+    build-time answer to "why is every value floating outside the bars, and why did white text
+    vanish on the pale bars".
+
+    Each bar in ``bars`` is ``{id, value_text, fill, bar_length_px[, bar_thickness_px]}`` where
+    ``bar_length_px`` is the bar's pixel extent from baseline to its value end (height for vertical
+    columns, width for horizontal bars) and the optional ``bar_thickness_px`` is the cross extent
+    (bar width). Returns per bar ``{id, placement: "inside"|"outside", colour, contrast_ratio,
+    fits_inside, label_px}`` and the ``font_pt`` used, so the builder sets each ``geom_text``
+    colour and vjust/hjust/nudge from the returned decision instead of a single global guess.
+    """
+    from .color_math import _contrast_ratio  # local import: avoids a module cycle
+
+    pad = pad_px if pad_px is not None else char_px(font_pt, dpi) * 0.6
+    text_h = line_px(font_pt, dpi)
+
+    def _better_ink(surface: str) -> tuple[str, float]:
+        light_c = _contrast_ratio(ink_light, surface)
+        dark_c = _contrast_ratio(ink_dark, surface)
+        # Unknown surface (unparseable colour): default to dark ink, contrast unknown.
+        if light_c is None or dark_c is None:
+            return ink_dark, 0.0
+        return (ink_light, light_c) if light_c >= dark_c else (ink_dark, dark_c)
+
+    placements: list[dict[str, Any]] = []
+    for bar in bars:
+        text = str(bar.get("value_text", ""))
+        label_px = len(text) * char_px(font_pt, dpi) + 2 * pad
+        length = float(bar.get("bar_length_px", 0.0))
+        thickness = bar.get("bar_thickness_px")
+        fits_length = label_px <= length
+        # When the cross extent is known, the text must also fit across the bar to sit inside.
+        fits_thickness = True if thickness is None else text_h <= float(thickness)
+        inside = fits_length and fits_thickness
+        surface = bar.get("fill", background) if inside else background
+        colour, ratio = _better_ink(surface)
+        placements.append(
+            {
+                "id": bar.get("id"),
+                "placement": "inside" if inside else "outside",
+                "colour": colour,
+                "contrast_ratio": round(ratio, 2) if ratio else None,
+                "fits_inside": inside,
+                "label_px": round(label_px, 1),
+                "surface": surface,
+                "low_contrast": bool(ratio and ratio < 4.5),
+            }
+        )
+    return {
+        "orientation": orientation,
+        "font_pt": font_pt,
+        "placements": placements,
+        "note": (
+            "Inside labels anchor just inside the bar's value end (vertical: nudge down from the "
+            "top; horizontal: nudge left from the right end); outside labels sit just past the end. "
+            "Apply each returned colour to that bar's geom_text; a low_contrast flag means neither "
+            "ink clears 4.5:1 on that fill - restyle the fill rather than shipping the label."
+        ),
+    }
