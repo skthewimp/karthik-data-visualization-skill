@@ -1,5 +1,42 @@
 # Devlog
 
+## 2026-09-11 - log vs linear axis: a computed advisory recommendation
+
+### User prompt
+
+- Noticed the `scale_y_log10()` in the boxplot came from the original code and GPT/Luna just
+  retained it - no skill actually decides when a log axis is right. Wanted a proper way to select
+  log axes: a deterministic tool that recommends whether log is appropriate, whose output the model
+  can override (prompt might say otherwise, or a log might confuse the audience). Asked how to wire
+  it into the select workflow.
+
+### Design decisions (confirmed with Karthik)
+
+- **Log-only v1.** Recommend linear vs log10 only. On non-positive data, report that symlog/log1p
+  exist but never auto-recommend them.
+- **Tool + selector wiring, no execution gate this round.** A gate (position-axis analogue of the
+  heatmap colour-saturation rule) can come later.
+
+### What changed
+
+- `dataviz_mcp/scale_transform.py`: `recommend_scale_transform(values, encoding)`. Signals =
+  positive dynamic range, orders of magnitude, Bowley (quartile) skew of raw vs logged values, and
+  the skew reduction. Strength is a continuous saturating function of orders-of-magnitude modulated
+  by skew reduction - not a threshold ladder, per the no-hardcoded-regimes rule. `encoding="length"`
+  (bars/area) is forced linear (needs a true zero); non-positive data is `applicable: false`.
+- Advisory by design: returns strength + caveats (audience confusion, label-axis-as-log,
+  multiplicative reading), and the selector skill instructs the model to treat it as one input and
+  record an override reason - mirrors brand-overrides-colour.
+- Wired into `dataviz-selector` (both copies) as a "Log vs linear axis" guardrail, refined the old
+  "log scale for income/wealth/power-law data" one-liner to point at it. Registered in `server.py`;
+  `test_scale_transform.py` (7 tests) + server registry test; docs in `docs/mcp.md`,
+  `dataviz_mcp/README.md`, `docs/skills/dataviz-selector.md`.
+
+### Notes
+
+- The `transform` scalar (`log10`/`identity`) is the one value the builder branches on; the caveats
+  are prose the model reads - split per the markdown-over-JSON handoff rule.
+
 ## 2026-09-11 - summary marks carry their own statistics as direct labels
 
 ### User prompt

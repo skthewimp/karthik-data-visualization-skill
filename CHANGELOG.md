@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Log vs linear axis: a computed, advisory recommendation
+
+Log axes were being chosen (or retained) by model instinct - no skill computed the spread and
+nothing recommended the transform. Added a deterministic advisory tool plus selector wiring.
+
+- **New MCP tool `recommend_scale_transform`** (`dataviz_mcp/scale_transform.py`). Computes the
+  positive dynamic range, orders of magnitude, and quartile-skew reduction under logging, and
+  returns a graded `strength`/`confidence`, the `transform` scalar the builder branches on,
+  signals, rationale, and caveats. Log-only: with non-positive values it returns
+  `applicable: false` and notes symlog/log1p exist rather than recommending them. Bars/area
+  (`encoding="length"`) never get log - length needs a true zero. Continuous strength, no
+  hardcoded regime table.
+- **Selector wiring** (`dataviz-selector`, both copies + `docs/skills`). New "Log vs linear axis"
+  guardrail: for a continuous position axis, call the tool and treat the result as one input, not
+  a verdict - override for the prompt, audience, or clarity, and record the chosen scale (plus any
+  override reason) in the plan, the way brand overrides a colour recommendation.
+- Registered in `server.py`; docs in `docs/mcp.md` and `dataviz_mcp/README.md`; tests in
+  `test_scale_transform.py`; server tool-registry test updated.
+
 ### Summary marks carry their own statistics as direct labels
 
 Generalised the direct-label rule to distributional/summary marks - boxplots, violins, error bars,

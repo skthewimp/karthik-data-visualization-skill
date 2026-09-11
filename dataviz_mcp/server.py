@@ -22,6 +22,7 @@ from .palette import (
     validate_scale as validate_scale_core,
 )
 from .precision import recommend_precision as recommend_precision_core
+from .scale_transform import recommend_scale_transform as recommend_scale_transform_core
 from .refit import refit_chart as refit_core
 from .rendering import (
     probe_renderers as probe_core,
@@ -297,6 +298,26 @@ def create_server() -> Any:
         return recommend_precision_core(
             values, role, target_steps, smallest_meaningful_difference, exact
         )
+
+    @server.tool()
+    async def recommend_scale_transform(
+        values: list[float],
+        encoding: str = "position",
+    ) -> dict[str, Any]:
+        """Recommend a linear vs log10 axis transform for a continuous axis - ADVISORY.
+
+        A log axis earns its place when positive values span many orders of magnitude and
+        a linear axis would saturate on the large values and crush the small ones, AND the
+        marks encode position (points, lines, dots, box/violin) not length (bars/area, which
+        need a true zero). Set ``encoding`` accordingly. Returns a graded ``strength`` and the
+        ``transform`` scalar the builder branches on, plus signals, rationale, and caveats.
+
+        The recommendation is one input to your decision, not a verdict: override it when the
+        prompt wants absolute magnitudes, the audience won't read a log axis, or it would
+        mislead - and record why. Log-only: with non-positive values log10 cannot apply and the
+        tool says so (noting symlog/log1p exist) rather than recommending a substitute.
+        """
+        return recommend_scale_transform_core(values, encoding)
 
     @server.tool()
     async def recommend_layout(

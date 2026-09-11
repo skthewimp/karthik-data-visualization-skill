@@ -101,6 +101,7 @@ asyncio.run(main())
         "validate_scale",
         "extract_palette_from_image",
         "recommend_precision",
+        "recommend_scale_transform",
         "recommend_labels",
         "recommend_layout",
         "recommend_table_layout",
