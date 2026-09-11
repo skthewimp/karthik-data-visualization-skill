@@ -8,16 +8,19 @@ A phone-screenshot redesign kept a source tooltip - a floating "4:16/km" readout
 element. Diagnose flagged its content as required, select carried the whole box into the rebuild,
 and the correction moved it inside the canvas straight across the heart-rate line; execution had to
 override the inspector's zero-collision report to catch it, and it shipped `best_available` on a
-still-revise verdict. The information inside the box was worth keeping; the obstructive floating box
-was not. Fix encodes the general rule at the two decision points, plus a standing rule that on-chart
-text is freestanding. General principle only - no case-specific triggers, numbers, or the source app.
+still-revise verdict. The floating box was never worth keeping; its value was worth keeping only if
+that mark carried the point. Fix encodes the general rule at the two decision points, plus a standing
+rule that on-chart text is freestanding. General principle only - no case-specific triggers, numbers,
+or the source app.
 
 - **`chart-annotations`** (both copies + `docs/skills`): a source image's tooltip / hover readout /
-  crosshair / selection popover is **not an output element** - its value is one mark's quantity, so
-  recover it as a **direct label anchored to its datum** and drop the box. Preserving the information
-  the box held never means preserving the box; a reproduced overlay floats untethered and lands
-  across the marks it describes, and a label that obstructs a line or point is a defect even when a
-  collision check reports it clear.
+  crosshair / selection popover is **not an output element**. The box always goes. Its value is
+  usually just an incidental hover artifact, so judge it as any direct label: keep it **only if that
+  mark carries the point** (then as a direct label anchored to its datum, under the usual restraint),
+  otherwise drop the value too. Preserving the box is never the goal, and even preserving its value is
+  a judgment, not a default; a reproduced overlay floats untethered and lands across the marks it
+  describes, so a label that obstructs a line or point is a defect even when a collision check reports
+  it clear.
 - **`chart-annotations`** (both copies + `docs/skills`): standing rule under Visual weight - on-chart
   text is **freestanding, never boxed** (no fill, border, shadow, or bubble). `geom_text`, never
   `geom_label`; if text won't read against the marks behind it, move it into whitespace or lift its

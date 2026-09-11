@@ -53,7 +53,7 @@ I've labelled every point and it's a mess. Which few should carry labels?
 
 **Text is freestanding, never boxed.** A mark is text laid on the plot - no fill, border, shadow, or bubble behind it (`geom_text`, never `geom_label`). If it won't read against the marks behind it, move it into whitespace or lift its colour and weight; a box just stamps an opaque panel over the data.
 
-**A source tooltip is not an output element.** When you redesign a chart whose source shows a floating callout - a tooltip, hover card, crosshair readout - the value inside it is one mark's quantity: recover it, render it as a direct label on its datum, and drop the box. Preserving the information never means preserving the box - a reproduced overlay floats untethered and lands across the marks it describes, and a label that obstructs a line is a defect even when a collision check reports it clear.
+**A source tooltip is not an output element.** When you redesign a chart whose source shows a floating callout - a tooltip, hover card, crosshair readout - the value inside it is one mark's quantity, usually just an incidental hover artifact of the dashboard. Judge it as a direct label: keep the value only if that mark carries the point, then render it on its datum; otherwise drop the value with the box. Either way the box goes. Preserving the box is never the goal, and even keeping its value is a judgment, not a default - a reproduced overlay floats untethered and lands across the marks it describes, and a label that obstructs a line is a defect even when a collision check reports it clear.
 
 **Render and inspect.** Placement cannot be verified from code. Export the image, check each mark sits on the datum it describes, look for clipping and collisions, fix, re-render.
 
