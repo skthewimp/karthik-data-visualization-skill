@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Extract: values are estimable, labels are read-only
+
+Weak-carrier dry run (Haiku 4.5) on a benchmark bar panel exposed a silent failure: the model kept
+every axis value but fabricated nearly every series **name** - inventing plausible ones to fill the
+category slots, and normalising the rest toward well-known models its prior expected. The chart came
+out clean and said something false, and a geometry-only execution gate cannot see it. Fixed in the
+producer (`dataviz-extract`), not by adding a name-validating reviewer: the skill's forceful "no gaps /
+never shrink the count / every cell must exist" language is about count and values, and a weak model
+over-generalised it to identity.
+
+- **`dataviz-extract`** (claude + codex SKILL.md, `docs/skills/`): draws the line the skill left
+  implicit - a cell **value** may be estimated (a reading within a known scale); a **label** (category
+  name, series name, axis tick) is read-only text, read off the image or carried as an explicit
+  placeholder tied to its position (`series 4`, `[unreadable]`, `[partial: "GP…"]`). Two banned moves:
+  gap-filling a plausible name from the headline/neighbour, and normalising an unfamiliar name toward a
+  familiar one the prior expects. A confident wrong name is worse than a blank one.
+- Validated by pixels on the weakest carrier, same panel: 22/22 fabricated -> 0/22, all honest
+  placeholders, Haiku explicitly declining to round to Claude/GPT/Gemini.
+
 ### Prepare the plotting frame mechanically; split copy out of the design blob
 
 Downstream harness audit: too many Build failures, in recurring classes - reversed category/value
