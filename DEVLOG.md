@@ -3275,3 +3275,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Shipped. `0af2808..b9f35a3` on `origin/main`, upstream matches. **Done:** - `prepare_plot_data` tool (stdlib, 11 tests) - whitelists mapped columns (helper cols can't leak), pins one `order` shared by marks+labels (as...
 
 <!-- claude-session:1e2c99d7-a0bd-4f95-bfe0-31b5ec21437a:end -->
+
+<!-- claude-session:8edd6f34-8e09-4b57-8452-752af9fdeb4d:start -->
+## 2026-09-12 14:34 IST | Claude session `8edd6f34-8e0`
+
+### User prompts
+> let's do some dry runs on dataviz-fix with a variety of models. for example, look at this image and see how different models process it. [Image #1]
+> <task-notification> <task-id>a315a1fbb45e127fe</task-id> <tool-use-id>toolu_01KMbzyKt8K9JVBJuvTDZ55M</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/8e...
+> <task-notification> <task-id>aca12e73c3d28a6e3</task-id> <tool-use-id>toolu_01Kad9jmzfjkxD2YAwikf1v1</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/8e...
+
+### Work done
+- Adding CHANGELOG entry under Unreleased:
+- Committed + pushed (`fff3344`). ## Dry run outcome The variety-of-models run did its job: it surfaced a real skill hole and let me prove the fix. **What the 3 carriers showed on the AA-Briefcase panel:** - **Opus & So...
+
+<!-- claude-session:8edd6f34-8e09-4b57-8452-752af9fdeb4d:end -->
