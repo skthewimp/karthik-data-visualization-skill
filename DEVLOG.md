@@ -3319,3 +3319,4 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 > Downstream, we have integrated the whole plan process. That is the idea insight and select into one prompt. This is the prompt right now. how can we do better on this one? I'll also show you all the outputs and things...
 
 <!-- claude-session:561cc8f2-ab5c-4a97-84b5-61532af4d88d:end -->
+
