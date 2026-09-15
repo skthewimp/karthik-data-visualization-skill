@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Construct: mechanical settings emit through one owner and one translator
+
+A weak-model build crashed the first render on `plot.margin = margin(36, 36, 36, 36, unit = "px")`
+- `grid` has no `px` unit, so `theme()` threw before the plot was drawn - even though a later layout
+block already carried the correct `36 / 144` inch conversion. The source set `plot.margin` twice
+(theme block and layout block) and the model filled the two with different expressions, one invalid.
+Both are determinism failures at the mechanical-emission step, the same class already handled for
+colour, precision, and the plotting frame: the decision belongs to the model, the emission should be
+made incapable of the crash. Fixed as generalized build guidance, not the specific case.
+
+- **`dataviz-construct`** (claude + codex SKILL.md, `docs/skills/`): new section "Mechanical settings:
+  one owner, one translator, the renderer's own units". Three rules - set each property exactly once
+  (a duplicated owner is where the model hedges and one copy is wrong); never hand-write a unit the
+  renderer lacks (convert a resolved pixel size to the renderer's real unit once, `n / dpi` inches, and
+  keep raw `px` off every path); emit a prompt/source-varying theme as values fed through one small
+  parameterized translator function rather than forty lines of retyped renderer mechanics. Where the
+  harness pre-supplies the translators build calls them; otherwise build defines the one translator and
+  still keeps a single owner per setting.
+
 ### Extract: values are estimable, labels are read-only
 
 Weak-carrier dry run (Haiku 4.5) on a benchmark bar panel exposed a silent failure: the model kept
