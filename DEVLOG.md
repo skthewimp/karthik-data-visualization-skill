@@ -3374,3 +3374,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Session captured, but there was not enough structured activity to summarize.
 
 <!-- claude-session:96a09142-40f8-49b2-b1d1-04960f47efcd:end -->
+
+<!-- claude-session:b5e7225b-759d-475f-ab58-850fbf39b34c:start -->
+## 2026-09-16 12:07 IST | Claude session `b5e7225b-759`
+
+### User prompts
+> I have a specific way in which I style my R notebooks or my R code. For example, after every pipe you get to a new line and tab. After an opening bracket you go to a new line and start the stuff on the next line and t...
+> both claude and codex?
+
+### Work done
+- Done. New skill `karthik-r-code-style` built, installed, pushed. **What it does** (layout only, derived from your 2023+ tidyverse files): 1. One pipe (`%>%`/`|>`) per line, next verb indented 2 spaces 2. Pipelines rig...
+- Yes. Both. - Source repo: `karthik-r-code-style/claude/SKILL.md` + `karthik-r-code-style/codex/SKILL.md` - Installed: `~/.claude/skills/karthik-r-code-style/SKILL.md` and `~/.codex/skills/karthik-r-code-style/SKILL.md...
+
+<!-- claude-session:b5e7225b-759d-475f-ab58-850fbf39b34c:end -->
