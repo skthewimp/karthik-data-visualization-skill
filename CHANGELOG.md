@@ -16,9 +16,11 @@ error does not accumulate, and needs no special reasoning for a log axis.
 - **New MCP tool `read_marks_from_anchors`** (`dataviz_mcp/mark_read.py`, registered in
   `server.py`): the arithmetic half of a position read. Input `marks` (`{key, lo, hi,
   fraction}`) plus a `linear`/`log` `transform`; returns raw interpolated floats (rounding
-  stays a `recommend_precision` decision) with non-silent warnings for out-of-range fractions
-  and unusable brackets. Model does the perception, code does the scale math. Unit-tested in
-  `dataviz_mcp/tests/test_mark_read.py`.
+  stays a `recommend_precision` decision) with non-silent warnings for far-out fractions and
+  unusable brackets. A fraction just outside [0,1] is honoured as a short extrapolation (a
+  series minimum below the lowest gridline, a labelled peak above the top one), not clamped, so
+  the min/peak points a weak model reads with a negative or >1 fraction survive. Model does the
+  perception, code does the scale math. Unit-tested in `dataviz_mcp/tests/test_mark_read.py`.
 - **`dataviz-extract`** (claude + codex SKILL.md, `docs/skills/`): replaced the single
   "read with judgment" line with the two-regime read method; the tool is the normal path for
   unlabelled cells, with a by-hand fallback only when the MCP server is absent (consistent with

@@ -354,9 +354,11 @@ def create_server() -> Any:
         ticks that bracket the mark and the ``fraction`` (0-1) between them, and let this tool
         interpolate. Each entry in ``marks`` is ``{key, lo, hi, fraction}`` where ``lo``/``hi`` are
         the bracketing tick VALUES; set ``transform`` to "log" for a log axis (interpolates in
-        log10 space; anchors must be positive). Returns raw floats - rounding is a separate
-        downstream decision (recommend_precision) - plus non-silent warnings for out-of-order
-        anchors, out-of-range fractions, and unusable brackets.
+        log10 space; anchors must be positive). A fraction just outside [0,1] is honoured as a
+        short extrapolation (a series minimum below the lowest gridline, a peak above the top
+        one), not clamped. Returns raw floats - rounding is a separate downstream decision
+        (recommend_precision) - plus non-silent warnings for far-out fractions and unusable
+        brackets.
         """
         return read_marks_from_anchors_core(marks, transform)
 

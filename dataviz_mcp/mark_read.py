@@ -44,8 +44,12 @@ def read_marks_from_anchors(
     so a descending bracket (``hi < lo``, a reversed axis) reads correctly with no special
     handling. Guards, none silent:
       * equal anchors cannot define a bracket and yield a ``None`` value.
-      * ``fraction`` outside [0,1] is clamped (with a warning) - the mark reads as at or
-        past a tick, which usually means the wrong bracket was chosen.
+      * ``fraction`` outside [0,1] is honoured, not clamped: a mark just past the nearest
+        tick (a series minimum below the lowest gridline, a labelled peak above the top one)
+        is a legitimate short extrapolation, so the value is computed from the fraction as
+        given. Only a fraction far outside the bracket (< -1 or > 2) is flagged as a probable
+        wrong-bracket choice - and even then the extrapolated value is still returned, never
+        dropped.
       * log with a non-positive anchor yields a ``None`` value (with a warning).
     """
     if transform not in ("linear", "log"):
@@ -70,12 +74,11 @@ def read_marks_from_anchors(
             results.append({"key": key, "value": None})
             continue
 
-        if fraction < 0.0 or fraction > 1.0:
-            clamped = min(1.0, max(0.0, fraction))
+        if fraction < -1.0 or fraction > 2.0:
             warnings.append(
-                f"{key}: fraction {fraction} outside [0,1] (likely wrong bracket); clamped to {clamped}."
+                f"{key}: fraction {fraction} far outside the bracket (likely wrong ticks chosen); "
+                "extrapolated value returned - check the anchors."
             )
-            fraction = clamped
 
         if transform == "log" and (lo <= 0.0 or hi <= 0.0):
             warnings.append(f"{key}: log transform needs positive anchors (lo={lo}, hi={hi}); skipped.")

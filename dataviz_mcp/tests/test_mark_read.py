@@ -42,10 +42,24 @@ def test_descending_bracket_reads_from_lo_toward_hi():
     assert out["warnings"] == []
 
 
-def test_fraction_out_of_range_is_clamped_with_warning():
-    out = read_marks_from_anchors([{"key": "a", "lo": 40, "hi": 60, "fraction": 1.3}])
-    assert out["results"][0]["value"] == pytest.approx(60.0)
-    assert any("outside [0,1]" in w for w in out["warnings"])
+def test_modest_extrapolation_below_lowest_tick_is_honoured():
+    # A point just below the bottom gridline: fraction slightly negative, value below lo. No warning.
+    out = read_marks_from_anchors([{"key": "a", "lo": 10, "hi": 15, "fraction": -0.12}])
+    assert out["results"][0]["value"] == pytest.approx(9.4)
+    assert out["warnings"] == []
+
+
+def test_modest_extrapolation_above_top_tick_is_honoured():
+    # A labelled peak above the top gridline: fraction > 1, value above hi. No warning.
+    out = read_marks_from_anchors([{"key": "a", "lo": 20, "hi": 25, "fraction": 1.37}])
+    assert out["results"][0]["value"] == pytest.approx(26.85)
+    assert out["warnings"] == []
+
+
+def test_gross_out_of_range_warns_but_still_returns_value():
+    out = read_marks_from_anchors([{"key": "a", "lo": 40, "hi": 60, "fraction": 3.0}])
+    assert out["results"][0]["value"] == pytest.approx(100.0)
+    assert any("far outside the bracket" in w for w in out["warnings"])
 
 
 def test_equal_anchors_yield_none():
