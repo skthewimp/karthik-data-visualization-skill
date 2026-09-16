@@ -3320,3 +3320,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:561cc8f2-ab5c-4a97-84b5-61532af4d88d:end -->
 
+<!-- claude-session:48bba7ce-325f-4c02-8606-30ccc90d45dc:start -->
+## 2026-09-16 11:20 IST | Claude session `48bba7ce-325`
+
+### User prompts
+> One of the canonical steps in the fixed workflow is to get data from an input chart. Do we need to improve that in some sense? I mean I'm just wondering if there is some more efficiencies because we haven't really wor...
+> I don't want all these checks and reconciliations and all that. That's not the right thing. I'm saying that see numbers are read off the grid. Sometimes there will be labels, sometimes there are no labels, and sometim...
+> Yeah, right both and before you commit and push this and stuff, I want us to test this on a few cases before we do this. I feel like we are making a lot of changes without testing and that's resulting in a lot of issues.
+
+### Work done
+- Fixed and pushed (`c9fe8c3`). 14 tests green. Sonnet-NEW landed too and it's the strongest read of the batch - real non-round values, and it naturally extrapolated both edges (min 9.4 below the 10 line, peak 26.8 abov...
+- Yes. Both commits are pushed and the tree is clean - `main` is level with `origin/main`, nothing uncommitted. - `c9fe8c3` - extrapolation fix (pushed) - `24d8e89` - feature (pushed) - `6d2f4d4` - spec (pushed) Nothing...
+
+<!-- claude-session:48bba7ce-325f-4c02-8606-30ccc90d45dc:end -->
