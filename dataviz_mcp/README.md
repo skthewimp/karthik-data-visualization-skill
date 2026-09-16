@@ -357,6 +357,10 @@ Samples dominant hues from a source chart image as a repair prior (brand/WCAG ma
 
 Recommends significant digits / a uniform rounding place for a numeric column, derived from the spread (max - min), not individual values. Inputs: `values`, `role` (`axis`/`label`/`table_column`), `target_steps` (default 2), optional `smallest_meaningful_difference`, and `exact` (identifiers or exact-lookup only - preserves every digit and flags `exact_override`). Every value is rounded to one uniform place.
 
+### `read_marks_from_anchors`
+
+The arithmetic half of reading a value off a chart, used by `dataviz-extract`. The model does the perception - for an unlabelled mark, which two printed ticks bracket it and the `fraction` (0-1) between them - and this tool interpolates so no absolute magnitude is eyeballed. Inputs: `marks` (a list of `{key, lo, hi, fraction}`, where `lo`/`hi` are the bracketing tick **values**) and `transform` (`linear` or `log`; log interpolates in log10 space and needs positive anchors). Returns raw floats (rounding is a separate `recommend_precision` decision), preserving input order, plus non-silent `warnings` for out-of-range fractions and unusable brackets. A descending bracket (`hi < lo`, a reversed axis) reads correctly with no special handling.
+
 ### `recommend_scale_transform`
 
 Advisory recommendation of a linear vs `log10` axis transform for a continuous axis. Inputs: `values` (every value that maps to the axis) and `encoding` (`position` for points/lines/dots/box/violin, or `length` for bars/area, which need a true zero and almost never take log). Computes the positive dynamic range, orders of magnitude, and quartile-skew reduction under logging, and returns a graded `strength`/`confidence`, the `transform` scalar the builder branches on, the `signals`, a `rationale`, and `caveats`. It is one input to the model's decision, not a gate - override it when the prompt wants absolute magnitudes, the audience won't read a log axis, or it would mislead. Log-only: with non-positive values `log10` cannot apply, so it returns `applicable: false` and notes that symlog/log1p exist rather than recommending them.

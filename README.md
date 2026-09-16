@@ -42,7 +42,7 @@ This repo contains twenty-two related skills, coordinated as a context-sensitive
 
 1. **`dataviz-fix`** - the repair front half (diagnose+extract): recover intent and data from the source, then hand into the shared construct process (`dataviz-construct`). Each stage is a separate call carrying only its own skills.
 2. **`dataviz-brief`** - intent-extraction rules that open a repair: key messages and required content, explicit drops, audience, constraints, keep-notes, and the edit-vs-redesign decision.
-3. **`dataviz-extract`** - vision rules for reading the full period-by-category data table out of a chart image, so the repair rebuilds from data rather than tracing the picture.
+3. **`dataviz-extract`** - vision rules for reading the full period-by-category data table out of a chart image, so the repair rebuilds from data rather than tracing the picture. Labelled cells are transcribed literally; unlabelled cells are read as a bracket-plus-fraction between two printed ticks and interpolated by the `read_marks_from_anchors` MCP tool (linear or log), so no absolute magnitude is eyeballed.
 4. **`dataviz-eval`** - artifact and creator-system evaluation rules for separate blind review, scoped send/revise/redesign decisions, failure analysis, and regression benchmarks.
 5. **`dataviz-selector`** - chart-selection rules for deciding what kind of visualization fits a dataset plus question, hypothesis, or data story.
 6. **`karthik-data-visualization`** - style rules for producing charts in Karthik's preferred visual language: low chartjunk, direct labels, careful typography, meaningful colour, and Tufte-inspired restraint.

@@ -1151,10 +1151,14 @@ Run the brief cold: extract the key messages and the required content for each, 
 anything explicitly dropped as not key with a reason, classify the request as bounded-edit
 or redesign, and record audience and medium. In parallel recover the full period-by-category
 table - a value for every period and every category, series, stack, or facet the source
-encodes (colour is data). Inventory the source, diagnose the whole chart including
-neighbouring zones, and list what must be preserved unchanged. Difficulty of recovery is
-never grounds to drop a message or a category; put uncertain values and unreadable labels in
-the limitations, keep the categories."""
+encodes (colour is data). Read each cell by whether the source prints its value: transcribe a
+printed label literally, glyph by glyph, and take it as the value; for an unlabelled cell do
+not eyeball the magnitude - name the two nearest printed ticks that bracket the mark and the
+fraction between them and interpolate through the read_marks_from_anchors tool (linear or log
+per the axis), computing the bracket by hand only if that tool is unavailable. Inventory the
+source, diagnose the whole chart including neighbouring zones, and list what must be preserved
+unchanged. Difficulty of recovery is never grounds to drop a message or a category; put
+uncertain values and unreadable labels in the limitations, keep the categories."""
 
 _STORY_DISCOVER = """You are the discovery stage of dataset-to-story work. You receive a
 dataset and any question or context. Inspect the data and propose visualisable stories before

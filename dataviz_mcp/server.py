@@ -22,6 +22,7 @@ from .palette import (
     validate_palette as validate_palette_core,
     validate_scale as validate_scale_core,
 )
+from .mark_read import read_marks_from_anchors as read_marks_from_anchors_core
 from .plot_data import prepare_plot_data as prepare_plot_data_core
 from .precision import recommend_precision as recommend_precision_core
 from .scale_transform import recommend_scale_transform as recommend_scale_transform_core
@@ -341,6 +342,23 @@ def create_server() -> Any:
         return recommend_precision_core(
             values, role, target_steps, smallest_meaningful_difference, exact
         )
+
+    @server.tool()
+    async def read_marks_from_anchors(
+        marks: list[dict[str, Any]],
+        transform: str = "linear",
+    ) -> dict[str, Any]:
+        """Interpolate bracketed chart-mark positions into values - the arithmetic half of a read.
+
+        For an unlabelled cell, do not eyeball an absolute value. Name the two nearest printed
+        ticks that bracket the mark and the ``fraction`` (0-1) between them, and let this tool
+        interpolate. Each entry in ``marks`` is ``{key, lo, hi, fraction}`` where ``lo``/``hi`` are
+        the bracketing tick VALUES; set ``transform`` to "log" for a log axis (interpolates in
+        log10 space; anchors must be positive). Returns raw floats - rounding is a separate
+        downstream decision (recommend_precision) - plus non-silent warnings for out-of-order
+        anchors, out-of-range fractions, and unusable brackets.
+        """
+        return read_marks_from_anchors_core(marks, transform)
 
     @server.tool()
     async def recommend_scale_transform(

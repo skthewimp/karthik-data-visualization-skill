@@ -7,7 +7,12 @@ description: Read the full period-by-category data table out of a chart image by
 
 Use this during a chart repair, in parallel with `dataviz-brief`, to recover the underlying data from the source image. The rebuild is designed forward from this table plus the brief - not traced from the source picture - so the table must be complete enough to build any chosen form on.
 
-This is a vision task, not a rendering task. There is no MCP tool for it: read the numbers off the image with judgment.
+This is a vision task, but the value read is not a single "look and say a number" guess. A guessed absolute magnitude is the read models are worst at - fuzzy, biased toward round numbers, and worse still on a log axis. Split every cell by whether the source prints its value:
+
+- **The cell has a printed value label.** Transcribe it literally, glyph by glyph, reading at resolution - a decimal point, a thousands separator, a 3 that could be an 8. Take the printed number as the value; do not overwrite it with a position estimate. This is where misread numbers come from, and literal transcription is the only lever on it: read the glyphs, not the number you expect.
+- **The cell has no label - the value lives in the mark's position.** Do not estimate the magnitude directly. Instead name the two nearest printed reference ticks that bracket the mark and the fraction (0-1) of the way from the lower to the upper, then let the arithmetic produce the value. Bracket-and-interpolate is a judgment models read reliably; it stays local, so scale error does not accumulate; and a log axis needs no special reasoning - the same two-ticks-and-a-fraction read interpolates in log space.
+
+Do the interpolation with the `read_marks_from_anchors` MCP tool, which is the normal path for every unlabelled cell: pass each mark as `{key, lo, hi, fraction}` (the two bracketing tick **values** and the fraction between them) and the axis `transform` (`linear` or `log`), and it returns the values. The tool does the scale arithmetic the model slips on; the perception - which ticks bracket the mark, how far between - stays with you. If the MCP server is genuinely not available, interpolate the bracket by hand the same way (`lo + fraction*(hi-lo)`, or the log-space form) - never fall back to eyeballing an absolute value.
 
 ## What to produce
 

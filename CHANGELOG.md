@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Extract: read values by regime, interpolate positions instead of eyeballing
+
+The extract step's entire method was one line - "read the numbers off the image with judgment"
+- which asks the model for an absolute magnitude straight from pixels, the read models are
+worst at (biased toward round numbers, worse on a log axis). Reads now split by whether the
+source prints a value. A labelled cell is transcribed literally, glyph by glyph, and taken as
+the value - the only real lever on misread numbers. An unlabelled cell is not eyeballed: name
+the two nearest printed ticks that bracket the mark and the fraction between them, and
+interpolate. Bracket-and-interpolate is a read weak models do reliably, stays local so scale
+error does not accumulate, and needs no special reasoning for a log axis.
+
+- **New MCP tool `read_marks_from_anchors`** (`dataviz_mcp/mark_read.py`, registered in
+  `server.py`): the arithmetic half of a position read. Input `marks` (`{key, lo, hi,
+  fraction}`) plus a `linear`/`log` `transform`; returns raw interpolated floats (rounding
+  stays a `recommend_precision` decision) with non-silent warnings for out-of-range fractions
+  and unusable brackets. Model does the perception, code does the scale math. Unit-tested in
+  `dataviz_mcp/tests/test_mark_read.py`.
+- **`dataviz-extract`** (claude + codex SKILL.md, `docs/skills/`): replaced the single
+  "read with judgment" line with the two-regime read method; the tool is the normal path for
+  unlabelled cells, with a by-hand fallback only when the MCP server is absent (consistent with
+  the other required-when-present advisors). Label-identity rules unchanged.
+- **`_REPAIR_DIAGNOSE`** contract prose updated to carry the same read method into the repair
+  pipeline. No schema change - recovered values populate the existing `data_table` rows.
+
 ### Construct: mechanical settings emit through one owner and one translator
 
 A weak-model build crashed the first render on `plot.margin = margin(36, 36, 36, 36, unit = "px")`

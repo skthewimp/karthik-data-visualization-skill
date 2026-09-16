@@ -6,7 +6,7 @@ Use `dataviz-extract` during a chart repair, in parallel with `dataviz-brief`, t
 
 If the repair is going to change the form (a stack becomes small multiples, say), it needs every cell of the data, not just the totals or the envelope. Colour is data, not decoration: a chart that stacks ten models by week carries ten numbers per week, and the new form needs all of them. Reading the totals off the source is not enough.
 
-It is a vision task, not a rendering task - there is no MCP tool for it. The numbers are read off the image with judgment.
+It is a vision task, but a value read is not one "look and say a number" guess - a guessed absolute magnitude is the read models are worst at, worse still on a log axis. Each cell splits by whether the source prints its value. A **labelled** cell is transcribed literally, glyph by glyph at resolution (a decimal point, a thousands separator, a 3 that could be an 8), and the printed number is taken as the value - this is where misread numbers come from, and literal transcription is the only lever on it. An **unlabelled** cell, whose value lives in the mark's position, is not estimated directly: name the two nearest printed ticks that bracket the mark and the fraction between them, and interpolate. That bracket-and-interpolate read is one models do reliably, stays local so scale error does not accumulate, and needs no special reasoning for a log axis. The interpolation runs through the `read_marks_from_anchors` MCP tool - the normal path for every unlabelled cell - which does the scale arithmetic while the perception stays with the reader; only if the server is genuinely absent is the same bracket interpolated by hand, never by eyeballing an absolute value.
 
 ## What it produces
 
