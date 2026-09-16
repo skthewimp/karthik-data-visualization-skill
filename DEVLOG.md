@@ -3387,3 +3387,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Yes. Both. - Source repo: `karthik-r-code-style/claude/SKILL.md` + `karthik-r-code-style/codex/SKILL.md` - Installed: `~/.claude/skills/karthik-r-code-style/SKILL.md` and `~/.codex/skills/karthik-r-code-style/SKILL.md...
 
 <!-- claude-session:b5e7225b-759d-475f-ab58-850fbf39b34c:end -->
+
+<!-- claude-session:7c58f878-d678-4cb4-898b-4cd098470fa2:start -->
+## 2026-09-16 13:44 IST | Claude session `7c58f878-d67`
+
+### User prompts
+> from downstream: - Extraction: read_marks_from_anchors interpolates unlabelled marks from supplied tick positions. It does not read printed text. The latest change forces this call but explicitly permits marks=[], whi...
+> Once again you seem to be going into verification and multiple loops and things like that. What we need to focus on is how do you do it the right the first time.
+> too verbose didn't read
+
+### Work done
+- Canonical case has exactly the failure mode we fixed: two printed labels, `6%` (Fable 5.1, top sliver) and `19%` (Astra, bottom dark band), on the Sep 07 bar. Let me run the new one-path read on both through the actua...
+- Both labelled cells reconcile: - **Fable 5.1:** top edge 100 − bottom edge 94 = **6%**. Printed `6%` sits in band → use 6. Had OCR said `0%`, position says 6, `0` nowhere near → trust position. The 6→0 case is caught....
+
+<!-- claude-session:7c58f878-d678-4cb4-898b-4cd098470fa2:end -->
