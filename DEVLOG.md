@@ -3401,3 +3401,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Both labelled cells reconcile: - **Fable 5.1:** top edge 100 − bottom edge 94 = **6%**. Printed `6%` sits in band → use 6. Had OCR said `0%`, position says 6, `0` nowhere near → trust position. The 6→0 case is caught....
 
 <!-- claude-session:7c58f878-d678-4cb4-898b-4cd098470fa2:end -->
+
+<!-- claude-session:d069249a-cb18-4842-831a-eb141399e461:start -->
+## 2026-09-16 14:03 IST | Claude session `d069249a-cb1`
+
+### User prompts
+> this is from a recent website run: [Image #1] . seesms like a clear chart selection issue. given teh number oflines, why was the bottom graph not asmall multiple? [Image #4]
+> here is the input. run it through diagnose, and then see what seelctordoes, and tehn see why selector didwhat it did [Image #5]
+
+### Work done
+- **Using skills: dataviz-brief (diagnose), dataviz-selector.** Loading both to run the input through them and inspect selector logic.
+- ## 1. Diagnose (brief) - run cold on input Source = 100% stacked bar, OpenRouter weekly wallet share, OpenAI vs Anthropic, 2026. ``` Key messages: - AGGREGATE CROSSOVER (headline): OpenAI total share rose above Anthro...
+
+<!-- claude-session:d069249a-cb18-4842-831a-eb141399e461:end -->
