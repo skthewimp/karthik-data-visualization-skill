@@ -38,7 +38,7 @@ Installing the skills does not register the MCP server. Posit Assistant uses the
 - Both adapters emit the same artifact, specification, layout, inspection, review-view, and manifest bundle. Coverage limitations remain explicit in the inspection report.
 - Tables are gated on the same footing: call `render_and_inspect_chart` with `content="table"` on an `.R` source that returns a gtable (`gridExtra::tableGrob` or `gt::as_gtable`). It renders through the same `ragg` path - no headless Chrome - capturing every cell's text, font size, and background fill at its exact bounding box. Decimal-point alignment and in-cell overflow stay a visual read, and the inspection report says so.
 
-This repo contains twenty-two related skills, coordinated as a context-sensitive visualization workflow:
+This repo contains twenty-four related skills, coordinated as a context-sensitive visualization workflow:
 
 1. **`dataviz-fix`** - the repair front half (diagnose+extract): recover intent and data from the source, then hand into the shared construct process (`dataviz-construct`). Each stage is a separate call carrying only its own skills.
 2. **`dataviz-brief`** - intent-extraction rules that open a repair: key messages and required content, explicit drops, audience, constraints, keep-notes, and the edit-vs-redesign decision.
@@ -63,6 +63,7 @@ This repo contains twenty-two related skills, coordinated as a context-sensitive
 21. **`dataviz-idea-critique`** - the pre-render gate: is the data right, the expression right, the insight right, and honest - judged on the plan and data before the chart is built, routing back to insight or select.
 22. **`dataviz-execution`** - the post-render gate: geometry, overlap, labels, colour, precision, and ink on the built export, leaning on `render_and_inspect_chart`. Distinct from `dataviz-critique`, which reviews a chart standalone.
 23. **`dataviz-aesthetic`** - the post-render composition gate, run after execution clears the defects: step back and read the whole image - what is seen first, whether anything competes, whether every box/rule/colour/bold phrase earns its place, whether whitespace groups rather than fills - so the chart looks composed rather than styled-default. Owns premium feel; execution owns defects.
+24. **`karthik-r-code-style`** - layout rules for R code: one pipe per line, right-assigned pipelines ending in `->`, multi-argument calls expanded one argument per line, `+`-per-line ggplot, and 2-space nested indentation, so generated R reads hand-written. Formatting only; idiom and notebook structure stay in `karthik-r-analysis-style`.
 
 The split is deliberate. Creation and repair are two front halves that both hand into one shared construct process (`dataviz-construct`): the two orchestrators route only their own front-half work and preserve handoffs; they do not duplicate the terminal process. Planning defines the analytical claim and evidence contract. Cleaning establishes provenance, grain, and data validity. Question generation proposes supported questions. Inside construct, the insight stage names the headline claim and candidate marks from the data before a form is chosen; the idea gate checks the data, expression, and insight before anything is rendered; selection chooses an encoding for the task - a chart or a well-formatted table; construction implements it, with `karthik-data-visualization` owning chart craft and `karthik-table-style` owning table craft; the execution gate checks geometry, colour, precision, and ink on the rendered export. Ideas are judged before the render, execution after, and how many revision passes each gate runs is the driver's budget. Annotation adds supported context. Explanation communicates the result at calibrated strength. Critique diagnoses interpretive failures in a standalone chart. Evaluation independently verifies semantic, visual, evidentiary, and delivery outcomes.
 
@@ -113,6 +114,9 @@ The split is deliberate. Creation and repair are two front halves that both hand
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── karthik-r-analysis-style/        # How an exploratory R notebook is written
+│   ├── codex/SKILL.md
+│   └── claude/SKILL.md
+├── karthik-r-code-style/            # How R code is laid out (pipes, brackets, indent)
 │   ├── codex/SKILL.md
 │   └── claude/SKILL.md
 ├── karthik-table-style/             # Table-as-visualization craft skill
@@ -256,6 +260,13 @@ Use this when writing the R analysis itself - an exploratory scratchpad, an RMar
 See: [`docs/skills/karthik-r-analysis-style.md`](docs/skills/karthik-r-analysis-style.md)
 
 
+### `karthik-r-code-style`
+
+Use this whenever generating or editing R, to lay it out the way Karthik writes it: one pipe (`%>%` or `|>`) per line, pipelines right-assigned into a name with `->`, multi-argument calls expanded one argument per line with the closing bracket on its own line, ggplot layers broken with `+` at end of line, and two-space nested indentation with modern comma/operator spacing. It is layout only - which idioms to use and how a notebook is structured belong to `karthik-r-analysis-style`; the two apply together for a notebook.
+
+See: [`docs/skills/karthik-r-code-style.md`](docs/skills/karthik-r-code-style.md)
+
+
 ### `karthik-table-style`
 
 Use this once the chosen form is a table - or when reviewing a table's formatting. A well-formatted table is a visualization: it owns emphasis as scarce ink, right-aligned decimal-point alignment with decimals equalised down a column, precision keyed to the smallest meaningful difference, content-sized columns, minimal rules and whitespace grouping, tabular figures, and conditional formatting scoped by column, row, or whole table. It recommends `gt` for delivered HTML tables and a `grid`/`tableGrob` raster for the gated inspection path. Chart-vs-table selection stays in `dataviz-selector`.
@@ -319,6 +330,7 @@ This pulls latest changes and installs all skills to:
 - `~/.codex/skills/chart-annotations`
 - `~/.codex/skills/chart-explainer`
 - `~/.codex/skills/karthik-r-analysis-style`
+- `~/.codex/skills/karthik-r-code-style`
 - `~/.codex/skills/karthik-table-style`
 - `~/.codex/skills/dataviz-fix`
 - `~/.codex/skills/dataviz-eval`
@@ -333,6 +345,7 @@ This pulls latest changes and installs all skills to:
 - `~/.claude/skills/chart-annotations`
 - `~/.claude/skills/chart-explainer`
 - `~/.claude/skills/karthik-r-analysis-style`
+- `~/.claude/skills/karthik-r-code-style`
 - `~/.claude/skills/karthik-table-style`
 - `~/.claude/skills/dataviz-fix`
 - `~/.claude/skills/dataviz-eval`

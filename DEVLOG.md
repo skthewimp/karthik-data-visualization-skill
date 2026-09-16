@@ -1,5 +1,38 @@
 # Devlog
 
+## 2026-09-16 - new skill: karthik-r-code-style (R code layout)
+
+### User report
+
+- "I have a specific way in which I style my R notebooks or my R code. For example, after every
+  pipe you get to a new line and tab. After an opening bracket you go to a new line and start the
+  stuff on the next line ... every time I ask you to generate R code for me I want this to be
+  followed. Maybe you can just look through my old work ... I need an R code styling skill because
+  I find that LLM generated code doesn't follow that."
+
+### What was done
+
+- Mined R files across `~/Documents` (Health, chats, Mint, cricket, Clover, qube). Found two eras:
+  cramped pre-2016 base-R (`topphrases.R`), and the modern tidyverse style the request is about
+  (`read_health.R`, `chats/make_charts.R`, `qube/*_exploration.Rmd`).
+- Pinned the modern layout empirically: one pipe (`%>%` or `|>`) per line with the next verb
+  indented two spaces under a flush-left source object; pipelines right-assigned into a name with
+  `->` (dropping the arrow to its own line when the last line is long); multi-argument calls
+  expanded `(` at line end, one arg per line, `)` on its own line; ggplot layers broken with `+`;
+  2-space nested indentation; modern comma/operator spacing. Both `%>%` and `|>` are in live use.
+- Wrote the skill in the repo `<skill>/{codex,claude}/SKILL.md` format (identical body, Claude
+  frontmatter <=200 chars), a folder README, and `docs/skills/karthik-r-code-style.md`.
+
+### Decisions
+
+- Kept it a separate skill rather than folding into `karthik-r-analysis-style`: that one owns
+  idiom and notebook workflow, this one owns pure layout. Boundary stated in both.
+- Scoped to *new* generated code, not a reformatter for existing hand-written files - old files
+  keep their own style (including base-R Allman braces).
+- Encoded the general break pattern, not the immediate example: expansion triggers on "real
+  argument list / won't fit", with trivial calls (`n()`, `select(a, b)`) explicitly left inline,
+  matching what the real files do rather than a rigid always-expand rule.
+
 ## 2026-09-11 - prepare the plotting frame mechanically; split copy from the design blob
 
 ### User report

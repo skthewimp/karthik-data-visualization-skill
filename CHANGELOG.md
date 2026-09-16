@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### New skill `karthik-r-code-style`: R code layout
+
+LLM-generated R comes out on long horizontal lines - a whole pipeline on one line, a
+`summarise()` with six arguments crammed between one pair of parentheses. Karthik writes R
+broken vertically so each step is its own line and a chain can be run top to bottom while
+exploring. The new skill encodes that layout, derived from his 2023-onward tidyverse files:
+one pipe (`%>%` or `|>`) per line, pipelines right-assigned into a name with `->`,
+multi-argument calls expanded one argument per line with the closing bracket on its own line,
+ggplot layers broken with `+` at end of line, and 2-space nested indentation with modern
+comma/operator spacing. It is scoped to layout only; idiom choice and notebook structure stay
+in `karthik-r-analysis-style`, and the two apply together for a notebook. Shipped in the repo
+`<skill>/{codex,claude}/SKILL.md` format with a folder README and `docs/skills/` page; README
+skill list, tree, and install paths updated (skill count 22 -> 24).
+
 ### Extract: read values by regime, interpolate positions instead of eyeballing
 
 The extract step's entire method was one line - "read the numbers off the image with judgment"

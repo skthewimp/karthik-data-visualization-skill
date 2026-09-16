@@ -23,6 +23,7 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`skills/chart-annotations.md`](skills/chart-annotations.md) - how to decide what a chart marks and what the label says
 - [`skills/chart-explainer.md`](skills/chart-explainer.md) - how to write the two-line note that accompanies a chart or table
 - [`skills/karthik-r-analysis-style.md`](skills/karthik-r-analysis-style.md) - how to write an exploratory R scratchpad or notebook
+- [`skills/karthik-r-code-style.md`](skills/karthik-r-code-style.md) - how R code is laid out: pipes, brackets, assignment, indentation
 
 ## Project notes
 
