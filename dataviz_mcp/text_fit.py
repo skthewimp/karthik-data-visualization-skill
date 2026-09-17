@@ -20,6 +20,7 @@ import re
 from typing import Any, Optional
 
 from .layout import FONT_PT, boxes_overlap, char_px, line_px
+from .text_metrics import TextMeasurer
 
 
 _NUMBER_RE = re.compile(r"-?\d[\d,]*(?:\.\d+)?")
@@ -87,15 +88,31 @@ def _park(mark: tuple[float, float], direction: str, gap: float, w: float, h: fl
     return mx - w / 2, my + gap  # below
 
 
-def _wrap(text: str, font_pt: float, dpi: float, avail_px: float) -> tuple[str, float, float]:
-    """Greedy word-wrap ``text`` to ``avail_px`` wide; return wrapped text and its box size."""
-    cpl = max(1, int(avail_px / char_px(font_pt, dpi)))
+def _wrap(
+    text: str,
+    font_pt: float,
+    dpi: float,
+    avail_px: float,
+    measurer: "TextMeasurer | None" = None,
+) -> tuple[str, float, float]:
+    """Greedy word-wrap ``text`` to ``avail_px`` wide; return wrapped text and its box size.
+
+    Line breaks and the box width are decided by the real rendered width of each candidate line
+    when a ``measurer`` is given (the font the block will actually be drawn in), so ``iii`` and
+    ``WWW`` wrap and size differently. Without one it falls back to the flat ``char_px`` estimate.
+    Height stays ``line_px`` - the reported defect is horizontal overrun, and line height is close
+    to font-independent.
+    """
+    width = (
+        (lambda s: measurer.width(s, font_pt)) if measurer is not None
+        else (lambda s: len(s) * char_px(font_pt, dpi))
+    )
     words = text.split()
     lines: list[str] = []
     current = ""
     for word in words:
         candidate = word if not current else f"{current} {word}"
-        if len(candidate) <= cpl or not current:
+        if width(candidate) <= avail_px or not current:
             current = candidate
         else:
             lines.append(current)
@@ -103,8 +120,7 @@ def _wrap(text: str, font_pt: float, dpi: float, avail_px: float) -> tuple[str, 
     if current:
         lines.append(current)
     lines = lines or [""]
-    longest = max(len(line) for line in lines)
-    box_w = longest * char_px(font_pt, dpi)
+    box_w = max(width(line) for line in lines)
     box_h = len(lines) * line_px(font_pt, dpi)
     return "\n".join(lines), box_w, box_h
 
@@ -116,9 +132,10 @@ def _wrap_to_line_budget(
     avail_px: float,
     max_lines: int | None = None,
     allow_curtail: bool = False,
+    measurer: "TextMeasurer | None" = None,
 ) -> tuple[str, float, float, bool, bool]:
     """Wrap to a chosen measure; curtail only when the caller explicitly permits it."""
-    wrapped, box_w, box_h = _wrap(text, font_pt, dpi, avail_px)
+    wrapped, box_w, box_h = _wrap(text, font_pt, dpi, avail_px, measurer)
     lines = wrapped.split("\n")
     if max_lines is None or len(lines) <= max_lines:
         return wrapped, box_w, box_h, False, False
@@ -126,16 +143,19 @@ def _wrap_to_line_budget(
     if not allow_curtail:
         return wrapped, box_w, box_h, False, True
 
+    width = (
+        (lambda s: measurer.width(s, font_pt)) if measurer is not None
+        else (lambda s: len(s) * char_px(font_pt, dpi))
+    )
     cpl = max(1, int(avail_px / char_px(font_pt, dpi)))
     kept = lines[:max_lines]
     if cpl == 1:
         kept[-1] = "…"
     else:
         kept[-1] = kept[-1][: cpl - 1].rstrip() + "…"
-    longest = max(len(line) for line in kept)
     return (
         "\n".join(kept),
-        longest * char_px(font_pt, dpi),
+        max(width(line) for line in kept),
         len(kept) * line_px(font_pt, dpi),
         True,
         True,
@@ -300,6 +320,7 @@ def _shrink_to_fit(
     margin: float,
     max_lines: int | None = None,
     allow_curtail: bool = False,
+    measurer: "TextMeasurer | None" = None,
 ) -> Optional[tuple[float, tuple[float, float], str, float, float, bool, bool]]:
     """Step the font down toward ``min_font_pt`` (largest first) until the block finds a clear
     spot - at its anchor if the smaller box now fits, else at the nearest clear position. Returns
@@ -309,7 +330,7 @@ def _shrink_to_fit(
     candidate = font_pt - 1.0
     while candidate >= min_font_pt:
         wrapped, box_w, box_h, curtailed, over_budget = _wrap_to_line_budget(
-            text, candidate, dpi, avail, max_lines, allow_curtail
+            text, candidate, dpi, avail, max_lines, allow_curtail, measurer
         )
         bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
         if not _hits_any(bbox, blockers):
@@ -342,8 +363,14 @@ def recommend_text_placement(
 
     Args:
         width_px / height_px / dpi: the fixed canvas from ``recommend_layout``.
-        blocks: text blocks, each ``{id, text, role, font_pt?, anchor:{x,y}, placement?, anchors?}``
-            in canvas px. role in {title, subtitle, footer, caption} is fixed (box at the anchor,
+        blocks: text blocks, each ``{id, text, role, font_pt?, anchor:{x,y}, placement?, anchors?,
+            font_family?, font_weight?, font_style?}`` in canvas px. The optional font_family /
+            font_weight / font_style are the face the block will actually be drawn in, carried from
+            the render context (a matplotlib artist's FontProperties or a ggplot theme's
+            text$family); box widths are then measured from that real font instead of a flat
+            per-character estimate, so a wide word like "Manufacturing" reserves its true width and
+            does not overrun its box. Omit them and the default face is measured - still real glyph
+            advances, not the old 0.5-em guess. role in {title, subtitle, footer, caption} is fixed (box at the anchor,
             wrapped, never moved); role ``data_label`` is a value the plotting layer has already
             positioned on its mark or at a deliberate fixed offset from it - box at the anchor,
             wrapped, never de-collided against its own mark, and never shoved a free callout's
@@ -406,6 +433,15 @@ def recommend_text_placement(
     for block in ordered:
         role = block.get("role", "annotation")
         font_pt = float(block.get("font_pt") or FONT_PT.get(role, FONT_PT["annotation"]))
+        # Measure widths in the font this block will actually be drawn in. Family/weight/style
+        # are carried from the render context (a matplotlib artist or a ggplot theme); absent,
+        # the measurer resolves the default face - still real advances, not a flat 0.5-em guess.
+        measurer = TextMeasurer(
+            dpi,
+            family=block.get("font_family"),
+            weight=str(block.get("font_weight") or "normal"),
+            style=str(block.get("font_style") or "normal"),
+        )
         movable = role not in pinned
         anchor = block.get("anchor") or {"x": margin, "y": margin}
         ax, ay = float(anchor.get("x", margin)), float(anchor.get("y", margin))
@@ -438,7 +474,7 @@ def recommend_text_placement(
                 max(char_px(font_pt, dpi) * 8, width_px - ax - margin),
             )
             wrapped, box_w, box_h, curtailed, over_budget = _wrap_to_line_budget(
-                text, font_pt, dpi, avail, max_lines, allow_curtail
+                text, font_pt, dpi, avail, max_lines, allow_curtail, measurer
             )
             bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
             nx, ny = _nudge_into_canvas(bbox, width_px, height_px, margin)
@@ -509,7 +545,7 @@ def recommend_text_placement(
         if label_width is not None:
             avail = min(avail, label_width)
         wrapped, box_w, box_h, curtailed, over_budget = _wrap_to_line_budget(
-            text, font_pt, dpi, avail, max_lines, allow_curtail
+            text, font_pt, dpi, avail, max_lines, allow_curtail, measurer
         )
         if curtailed:
             warnings.append(
@@ -561,6 +597,7 @@ def recommend_text_placement(
                 shrunk = _shrink_to_fit(
                     text, font_pt, dpi, avail, min_font_pt,
                     blockers, primary, width_px, height_px, margin, max_lines, allow_curtail,
+                    measurer,
                 )
                 if shrunk is not None:
                     font_pt, (cx, cy), wrapped, bw, bh, curtailed, over_budget = shrunk
@@ -574,7 +611,7 @@ def recommend_text_placement(
                     )
                 else:
                     tight, tw, th, curtailed, over_budget = _wrap_to_line_budget(
-                        text, font_pt, dpi, avail * 0.6, max_lines, allow_curtail
+                        text, font_pt, dpi, avail * 0.6, max_lines, allow_curtail, measurer
                     )
                     wrapped = tight
                     bbox = {"x": primary[0], "y": primary[1], "width": tw, "height": th}
@@ -847,7 +884,11 @@ def place_on_marks(
             the render's layout metadata (``transforms[i]``).
         labels: movable labels/annotations and on-mark data labels, each
             ``{id, text, role, data_x, data_y, placement?, max_width_px?, max_lines?, font_pt?,
-            anchors_data?, mark_id?}``. A supplied ``mark_id`` must uniquely identify a mark
+            anchors_data?, mark_id?, font_family?, font_weight?, font_style?}``. font_family /
+            font_weight / font_style (the face this label is drawn in - the matplotlib artist's
+            FontProperties or the ggplot theme's text$family) pass through to the measurer so box
+            widths come from the real font; omit them for the default face. A supplied ``mark_id``
+            must uniquely identify a mark
             whose geometry contains every candidate anchor; no label-role inference is used.
             Labels without a target ID are returned in ``unverified_attachments``.
             ``anchors_data`` is an optional list of ``{data_x, data_y}``

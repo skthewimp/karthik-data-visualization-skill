@@ -511,3 +511,50 @@ def test_bar_value_label_too_long_for_short_bar_goes_outside():
     assert placement["placement"] == "outside"
     # Outside sits on the canvas, so contrast is judged against the background, not the fill.
     assert placement["surface"] == "#ffffff"
+
+
+def test_real_font_widths_distinguish_narrow_from_wide_glyphs():
+    # The flat 0.5-em estimate boxed "iii..." and "WWW..." identically; real advances must not.
+    # Narrow glyphs get a narrower box, wide glyphs a wider one, at the same char count.
+    common = dict(width_px=1200, height_px=675, dpi=144, obstacles=[])
+    narrow = recommend_text_placement(
+        blocks=[{"id": "n", "text": "iiiiiiiiiiiiii", "role": "title",
+                 "anchor": {"x": 60, "y": 40}}],
+        **common,
+    )["placements"][0]["bbox"]["width"]
+    wide = recommend_text_placement(
+        blocks=[{"id": "w", "text": "WWWWWWWWWWWWWW", "role": "title",
+                 "anchor": {"x": 60, "y": 40}}],
+        **common,
+    )["placements"][0]["bbox"]["width"]
+    assert wide > narrow * 2  # real faces: W is ~3.5x the advance of i
+
+
+def test_bold_weight_reserves_more_width_than_normal():
+    common = dict(width_px=1200, height_px=675, dpi=144, obstacles=[])
+    text = "Manufacturing output"
+    normal = recommend_text_placement(
+        blocks=[{"id": "t", "text": text, "role": "title", "anchor": {"x": 60, "y": 40}}],
+        **common,
+    )["placements"][0]["bbox"]["width"]
+    bold = recommend_text_placement(
+        blocks=[{"id": "t", "text": text, "role": "title", "anchor": {"x": 60, "y": 40},
+                 "font_weight": "bold"}],
+        **common,
+    )["placements"][0]["bbox"]["width"]
+    assert bold > normal
+
+
+def test_font_family_threads_through_place_on_marks():
+    from dataviz_mcp.text_fit import place_on_marks
+
+    transform = [[1.0, 0.0, 0.0], [0.0, -1.0, 675.0], [0.0, 0.0, 1.0]]
+    out = place_on_marks(
+        width_px=1200, height_px=675, dpi=144, transform=transform,
+        labels=[{"id": "a", "text": "Manufacturing", "role": "annotation",
+                 "data_x": 300, "data_y": 300, "font_family": "Times New Roman"}],
+        marks=[],
+    )
+    # It placed without error and produced a real box for the label in the requested face.
+    box = out["placements"][0]["bbox"]
+    assert box["width"] > 0 and box["height"] > 0
