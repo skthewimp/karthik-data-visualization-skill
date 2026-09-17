@@ -817,7 +817,23 @@ capture_panel_grob <- function(g, prefix, px, py, pw, ph) {
       if (!is.finite(size_pt)) size_pt <- 11
       # Exact glyph ink from grid font metrics (not an nchar estimate, which over-
       # reports and manufactures false clips/collisions), swapped for rotated labels.
-      tg <- textGrob(labels[j], gp=gpar(fontsize=size_pt))
+      # Measure in the grob's OWN face: a bold or non-default family (a themed title,
+      # a Roboto axis) is wider than the device default, so measuring family-blind
+      # under-reports its ink and lets the rendered text overrun. Carry fontfamily,
+      # fontface, and cex from the grob's gp; degrade to the plain measure only if the
+      # face will not load, so a missing family never breaks the whole inspection.
+      cex <- suppressWarnings(as.numeric(gp_value(gp, "cex", j, "1")))
+      if (!is.finite(cex)) cex <- 1
+      fam <- gp_value(gp, "fontfamily", j, "")
+      face_raw <- gp_value(gp, "fontface", j, "")
+      mgp <- gpar(fontsize=size_pt, cex=cex)
+      if (nzchar(fam)) mgp$fontfamily <- fam
+      if (nzchar(face_raw)) {
+        face_num <- suppressWarnings(as.integer(face_raw))
+        mgp$fontface <- if (!is.na(face_num)) face_num else face_raw
+      }
+      tg <- tryCatch(textGrob(labels[j], gp=mgp),
+                     error=function(e) textGrob(labels[j], gp=gpar(fontsize=size_pt)))
       ink_w <- max(1, convertWidth(grobWidth(tg), "in", valueOnly=TRUE) * dpi)
       ink_h <- max(1, convertHeight(grobHeight(tg), "in", valueOnly=TRUE) * dpi)
       if (abs((rot %% 180) - 90) < 45) { label_width <- ink_h; label_height <- ink_w }
