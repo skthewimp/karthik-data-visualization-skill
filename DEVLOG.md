@@ -3414,3 +3414,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - ## 1. Diagnose (brief) - run cold on input Source = 100% stacked bar, OpenRouter weekly wallet share, OpenAI vs Anthropic, 2026. ``` Key messages: - AGGREGATE CROSSOVER (headline): OpenAI total share rose above Anthro...
 
 <!-- claude-session:d069249a-cb18-4842-831a-eb141399e461:end -->
+
+<!-- claude-session:cd2c3a8d-93ff-4074-95ee-912338e67a3a:start -->
+## 2026-09-17 13:40 IST | Claude session `cd2c3a8d-93f`
+
+### User prompts
+> in terms of text placer, how do we do better than using esteimates of text width etc? input from downtream: - Collision boxes use approximate text widths. The upstream placer estimates character widths without the act...
+> yeah do this. also how will you get info on which fobnt family is being used?
+> yeah how do we fix this R textgrob bug?
+
+### Work done
+- Done. Shipped, pushed, `main` clean; memory saved. ## What I built (ggrepel port) **`_repel` + `_min_translation` in `text_fit.py`** — a deterministic ggrepel-style solver. Every label that can't sit adjacent to its m...
+- Yes. Working tree clean, `main` = `origin/main`, nothing unpushed. All 3 commits are on the remote: 1. `37dded4` — real glyph widths (Python placer) 2. `46d4684` — R text measured in its own face 3. `94ffe75` — ggrepe...
+
+<!-- claude-session:cd2c3a8d-93ff-4074-95ee-912338e67a3a:end -->
