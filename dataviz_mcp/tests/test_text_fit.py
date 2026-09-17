@@ -558,3 +558,46 @@ def test_font_family_threads_through_place_on_marks():
     # It placed without error and produced a real box for the label in the requested face.
     box = out["placements"][0]["bbox"]
     assert box["width"] > 0 and box["height"] > 0
+
+
+def test_repel_settles_each_label_nearest_its_own_mark():
+    # Two series labels whose marks sit close together are both smothered by one big obstacle, so
+    # both defer to the ggrepel solve. Because each is pulled only toward its OWN mark but pushed
+    # off everything, each must end up nearer its own mark than the other's - reading as the right
+    # series with no hand-tuned ambiguity term - and the two boxes must not overlap.
+    a_mark = {"x": 500, "y": 300}
+    b_mark = {"x": 500, "y": 340}
+    smother = {"x": 360, "y": 240, "width": 300, "height": 160}  # covers both marks + all sides
+    result = recommend_text_placement(
+        1200, 700, 144,
+        blocks=[
+            {"id": "A", "role": "label", "text": "Alpha", "anchor": a_mark},
+            {"id": "B", "role": "label", "text": "Bravo", "anchor": b_mark},
+        ],
+        obstacles=[smother],
+    )
+    a, b = _by_id(result, "A"), _by_id(result, "B")
+
+    def near(box, mark):
+        cx, cy = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+        return ((cx - mark["x"]) ** 2 + (cy - mark["y"]) ** 2) ** 0.5
+
+    assert near(a["bbox"], a_mark) < near(a["bbox"], b_mark)   # A reads as its own series
+    assert near(b["bbox"], b_mark) < near(b["bbox"], a_mark)   # B reads as its own series
+    assert not boxes_overlap(a["bbox"], b["bbox"])
+    assert not boxes_overlap(a["bbox"], smother)
+    assert not boxes_overlap(b["bbox"], smother)
+    assert a["leader_line"] is not None and b["leader_line"] is not None
+
+
+def test_repel_is_deterministic():
+    # No random jitter: the same input places to the same pixels every run.
+    blocks = [
+        {"id": "A", "role": "label", "text": "Alpha", "anchor": {"x": 500, "y": 300}},
+        {"id": "B", "role": "label", "text": "Bravo", "anchor": {"x": 500, "y": 340}},
+    ]
+    obstacles = [{"x": 360, "y": 240, "width": 300, "height": 160}]
+    first = recommend_text_placement(1200, 700, 144, blocks=[dict(b) for b in blocks], obstacles=obstacles)
+    second = recommend_text_placement(1200, 700, 144, blocks=[dict(b) for b in blocks], obstacles=obstacles)
+    assert _by_id(first, "A")["bbox"] == _by_id(second, "A")["bbox"]
+    assert _by_id(first, "B")["bbox"] == _by_id(second, "B")["bbox"]

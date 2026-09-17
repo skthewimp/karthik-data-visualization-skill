@@ -307,6 +307,102 @@ def _search_clear(
     return None
 
 
+def _min_translation(
+    box: dict[str, float], other: dict[str, float], tie: float, pad: float = 0.0
+) -> tuple[float, float]:
+    """The smallest move that lifts ``box`` clear of ``other`` (plus a ``pad`` gap) - ggrepel's
+    overlap push with its box.padding.
+
+    Returns the vector to add to ``box``'s origin to separate the pair along their least
+    penetration (so a shallow overlap resolves with a short move, not a diagonal fling), leaving a
+    ``pad`` gap so boxes settle with breathing room instead of flush against each other. When the
+    two are exactly concentric (no direction to separate along), it breaks the tie deterministically
+    from ``tie`` - a per-box angle - so a symmetric stack always splits the same way, never with the
+    random jitter ggrepel uses (these tools are deterministic)."""
+    ox = min(box["x"] + box["width"], other["x"] + other["width"]) - max(box["x"], other["x"]) + 2 * pad
+    oy = min(box["y"] + box["height"], other["y"] + other["height"]) - max(box["y"], other["y"]) + 2 * pad
+    if ox <= 0 or oy <= 0:
+        return 0.0, 0.0
+    bcx, bcy = _center(box)
+    ocx, ocy = _center(other)
+    if ox <= oy:
+        sign = 1.0 if bcx >= ocx else -1.0
+        if bcx == ocx:
+            sign = 1.0 if math.cos(tie) >= 0 else -1.0
+        return sign * ox, 0.0
+    sign = 1.0 if bcy >= ocy else -1.0
+    if bcy == ocy:
+        sign = 1.0 if math.sin(tie) >= 0 else -1.0
+    return 0.0, sign * oy
+
+
+def _repel(
+    movers: list[dict[str, Any]],
+    fixed: list[dict[str, Any]],
+    width: float,
+    height: float,
+    margin: float,
+    *,
+    max_iter: int = 400,
+    pull: float = 0.08,
+    relax: float = 0.5,
+    sep_iters: int = 4,
+    pad: float = 3.0,
+) -> None:
+    """Settle overlapping labels with ggrepel's model: pull each toward its own mark, push it off
+    every other box and mark, iterate until nothing overlaps.
+
+    A position-based (not force-integrated) form of the ggrepel simulation, chosen for stability
+    and determinism. Each iteration first nudges every box a little toward the mark it names (the
+    spring, ``pull``, cooled to zero over the run so it settles), then resolves overlaps by the
+    minimum-translation push against every other mover and every fixed box (marks, pinned text,
+    labels already placed). Because a box is pulled only toward its OWN mark but pushed off ALL
+    marks, it comes to rest just beside its own mark and away from a neighbour's - so a label reads
+    as naming the right series without any hand-tuned "ambiguity" term. Overlaps are resolved last
+    each iteration, so when the loop exits clear, the boxes are genuinely clear. Boxes that cannot
+    be separated (the canvas is walled) simply stay overlapping at ``max_iter`` for the caller to
+    shrink or flag. ``movers`` boxes are mutated in place."""
+    if not movers:
+        return
+    ties = [2 * math.pi * (i + 1) / (len(movers) + 1) for i in range(len(movers))]
+
+    def clamp(box: dict[str, float]) -> None:
+        box["x"], box["y"] = _nudge_into_canvas(box, width, height, margin)
+
+    for it in range(max_iter):
+        cool = 1.0 - it / max_iter
+        # 1. Spring: ease each box toward the mark it names (its box centre toward the anchor).
+        for mover in movers:
+            box, (ax, ay) = mover["box"], mover["anchor"]
+            cx, cy = _center(box)
+            box["x"] += (ax - cx) * pull * cool
+            box["y"] += (ay - cy) * pull * cool
+            clamp(box)
+        # 2. Separation: push each box out of every other box and mark, smallest move first.
+        for _ in range(sep_iters):
+            for i, mover in enumerate(movers):
+                box = mover["box"]
+                for j, other in enumerate(movers):
+                    if i == j:
+                        continue
+                    dx, dy = _min_translation(box, other["box"], ties[i], pad)
+                    box["x"] += dx * relax
+                    box["y"] += dy * relax
+                    clamp(box)
+                for fb in fixed:
+                    dx, dy = _min_translation(box, fb, ties[i], pad)
+                    box["x"] += dx
+                    box["y"] += dy
+                    clamp(box)
+        # 3. Done when nothing overlaps any mark, pinned block, or other label.
+        blockers = fixed + [m["box"] for m in movers]
+        if it > 8 and not any(
+            boxes_overlap(m["box"], o)
+            for m in movers for o in blockers if o is not m["box"]
+        ):
+            break
+
+
 def _shrink_to_fit(
     text: str,
     font_pt: float,
@@ -404,10 +500,14 @@ def recommend_text_placement(
     builder should draw - authoritative, since the anchor was the mark, not the box). A label
     parked on its preferred side carries no ``suggested_anchor``, no ``leader_line`` and no
     warning; one parked on an alternate side or mark carries ``suggested_anchor`` and a warning.
-    Only a label that found no adjacent spot and travelled to the nearest clear area (or shrank to
-    fit) gets a ``leader_line`` (``{from, to}`` in canvas px) for the builder to draw as a thin
-    connector back to its point, plus ``suggested_anchor`` / ``suggested_font_pt`` / ``suggested_wrap``
-    and a warning. After all labels are placed, any pair of movable labels whose leader lines cross
+    A label with no adjacent spot at any mark is placed by a joint ggrepel-style solve run once
+    over every such label together: each is pulled toward the mark it names and pushed off every
+    mark, pinned block, and label already placed, so it settles beside its own mark and clear of
+    the rest (a label reads as its own series without any explicit ambiguity term). The solve is
+    deterministic - a symmetric stack is split by a fixed per-box angle, not ggrepel's random
+    jitter. Such a label (or one that then had to shrink to fit) gets a ``leader_line``
+    (``{from, to}`` in canvas px) for the builder to draw as a thin connector back to its point,
+    plus ``suggested_anchor`` / ``suggested_font_pt`` / ``suggested_wrap`` and a warning. After all labels are placed, any pair of movable labels whose leader lines cross
     is swapped back - each label trades position with the other so both point at their own mark
     again - whenever the swap keeps both boxes clear of every mark and label; the swapped blocks
     carry an updated anchor, leader, and a warning.
@@ -424,9 +524,60 @@ def recommend_text_placement(
     margin = float(edge_margin_px) if edge_margin_px is not None else round(0.03 * width_px)
     placed: list[dict[str, Any]] = []
     results: list[dict[str, Any]] = []
+    deferred: list[dict[str, Any]] = []
     unresolved = 0
 
     pinned = FIXED_ROLES | ON_MARK_ROLES
+
+    def _finalize_movable(
+        block, role, wrapped, text, curtailed, over_budget, avail, font_pt, bbox,
+        suggested_anchor, suggested_font_pt, suggested_wrap, leader_line, warnings, primary,
+    ) -> None:
+        """Apply the plot-boundary correction and record one movable label's placement. Shared by
+        the adjacent fast path and the post-loop ggrepel solve so both report identically."""
+        plot_boundary_correction: Optional[dict[str, float]] = None
+        if curtailed and not any("readable line budget" in w for w in warnings):
+            warnings.append(
+                "label exceeds the readable line budget; use the returned full_text in a key or footnote"
+            )
+        if over_budget and not curtailed:
+            warnings.append(
+                "label exceeds the chosen line budget; keep the full text and revise the layout, "
+                "wording, or form"
+            )
+        # A movable label left straddling the plot edge is clipped, and canvas growth cannot fix it
+        # (the box is inside the canvas, across the *plot* boundary). Nudge it wholly inside and
+        # report the exact move, so the driver applies one delta, not a broad "re-place everything".
+        if plot_area is not None:
+            correction = _plot_boundary_correction(bbox, plot_area, obstacles + placed, margin)
+            if correction is not None:
+                bbox["x"] += correction["dx"]
+                bbox["y"] += correction["dy"]
+                plot_boundary_correction = correction
+                suggested_anchor = {"x": round(bbox["x"]), "y": round(bbox["y"])}
+                if leader_line is not None:
+                    leader_line = _leader_line(bbox, primary)
+                warnings.append("crossed the plot boundary; moved wholly inside the plot area")
+        placed.append(dict(bbox))
+        results.append(
+            {
+                "id": block.get("id"),
+                "role": role,
+                "wrapped_text": wrapped,
+                "full_text": text,
+                "curtailed": curtailed,
+                "over_line_budget": over_budget,
+                "wrap_width_chars": max(1, int(avail / char_px(font_pt, dpi))),
+                "bbox": {k: round(v, 1) for k, v in bbox.items()},
+                "suggested_anchor": suggested_anchor,
+                "suggested_font_pt": suggested_font_pt,
+                "suggested_wrap": suggested_wrap,
+                "leader_line": leader_line,
+                "plot_boundary_correction": plot_boundary_correction,
+                "warnings": warnings,
+            }
+        )
+
     # Place by priority: data labels first, then category/series labels, then free annotations,
     # so each tier becomes an obstacle the freer tier below it fits around.
     ordered = sorted(blocks, key=lambda b: _tier(b.get("role", "annotation")))
@@ -537,7 +688,6 @@ def recommend_text_placement(
         # Movable label/annotation: the anchor is the MARK; park the box beside it. A category
         # label may name several candidate marks along its series (`anchors`) - it can sit beside
         # any of them, since adjacency, not the endpoint, is what proves which series it names.
-        plot_boundary_correction: Optional[dict[str, float]] = None
         avail = max(
             char_px(font_pt, dpi) * 8,
             min(max_annotation_width_frac * width_px, width_px - 2 * margin),
@@ -573,31 +723,63 @@ def recommend_text_placement(
                 break
 
         if chosen is not None:
+            # Adjacent fast path: the label sits beside its mark, no leader, no solve. This keeps
+            # the direct-label look for the common case; only contended labels go to the solver.
             cx, cy, is_home = chosen
             bbox = {"x": cx, "y": cy, "width": box_w, "height": box_h}
             if not is_home:
                 suggested_anchor = {"x": round(cx), "y": round(cy)}
                 warnings.append("parked beside its mark to clear other marks and labels")
-        else:
-            # 2. No adjacent spot at any mark: search farther from the primary mark and, when it
-            #    lands away from the mark, draw a leader so the pairing survives.
-            start = _park(primary, directions[0], gap, box_w, box_h)
-            bbox = {"x": start[0], "y": start[1], "width": box_w, "height": box_h}
-            found = _search_clear(
-                bbox, blockers, width_px, height_px, margin, step=line_px(font_pt, dpi)
+            _finalize_movable(
+                block, role, wrapped, text, curtailed, over_budget, avail, font_pt, bbox,
+                suggested_anchor, suggested_font_pt, suggested_wrap, leader_line, warnings, primary,
             )
-            if found is not None:
-                bbox["x"], bbox["y"] = found
-                suggested_anchor = {"x": round(found[0]), "y": round(found[1])}
-                warnings.append("no adjacent spot; moved to the nearest clear area")
+            continue
+
+        # No adjacent spot at any mark: defer to the joint ggrepel solve after the loop, so every
+        # contended label is placed together rather than one greedy label at a time.
+        deferred.append(
+            {
+                "block": block, "role": role, "text": text, "wrapped": wrapped,
+                "curtailed": curtailed, "over_budget": over_budget, "avail": avail,
+                "font_pt": font_pt, "box_w": box_w, "box_h": box_h, "primary": primary,
+                "directions": directions, "gap": gap, "max_lines": max_lines,
+                "allow_curtail": allow_curtail, "measurer": measurer, "warnings": warnings,
+            }
+        )
+
+    # Joint ggrepel solve for every label that could not sit adjacent to its mark. They settle
+    # together - each pulled toward its own mark, pushed off every mark, pinned block, and label
+    # already parked - so each rests beside its own mark and clear of the rest, with a leader back
+    # to its point. A label the solve cannot free (the canvas is walled) falls to a shrink, then a
+    # tightened wrap flagged for review - the same fallbacks the greedy search used.
+    if deferred:
+        fixed = obstacles + placed
+        movers: list[dict[str, Any]] = []
+        for item in deferred:
+            start = _park(item["primary"], item["directions"][0], item["gap"], item["box_w"], item["box_h"])
+            box = {"x": start[0], "y": start[1], "width": item["box_w"], "height": item["box_h"]}
+            box["x"], box["y"] = _nudge_into_canvas(box, width_px, height_px, margin)
+            movers.append({"box": box, "anchor": item["primary"]})
+        _repel(movers, fixed, width_px, height_px, margin)
+        for item, mover in zip(deferred, movers):
+            box = mover["box"]
+            block, primary, warnings = item["block"], item["primary"], item["warnings"]
+            font_pt, wrapped = item["font_pt"], item["wrapped"]
+            curtailed, over_budget = item["curtailed"], item["over_budget"]
+            suggested_anchor = suggested_font_pt = suggested_wrap = leader_line = None
+            others = fixed + [m["box"] for m in movers if m is not mover]
+            if not _hits_any(box, others):
+                bbox = {"x": box["x"], "y": box["y"], "width": item["box_w"], "height": item["box_h"]}
+                suggested_anchor = {"x": round(box["x"]), "y": round(box["y"])}
+                warnings.append("no adjacent spot; repelled to the nearest clear area")
                 leader_line = _leader_line(bbox, primary)
                 warnings.append("moved off its point; draw a thin leader line to keep the pairing")
             else:
-                # 3. Shrink toward the legibility floor, else tighten the wrap and flag for review.
                 shrunk = _shrink_to_fit(
-                    text, font_pt, dpi, avail, min_font_pt,
-                    blockers, primary, width_px, height_px, margin, max_lines, allow_curtail,
-                    measurer,
+                    item["text"], font_pt, dpi, item["avail"], min_font_pt,
+                    others, primary, width_px, height_px, margin,
+                    item["max_lines"], item["allow_curtail"], item["measurer"],
                 )
                 if shrunk is not None:
                     font_pt, (cx, cy), wrapped, bw, bh, curtailed, over_budget = shrunk
@@ -606,12 +788,11 @@ def recommend_text_placement(
                     suggested_anchor = {"x": round(cx), "y": round(cy)}
                     warnings.append(f"no clear spot at full size; shrank to {font_pt:.0f}pt to fit")
                     leader_line = _leader_line(bbox, primary)
-                    warnings.append(
-                        "moved off its point; draw a thin leader line to keep the pairing"
-                    )
+                    warnings.append("moved off its point; draw a thin leader line to keep the pairing")
                 else:
                     tight, tw, th, curtailed, over_budget = _wrap_to_line_budget(
-                        text, font_pt, dpi, avail * 0.6, max_lines, allow_curtail, measurer
+                        item["text"], font_pt, dpi, item["avail"] * 0.6,
+                        item["max_lines"], item["allow_curtail"], item["measurer"],
                     )
                     wrapped = tight
                     bbox = {"x": primary[0], "y": primary[1], "width": tw, "height": th}
@@ -622,50 +803,11 @@ def recommend_text_placement(
                         "no clear spot even at the minimum legible size; tightened the wrap "
                         "- review placement by hand"
                     )
-
-        if curtailed and not any("readable line budget" in warning for warning in warnings):
-            warnings.append(
-                "label exceeds the readable line budget; use the returned full_text in a key or footnote"
+            _finalize_movable(
+                block, item["role"], wrapped, item["text"], curtailed, over_budget, item["avail"],
+                font_pt, bbox, suggested_anchor, suggested_font_pt, suggested_wrap, leader_line,
+                warnings, primary,
             )
-        if over_budget and not curtailed:
-            warnings.append(
-                "label exceeds the chosen line budget; keep the full text and revise the layout, "
-                "wording, or form"
-            )
-        # Local plot-boundary correction: a movable label left straddling the plot edge is clipped,
-        # and canvas growth cannot fix it (the box is inside the canvas, across the *plot* boundary).
-        # Nudge it wholly inside and report the exact move, so the driver applies one delta, not a
-        # broad "re-place everything".
-        if plot_area is not None:
-            correction = _plot_boundary_correction(bbox, plot_area, obstacles + placed, margin)
-            if correction is not None:
-                bbox["x"] += correction["dx"]
-                bbox["y"] += correction["dy"]
-                plot_boundary_correction = correction
-                suggested_anchor = {"x": round(bbox["x"]), "y": round(bbox["y"])}
-                if leader_line is not None:
-                    leader_line = _leader_line(bbox, primary)
-                warnings.append("crossed the plot boundary; moved wholly inside the plot area")
-
-        placed.append(dict(bbox))
-        results.append(
-            {
-                "id": block.get("id"),
-                "role": role,
-                "wrapped_text": wrapped,
-                "full_text": text,
-                "curtailed": curtailed,
-                "over_line_budget": over_budget,
-                "wrap_width_chars": max(1, int(avail / char_px(font_pt, dpi))),
-                "bbox": {k: round(v, 1) for k, v in bbox.items()},
-                "suggested_anchor": suggested_anchor,
-                "suggested_font_pt": suggested_font_pt,
-                "suggested_wrap": suggested_wrap,
-                "leader_line": leader_line,
-                "plot_boundary_correction": plot_boundary_correction,
-                "warnings": warnings,
-            }
-        )
 
     # Un-cross leaders: labels are de-collided one at a time, so two can land on each other's side
     # with crossing leader lines. Swap any such pair back when the swap stays clear of every mark
