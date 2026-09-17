@@ -3436,3 +3436,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Session captured, but there was not enough structured activity to summarize.
 
 <!-- claude-session:9a3f189e-81ce-49fb-9151-7a3dacca6000:end -->
+
+<!-- claude-session:a9084533-0673-4bfb-890e-840eb5f6d665:start -->
+## 2026-09-17 14:23 IST | Claude session `a9084533-067`
+
+### User prompts
+> There seems to be some issue in diagnos or maybe in the extractor where it writes approximate and stuff and so because of that things have been created. You need to make sure that like when you read values and stuff i...
+> fix the approximate thing. it just needs to give values. we know it's approximate etc. don't need to mention that.
+> yeah rerun and then commit and push
+
+### Work done
+- 316 pass, clean, validated. On `main` — commit + push:
+- Pushed. `94ffe75..c3cfbf8` on `main`. - 316 tests pass, `git diff --check` clean, skills validated. - Commit `c3cfbf8`: `fix(plot-data): coerce qualified value strings to numbers`. Fix live: `approximately 4.3` → `4.3...
+
+<!-- claude-session:a9084533-0673-4bfb-890e-840eb5f6d665:end -->
