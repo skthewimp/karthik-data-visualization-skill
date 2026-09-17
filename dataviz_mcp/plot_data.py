@@ -27,8 +27,40 @@ Stdlib only (``csv``), matching the rest of the mechanical layer.
 from __future__ import annotations
 
 import csv
+import re
 from pathlib import Path
 from typing import Any, Optional
+
+# One signed decimal / scientific number, possibly with thousands separators.
+_NUMBER_RE = re.compile(r"[-+]?(?:\d[\d,]*)?\.?\d+(?:[eE][-+]?\d+)?")
+
+
+def _coerce_number(raw: Any) -> Optional[float]:
+    """Read a value as a number, tolerating a qualifier or unit the producer fused in.
+
+    A weak extract model writes the geometry into the value cell with a qualifier or unit
+    attached - ``approximately 4.3``, ``~5``, ``50.2%``, ``1,234`` - and hard ``float()`` drops
+    every one, losing a real observation. So pull the numeric token out and keep the row; the
+    value is just the number, the approximation is already known and needs no annotating here.
+    Genuinely non-numeric text (``NA``, ``n/a``, ``""``) has no number and returns ``None``.
+    """
+    if isinstance(raw, bool):  # bool is an int subclass; not a measured value
+        return None
+    if isinstance(raw, (int, float)):
+        return float(raw)
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if not text:
+        return None
+    match = _NUMBER_RE.search(text)
+    if match is None:
+        return None
+    try:
+        return float(match.group(0).replace(",", ""))
+    except ValueError:
+        return None
+
 
 _AGGREGATORS = {
     "sum": lambda vals: sum(vals),
@@ -137,9 +169,8 @@ def prepare_plot_data(
         series_val = str(record[mapping["series"]]) if series else ""
         facet_val = str(record[mapping["facet"]]) if facet else ""
         raw = record[mapping["value"]]
-        try:
-            numeric = float(raw)
-        except (TypeError, ValueError):
+        numeric = _coerce_number(raw)
+        if numeric is None:
             warnings.append(f"non-numeric value {raw!r} at category {category!r} dropped")
             continue
         if category not in seen_cats:

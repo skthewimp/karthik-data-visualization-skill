@@ -128,6 +128,32 @@ def test_non_numeric_value_dropped_with_warning(tmp_path):
     assert any("non-numeric" in w for w in result["warnings"])
 
 
+def test_qualified_values_kept_as_numeric(tmp_path):
+    result = prepare_plot_data(
+        output_dir=str(tmp_path),
+        columns=["k", "v"],
+        rows=[
+            ["a", "95.0"],
+            ["b", "approximately 4.3"],
+            ["c", "~0.5"],
+            ["d", "50.2%"],
+            ["e", "1,234"],
+        ],
+        x="k",
+        value="v",
+    )
+    frame = _read(result["plot_data_path"])
+    assert {r["category"]: float(r["value"]) for r in frame} == {
+        "a": 95.0,
+        "b": 4.3,
+        "c": 0.5,
+        "d": 50.2,
+        "e": 1234.0,
+    }
+    assert result["n_rows"] == 5
+    assert result["warnings"] == []
+
+
 def test_reads_from_dataset_path(tmp_path):
     src = tmp_path / "data.csv"
     with src.open("w", newline="", encoding="utf-8") as handle:
