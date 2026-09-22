@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Label crowding resolved pre-build, not repaired at the execution gate
+
+Makers were treating the measure-then-place pass as optional cost ("only label-stamping charts
+*pay* for the measure render") and stamping every label raw on the first render, so crowding -
+merged detail entries, annotation clusters, right-third pileups - only surfaced at the execution
+gate and got patched by eye. Moved the decision ahead of the render and made it non-optional,
+the same way the canvas and frame already are.
+
+- The measure-then-place pass (ruler render -> `place_on_marks`/`recommend_text_placement`) is now
+  **mandatory before the delivered render whenever more than one data-glued label or annotation can
+  share a panel region** - the structural condition that makes a collision possible, read off the
+  design's own labels. Not eyeballed, and not gated on a hardcoded label count: the tool's own
+  collision count at the design's anchors *is* the density threshold (below it nothing moves and
+  the pass is near-free). Only a chart with at most one data-glued label and no annotation skips it.
+- A delivered first render that stamps multiple collidable labels raw is now a **skipped-tool
+  violation**, the same class as a hand-built dataframe or a skipped `recommend_layout`. The
+  execution gate reads crowding-with-`placements: not_supplied` as that skipped pass and routes it
+  back through the tool rather than nudging by eye.
+- Updated `dataviz-construct`, `karthik-data-visualization`, and `dataviz-execution` (both `claude/`
+  and `codex/` copies, kept identical) plus `docs/skills/dataviz-construct.md`.
+
 ### `dataviz-selector`: seven form-selection fixes from chart-review feedback
 
 Reviewed 35 annotated selector outputs (Karthik's per-chart recommendations) and reconciled the
