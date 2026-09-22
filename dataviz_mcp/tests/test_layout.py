@@ -152,20 +152,28 @@ def test_title_bands_reserve_vertical_space():
     assert titled["height_px"] > plain["height_px"]
 
 
-def test_long_y_labels_reserve_left_width_and_grow_the_canvas():
-    # The 7-Sep heatmap failure: long model labels on the y-axis were not budgeted, so
-    # the renderer grew the left margin at the panel's expense (panel fell to 29%). The
-    # left band must scale with the longest y label and the canvas grow to keep the panel.
+def test_long_y_labels_are_capped_and_wrapped_not_grown_into_the_margin():
+    # Long y-axis category names (ranked entities, model labels on a heatmap) must not grow
+    # the left margin without bound - that starves the plot panel (the 7-Sep 29%-panel
+    # failure). The band is capped and the overflow wraps into stacked text rows: the label
+    # band still scales with the name, but only up to the cap, and the panel keeps the width.
     short = recommend_layout(
         x_slots=11, y_slots=24, filled_marks=True, y_labels=True, longest_y_label_chars=4
     )
     long = recommend_layout(
         x_slots=11, y_slots=24, filled_marks=True, y_labels=True, longest_y_label_chars=60
     )
+    # A short name needs no wrapping; a long one is wrapped to a per-line character budget.
+    assert short["wrap_y_labels_chars"] == 0
+    assert long["wrap_y_labels_chars"] > 0
+    # The band still grows with the name, but the cap holds it far below the unbounded demand
+    # (60 chars would otherwise reserve ~600px of left band) and the panel keeps its share.
     assert long["reserved_left_px"] > short["reserved_left_px"]
-    # Once the label band plus the panel floor exceeds the base width, the canvas grows
-    # rather than shrinking the panel behind the labels.
-    assert long["width_px"] > short["width_px"]
+    assert long["reserved_left_px"] < 60 * 11
+    assert long["data_panel_fraction"] >= 0.4
+    # The wrapped label spends its overflow on vertical rows, so the canvas grows taller, not
+    # ever-wider behind the labels.
+    assert long["height_px"] >= short["height_px"]
 
 
 def test_reports_data_panel_fraction_and_keeps_it_healthy():

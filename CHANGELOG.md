@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Long horizontal-bar category labels wrap to a capped band instead of eating the panel
+
+Long category names on a horizontal bar's y-axis (ranked entities, department/model names) grew
+the left margin without bound, pushing the marks into a thin strip on the right - the mirror of
+the crowded x-label case, but where vertical bars already wrap their tick labels, horizontal bars
+had no equivalent. Fixed the same way titles and x-labels are: cap the band and wrap the overflow.
+
+- `recommend_layout` now caps the y-axis label band at `Y_LABEL_BAND_MAX_FRAC` (~a third) of the
+  panel width and returns `wrap_y_labels_chars`, the per-line character budget for the category
+  factor (`str_wrap(labels, width = wrap_y_labels_chars)`). The overflow becomes stacked text rows
+  in a taller slot rather than a wider margin, so the plot panel keeps the width. `0` means the
+  names fit and no wrap is needed. Both the single-chart and `panel_groups` paths apply the cap.
+- The general principle - *a category-label band never consumes unbounded cross-axis space; wrap it
+  to a capped band and spend the overflow along the axis it stacks on* - is stated in
+  `karthik-data-visualization` and `dataviz-execution` (both `claude/` and `codex/` copies), so it
+  reads symmetrically for x- and y-axis labels rather than as a horizontal-bar special case.
+- Updated `docs/mcp.md`, `docs/skills/dataviz-execution.md`, and the layout unit test to the new
+  wrap-not-grow contract.
+
 ### Label crowding resolved pre-build, not repaired at the execution gate
 
 Makers were treating the measure-then-place pass as optional cost ("only label-stamping charts

@@ -52,6 +52,9 @@ MAX_PANEL_ASPECT = 2.0      # a data panel wider than this (few rows, wide canva
 PANEL_GUTTER = 24.0         # space between facet panels
 GROUP_BREAK = 48.0          # break between heterogeneous panel groups (a whole band apart)
 FREE_AXIS_BAND = 42.0       # extra per-panel left width when scales are free
+Y_LABEL_BAND_MAX_FRAC = 0.35  # a horizontal-bar category-label band may not eat more than this
+                              #   fraction of the panel width; longer names wrap into stacked rows
+MIN_Y_WRAP_CHARS = 12         # never wrap a category label narrower than this (unreadable slivers)
 
 
 def pt_to_px(pt: float, dpi: float) -> float:
@@ -109,6 +112,34 @@ def char_px(font_pt: float, dpi: float) -> float:
 def line_px(font_pt: float, dpi: float) -> float:
     """Height of one text line's box at ``font_pt`` and ``dpi``."""
     return pt_to_px(font_pt, dpi) * LINE_HEIGHT
+
+
+def _y_label_band_and_wrap(
+    longest_y_label_chars: int, panel_plot_w: float, dpi: float
+) -> tuple[float, int, int]:
+    """Left-band width (px) for y category labels, capped, plus the wrap width and line count.
+
+    Long horizontal-bar category names (ranked entities, model names) would grow the left
+    margin without bound and starve the plot panel - the wasted-space failure. Cap the band
+    at ``Y_LABEL_BAND_MAX_FRAC`` of the panel width and wrap the overflow into stacked text
+    rows instead: categories run *down* the y-axis, so vertical growth is cheap while extra
+    horizontal margin is not. This is the y-axis twin of x-label wrapping, one rule for both
+    orientations, not a horizontal-bar special case.
+
+    Returns ``(extra_band_px, wrap_chars, n_lines)``; ``wrap_chars == 0`` means the full name
+    fits the cap and needs no wrapping.
+    """
+    if longest_y_label_chars <= 0:
+        return 0.0, 0, 1
+    cph = char_px(FONT_PT["axis"], dpi)
+    # axis_band already covers ~4 chars + the axis title; only the overflow adds band width.
+    full_extra = max(0.0, (longest_y_label_chars - 4) * cph)
+    band_cap = Y_LABEL_BAND_MAX_FRAC * panel_plot_w
+    if full_extra <= band_cap:
+        return full_extra, 0, 1
+    wrap_chars = max(MIN_Y_WRAP_CHARS, int(4 + band_cap / cph))
+    n_lines = math.ceil(longest_y_label_chars / wrap_chars)
+    return (wrap_chars - 4) * cph, wrap_chars, n_lines
 
 
 def boxes_overlap(a: dict[str, Any], b: dict[str, Any], tol: float = 0.5) -> bool:
@@ -303,7 +334,7 @@ def _size_panel_groups(
     title_lines: int,
     subtitle_lines: int,
     footer_lines: int,
-) -> tuple[float, float, list[dict[str, Any]], float, list[str], dict[str, Any], dict[str, float]]:
+) -> tuple[float, float, list[dict[str, Any]], float, list[str], dict[str, Any], dict[str, float], int]:
     """Size a stack of heterogeneous panel groups into one canvas.
 
     Each group is sized as its own facet sub-grid using the same per-slot floors and
@@ -319,9 +350,7 @@ def _size_panel_groups(
     resized up on either axis) and the overflow is reported in ``fit`` and ``warnings``.
     """
     warnings: list[str] = []
-    y_tick_extra = 0.0
-    if y_labels and longest_y_label_chars > 0:
-        y_tick_extra = max(0.0, (longest_y_label_chars - 4) * char_px(FONT_PT["axis"], dpi))
+    wrap_y_labels_chars = 0
 
     sized: list[dict[str, Any]] = []
     for g in groups:
@@ -339,11 +368,20 @@ def _size_panel_groups(
             ncol, nrow = _facet_grid(n, aspect=1.6) if n > 1 else (1, 1)
         slot = _slot_floor(filled) if "filled_marks" in g else slot_px_default
         panel_plot_w = max(MIN_PANEL_W if n > 1 else base_w * 0.6, gx * slot)
-        left_band = axis_band + (FREE_AXIS_BAND if (n > 1 and y_scales_free) else 0.0) + y_tick_extra
+        grp_row_floor = row_floor
+        y_extra = 0.0
+        if y_labels and longest_y_label_chars > 0:
+            y_extra, grp_wrap, grp_lines = _y_label_band_and_wrap(
+                longest_y_label_chars, panel_plot_w, dpi
+            )
+            if grp_wrap:
+                wrap_y_labels_chars = max(wrap_y_labels_chars, grp_wrap)
+                grp_row_floor = max(grp_row_floor, line_px(FONT_PT["axis"], dpi) * (grp_lines + 0.6))
+        left_band = axis_band + (FREE_AXIS_BAND if (n > 1 and y_scales_free) else 0.0) + y_extra
         sized.append({
             "role": str(g.get("role", "")),
             "n": n, "ncol": ncol, "nrow": nrow, "gy": gy, "slot": slot,
-            "emphasis": emphasis, "left_band": left_band,
+            "emphasis": emphasis, "left_band": left_band, "row_floor": grp_row_floor,
             "group_w": _group_natural_width(ncol, panel_plot_w, left_band),
         })
 
@@ -353,7 +391,7 @@ def _size_panel_groups(
     for s in sized:
         panel_w_final = (width - s["ncol"] * s["left_band"] - (s["ncol"] - 1) * PANEL_GUTTER) / s["ncol"]
         if s["gy"] > 0:
-            panel_h = max(MIN_PANEL_H if s["n"] > 1 else 0.0, s["gy"] * max(s["slot"], row_floor))
+            panel_h = max(MIN_PANEL_H if s["n"] > 1 else 0.0, s["gy"] * max(s["slot"], s["row_floor"]))
         else:
             panel_h = panel_w_final / 1.6
         panel_h = max(panel_h, panel_w_final / MAX_PANEL_ASPECT)  # never letterbox a band
@@ -430,7 +468,13 @@ def _size_panel_groups(
             "text bands, and group breaks dominate - abbreviate labels, drop a group, or reduce "
             "the category count so the plot area carries the ink."
         )
-    return width, height, regions, data_panel_fraction, warnings, fit, fonts
+    if wrap_y_labels_chars:
+        warnings.append(
+            f"long category labels are capped and wrapped to ~{wrap_y_labels_chars} chars per line: "
+            f"apply str_wrap(labels, width={wrap_y_labels_chars}) to the category factor so the left "
+            "band stays narrow and the panels keep the width."
+        )
+    return width, height, regions, data_panel_fraction, warnings, fit, fonts, wrap_y_labels_chars
 
 
 def recommend_layout(
@@ -499,6 +543,11 @@ def recommend_layout(
     (``reserved_band_px``) are computed at these scaled sizes, so the height stays honest on a
     large or grown canvas instead of under-reserving at the flat base sizes. (On-mark value labels
     stay a separate, slot-driven size: ``recommended_data_label_pt``.)
+
+    Also returns ``wrap_y_labels_chars``: when horizontal-bar category names are too long to sit
+    in a sane left band, the band is capped and this is the per-line character width the build
+    must wrap the category factor to (``str_wrap(labels, width=wrap_y_labels_chars)``); the
+    overflow becomes stacked text rows (a taller slot), not a wider margin. ``0`` = no wrap needed.
     """
     profile = PROFILES.get(delivery_profile, PROFILES["chat"])
     dpi = float(profile["dpi"])
@@ -526,7 +575,7 @@ def recommend_layout(
     # the caller declares panel_groups, size each group's own band and return them as regions,
     # so Build lays out the hierarchy instead of collapsing it to equally-weighted cells.
     if panel_groups:
-        width, height, regions, data_panel_fraction, group_warnings, fit, fonts = _size_panel_groups(
+        width, height, regions, data_panel_fraction, group_warnings, fit, fonts, wrap_y_labels_chars = _size_panel_groups(
             panel_groups,
             base_w=base_w, base_h=base_h, max_w=max_w, max_h=max_h, dpi=dpi,
             bands=bands, axis_band=axis_band, row_floor=row_floor,
@@ -555,6 +604,7 @@ def recommend_layout(
             "rotate_x_labels": False,
             "reserved_band_px": round(max(bands, _text_bands_px(fonts, dpi, title_lines, subtitle_lines, footer_lines)), 1),
             "reserved_left_px": round(axis_band, 1),
+            "wrap_y_labels_chars": wrap_y_labels_chars,
             "data_panel_fraction": data_panel_fraction,
             "regions": regions,
             "fit": fit,
@@ -570,9 +620,15 @@ def recommend_layout(
     # Long y-axis category labels (ranked names, model labels on a heatmap) must be budgeted
     # into the left band, or the renderer grows the margin at the panel's expense. axis_band
     # already covers a short (~4-char) tick plus the axis title; anything longer adds width.
+    wrap_y_labels_chars = 0
     if y_labels and longest_y_label_chars > 0:
-        y_tick_extra = max(0.0, (longest_y_label_chars - 4) * char_px(FONT_PT["axis"], dpi))
-        left_band += y_tick_extra
+        y_extra, wrap_y_labels_chars, n_wrap_lines = _y_label_band_and_wrap(
+            longest_y_label_chars, panel_plot_w, dpi
+        )
+        left_band += y_extra
+        if wrap_y_labels_chars:
+            # each category row must hold the wrapped lines; grow the row floor, not the margin.
+            row_floor = max(row_floor, line_px(FONT_PT["axis"], dpi) * (n_wrap_lines + 0.6))
 
     def _dims_for_ncol(nc: int) -> dict[str, float]:
         """Honest canvas dims for a given column count, panels held at their floors.
@@ -727,6 +783,13 @@ def recommend_layout(
         slot_for_labels = (width / ncol - left_band) / max(1, x_slots)
         recommended_data_label_pt = data_label_pt(slot_for_labels, dpi)
 
+    if wrap_y_labels_chars:
+        warnings.append(
+            f"long category labels are capped and wrapped to ~{wrap_y_labels_chars} chars per line "
+            f"(over ~{n_wrap_lines} lines): apply str_wrap(labels, width={wrap_y_labels_chars}) to the "
+            "category factor so the left band stays narrow and the panel keeps the width."
+        )
+
     labels_per_panel = n_direct_labels / max(1, n_panels)
     if labels_per_panel >= 8:
         warnings.append(
@@ -757,6 +820,7 @@ def recommend_layout(
         "recommended_data_label_pt": recommended_data_label_pt,
         "reserved_band_px": round(bands, 1),
         "reserved_left_px": round(left_band, 1),
+        "wrap_y_labels_chars": wrap_y_labels_chars,
         "data_panel_fraction": data_panel_fraction,
         "regions": None,
         "fit": fit,
