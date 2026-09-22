@@ -105,12 +105,13 @@ def test_faceting_returns_a_grid_not_a_shallow_strip():
 
 
 def test_free_y_is_read_like_free_not_silently_dropped():
-    # free_y frees the y-axis, so it must reserve the same per-panel band as free -
-    # and strictly more width than a fixed grid (x_slots push width past the base).
+    # free_y frees the y-axis, so it must reserve the same per-panel left band as free -
+    # strictly more than a fixed grid - and size identically to free.
     free = recommend_layout(n_panels=6, x_slots=15, filled_marks=True, facet_scales="free")
     free_y = recommend_layout(n_panels=6, x_slots=15, filled_marks=True, facet_scales="free_y")
     fixed = recommend_layout(n_panels=6, x_slots=15, filled_marks=True, facet_scales="fixed")
-    assert free_y["width_px"] == free["width_px"] > fixed["width_px"]
+    assert free_y["reserved_left_px"] == free["reserved_left_px"] > fixed["reserved_left_px"]
+    assert free_y["width_px"] == free["width_px"] >= fixed["width_px"]
     assert free_y["facet_scales"] == "free_y"  # axis-specific value preserved
     assert free_y["warnings"] == []
 
@@ -351,14 +352,39 @@ def test_tall_group_stack_grows_the_canvas_never_squashes_panels():
 
 
 def test_column_count_balances_the_image_aspect_to_the_panel_shape():
-    # "Figure out the number of columns": the grid is chosen so the whole image lands near the
-    # profile's aspect given each panel's floored shape. Tall panels (many y-rows) take MORE
-    # columns so the image is not a narrow tower; short panels take fewer.
+    # "Figure out the number of columns": the grid is chosen so the whole IMAGE lands square-ish
+    # given each panel's floored shape. Tall panels (many y-rows) take MORE columns so the image
+    # is not a narrow tower; short/wide panels take fewer.
     short = recommend_layout(n_panels=12, y_slots=3, filled_marks=True)
     tall = recommend_layout(n_panels=12, y_slots=40, filled_marks=True)
     assert tall["facet_ncol"] >= short["facet_ncol"]
     assert tall["facet_ncol"] * tall["facet_nrow"] >= 12
     assert short["facet_ncol"] * short["facet_nrow"] >= 12
+
+
+def test_grid_makes_the_whole_image_square_ish():
+    # The overall image aspect should sit near 1 (square-ish) across panel shapes, not blow out
+    # into a wide strip or a narrow tower.
+    for kw in [
+        dict(n_panels=12, y_slots=3, filled_marks=True),
+        dict(n_panels=16, y_slots=8, filled_marks=True),
+        dict(n_panels=24, y_slots=30, filled_marks=True),
+        dict(n_panels=30, y_slots=12, filled_marks=True),
+        dict(n_panels=6, x_slots=30, filled_marks=True),
+    ]:
+        result = recommend_layout(**kw)
+        aspect = result["width_px"] / result["height_px"]
+        assert 0.45 <= aspect <= 2.2, (kw, aspect)
+
+
+def test_grid_finds_the_exact_fit_shape_a_round_sqrt_misses():
+    # 24 tall panels pack into 12x2 (image aspect ~1.4, zero empty cells) - a shape a plain
+    # round(sqrt(n * ratio)) skips in favour of a more portrait 8x3. The row-iterating chooser
+    # finds it because it is the compact grid closest to square.
+    result = recommend_layout(n_panels=24, y_slots=30, filled_marks=True)
+    assert result["facet_ncol"] == 12 and result["facet_nrow"] == 2
+    # No wasted (empty) cells: the grid holds exactly the panels.
+    assert result["facet_ncol"] * result["facet_nrow"] == 24
 
 
 def test_facet_panels_never_fall_below_the_height_floor():

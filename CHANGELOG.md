@@ -12,9 +12,13 @@ with the truth buried in a warning string a weak maker skips. Three fixes:
   ceiling fit. When the content needs more room than the profile, *both* width and height are
   grown - the whole image is resized up - so every slot keeps its density and every panel keeps
   `MIN_PANEL_H`.
-- **Column count is derived from the image aspect.** The facet grid is chosen so the whole
-  image lands near the profile's own aspect given each panel's floored shape: tall panels (many
-  y-rows) take more columns so the image is not a narrow tower, wide panels take fewer.
+- **Grid is chosen to make the whole image square-ish.** For each candidate row count the
+  chooser takes the tightest column count (`ceil(n/nrow)`, so the grid stays compact with no
+  empty sprawl) and keeps the grid whose *actual* image aspect - built with panels at their
+  floors, chrome included - is closest to `TARGET_IMAGE_ASPECT` (1.0). Feeding each panel's own
+  floored shape in is the point: tall panels (many y-rows) take more columns so the image is not
+  a narrow tower, wide/short panels take more rows. It finds exact-fit shapes (e.g. 24 tall
+  panels -> 12x2) that a plain `round(sqrt(n·ratio))` skips.
 - **Structured `fit` verdict.** Both paths return `fit = {status (ok/over_ceiling), legible,
   over_width, over_height, required/ceiling dims, min_panel_height_px, min_panel_floor_px,
   directives}`, where `directives` are ranked machine-readable actions (`reduce_slots`/

@@ -45,6 +45,8 @@ POINT_SLOT_PX = 6.0         # a point / line-vertex position needs this much sep
 FILLED_SLOT_PX = 22.0       # a bar / tile / column must show its own width
 MIN_PANEL_W = 240.0         # a facet panel below this reads as a thumbnail
 MIN_PANEL_H = 150.0
+TARGET_IMAGE_ASPECT = 1.0   # aim the overall faceted image at this width:height (1.0 = square-ish);
+                            # raise toward a profile's own aspect for a deliberately wider image
 MAX_PANEL_ASPECT = 2.0      # a data panel wider than this (few rows, wide canvas) letterboxes:
                             #   marks flatten and category labels crowd - grow height to this cap
 PANEL_GUTTER = 24.0         # space between facet panels
@@ -421,9 +423,11 @@ def recommend_layout(
 
     Returns width/height/dpi, facet grid, a rotate flag, reserved bands, warnings, rationale,
     and a structured ``fit`` verdict. Nothing is ever squashed below its floor to fit a ceiling:
-    the column count is chosen so the whole image comes out near the profile's aspect given each
-    panel's floored size (tall panels take more columns, wide panels fewer), and when the content
-    needs more room than the profile *both* width and height are grown - the image is resized up.
+    the grid is chosen so the whole IMAGE comes out square-ish (``TARGET_IMAGE_ASPECT``) given
+    each panel's floored shape - iterating candidate row counts, taking the tightest column count
+    for each so the grid stays compact, and keeping the one whose actual image aspect is closest
+    to the target (tall panels take more columns, wide panels more rows). When the content needs
+    more room than the profile, *both* width and height are grown - the image is resized up.
     ``fit`` reports ``status`` (ok / over_ceiling), ``legible``, ``over_width`` / ``over_height``,
     the required vs ceiling dims, the achieved ``min_panel_height_px``, and ranked machine-readable
     ``directives`` (reduce_slots / reduce_panels / split_pages / drop_group) so a caller can branch
@@ -524,18 +528,21 @@ def recommend_layout(
         return {"ncol": nc, "nrow": nr, "width": w,
                 "panel_w": pw, "panel_h": ph, "height": h}
 
-    # Choose the column count so the *whole image* comes out near the profile's own aspect,
-    # given each panel's floored size - this is the "how many columns are actually required"
-    # decision. Because both dimensions resize freely, the grid is not bounded by a ceiling;
-    # it is picked to balance the image: tall panels (many y-rows) take more columns so the
-    # image is not a narrow tower, wide panels take fewer. Fewest columns wins a tie.
+    # Choose the grid so the *whole image* comes out near TARGET_IMAGE_ASPECT (square-ish),
+    # given each panel's own floored shape. We iterate the candidate row counts and, for each,
+    # take the tightest column count ncol = ceil(n / nrow) - the fewest columns that still hold
+    # every panel, so the grid is always compact (at most a partial last row, never empty
+    # sprawl). Among those compact grids we keep the one whose *actual* image aspect (built with
+    # panels at their floors, chrome included) is closest to the target. This naturally gives
+    # tall panels more columns (a wide short row of tall strips reads squarer than a tower) and
+    # wide panels more rows, and it finds exact-fit shapes like 12x2 that a round-sqrt misses.
     if n_panels > 1:
-        target_aspect = base_w / base_h
         best_dev: Optional[float] = None
-        dims = _dims_for_ncol(1)
-        for nc in range(1, n_panels + 1):
+        dims = _dims_for_ncol(n_panels)
+        for nr in range(1, n_panels + 1):
+            nc = math.ceil(n_panels / nr)
             cand = _dims_for_ncol(nc)
-            dev = abs(math.log((cand["width"] / cand["height"]) / target_aspect))
+            dev = abs(math.log((cand["width"] / cand["height"]) / TARGET_IMAGE_ASPECT))
             if best_dev is None or dev < best_dev - 1e-9:
                 best_dev, dims = dev, cand
     else:
