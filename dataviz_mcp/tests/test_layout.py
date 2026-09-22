@@ -88,8 +88,13 @@ def test_sparse_discrete_y_facets_also_use_the_profile_height():
 
 def test_overflow_past_the_ceiling_is_warned_not_squashed():
     result = recommend_layout(x_slots=1000, delivery_profile="chat")
-    assert result["width_px"] <= 1600  # clamped to the chat ceiling
+    assert result["width_px"] <= 1600  # width is display-bound and clamped to the chat ceiling
     assert any("crowd" in w or "split" in w for w in result["warnings"])
+    # Width cannot grow, so the fit is infeasible and says so as a boolean, not just prose.
+    fit = result["fit"]
+    assert fit["legible"] is False
+    assert fit["status"] == "infeasible"
+    assert any(d["action"] == "reduce_slots" for d in fit["directives"])
 
 
 def test_faceting_returns_a_grid_not_a_shallow_strip():
@@ -300,16 +305,72 @@ def test_panel_groups_still_report_data_panel_fraction():
     assert 0.0 < result["data_panel_fraction"] <= 1.0
 
 
-def test_tall_group_stack_is_clamped_to_the_ceiling_with_a_warning():
-    # Many emphasized groups exceed the profile height; clamp and warn, never overflow.
+def test_tall_group_stack_grows_the_canvas_never_squashes_panels():
+    # Many emphasized groups exceed the profile height. The old behaviour scaled every band
+    # down to cram into the ceiling, returning sub-floor panels while claiming a clean fit.
+    # Now the canvas is grown (height is the scroll dimension) so no panel is squashed, and the
+    # overflow is surfaced as a machine-branchable fit verdict plus directives.
+    from dataviz_mcp.layout import MIN_PANEL_H, PROFILES
+
     groups = [
         {"role": f"g{i}", "n_panels": 6, "emphasis": 3.0, "x_slots": 10, "filled_marks": True}
         for i in range(6)
     ]
     result = recommend_layout(panel_groups=groups, delivery_profile="chat")
-    from dataviz_mcp.layout import PROFILES
-    assert result["height_px"] <= PROFILES["chat"]["max_height_px"]
+    # The honest size exceeds the nominal ceiling rather than clamping to it.
+    assert result["height_px"] > PROFILES["chat"]["max_height_px"]
     assert any("height" in w.lower() for w in result["warnings"])
-    # Regions stay inside the clamped canvas.
+    # No panel is squashed below the floor, and the fit says the box is over the ceiling.
+    fit = result["fit"]
+    assert fit["min_panel_height_px"] >= MIN_PANEL_H - 0.5
+    assert fit["status"] == "over_ceiling"
+    assert fit["legible"] is True
+    actions = {d["action"] for d in fit["directives"]}
+    assert {"drop_group", "split_pages"} <= actions
+    # Regions still stack disjoint inside the (grown) honest canvas.
     last = result["regions"][-1]
     assert last["y"] + last["height"] <= result["height_px"]
+    for a, b in zip(result["regions"], result["regions"][1:]):
+        assert b["y"] >= a["y"] + a["height"]
+
+
+def test_tall_facet_stack_grows_columns_before_it_grows_height():
+    # "Figure out the number of columns": a facet count whose near-square grid overflows the
+    # height ceiling should pack into MORE columns (up to the width ceiling) to seat the stack,
+    # trading the scroll dimension for width, instead of only stacking tall rows.
+    from dataviz_mcp.layout import _facet_grid
+
+    near_square_ncol, _ = _facet_grid(12, aspect=1.6)  # == 4
+    tall = recommend_layout(
+        n_panels=12, x_slots=0, y_slots=40, filled_marks=True, delivery_profile="document"
+    )
+    assert tall["facet_ncol"] > near_square_ncol   # columns grew past the near-square guess
+    assert tall["facet_ncol"] * tall["facet_nrow"] >= 12
+    # It stopped at the width cap (roomier profile allows six 240px-panel columns).
+    assert tall["facet_ncol"] == 6
+
+
+def test_facet_panels_never_fall_below_the_height_floor():
+    # A big facet grid on the chat profile keeps every panel at or above MIN_PANEL_H by growing
+    # the image, rather than clamping to the ceiling and returning thumbnails.
+    from dataviz_mcp.layout import MIN_PANEL_H
+
+    result = recommend_layout(n_panels=30, y_slots=12, filled_marks=True, delivery_profile="chat")
+    assert result["fit"]["min_panel_height_px"] >= MIN_PANEL_H - 0.5
+    # The actual returned canvas holds panels at that floor (no squash).
+    from dataviz_mcp.layout import FONT_PT, PANEL_GUTTER, pt_to_px
+
+    axis_band = pt_to_px(FONT_PT["axis"], result["dpi"]) * 3.0
+    nrow = result["facet_nrow"]
+    panel_h = (result["height_px"] - result["reserved_band_px"] - axis_band
+               - (nrow - 1) * PANEL_GUTTER) / nrow
+    assert panel_h >= MIN_PANEL_H - 0.5
+
+
+def test_fit_object_is_ok_for_a_comfortable_chart():
+    result = recommend_layout(x_slots=8, y_slots=8, filled_marks=True)
+    fit = result["fit"]
+    assert fit["status"] == "ok"
+    assert fit["legible"] is True
+    assert fit["fits_ceiling"] is True
+    assert fit["directives"] == []
