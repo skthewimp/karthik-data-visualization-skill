@@ -3537,11 +3537,12 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 > dn't focus on the checkers. focus on the makres. the key issue is in getting things right in the first pass. not correcting.
 
 ### Work done
-- Good. Let me look at `recommend_layout` to see how it warns vs decides.
-- Read both sizing paths. Found the actual bug - the tool lies. ## The bug: it squashes, then claims it didn't Both overflow branches **clamp `height = max_h` and hand back tiny panels**: - Group path (`layout.py:275-28...
+- Beyond the two you're fixing, four maker-side issues remain, ranked by severity. ## 1. Data recovery reads the wrong numbers - no consistency guard (highest) Wrong values ship silently. `read_marks_from_anchors` is ho...
+- Noted. State of the scan: **Fixed (other sessions):** #3 wide `prepare_plot_data`, #4 mandatory pre-build label placement. Plus your two: ≈-string coercion (harness), `recommend_layout` squash/`fit` gate. **Won't fix...
 - Touched files: `integrated-transcript.json`
 
 <!-- claude-session:f4724f89-d602-42ab-8358-517ae238c422:end -->
+
 
 <!-- claude-session:6304f675-97f5-4a70-aa08-6d971f1d6b84:start -->
 ## 2026-09-22 09:27 IST | Claude session `6304f675-97f`
