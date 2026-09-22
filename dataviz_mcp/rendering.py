@@ -44,6 +44,72 @@ def _round(value: float) -> float:
     return round(float(value), 3)
 
 
+_UNAVAILABLE_GEOMETRY = {"", "na", "nan", "inf", "-inf", "+inf", "null", "none"}
+_GEOMETRY_KIND_LABEL = {
+    "rect": "Rectangle",
+    "point": "Point",
+    "polygon": "Polygon",
+    "polyline": "Series",
+}
+_GEOMETRY_DIM_LABEL = {
+    "x": "x position",
+    "y": "y position",
+    "width": "width",
+    "height": "height",
+}
+
+
+def _parse_finite(raw: Any) -> float | None:
+    """Parse a numeric geometry field, treating blanks, NA, NaN and infinities as
+    unavailable. Returns None rather than raising or coercing to zero."""
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if text.lower() in _UNAVAILABLE_GEOMETRY:
+        return None
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    if not math.isfinite(value):
+        return None
+    return value
+
+
+def _row_bbox(row: dict[str, Any]) -> tuple[dict[str, float] | None, list[str]]:
+    """Return a rounded bbox plus the geometry keys that were unavailable. A bbox
+    is only returned when all four bounds are finite; missing bounds are reported,
+    never turned into zero."""
+    parsed = {key: _parse_finite(row.get(key)) for key in ("x", "y", "width", "height")}
+    missing = [key for key, value in parsed.items() if value is None]
+    if missing:
+        return None, missing
+    return {key: _round(value) for key, value in parsed.items()}, []
+
+
+def _cell_bbox_field(row: dict[str, Any], render_kind: str) -> dict[str, Any]:
+    """Optional table cell_bbox, parsed tolerantly so a censored cell bound does not
+    crash the row. Omitted unless all four bounds are finite."""
+    if render_kind != "table" or not row.get("x_points"):
+        return {}
+    values = [_parse_finite(v) for v in row["x_points"].split(";")]
+    if len(values) != 4 or any(v is None for v in values):
+        return {}
+    return {"cell_bbox": dict(zip(("x", "y", "width", "height"), values))}
+
+
+def _geometry_gap_message(gap: dict[str, Any]) -> str:
+    """Actionable diagnostic for one row with unavailable geometry. Names a likely
+    cause to check without asserting it - missing geometry alone does not prove it."""
+    label = _GEOMETRY_KIND_LABEL.get(gap.get("kind", ""), str(gap.get("kind") or "Element").title())
+    dims = ", ".join(_GEOMETRY_DIM_LABEL.get(key, key) for key in gap.get("missing", []))
+    ident = gap.get("id") or gap.get("name") or "unnamed"
+    return (
+        f"{label} {ident} has unavailable {dims}; check whether scale limits censored"
+        " its boundary. Missing geometry alone does not prove that cause."
+    )
+
+
 def _bbox_dict(bounds: tuple[float, float, float, float], height: int) -> dict[str, float]:
     x0, y0, width, box_height = bounds
     return {
@@ -1155,6 +1221,7 @@ def _render_ggplot2(
     transforms: list[dict[str, Any]] = []
     unsupported_marks = 0
     table_cell_gaps = 0
+    geometry_gaps: list[dict[str, Any]] = []
     panel_ids = {
         row["id"]: row["id"]
         for row in rows
@@ -1162,11 +1229,11 @@ def _render_ggplot2(
     }
     for row in rows:
         if row.get("kind") == "transform":
-            coeffs = [float(v) for v in row.get("x_points", "").split(";") if v]
+            coeffs = [_parse_finite(v) for v in row.get("x_points", "").split(";") if v]
             trans = [t for t in row.get("y_points", "").split(";") if t]
             x_trans = trans[0] if len(trans) > 0 else "identity"
             y_trans = trans[1] if len(trans) > 1 else "identity"
-            if len(coeffs) == 6:
+            if len(coeffs) == 6 and all(c is not None for c in coeffs):
                 a, c, e, d, e2, f2 = coeffs
                 transforms.append(
                     {
@@ -1181,11 +1248,21 @@ def _render_ggplot2(
                     }
                 )
             continue
-        bbox = {
-            key: _round(float(row[key])) for key in ("x", "y", "width", "height")
-        }
-        name = row["name"]
         kind = row.get("kind", "zone")
+        bbox, missing_geometry = _row_bbox(row)
+        if bbox is None:
+            # One row with censored or non-finite bounds must not crash the whole
+            # render. Exclude the unusable geometry and report it instead of zeroing.
+            geometry_gaps.append(
+                {
+                    "id": row.get("id"),
+                    "name": row.get("name"),
+                    "kind": kind,
+                    "missing": missing_geometry,
+                }
+            )
+            continue
+        name = row["name"]
         axes_id = next(
             (panel_id for panel_id in panel_ids if row["id"].startswith(panel_id + "/")),
             None,
@@ -1204,9 +1281,13 @@ def _render_ggplot2(
             )
             continue
         if kind == "polyline":
-            xs = [float(value) for value in row.get("x_points", "").split(";") if value]
-            ys = [float(value) for value in row.get("y_points", "").split(";") if value]
-            points = [[_round(x), _round(y)] for x, y in zip(xs, ys)]
+            xs = [_parse_finite(value) for value in row.get("x_points", "").split(";") if value]
+            ys = [_parse_finite(value) for value in row.get("y_points", "").split(";") if value]
+            points = [
+                [_round(x), _round(y)]
+                for x, y in zip(xs, ys)
+                if x is not None and y is not None
+            ]
             if len(points) >= 2:
                 series.append(
                     {
@@ -1245,9 +1326,7 @@ def _render_ggplot2(
                     "clip_on": True,
                     "font_size_pt": float(row["font_size"]) if row.get("font_size") else None,
                     "colour": row.get("colour") or None,
-                    **({"cell_bbox": dict(zip(("x", "y", "width", "height"),
-                         [float(v) for v in row["x_points"].split(";")]))}
-                       if render_kind == "table" and row.get("x_points") else {}),
+                    **_cell_bbox_field(row, render_kind),
                 }
             )
             continue
@@ -1308,6 +1387,8 @@ def _render_ggplot2(
             "table_cell_bounds": render_kind == "table" and unsupported_marks == 0 and table_cell_gaps == 0,
             "table_content": render_kind == "table",
             "unsupported_non_line_mark_count": unsupported_marks,
+            "geometry_gap_count": len(geometry_gaps),
+            "geometry_gaps": geometry_gaps,
             "limitations": (
                 [
                     "Table text uses grid font bounds in resolved viewports. Unsupported grobs"
@@ -1319,7 +1400,8 @@ def _render_ggplot2(
                 else ["Some ggplot2 panel grobs could not be normalized"]
                 if unsupported_marks
                 else ["ggplot2 text glyph bounds are deterministic font-metric estimates"]
-            ),
+            )
+            + [_geometry_gap_message(gap) for gap in geometry_gaps],
         },
     }
     renderer_label = "gt-table" if render_kind == "table" else "ggplot2"
