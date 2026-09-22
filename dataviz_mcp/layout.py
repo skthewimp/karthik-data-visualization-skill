@@ -118,12 +118,62 @@ def boxes_overlap(a: dict[str, Any], b: dict[str, Any], tol: float = 0.5) -> boo
     return ow > tol and oh > tol
 
 
-def _band_px(lines: int, role: str, dpi: float) -> float:
-    """Vertical space a title/subtitle/footer band of ``lines`` lines needs, with padding."""
+def _band_px(lines: int, role: str, dpi: float, font_pt: Optional[float] = None) -> float:
+    """Vertical space a title/subtitle/footer band of ``lines`` lines needs, with padding.
+
+    ``font_pt`` overrides the base house size for the role - pass the canvas-scaled house size
+    so the reserved band matches what the renderer (``reserve_frame``) will actually set.
+    """
     if lines <= 0:
         return 0.0
-    pad = pt_to_px(FONT_PT[role], dpi) * 0.6
-    return lines * line_px(FONT_PT[role], dpi) + pad
+    pt = FONT_PT[role] if font_pt is None else font_pt
+    pad = pt_to_px(pt, dpi) * 0.6
+    return lines * line_px(pt, dpi) + pad
+
+
+def _text_bands_px(
+    fonts: dict[str, float], dpi: float, title_lines: int, subtitle_lines: int, footer_lines: int
+) -> float:
+    """Total title+subtitle+footer band height at the given (canvas-scaled) house font sizes."""
+    return (
+        _band_px(title_lines, "title", dpi, fonts["title"])
+        + _band_px(subtitle_lines, "subtitle", dpi, fonts["subtitle"])
+        + _band_px(footer_lines, "footer", dpi, fonts["footer"])
+    )
+
+
+def _resolve_fonts_and_bands(
+    width: float,
+    base_height: float,
+    bands_base: float,
+    dpi: float,
+    title_lines: int,
+    subtitle_lines: int,
+    footer_lines: int,
+) -> tuple[dict[str, float], float, float]:
+    """Resolve the canvas-scaled house fonts and the text-band reservation together.
+
+    ``house_font_pt`` scales with the canvas diagonal, the text bands scale with those fonts,
+    and the bands add to the height - a small fixed point. We iterate it to convergence so the
+    returned fonts are exactly ``house_font_pt(width, final_height)``, i.e. identical to what
+    ``reserve_frame`` will use, and the reserved band matches the render. Bands never shrink
+    below the base reservation (``bands_base``); the height only ever grows.
+
+    Returns ``(fonts, bands, height)``.
+    """
+    height = base_height
+    extra = 0.0
+    for _ in range(8):
+        fonts = house_font_pt(width, height)
+        extra = max(0.0, _text_bands_px(fonts, dpi, title_lines, subtitle_lines, footer_lines) - bands_base)
+        new_height = base_height + extra
+        if abs(new_height - height) < 0.5:
+            height = new_height
+            break
+        height = new_height
+    fonts = house_font_pt(width, height)
+    extra = max(0.0, _text_bands_px(fonts, dpi, title_lines, subtitle_lines, footer_lines) - bands_base)
+    return fonts, bands_base + extra, base_height + extra
 
 
 def _facet_grid(n_panels: int, aspect: float) -> tuple[int, int]:
@@ -250,7 +300,10 @@ def _size_panel_groups(
     y_scales_free: bool,
     y_labels: bool,
     longest_y_label_chars: int,
-) -> tuple[float, float, list[dict[str, Any]], float, list[str]]:
+    title_lines: int,
+    subtitle_lines: int,
+    footer_lines: int,
+) -> tuple[float, float, list[dict[str, Any]], float, list[str], dict[str, Any], dict[str, float]]:
     """Size a stack of heterogeneous panel groups into one canvas.
 
     Each group is sized as its own facet sub-grid using the same per-slot floors and
@@ -313,6 +366,13 @@ def _size_panel_groups(
     height_plot = sum(s["band_h"] for s in sized) + breaks
     height = height_plot + bands + axis_band
 
+    # Resolve the house fonts for the final canvas (identical to what reserve_frame will use)
+    # and reserve the text bands at those scaled sizes, so the reported height matches the
+    # render on a large/grown canvas. Never shrinks the reservation.
+    fonts, bands, height = _resolve_fonts_and_bands(
+        width, height, bands, dpi, title_lines, subtitle_lines, footer_lines
+    )
+
     # Neither dimension is squashed to fit a ceiling: the whole image is resized up so every
     # band keeps its slots and panels at their floor. When the honest size is bigger than the
     # profile box on either axis, report it and hand back ranked directives to shrink content.
@@ -370,7 +430,7 @@ def _size_panel_groups(
             "text bands, and group breaks dominate - abbreviate labels, drop a group, or reduce "
             "the category count so the plot area carries the ink."
         )
-    return width, height, regions, data_panel_fraction, warnings, fit
+    return width, height, regions, data_panel_fraction, warnings, fit, fonts
 
 
 def recommend_layout(
@@ -432,6 +492,13 @@ def recommend_layout(
     the required vs ceiling dims, the achieved ``min_panel_height_px``, and ranked machine-readable
     ``directives`` (reduce_slots / reduce_panels / split_pages / drop_group) so a caller can branch
     on a boolean instead of parsing prose.
+
+    Also returns ``font_pt``: the canvas-scaled house font sizes per role (title / subtitle /
+    footer / caption / axis / annotation), resolved for the final canvas so the sizes travel with
+    the dims and equal exactly what ``reserve_frame`` will use. The reserved text bands
+    (``reserved_band_px``) are computed at these scaled sizes, so the height stays honest on a
+    large or grown canvas instead of under-reserving at the flat base sizes. (On-mark value labels
+    stay a separate, slot-driven size: ``recommended_data_label_pt``.)
     """
     profile = PROFILES.get(delivery_profile, PROFILES["chat"])
     dpi = float(profile["dpi"])
@@ -459,7 +526,7 @@ def recommend_layout(
     # the caller declares panel_groups, size each group's own band and return them as regions,
     # so Build lays out the hierarchy instead of collapsing it to equally-weighted cells.
     if panel_groups:
-        width, height, regions, data_panel_fraction, group_warnings, fit = _size_panel_groups(
+        width, height, regions, data_panel_fraction, group_warnings, fit, fonts = _size_panel_groups(
             panel_groups,
             base_w=base_w, base_h=base_h, max_w=max_w, max_h=max_h, dpi=dpi,
             bands=bands, axis_band=axis_band, row_floor=row_floor,
@@ -467,6 +534,7 @@ def recommend_layout(
             x_slots_default=x_slots, y_slots_default=y_slots,
             y_scales_free=y_scales_free, y_labels=y_labels,
             longest_y_label_chars=longest_y_label_chars,
+            title_lines=title_lines, subtitle_lines=subtitle_lines, footer_lines=footer_lines,
         )
         warnings.extend(group_warnings)
         width_i, height_i = int(round(width)), int(round(height))
@@ -485,11 +553,12 @@ def recommend_layout(
             "facet_nrow": dominant["facet_nrow"],
             "facet_scales": facet_scales_canonical,
             "rotate_x_labels": False,
-            "reserved_band_px": round(bands, 1),
+            "reserved_band_px": round(max(bands, _text_bands_px(fonts, dpi, title_lines, subtitle_lines, footer_lines)), 1),
             "reserved_left_px": round(axis_band, 1),
             "data_panel_fraction": data_panel_fraction,
             "regions": regions,
             "fit": fit,
+            "font_pt": fonts,
             "warnings": warnings,
             "rationale": rationale,
         }
@@ -553,6 +622,13 @@ def recommend_layout(
     panel_w_final = dims["panel_w"]
     panel_plot_h = dims["panel_h"]
     height = dims["height"]
+
+    # Resolve the house fonts for the final canvas (identical to what reserve_frame will use)
+    # and reserve the text bands at those scaled sizes, so the reported height matches the
+    # render on a large/grown canvas. Never shrinks the reservation.
+    fonts, bands, height = _resolve_fonts_and_bands(
+        width, height, bands, dpi, title_lines, subtitle_lines, footer_lines
+    )
 
     # Neither dimension is squashed to a ceiling: the whole image is resized up so every slot
     # and panel keeps its floor. When the honest size is bigger than the profile box on either
@@ -684,6 +760,7 @@ def recommend_layout(
         "data_panel_fraction": data_panel_fraction,
         "regions": None,
         "fit": fit,
+        "font_pt": fonts,
         "warnings": warnings,
         "rationale": rationale,
     }

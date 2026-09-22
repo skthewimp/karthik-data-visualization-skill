@@ -404,6 +404,42 @@ def test_facet_panels_never_fall_below_the_height_floor():
     assert panel_h >= MIN_PANEL_H - 0.5
 
 
+def test_returns_resolved_house_fonts_matching_reserve_frame():
+    # recommend_layout returns the canvas-scaled house fonts so the sizes travel with the dims,
+    # and they must equal house_font_pt(final_w, final_h) - exactly what reserve_frame will use.
+    from dataviz_mcp.layout import house_font_pt
+
+    for kw in [
+        dict(x_slots=8, y_slots=8, filled_marks=True),                       # chat, scale ~1
+        dict(x_slots=6, filled_marks=True, delivery_profile="slide"),        # bigger canvas
+        dict(n_panels=24, y_slots=30, filled_marks=True, delivery_profile="document"),
+    ]:
+        result = recommend_layout(**kw)
+        assert result["font_pt"] == house_font_pt(result["width_px"], result["height_px"])
+
+
+def test_scaled_text_bands_grow_the_reserved_band_and_height():
+    # On a large canvas the house title/subtitle grow, so the reserved text band (and thus the
+    # reported height accounting) must reflect the scaled sizes, not the flat base 16/12pt.
+    small = recommend_layout(x_slots=8, title_lines=1, subtitle_lines=1)
+    big = recommend_layout(x_slots=8, title_lines=1, subtitle_lines=1, delivery_profile="document")
+    assert big["font_pt"]["title"] > small["font_pt"]["title"]
+    assert big["reserved_band_px"] > small["reserved_band_px"]
+
+
+def test_panel_groups_also_return_resolved_fonts():
+    from dataviz_mcp.layout import house_font_pt
+
+    result = recommend_layout(
+        panel_groups=[
+            {"role": "overview", "n_panels": 1, "x_slots": 8, "filled_marks": True},
+            {"role": "detail", "n_panels": 12, "x_slots": 8, "filled_marks": True},
+        ],
+        delivery_profile="document",
+    )
+    assert result["font_pt"] == house_font_pt(result["width_px"], result["height_px"])
+
+
 def test_fit_object_is_ok_for_a_comfortable_chart():
     result = recommend_layout(x_slots=8, y_slots=8, filled_marks=True)
     fit = result["fit"]

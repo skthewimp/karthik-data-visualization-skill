@@ -420,8 +420,12 @@ def create_server() -> Any:
         are grown (the image is resized up) rather than clamped. A ``fit`` object reports
         ``status`` (ok / over_ceiling), ``legible``, ``over_width`` / ``over_height``, required vs
         ceiling dims, and ranked ``directives`` (reduce_slots / reduce_panels / split_pages /
-        drop_group). Call at select, before build; feed the dims into the renderer and into
-        ``recommend_text_placement``. It sizes the box, never picks the chart.
+        drop_group). It also returns ``font_pt``, the canvas-scaled house font sizes per role,
+        resolved for the final canvas so they equal what ``reserve_frame`` will use and the
+        reserved text bands stay honest on a grown canvas (on-mark value labels remain the
+        separate slot-driven ``recommended_data_label_pt``). Call at select, before build; feed
+        the dims into the renderer and into ``recommend_text_placement``. It sizes the box,
+        never picks the chart.
 
         For a heterogeneous layout - an aggregate/overview panel set apart from a small-multiple
         detail grid (the selector's aggregate-and-parts guardrail) - pass ``panel_groups``: a

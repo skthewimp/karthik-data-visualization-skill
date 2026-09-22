@@ -25,6 +25,15 @@ with the truth buried in a warning string a weak maker skips. Three fixes:
   `reduce_panels`/`split_pages`/`drop_group`). A weak maker cannot skip a boolean the way it
   skips a sentence, and a harness gate can branch on `status` and `over_width`/`over_height`.
 
+- **Returns resolved house fonts.** Now that the canvas resizes at this step, `recommend_layout`
+  returns `font_pt` - the canvas-scaled house sizes per role (title/subtitle/footer/caption/axis/
+  annotation), resolved for the *final* canvas so they equal exactly what `reserve_frame` will
+  use, and reserves its text bands at those scaled sizes (a small fixed point between font scale,
+  band height and canvas height, iterated to convergence) so the height stays honest on a large
+  or grown canvas instead of under-reserving at the flat base 16/12pt. On-mark value labels stay
+  the separate slot-driven `recommended_data_label_pt`. Note: `recommend_layout` never *resizes
+  by* fonts - growth stays count-driven and per-panel type stays at its legibility floor.
+
 `dataviz_mcp/layout.py`; docs (`docs/mcp.md`, `dataviz_mcp/README.md`) and tests updated.
 
 ### New skill `karthik-r-code-style`: R code layout
