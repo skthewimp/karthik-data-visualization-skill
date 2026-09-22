@@ -54,6 +54,7 @@ A direct label is **one mark's value** or its name - "42%", "Karnataka", the end
 
 - **Every number and comparative word is computed, never typed.** A hand-typed count is wrong the moment a filter changes; **flat, unchanged, doubled, halved, steady** each assert a number - check it before writing it ("Flat for 45 years" is false if the slope is 1.5 points/decade). Build the label string from the same computation that produced the mark.
 - Keep each mark concise and single-purpose. Name the outside event plainly; tie any number to its baseline and window.
+- **A subtitle carries a claim or a real caveat, or it is omitted.** The standfirst under the title is for a second thing worth saying - a sharper reading of the shape, or a genuine definitional caveat that prevents a misread. It is never a stock disclaimer that lists what the data does *not* say: "date, denominator, sample size, and methodology are not specified", "cross-sectional, not a trend", "association, not causation", "values are approximate". Such hedges assert nothing about the world, stamp the same boilerplate on every chart, and read as noise. If a limitation genuinely risks a misread, word the specific one as a fact in the source/footnote line ("Shares of the displayed respondents only"); otherwise leave the subtitle off.
 
 ## Placement
 
@@ -105,6 +106,7 @@ Fix and re-render. Don't declare done from code inspection.
 | A cause invented to fill the annotation slot | No external fact, no annotation. A made-up "likely due to" is worse than blank |
 | "Caused by X" from a coincidence in time | Word it "coincides with"/"followed"; claim cause only if established |
 | Annotation restates the title | Cut it; the title already said it |
+| Boilerplate hedge subtitle ("denominator/sample not specified", "not causation", "approximate") | A subtitle carries a claim or a real caveat, or is omitted; move a genuine limitation to the source line, worded as a fact |
 | Hand-typed count or "flat"/"doubled" never checked | Numbers and comparative words are computed from the same data as the mark |
 | Text clipped at a panel edge | Reserve room in the margin (or via `reserve_frame`), not by stretching the data scale |
 | Group label parked at the cluster centroid | Anchor on the group, offset to the outside edge |

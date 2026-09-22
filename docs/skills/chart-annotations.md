@@ -39,6 +39,8 @@ I've labelled every point and it's a mess. Which few should carry labels?
 
 **Title states, labels quantify, annotation explains.** Three jobs, no overlap. The title carries the claim in words; direct labels carry the quantities that matter; the annotation carries the outside cause the chart cannot draw. If your annotation restates the title or a label, cut it.
 
+**A subtitle carries a claim or a real caveat, or it is omitted.** It is never a stock disclaimer of what the data does not say ("denominator/sample not specified", "association, not causation", "values approximate") - such hedges assert nothing and stamp the same boilerplate on every chart. Word a genuine limitation as a fact in the source/footnote line instead.
+
 **Correlation is not cause.** Unless the causal link is established, word the mark as timing, not explanation - "coincides with the GST rollout", not "fell because of GST". Cite where the fact comes from; an annotation is a factual claim about the world.
 
 **A label is one mark's value; label only the few that carry the point.** Not a change, rank, or comparison - those narrate the shape and go in the title. Labels carry no external bar - a single value is always legitimate - but a wall of 200 values is as unreadable as clutter callouts. Endpoints, the extreme, the one the claim rests on. "Keep every value" means every value stays reconstructable in the data, not printed on the chart.

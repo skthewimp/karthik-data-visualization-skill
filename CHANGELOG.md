@@ -28,6 +28,20 @@ reference, README, and `docs/skills/dataviz-selector.md` updated.
 7. **Focal emphasis is weight + draw order,** not colour alone: focal series first/on top and
    heavier, context muted behind.
 
+### `dataviz-execution` + `chart-annotations`: execution fixes from the same review
+
+The same 35 reviews flagged recurring *execution* defects on charts whose form was already right.
+Fixed in the post-render gate and the annotation-wording skill (both `claude/`+`codex/`, plus docs):
+
+- **dataviz-execution:** a clipping title/subtitle wraps to the frame (not endless canvas growth);
+  crowded axis tick labels are thinned/rotated/reformatted and shown equal-spaced on an ordered
+  axis; a boilerplate hedge subtitle ("not specified / not causation / approximate") fails the
+  eraser test; an inverted value/ordered axis is called out as a graphical-integrity defect that
+  routes back rather than getting polished.
+- **chart-annotations:** new rule - a subtitle carries a claim or a genuine caveat, or it is
+  omitted; never a stock disclaimer of what the data does not say. Genuine limitations move to the
+  source line, worded as a fact. Added to the common-mistakes table.
+
 ### `prepare_plot_data`: accept wide value columns (multi-series melt)
 
 `value` now takes a list of source columns as well as a single column. A wide frame - one

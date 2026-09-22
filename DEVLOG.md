@@ -35,6 +35,26 @@
 - Kept every rule general (no page-specific examples baked into the skill).
 - Ran `./sync.sh --no-pull`; installed local Codex/Claude copies clean.
 
+### Follow-up: execution-side pass (dataviz-execution + chart-annotations)
+
+Karthik: "make a separate pass on dataviz-execution and chart-annotations to fix these."
+
+The reviews' non-selection complaints (on charts whose *form* was already right) were execution
+defects, so they belong in the post-render gate and the annotation skill, not the selector:
+
+- **Boilerplate hedge subtitles** were on nearly every reviewed output ("date, denominator, sample,
+  methodology not specified"; "association, not causation"; "approximate"). p9 was explicit:
+  "subtitle either needs meaning or should be fully skipped." Added a subtitle rule to
+  `chart-annotations` (claim or real caveat, else omit; genuine limitation → source line as a fact)
+  and made the execution eraser/hierarchy check remove such hedges.
+- **Clipping titles/subtitles** (ran off the right edge on many pages) → wrap to frame, not canvas
+  growth.
+- **Crowded/overlapping axis tick labels** (dates, long names) → thin/rotate/reformat, equal-spaced
+  on ordered axes.
+- **Inverted axis** (p27 flipped Y) → flagged as a graphical-integrity defect that routes back.
+- Both skills already covered direct-label restraint ("only key marks", p28) and legend/axis
+  dropping - left those as-is. Synced; docs updated.
+
 ## 2026-09-16 - new skill: karthik-r-code-style (R code layout)
 
 ### User report
