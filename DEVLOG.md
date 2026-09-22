@@ -3502,3 +3502,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `integrated-transcript.json`
 
 <!-- claude-session:6304f675-97f5-4a70-aa08-6d971f1d6b84:end -->
+
+<!-- claude-session:2226d2f8-19c0-4c94-b311-3d4c3ab296a5:start -->
+## 2026-09-22 10:33 IST | Claude session `2226d2f8-19c`
+
+### User prompts
+> we seem to have way too many tests here. rationalise
+
+### Work done
+- Only test files touched. Committing and pushing per your maintainer default.
+- Done. Committed + pushed. ## Result Test suite: **25 files → 10**, **325 → 324 tests**, **~93s → ~76s**, all green. **What changed** 1. **Parametrized** the 8 redundant-value-axis tests → 2 tables (positives/negatives...
+- Touched files: `integrated-transcript.json`
+
+<!-- claude-session:2226d2f8-19c0-4c94-b311-3d4c3ab296a5:end -->
