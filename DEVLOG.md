@@ -3627,3 +3627,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `integrated-transcript.json`
 
 <!-- claude-session:d68e0ebd-6cab-4c62-8b9a-25a355009005:end -->
+
+<!-- claude-session:6a4576a8-c4d2-4195-bce5-1e7a342fa97a:start -->
+## 2026-09-22 12:16 IST | Claude session `6a4576a8-c4d`
+
+### User prompts
+> one more thing - in a lot of horizontal bar graphs, the category lables can be long and don't get wrapped. this results in a lot of space being wasted for the labels rather htan for the graph. how do we fix this? i kn...
+> yes do everything
+
+### Work done
+- Pixel proof confirms it: wrapped labels sit in ~23% left band over 2-3 lines, bars carry the rest. Unwrapped, the 58-char label would eat ~half the canvas. Now update CHANGELOG and commit. Let me check CHANGELOG format:
+- Done. Shipped and pushed (`7880357`). **What was wrong:** `layout.py` grew the left margin linearly and unbounded for long horizontal-bar y-labels - no cap, no wrap. Vertical bars never hit it because x-labels already...
+- Touched files: `integrated-transcript.json`
+
+<!-- claude-session:6a4576a8-c4d2-4195-bce5-1e7a342fa97a:end -->
