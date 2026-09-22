@@ -3612,3 +3612,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `integrated-transcript.json`
 
 <!-- claude-session:1c1954e9-5b6a-4b6f-8121-788911ca44a3:end -->
+
+<!-- claude-session:d68e0ebd-6cab-4c62-8b9a-25a355009005:start -->
+## 2026-09-22 11:59 IST | Claude session `d68e0ebd-6ca`
+
+### User prompts
+> one more issue right now - how do we make sur e label crowding is resolved pre-build (in recommend text placement) <pasted_content id="c558"> 4. Label crowding is repaired, not prevented recommend_text_placement exist...
+> do it. just haiku.
+> leave it
+
+### Work done
+- Pixel verdict (my eyes, not the carrier's self-report) — all three crowding failures resolved **pre-render**: | Case | Old failure | Result now | |---|---|---| | 02 — 8 endpoint labels | wrap + merge | clean spaced la...
+- Done. Change is committed + pushed, installed, and validated on pixels (haiku, 3 crowding shapes — all resolved pre-render, 1 render each). ggrepel-shortcut gap left as-is.
+- Touched files: `integrated-transcript.json`
+
+<!-- claude-session:d68e0ebd-6cab-4c62-8b9a-25a355009005:end -->
