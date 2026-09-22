@@ -421,8 +421,16 @@ _PLOT_DATA_MAP = {
     ),
     "properties": {
         "x": {"type": "string", "description": "Source column that is the category / x position."},
-        "value": {"type": "string", "description": "Source column that is the numeric value."},
-        "series": {"type": ["string", "null"], "description": "Column that splits series / colour, if any."},
+        "value": {
+            "type": ["string", "array"],
+            "items": {"type": "string"},
+            "description": (
+                "Source column that is the numeric value; or a list of value columns for a wide "
+                "frame (one per series, e.g. one per model), each melted into a series named by "
+                "the column. A list and a series column are mutually exclusive."
+            ),
+        },
+        "series": {"type": ["string", "null"], "description": "Column that splits series / colour, if any (long-format input only)."},
         "facet": {"type": ["string", "null"], "description": "Column that splits panels, if any."},
         "category_order": {
             **_STRING_ARRAY,

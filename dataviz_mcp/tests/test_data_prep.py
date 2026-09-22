@@ -191,6 +191,74 @@ def test_facets_kept_and_ordered(tmp_path):
     # canonical order groups by facet first
     assert [r["facet"] for r in frame] == ["P1", "P1", "P2", "P2"]
 
+
+def test_wide_value_columns_melt_into_series_named_by_column(tmp_path):
+    # A 3-model wide frame: each value column becomes a series, no hand-built inline frame.
+    result = prepare_plot_data(
+        output_dir=str(tmp_path),
+        columns=["prompt", "gpt", "claude", "llama"],
+        rows=[["p1", "10", "12", "8"], ["p2", "20", "18", "15"]],
+        x="prompt",
+        value=["gpt", "claude", "llama"],
+    )
+    frame = _read(result["plot_data_path"])
+    assert set(frame[0].keys()) == {"order", "category", "series", "value"}
+    assert result["series_order"] == ["gpt", "claude", "llama"]
+    assert len(frame) == 6
+    assert {(r["category"], r["series"]): r["value"] for r in frame}[("p1", "claude")] == "12.0"
+    # canonical order: category first, then series in value-column order
+    assert [(r["category"], r["series"]) for r in frame][:3] == [
+        ("p1", "gpt"), ("p1", "claude"), ("p1", "llama")
+    ]
+
+
+def test_single_element_value_list_matches_scalar(tmp_path):
+    result = prepare_plot_data(
+        output_dir=str(tmp_path),
+        columns=["k", "v"],
+        rows=[["a", "1"], ["b", "2"]],
+        x="k",
+        value=["v"],
+    )
+    frame = _read(result["plot_data_path"])
+    assert set(frame[0].keys()) == {"order", "category", "value"}
+    assert [r["category"] for r in frame] == ["a", "b"]
+
+
+def test_wide_value_and_series_column_are_mutually_exclusive(tmp_path):
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        prepare_plot_data(
+            output_dir=str(tmp_path),
+            columns=["k", "grp", "a", "b"],
+            rows=[["x", "g1", "1", "2"]],
+            x="k",
+            value=["a", "b"],
+            series="grp",
+        )
+
+
+def test_wide_value_column_not_in_data_raises(tmp_path):
+    with pytest.raises(ValueError, match="mapped column"):
+        prepare_plot_data(
+            output_dir=str(tmp_path),
+            columns=["k", "a"],
+            rows=[["x", "1"]],
+            x="k",
+            value=["a", "missing"],
+        )
+
+
+def test_wide_series_order_can_be_pinned(tmp_path):
+    result = prepare_plot_data(
+        output_dir=str(tmp_path),
+        columns=["k", "a", "b"],
+        rows=[["x", "1", "2"]],
+        x="k",
+        value=["a", "b"],
+        series_order=["b", "a"],
+    )
+    assert result["series_order"] == ["b", "a"]
+
 # ---- from test_labels.py ----
 
 from dataviz_mcp.labels import recommend_labels

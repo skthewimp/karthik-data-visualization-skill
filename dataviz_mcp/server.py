@@ -286,7 +286,7 @@ def create_server() -> Any:
     async def prepare_plot_data(
         output_dir: str,
         x: str,
-        value: str,
+        value: str | list[str],
         dataset_path: str | None = None,
         columns: list[str] | None = None,
         rows: list[list[Any]] | None = None,
@@ -300,6 +300,10 @@ def create_server() -> Any:
 
         Keeps ONLY the mapped columns (``x`` -> category, ``value``, optional ``series`` /
         ``facet``) - an unmapped helper column cannot leak in as a plotted series - and writes
+        a long-format frame. Pass ``value`` as a list of columns for a wide frame (one value
+        column per series, e.g. one per model): each melts into a series named by the column,
+        so a dense multi-series chart runs the same mechanical path and needs no hand-built
+        inline dataframe. A value list and a ``series`` column are mutually exclusive. Writes
         a long-format ``plot-data.csv`` with fixed canonical names and one canonical ``order``
         column shared by every mark and label, so a category/value association cannot reverse
         and a stamped label cannot drift onto the wrong mark. Read the data from ``dataset_path``

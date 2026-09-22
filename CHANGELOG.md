@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### `prepare_plot_data`: accept wide value columns (multi-series melt)
+
+`value` now takes a list of source columns as well as a single column. A wide frame - one
+value column per series (e.g. one per model) - names those columns as a list, and each melts
+into a long-format series whose label is the column name. This routes dense multi-series
+charts through the same mechanical, coerced, canonically-ordered path as everything else,
+so the maker no longer hand-builds the frame inline (where the ≈-string and wrong-hand-typed
+value bugs lived).
+
+- A value list and an explicit `series` column are mutually exclusive - the wide columns
+  already define the series; passing both raises.
+- Series order defaults to value-column order and honours an explicit `series_order`.
+- Single-element list behaves exactly like the scalar form.
+- Contract (`stage_contracts._PLOT_DATA_MAP`), server signature, and skill/docs prose updated.
+
 ### `recommend_layout`: choose columns, resize the whole image, never squash a slot or panel
 
 Both overflow branches used to clamp `height = max_h` (and width to `max_w`) and hand back

@@ -110,7 +110,7 @@ def _ordered(seen: list[str], explicit: Optional[list[str]]) -> tuple[list[str],
 def prepare_plot_data(
     output_dir: str,
     x: str,
-    value: str,
+    value: Any,
     dataset_path: Optional[str] = None,
     columns: Optional[list[str]] = None,
     rows: Optional[list[list[Any]]] = None,
@@ -130,10 +130,15 @@ def prepare_plot_data(
     Args:
         output_dir: directory the tidy frame is written into.
         x: source column that is the category / x position (required).
-        value: source column that is the numeric value (required).
+        value: source column that is the numeric value (required). Pass a list of source
+            columns for a wide frame (one value column per series, e.g. one per model): each
+            column melts into a series whose label is the column name, so a dense multi-series
+            chart runs through the same coerced, canonically-ordered path as everything else.
+            A list of value columns and an explicit ``series`` column are mutually exclusive -
+            the wide columns already define the series.
         dataset_path: a CSV to read (dataset-to-story path).
         columns / rows: an inline table (repair path); ``rows`` is a list of value lists.
-        series: source column that splits series / colour, if any.
+        series: source column that splits series / colour, if any (long-format input only).
         facet: source column that splits panels, if any.
         category_order / series_order: explicit canonical orders; values seen but not listed
             are appended and reported, never dropped. Default is first-appearance order.
@@ -148,36 +153,58 @@ def prepare_plot_data(
     header, records = _load_records(dataset_path, columns, rows)
     warnings: list[str] = []
 
-    mapping = {"category": x, "value": value}
+    # A wide value map (list of value columns) melts each column into a series named by the
+    # column - so a dense multi-series frame needs no hand-built inline dataframe. It is
+    # incompatible with an explicit series column: the wide columns already are the series.
+    value_cols = [value] if isinstance(value, str) else list(value)
+    if not value_cols:
+        raise ValueError("value must name at least one source column")
+    wide = len(value_cols) > 1
+    if wide and series:
+        raise ValueError(
+            "multiple value columns and a series column are mutually exclusive; "
+            "wide value columns already define the series"
+        )
+    has_series = wide or bool(series)
+
+    key_cols = {"category": x}
     if series:
-        mapping["series"] = series
+        key_cols["series"] = series
     if facet:
-        mapping["facet"] = facet
-    missing = [src for src in mapping.values() if src not in header]
+        key_cols["facet"] = facet
+    mapped = list(key_cols.values()) + value_cols
+    missing = [src for src in mapped if src not in header]
     if missing:
         raise ValueError(
             f"mapped column(s) not in the data: {missing}; available columns: {header}"
         )
-    dropped = [col for col in header if col not in mapping.values()]
+    dropped = [col for col in header if col not in mapped]
 
     # Whitelist + coerce value. An unmapped helper column is gone here; it cannot become a series.
+    # Wide input iterates value columns per record, so each cell becomes one long-format row.
     seen_cats: list[str] = []
     seen_series: list[str] = []
     groups: dict[tuple[str, str, str], list[float]] = {}
     for record in records:
-        category = str(record[mapping["category"]])
-        series_val = str(record[mapping["series"]]) if series else ""
-        facet_val = str(record[mapping["facet"]]) if facet else ""
-        raw = record[mapping["value"]]
-        numeric = _coerce_number(raw)
-        if numeric is None:
-            warnings.append(f"non-numeric value {raw!r} at category {category!r} dropped")
-            continue
+        category = str(record[key_cols["category"]])
+        facet_val = str(record[key_cols["facet"]]) if facet else ""
         if category not in seen_cats:
             seen_cats.append(category)
-        if series and series_val not in seen_series:
-            seen_series.append(series_val)
-        groups.setdefault((category, series_val, facet_val), []).append(numeric)
+        for value_col in value_cols:
+            if wide:
+                series_val = value_col
+            elif series:
+                series_val = str(record[key_cols["series"]])
+            else:
+                series_val = ""
+            raw = record[value_col]
+            numeric = _coerce_number(raw)
+            if numeric is None:
+                warnings.append(f"non-numeric value {raw!r} at category {category!r} dropped")
+                continue
+            if has_series and series_val not in seen_series:
+                seen_series.append(series_val)
+            groups.setdefault((category, series_val, facet_val), []).append(numeric)
 
     duplicates = [key for key, vals in groups.items() if len(vals) > 1]
     if duplicates and aggregate is None:
@@ -190,14 +217,14 @@ def prepare_plot_data(
     reducer = _AGGREGATORS.get(aggregate or "first")
 
     cat_order, cat_tail = _ordered(seen_cats, category_order)
-    ser_order, ser_tail = _ordered(seen_series, series_order) if series else ([], [])
+    ser_order, ser_tail = _ordered(seen_series, series_order) if has_series else ([], [])
     if cat_tail:
         warnings.append(f"categories in data missing from category_order, appended: {cat_tail}")
     if ser_tail:
         warnings.append(f"series in data missing from series_order, appended: {ser_tail}")
 
     out_columns = ["order", "category"]
-    if series:
+    if has_series:
         out_columns.append("series")
     if facet:
         out_columns.append("facet")
@@ -209,12 +236,12 @@ def prepare_plot_data(
     facet_values = _facet_values(groups, facet)
     for facet_val in facet_values:
         for category in cat_order:
-            for series_val in (ser_order if series else [""]):
+            for series_val in (ser_order if has_series else [""]):
                 key = (category, series_val, facet_val)
                 if key not in groups:
                     continue
                 row: dict[str, Any] = {"order": order_index, "category": category, "value": reducer(groups[key])}
-                if series:
+                if has_series:
                     row["series"] = series_val
                 if facet:
                     row["facet"] = facet_val
