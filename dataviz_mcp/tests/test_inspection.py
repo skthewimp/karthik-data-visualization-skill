@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ---- from test_render_inspect.py ----
+
 import json
 from pathlib import Path
 
@@ -492,8 +494,25 @@ def _codes(report: dict) -> set:
     return {defect["code"] for defect in report["defects"]}
 
 
-def test_redundant_value_axis_flagged_when_every_mark_is_labelled(tmp_path: Path) -> None:
-    _, report = render(tmp_path, "all_marks_labelled")
+@pytest.mark.parametrize(
+    "function",
+    (
+        # every mark labelled, contract present
+        "all_marks_labelled",
+        # faceted, every bar labelled, no contract -> flag per panel from geometry alone
+        "faceted_bars_all_labelled",
+        # 4/5 bars labelled, no contract -> geometry fallback flags without every mark
+        "bars_mostly_labelled",
+        # exactly 2/5 labelled -> two labels fix the linear scale, flag still fires
+        "bars_two_labelled",
+        # contract declares all five but only the two key marks are labelled -> flag on key set
+        "bars_two_labelled_with_contract",
+        # every bar labelled with "≈value": the ≈ must not hide an exact-value redundancy
+        "bars_all_labelled_approx",
+    ),
+)
+def test_redundant_value_axis_flagged(tmp_path: Path, function: str) -> None:
+    _, report = render(tmp_path, function)
     assert "REDUNDANT_VALUE_AXIS" in _codes(report)
     assert report["redundant_value_axis"]
     defect = next(item for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
@@ -501,61 +520,17 @@ def test_redundant_value_axis_flagged_when_every_mark_is_labelled(tmp_path: Path
     assert report["passes_geometry_checks"] is False
 
 
-def test_redundant_value_axis_flagged_per_panel_without_a_contract(tmp_path: Path) -> None:
-    # A faceted chart that labels every bar but declares no inspection_contract must still flag
-    # the redundant value axis, per panel, from geometry alone.
-    _, report = render(tmp_path, "faceted_bars_all_labelled")
-    assert "REDUNDANT_VALUE_AXIS" in _codes(report)
-    assert report["redundant_value_axis"]
-    defect = next(item for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
-    assert defect["severity"] == "medium"
-    assert report["passes_geometry_checks"] is False
-
-
-def test_redundant_value_axis_flagged_when_marks_are_labelled(tmp_path: Path) -> None:
-    # Four of five bars labelled, no inspection_contract: the geometry fallback must flag the
-    # redundant value axis without requiring every mark.
-    _, report = render(tmp_path, "bars_mostly_labelled")
-    assert "REDUNDANT_VALUE_AXIS" in _codes(report)
-    assert report["redundant_value_axis"]
-    defect = next(item for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
-    assert defect["severity"] == "medium"
-    assert report["passes_geometry_checks"] is False
-
-
-def test_redundant_value_axis_flagged_at_two_labelled_marks(tmp_path: Path) -> None:
-    # Exactly two of five bars labelled: two labels fix the linear scale, so the flag must fire
-    # even though most marks are unlabelled.
-    _, report = render(tmp_path, "bars_two_labelled")
-    assert "REDUNDANT_VALUE_AXIS" in _codes(report)
-    assert report["redundant_value_axis"]
-
-
-def test_redundant_value_axis_flagged_with_contract_and_partial_labels(tmp_path: Path) -> None:
-    # A contract declares all five bars as expected labels but only the two key marks are labelled.
-    # The contract path must flag the redundant axis on the key set - it no longer requires the
-    # declared set to be complete.
-    _, report = render(tmp_path, "bars_two_labelled_with_contract")
-    assert "REDUNDANT_VALUE_AXIS" in _codes(report)
-    assert report["redundant_value_axis"]
-
-
-def test_redundant_value_axis_flagged_through_approx_glyph(tmp_path: Path) -> None:
-    # Every bar labelled with "≈value": the value is exact, so the ≈ must not hide the redundancy.
-    _, report = render(tmp_path, "bars_all_labelled_approx")
-    assert "REDUNDANT_VALUE_AXIS" in _codes(report)
-    assert report["redundant_value_axis"]
-
-
-def test_no_redundant_axis_when_one_mark_labelled(tmp_path: Path) -> None:
-    # One of five bars labelled: a single label cannot fix the scale, so the flag must stay silent.
-    _, report = render(tmp_path, "bars_few_labelled")
-    assert "REDUNDANT_VALUE_AXIS" not in _codes(report)
-    assert report["redundant_value_axis"] == []
-
-
-def test_no_redundant_axis_without_direct_labels(tmp_path: Path) -> None:
-    _, report = render(tmp_path, "clean_chart")
+@pytest.mark.parametrize(
+    "function",
+    (
+        # one of five bars labelled: a single label cannot fix the scale, flag stays silent
+        "bars_few_labelled",
+        # no direct labels at all
+        "clean_chart",
+    ),
+)
+def test_no_redundant_axis(tmp_path: Path, function: str) -> None:
+    _, report = render(tmp_path, function)
     assert "REDUNDANT_VALUE_AXIS" not in _codes(report)
     assert report["redundant_value_axis"] == []
 
@@ -693,3 +668,221 @@ def test_on_mark_label_contrast_judged_against_fill_not_background(tmp_path: Pat
     rec = next(r for r in report["low_contrast_elements"] if r["role"] == "data_label")
     assert rec["against"] == "mark_fill"
     assert rec["contrast_ratio"] < 4.5
+
+# ---- from test_inspection_gating.py ----
+
+"""Gating fixes: a blank render must block, and an unrecognised table gtable must not
+manufacture false bbox-derived defects (out-of-bounds, contrast) it has no reliable bounds for.
+Both exercise inspect_rendered_chart end to end with a real PNG plus hash-matched metadata,
+so no R renderer is required."""
+
+import json
+from pathlib import Path
+
+from PIL import Image
+
+from dataviz_mcp.artifacts import raster_info, sha256_file
+from dataviz_mcp.inspection import BLANK_RENDER_MAX, inspect_rendered_chart
+
+
+def _write_png(path: Path, width: int, height: int, colour: str = "white") -> None:
+    Image.new("RGB", (width, height), colour).save(path)
+
+
+def _bundle(tmp_path: Path, width: int, height: int, metadata: dict, colour: str = "white"):
+    png = tmp_path / "art.png"
+    _write_png(png, width, height, colour)
+    info = raster_info(png)
+    metadata = {
+        **metadata,
+        "artifact": {"sha256": info["sha256"], "width": width, "height": height},
+    }
+    meta_path = tmp_path / "meta.json"
+    meta_path.write_text(json.dumps(metadata))
+    return inspect_rendered_chart(str(png), str(meta_path))
+
+
+def _codes(report: dict) -> set[str]:
+    return {d["code"] for d in report["defects"]}
+
+
+def test_blank_render_blocks_and_cannot_pass(tmp_path: Path) -> None:
+    # No elements/marks/series/legends -> occupied ratio 0.0 -> blank export.
+    report = _bundle(
+        tmp_path,
+        400,
+        300,
+        {
+            "canvas": {"x": 0, "y": 0, "width": 400, "height": 300},
+            "plot_areas": [],
+            "elements": [],
+            "series": [],
+            "marks": [],
+            "legends": [],
+            "coverage": {},
+            "background": "#ffffff",
+        },
+    )
+    assert report["occupied_utilization_ratio"] == 0.0
+    assert "BLANK_RENDER" in _codes(report)
+    blank = next(d for d in report["defects"] if d["code"] == "BLANK_RENDER")
+    assert blank["severity"] == "high"
+    assert report["passes_geometry_checks"] is False
+    assert report["geometry_status"] == "fail"
+
+
+def test_ratio_just_above_blank_floor_is_not_blank(tmp_path: Path) -> None:
+    # An element covering ~10% of the canvas is sparse, not blank: no BLANK_RENDER.
+    report = _bundle(
+        tmp_path,
+        400,
+        300,
+        {
+            "canvas": {"x": 0, "y": 0, "width": 400, "height": 300},
+            "plot_areas": [],
+            "elements": [{"id": "t", "role": "title",
+                          "bbox": {"x": 10, "y": 10, "width": 120, "height": 100}}],
+            "series": [],
+            "marks": [],
+            "legends": [],
+            "coverage": {"text_bounds": True},
+            "background": "#ffffff",
+        },
+    )
+    assert report["occupied_utilization_ratio"] > BLANK_RENDER_MAX
+    assert "BLANK_RENDER" not in _codes(report)
+
+
+def _table_meta(cell_bounds: bool) -> dict:
+    coverage = {"table_content": True, "text_bounds": True}
+    if cell_bounds:
+        coverage["table_cell_bounds"] = True
+    return {
+        "canvas": {"x": 0, "y": 0, "width": 400, "height": 300},
+        "plot_areas": [],
+        # An element whose bbox leaks past the right edge (450 > 400) - a would-be OUT_OF_BOUNDS.
+        "elements": [{"id": "cell", "role": "table",
+                      "bbox": {"x": 50, "y": 50, "width": 400, "height": 100}}],
+        "series": [],
+        "marks": [],
+        "legends": [],
+        "coverage": coverage,
+        "background": "#ffffff",
+    }
+
+
+def test_unrecognised_table_gtable_suppresses_false_defects(tmp_path: Path) -> None:
+    # table_content with no table_cell_bounds -> element bboxes are the leaked wrapper; the
+    # out-of-canvas bbox must NOT raise OUT_OF_BOUNDS, and the run degrades to incomplete.
+    report = _bundle(tmp_path, 400, 300, _table_meta(cell_bounds=False))
+    assert "OUT_OF_BOUNDS" not in _codes(report)
+    assert report["out_of_bounds_elements"] == []
+    assert report["checks_complete"] is False
+    assert report["passes_geometry_checks"] is False
+    assert any("tableGrob/gt" in note for note in report["limitations"])
+
+
+def test_recognised_table_gtable_still_flags_out_of_bounds(tmp_path: Path) -> None:
+    # With table_cell_bounds present the bboxes are trustworthy, so the same leak DOES flag.
+    report = _bundle(tmp_path, 400, 300, _table_meta(cell_bounds=True))
+    assert "OUT_OF_BOUNDS" in _codes(report)
+    assert not any("tableGrob/gt" in note for note in report["limitations"])
+
+# ---- from test_underfill.py ----
+
+from dataviz_mcp.inspection import _underfill_defect
+
+
+def test_underfilled_canvas_flagged_low_when_only_empty():
+    defect = _underfill_defect(0.12, has_undersized_text=False)
+    assert defect is not None
+    assert defect["code"] == "UNDERFILLED_CANVAS"
+    assert defect["severity"] == "low"
+
+
+def test_underfilled_canvas_escalates_when_text_also_tiny():
+    defect = _underfill_defect(0.12, has_undersized_text=True)
+    assert defect["severity"] == "medium"  # empty + tiny = the mobile-table redesign case
+
+
+def test_full_canvas_is_not_flagged():
+    assert _underfill_defect(0.55, has_undersized_text=True) is None
+
+
+def test_missing_ratio_is_not_flagged():
+    assert _underfill_defect(None, has_undersized_text=True) is None
+
+# ---- from test_comparison.py ----
+
+from pathlib import Path
+
+from dataviz_mcp.comparison import compare_chart_artifacts
+from dataviz_mcp.inspection import inspect_rendered_chart
+from dataviz_mcp.rendering import render_chart
+
+
+FIXTURES = Path(__file__).parent / "fixtures" / "chart_fixtures.py"
+
+
+def test_comparison_reports_resolved_defect_without_judging_taste(tmp_path: Path) -> None:
+    reports = []
+    for function in ("annotation_over_line", "clean_chart"):
+        bundle = render_chart(
+            str(FIXTURES), str(tmp_path / function), build_function=function
+        )
+        reports.append(
+            inspect_rendered_chart(
+                bundle["artifact"]["path"], bundle["layout_metadata_path"]
+            )
+        )
+    comparison = compare_chart_artifacts(
+        reports[0]["inspection_path"], reports[1]["inspection_path"]
+    )
+    assert comparison["mechanically_improved"] is True
+    assert comparison["introduced_defects"] == []
+    assert {item["code"] for item in comparison["resolved_defects"]} == {
+        "ANNOTATION_SERIES_COLLISION"
+    }
+    assert "mechanical changes only" in comparison["judgement_limit"]
+    assert comparison["pixel_difference"]["changed_pixel_ratio"] > 0
+
+# ---- from test_coffee_e2e.py ----
+
+from pathlib import Path
+
+from dataviz_mcp.comparison import compare_chart_artifacts
+from dataviz_mcp.inspection import inspect_rendered_chart
+from dataviz_mcp.rendering import render_chart
+
+
+FIXTURES = Path(__file__).parent / "fixtures" / "chart_fixtures.py"
+
+
+def test_coffee_annotation_repair_loop_crosses_mechanical_pass_line(tmp_path: Path) -> None:
+    bad_bundle = render_chart(
+        str(FIXTURES), str(tmp_path / "coffee-bad"), build_function="coffee_bad"
+    )
+    bad = inspect_rendered_chart(
+        bad_bundle["artifact"]["path"], bad_bundle["layout_metadata_path"]
+    )
+    assert bad["artifact"]["sha256"] == bad_bundle["artifact"]["sha256"]
+    assert bad["passes_geometry_checks"] is False
+    assert "ANNOTATION_SERIES_COLLISION" in {item["code"] for item in bad["defects"]}
+
+    fixed_bundle = render_chart(
+        str(FIXTURES), str(tmp_path / "coffee-fixed"), build_function="coffee_fixed"
+    )
+    fixed = inspect_rendered_chart(
+        fixed_bundle["artifact"]["path"], fixed_bundle["layout_metadata_path"]
+    )
+    assert fixed["artifact"]["sha256"] == fixed_bundle["artifact"]["sha256"]
+    assert fixed["passes_geometry_checks"] is True
+    assert fixed["defects"] == []
+
+    comparison = compare_chart_artifacts(
+        bad["inspection_path"], fixed["inspection_path"]
+    )
+    assert comparison["mechanically_improved"] is True
+    assert comparison["blocking_defect_count"]["after"] == 0
+    assert comparison["introduced_defects"] == []
+    assert comparison["passes_geometry_checks"] == {"before": False, "after": True}

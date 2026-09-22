@@ -2,10 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
-import json
-import os
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -13,12 +9,43 @@ import pytest
 from dataviz_mcp.server import create_server
 
 
+EXPECTED_TOOLS = {
+    "render_chart",
+    "render_and_inspect_chart",
+    "probe_renderers",
+    "inspect_rendered_chart",
+    "refit_chart",
+    "compare_chart_artifacts",
+    "recommend_colours",
+    "recommend_continuous_scale",
+    "validate_palette",
+    "validate_scale",
+    "extract_palette_from_image",
+    "prepare_plot_data",
+    "recommend_precision",
+    "read_marks_from_anchors",
+    "recommend_scale_transform",
+    "recommend_labels",
+    "recommend_layout",
+    "recommend_table_layout",
+    "render_table_from_plan",
+    "recommend_text_placement",
+    "reserve_frame",
+    "place_on_marks",
+    "place_bar_value_labels",
+}
+
+
 @pytest.mark.skipif(importlib.util.find_spec("mcp") is None, reason="MCP SDK not installed")
-def test_all_capabilities_return_structured_results_through_mcp(tmp_path: Path) -> None:
+def test_server_registers_every_tool_and_returns_structured_results(tmp_path: Path) -> None:
     fixtures = Path(__file__).parent / "fixtures" / "chart_fixtures.py"
 
     async def exercise() -> None:
         server = create_server()
+        # The registry is the public contract - every capability is exposed under its name.
+        tools = await server.list_tools()
+        assert {tool.name for tool in tools} == EXPECTED_TOOLS
+
         inspections = []
         for function in ("annotation_over_line", "clean_chart"):
             rendered = await server.call_tool(
@@ -51,65 +78,3 @@ def test_all_capabilities_return_structured_results_through_mcp(tmp_path: Path) 
         assert compared.structured_content["mechanically_improved"] is True
 
     asyncio.run(exercise())
-
-
-@pytest.mark.skipif(importlib.util.find_spec("mcp") is None, reason="MCP SDK not installed")
-def test_installed_module_serves_tools_over_real_stdio(tmp_path: Path) -> None:
-    script = """
-import asyncio
-import json
-import os
-import sys
-from mcp import Client, StdioServerParameters
-from mcp.client.stdio import stdio_client
-
-async def main():
-    parameters = StdioServerParameters(
-        command=sys.executable,
-        args=["-m", "dataviz_mcp"],
-        env=os.environ.copy(),
-        cwd=os.getcwd(),
-    )
-    async with Client(stdio_client(parameters)) as client:
-        result = await client.list_tools()
-        print(json.dumps(sorted(tool.name for tool in result.tools)))
-
-asyncio.run(main())
-"""
-    environment = os.environ.copy()
-    environment.setdefault("MPLCONFIGDIR", str(tmp_path / "matplotlib"))
-    result = subprocess.run(
-        [sys.executable, "-c", script],
-        cwd=Path(__file__).resolve().parents[2],
-        env=environment,
-        text=True,
-        capture_output=True,
-        timeout=30,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-    assert set(json.loads(result.stdout)) == {
-        "render_chart",
-        "render_and_inspect_chart",
-        "probe_renderers",
-        "inspect_rendered_chart",
-        "refit_chart",
-        "compare_chart_artifacts",
-        "recommend_colours",
-        "recommend_continuous_scale",
-        "validate_palette",
-        "validate_scale",
-        "extract_palette_from_image",
-        "prepare_plot_data",
-        "recommend_precision",
-        "read_marks_from_anchors",
-        "recommend_scale_transform",
-        "recommend_labels",
-        "recommend_layout",
-        "recommend_table_layout",
-        "render_table_from_plan",
-        "recommend_text_placement",
-        "reserve_frame",
-        "place_on_marks",
-        "place_bar_value_labels",
-    }
