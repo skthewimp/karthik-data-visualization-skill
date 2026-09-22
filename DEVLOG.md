@@ -3598,3 +3598,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `integrated-transcript.json`
 
 <!-- claude-session:d3154dd7-d533-4e5c-9b68-9edb049f17dc:end -->
+
+<!-- claude-session:1c1954e9-5b6a-4b6f-8121-788911ca44a3:start -->
+## 2026-09-22 11:53 IST | Claude session `1c1954e9-5b6`
+
+### User prompts
+> <pasted_content id="ce64"> Upstream should make geometry parsing tolerate missing or nonfinite values. 1. Handle blank numeric fields. In rendering.py, replace unconditional float(row[key]) with parsing that recognize...
+
+### Work done
+- All 339 pass. Now check the maintainer validate/commit workflow per AGENTS.md:
+- Done. Committed + pushed, `main` matches `origin/main`. **What changed** (`dataviz_mcp/rendering.py`): - New `_parse_finite()` - blanks, NA, NaN, ±Inf → `None`, never zero. - `_row_bbox()` - bbox only when all 4 bound...
+- Touched files: `integrated-transcript.json`
+
+<!-- claude-session:1c1954e9-5b6a-4b6f-8121-788911ca44a3:end -->
