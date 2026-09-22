@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### `dataviz-selector`: seven form-selection fixes from chart-review feedback
+
+Reviewed 35 annotated selector outputs (Karthik's per-chart recommendations) and reconciled the
+skill to them. Both `claude/` and `codex/` SKILL copies (kept identical), the selection-prior
+reference, README, and `docs/skills/dataviz-selector.md` updated.
+
+1. **Cold selection softened.** Cold now means the source form gets no *bonus*, not a *penalty*.
+   A defensible source form is kept; replace only when the new form is clearly more legible for
+   the message - no lateral swaps (bars ↔ slopegraph ↔ dumbbell, one composition form for another).
+   The over-aggressive "no keep-it shortcut" language was driving lateral replacements that
+   improved nothing.
+2. **Conditionally-formatted table as a first-class form** for dense entity × metric/period
+   matrices where both lookup and overall pattern matter - in-cell data bars or heat cells, not a
+   faceted bar grid / dot-plot matrix. Same-unit columns no longer argue against it. Normalization
+   direction (row/column/matrix) and diverging-vs-sequential scale specified.
+3. **Pie/donut exception:** allowed only for a single snapshot composition of a genuine 100% whole
+   with ≤3 parts. Still excluded for many slices, precise comparison, ranking, or trend.
+4. **Two-point, single series → two labelled bars**, not a slopegraph. Slope/dumbbell need multiple
+   categories/series to cross.
+5. **Paired bars vs dumbbell:** magnitude-of-each-group reading → paired bars with direct labels;
+   dumbbell reserved for when the gap/change itself is the message.
+6. **Semantic orientation:** height/elevation/depth-like measures → vertical bars even when
+   horizontal labels would fit; label-fit decides only for direction-neutral measures.
+7. **Focal emphasis is weight + draw order,** not colour alone: focal series first/on top and
+   heavier, context muted behind.
+
 ### `prepare_plot_data`: accept wide value columns (multi-series melt)
 
 `value` now takes a list of source columns as well as a single column. A wide frame - one

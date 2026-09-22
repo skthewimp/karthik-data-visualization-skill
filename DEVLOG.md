@@ -1,5 +1,40 @@
 # Devlog
 
+## 2026-09-22 - dataviz-selector reconciled to chart-review feedback
+
+### User report
+
+- "check out selector-review.pdf. this has my annotations on charts that have been reviewed from
+  the harness. top left is the input. bottom right is my recommendation... top right is how it is
+  actually rendered. based on all of this, review the dataviz-selector skill. what should we change
+  in the skill so that it remains consistent with what i've recommended? look through all 35 pages
+  (ignore the map inputs since we don't support them now)."
+- Follow-up: "yes apply all of this. and pie - keep it for <= 3 sectors not 4."
+
+### What I did
+
+- Read all 35 review pages. Maps (p1, p10, p34) skipped per instruction.
+- Found the selector's *form choice* was already right on 13/32 non-map pages; most complaints on
+  those were execution (cut-off titles, boilerplate "not specified" subtitles, missing direct
+  labels, broken/inverted axes), not selection - routed to the builder / execution gate, out of
+  selector scope.
+- The genuine *selection* divergences clustered into seven rules, applied to both SKILL copies,
+  the selection-prior, README, and docs. See CHANGELOG "Unreleased" for the itemised list.
+
+### Notes / decisions
+
+- **Biggest finding:** the "run cold, source form gets no vote, no keep-it shortcut" language was
+  overfiring - producing lateral swaps (e.g. p22 two bars → slopegraph, p23 slope → dumbbell,
+  p24 doughnut → bars) that changed nothing a reader sees. Reframed cold as "no bonus, not a
+  penalty": keep a defensible source form, replace only for a clear legibility gain, never laterally.
+- **Table under-selected:** Karthik repeatedly wants a conditionally-formatted table (in-cell data
+  bars / heat, row-wise) for dense entity × metric matrices (p3, p4, p8, p31) - exactly the
+  same-unit case the old text pushed *away* from a table. Added as a first-class matrix form.
+- **Pie:** allowed only for a single ≤3-part 100% composition snapshot (p24 doughnut-of-3 was fine).
+  Capped at 3, not 4, per Karthik.
+- Kept every rule general (no page-specific examples baked into the skill).
+- Ran `./sync.sh --no-pull`; installed local Codex/Claude copies clean.
+
 ## 2026-09-16 - new skill: karthik-r-code-style (R code layout)
 
 ### User report
