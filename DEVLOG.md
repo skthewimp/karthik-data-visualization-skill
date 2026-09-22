@@ -3487,3 +3487,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `integrated-transcript.json`
 
 <!-- claude-session:f4724f89-d602-42ab-8358-517ae238c422:end -->
+
+<!-- claude-session:6304f675-97f5-4a70-aa08-6d971f1d6b84:start -->
+## 2026-09-22 09:27 IST | Claude session `6304f675-97f`
+
+### User prompts
+> we have some issues with recommend_layout, and need to fix it. firstly, we shouldn't squish a panel below the reocmmended floor height. secondly, we need to intelligently fikgure out number of columns required. thirdl...
+> no no - we need to resize the chart in case we have too many panels et c. resize = resize b oth width and hegiht. don't squish width as well. if width is getting squished, resize ro soemthing.
+> see we need to pick number of r4ows and columsn such that overall image is eihter square-ish or close to input image size. how do we do this?
+
+### Work done
+- Now docstrings, docs, CHANGELOG:
+- Done, pushed. ## What I did (per your choice: "Return resolved fonts") `recommend_layout` now returns **`font_pt`** - the canvas-scaled house font sizes per role (title/subtitle/footer/caption/axis/annotation), resolv...
+- Touched files: `integrated-transcript.json`
+
+<!-- claude-session:6304f675-97f5-4a70-aa08-6d971f1d6b84:end -->
