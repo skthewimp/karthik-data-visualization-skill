@@ -3583,3 +3583,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `integrated-transcript.json`
 
 <!-- claude-session:e39fb92e-556b-404c-8ad0-cffe8e3cfad8:end -->
+
+<!-- claude-session:d3154dd7-d533-4e5c-9b68-9edb049f17dc:start -->
+## 2026-09-22 11:11 IST | Claude session `d3154dd7-d53`
+
+### User prompts
+> check out @selector-review.pdf . this has my annotations on charst that ahve been reviewed from the harness. top left is the input. bottom right is my recommendation on how this chart needs to be rendered. top right i...
+> yes apply all of this. and pie - keep it for <= 3 sectors not 4.
+> yeah make a seapraetpass on dataviz-execution and chart-annotations to fix these
+
+### Work done
+- Adding CHANGELOG + DEVLOG entries and verifying copy parity:
+- Done. Pushed `27be5ad`. Sync installed clean, both copies at parity. ## Execution pass shipped **`dataviz-execution`** (Geometry + Hierarchy + integrity checks): - Clipping title/subtitle → **wrap to frame**, not endl...
+- Touched files: `integrated-transcript.json`
+
+<!-- claude-session:d3154dd7-d533-4e5c-9b68-9edb049f17dc:end -->
