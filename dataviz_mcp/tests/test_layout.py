@@ -86,14 +86,15 @@ def test_sparse_discrete_y_facets_also_use_the_profile_height():
     assert many["height_px"] > sparse["height_px"]
 
 
-def test_overflow_past_the_ceiling_is_warned_not_squashed():
+def test_overflow_past_the_ceiling_grows_width_never_squashes_slots():
     result = recommend_layout(x_slots=1000, delivery_profile="chat")
-    assert result["width_px"] <= 1600  # width is display-bound and clamped to the chat ceiling
-    assert any("crowd" in w or "split" in w for w in result["warnings"])
-    # Width cannot grow, so the fit is infeasible and says so as a boolean, not just prose.
+    # Width is resized up past the ceiling rather than clamped, so slots keep their density.
+    assert result["width_px"] > 1600
+    assert any("width" in w.lower() for w in result["warnings"])
     fit = result["fit"]
-    assert fit["legible"] is False
-    assert fit["status"] == "infeasible"
+    assert fit["legible"] is True          # nothing squashed; the image just got bigger
+    assert fit["status"] == "over_ceiling"
+    assert fit["over_width"] is True
     assert any(d["action"] == "reduce_slots" for d in fit["directives"])
 
 
@@ -300,6 +301,20 @@ def test_group_honours_a_declared_column_count():
     assert detail["facet_ncol"] == 2 and detail["facet_nrow"] == 5
 
 
+def test_wide_panel_group_grows_width_never_squashes_slots():
+    # A group with many slots must widen the image, not crowd the slots into a clamped width.
+    from dataviz_mcp.layout import PROFILES
+
+    result = recommend_layout(
+        panel_groups=[{"role": "detail", "n_panels": 8, "x_slots": 40, "filled_marks": True}],
+        delivery_profile="chat",
+    )
+    assert result["width_px"] > PROFILES["chat"]["max_width_px"]
+    fit = result["fit"]
+    assert fit["over_width"] is True and fit["legible"] is True
+    assert any(d["action"] == "reduce_slots" for d in fit["directives"])
+
+
 def test_panel_groups_still_report_data_panel_fraction():
     result = recommend_layout(panel_groups=_weekly_usage_groups())
     assert 0.0 < result["data_panel_fraction"] <= 1.0
@@ -324,6 +339,7 @@ def test_tall_group_stack_grows_the_canvas_never_squashes_panels():
     fit = result["fit"]
     assert fit["min_panel_height_px"] >= MIN_PANEL_H - 0.5
     assert fit["status"] == "over_ceiling"
+    assert fit["over_height"] is True
     assert fit["legible"] is True
     actions = {d["action"] for d in fit["directives"]}
     assert {"drop_group", "split_pages"} <= actions
@@ -334,20 +350,15 @@ def test_tall_group_stack_grows_the_canvas_never_squashes_panels():
         assert b["y"] >= a["y"] + a["height"]
 
 
-def test_tall_facet_stack_grows_columns_before_it_grows_height():
-    # "Figure out the number of columns": a facet count whose near-square grid overflows the
-    # height ceiling should pack into MORE columns (up to the width ceiling) to seat the stack,
-    # trading the scroll dimension for width, instead of only stacking tall rows.
-    from dataviz_mcp.layout import _facet_grid
-
-    near_square_ncol, _ = _facet_grid(12, aspect=1.6)  # == 4
-    tall = recommend_layout(
-        n_panels=12, x_slots=0, y_slots=40, filled_marks=True, delivery_profile="document"
-    )
-    assert tall["facet_ncol"] > near_square_ncol   # columns grew past the near-square guess
+def test_column_count_balances_the_image_aspect_to_the_panel_shape():
+    # "Figure out the number of columns": the grid is chosen so the whole image lands near the
+    # profile's aspect given each panel's floored shape. Tall panels (many y-rows) take MORE
+    # columns so the image is not a narrow tower; short panels take fewer.
+    short = recommend_layout(n_panels=12, y_slots=3, filled_marks=True)
+    tall = recommend_layout(n_panels=12, y_slots=40, filled_marks=True)
+    assert tall["facet_ncol"] >= short["facet_ncol"]
     assert tall["facet_ncol"] * tall["facet_nrow"] >= 12
-    # It stopped at the width cap (roomier profile allows six 240px-panel columns).
-    assert tall["facet_ncol"] == 6
+    assert short["facet_ncol"] * short["facet_nrow"] >= 12
 
 
 def test_facet_panels_never_fall_below_the_height_floor():

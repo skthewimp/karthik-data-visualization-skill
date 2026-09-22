@@ -414,13 +414,13 @@ def create_server() -> Any:
         the y-axis - ranked names, model labels on a heatmap - so the left band is budgeted
         from the real label width and the canvas grows, instead of the renderer stealing the
         panel to fit them. The result reports ``reserved_left_px`` and ``data_panel_fraction``
-        (the plot area's share of the canvas); a panel starved below 40% is warned. Panels are
-        never squashed below the legibility floor: the column count is chosen to seat a facet
-        stack and the canvas height is grown (resized up) rather than clamped, so a ``fit``
-        object reports ``status`` (ok / over_ceiling / infeasible), ``legible``, required vs
+        (the plot area's share of the canvas); a panel starved below 40% is warned. Nothing is
+        squashed below the legibility floor: the column count is chosen so the whole image comes
+        out near the profile's aspect, and when the content needs more room both width and height
+        are grown (the image is resized up) rather than clamped. A ``fit`` object reports
+        ``status`` (ok / over_ceiling), ``legible``, ``over_width`` / ``over_height``, required vs
         ceiling dims, and ranked ``directives`` (reduce_slots / reduce_panels / split_pages /
-        drop_group). Width stays display-bound and is clamped with a crowd warning. Call at
-        select, before build; feed the dims into the renderer and into
+        drop_group). Call at select, before build; feed the dims into the renderer and into
         ``recommend_text_placement``. It sizes the box, never picks the chart.
 
         For a heterogeneous layout - an aggregate/overview panel set apart from a small-multiple

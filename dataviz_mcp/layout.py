@@ -149,37 +149,30 @@ def _build_fit(
     max_width_px: float,
     max_height_px: float,
     min_panel_height_px: float,
-    width_crowded: bool,
     directives: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """A machine-branchable fit verdict, so a caller reads a boolean instead of prose.
 
-    Two independent questions, kept separate so no answer is buried:
-      - *legible*: are the panels at or above their height floor and the marks not squeezed
-        below their width density? We guarantee legibility by never scaling a panel under
-        ``MIN_PANEL_H``, so this is false only when the content cannot be drawn legibly at
-        this profile's *width* (which, unlike height, cannot grow past the display ceiling).
-      - *fits the ceiling*: does that legible size sit inside the profile's nominal box? Height
-        is the scroll dimension and is allowed to grow past the ceiling (the image is resized
-        up rather than squashed); width is display-bound and is clamped.
+    Nothing is ever squashed to fit a ceiling: *both* width and height are grown - the whole
+    image is resized up - to keep every slot and panel at its legibility floor. So two separate
+    questions:
+      - *legible*: are the panels at or above ``MIN_PANEL_H`` and the marks at their slot floor?
+        Because we resize instead of squash, this is always true - it is the guarantee the tool
+        makes, surfaced as a boolean a weak maker cannot skip the way it skips a sentence.
+      - *fits the ceiling*: does that legible size sit inside the profile's nominal box? When the
+        content genuinely needs more room than the profile, the image is bigger than the ceiling
+        on one or both axes; ``over_width`` / ``over_height`` say which.
 
-    ``status`` is ``ok`` when the legible size fits, ``over_ceiling`` when it is legible but
-    taller than the nominal ceiling (resize up, or follow a directive to split/reduce), and
-    ``infeasible`` when width cannot hold the content legibly. ``directives`` are ranked,
-    machine-readable actions the caller (or a weak maker) can branch on without parsing text.
+    ``status`` is ``ok`` when the legible size fits the profile box, else ``over_ceiling`` (the
+    image was resized up; follow a directive to split or reduce if a smaller image is wanted).
+    ``directives`` are ranked, machine-readable actions the caller branches on without parsing
+    text.
     """
-    legible = (
-        not width_crowded
-        and min_panel_height_px >= MIN_PANEL_H - 0.5
-    )
-    over_ceiling = required_height_px > max_height_px + 0.5
-    fits = not width_crowded and not over_ceiling
-    if not legible:
-        status = "infeasible"
-    elif over_ceiling:
-        status = "over_ceiling"
-    else:
-        status = "ok"
+    over_width = required_width_px > max_width_px + 0.5
+    over_height = required_height_px > max_height_px + 0.5
+    fits = not over_width and not over_height
+    legible = min_panel_height_px >= MIN_PANEL_H - 0.5
+    status = "ok" if fits else "over_ceiling"
     return {
         "status": status,
         "legible": legible,
@@ -187,6 +180,8 @@ def _build_fit(
         "required_height_px": round(required_height_px, 1),
         "ceiling_width_px": round(max_width_px, 1),
         "ceiling_height_px": round(max_height_px, 1),
+        "over_width": over_width,
+        "over_height": over_height,
         "min_panel_height_px": round(min_panel_height_px, 1),
         "min_panel_floor_px": MIN_PANEL_H,
         "fits_ceiling": fits,
@@ -264,9 +259,9 @@ def _size_panel_groups(
 
     Returns ``(width, height, regions, data_panel_fraction, warnings, fit)`` where each region
     is a full-width ``{role, facet_ncol, facet_nrow, n_panels, x, y, width, height}`` band and
-    ``fit`` is the machine-branchable verdict from :func:`_build_fit`. Bands are never scaled
-    below their floor to force a ceiling fit; the honest height is returned and the overflow is
-    reported in ``fit`` and ``warnings``.
+    ``fit`` is the machine-branchable verdict from :func:`_build_fit`. Nothing is scaled below
+    its floor to force a ceiling fit; the honest width and height are returned (the image is
+    resized up on either axis) and the overflow is reported in ``fit`` and ``warnings``.
     """
     warnings: list[str] = []
     y_tick_extra = 0.0
@@ -314,46 +309,40 @@ def _size_panel_groups(
 
     breaks = GROUP_BREAK * (len(sized) - 1)
     height_plot = sum(s["band_h"] for s in sized) + breaks
-    required_height = height_plot + bands + axis_band
-    required_width = width
+    height = height_plot + bands + axis_band
 
-    # Width is display-bound: it cannot grow past the ceiling, so an over-wide stack crowds.
-    width_crowded = width > max_w + 0.5
-    if width_crowded:
-        warnings.append(
-            f"content needs {width:.0f}px of width but the ceiling is {max_w:.0f}px: the "
-            "widest panel group will crowd - thin its slots, aggregate, or split the chart."
-        )
-        width = max_w
-
-    # Height is the scroll dimension: never scale a band below its floor to force a fit
-    # (that squashes panels and lies about legibility). Keep the honest height and let the
-    # image grow; report the overflow and ranked directives instead.
-    height = required_height
+    # Neither dimension is squashed to fit a ceiling: the whole image is resized up so every
+    # band keeps its slots and panels at their floor. When the honest size is bigger than the
+    # profile box on either axis, report it and hand back ranked directives to shrink content.
+    over_width = width > max_w + 0.5
+    over_height = height > max_h + 0.5
     directives: list[dict[str, Any]] = []
-    if width_crowded:
-        directives.append({"action": "reduce_slots"})
-    if required_height > max_h + 0.5:
+    if over_width:
         warnings.append(
-            f"content needs {required_height:.0f}px of height but the ceiling is {max_h:.0f}px: "
-            "the panel-group stack will not fit legibly - drop a group, reduce emphasis, or "
-            "split into pages. The canvas is sized to keep panels legible, not squashed."
+            f"content needs {width:.0f}px of width, past the {max_w:.0f}px profile ceiling: the "
+            "image is widened to keep panels legible - thin slots, aggregate, or split to shrink it."
+        )
+        directives.append({"action": "reduce_slots"})
+    if over_height:
+        warnings.append(
+            f"content needs {height:.0f}px of height, past the {max_h:.0f}px profile ceiling: the "
+            "image is grown to keep panels legible - drop a group, reduce emphasis, or split into "
+            "pages to shrink it."
         )
         tallest = max(sized, key=lambda s: s["band_h"])
         directives.append({"action": "drop_group", "role": tallest["role"] or "?"})
         directives.append({"action": "reduce_emphasis"})
-        directives.append({"action": "split_pages", "pages": math.ceil(required_height / max_h)})
+        directives.append({"action": "split_pages", "pages": math.ceil(height / max_h)})
 
     # Panels are held at their floor throughout, so the honest per-band panel height is the
     # legibility figure we report; the smallest single panel across bands drives it.
     min_panel_h = min(s["band_h"] / s["nrow"] for s in sized)
     fit = _build_fit(
-        required_width_px=required_width,
-        required_height_px=required_height,
+        required_width_px=width,
+        required_height_px=height,
         max_width_px=max_w,
         max_height_px=max_h,
         min_panel_height_px=min_panel_h,
-        width_crowded=width_crowded,
         directives=directives,
     )
 
@@ -431,14 +420,14 @@ def recommend_layout(
             and the per-band structure is returned as ``regions``.
 
     Returns width/height/dpi, facet grid, a rotate flag, reserved bands, warnings, rationale,
-    and a structured ``fit`` verdict. Panels are never squashed below ``MIN_PANEL_H``: the
-    column count is chosen (near-square, then more columns up to the width ceiling) to seat a
-    facet stack, and when the content still needs more room the *height* is grown (the scroll
-    dimension - the image is resized up) rather than clamped. Width is display-bound and is
-    clamped, with a crowd warning. ``fit`` reports ``status`` (ok / over_ceiling / infeasible),
-    ``legible``, the required vs ceiling dims, the achieved ``min_panel_height_px``, and ranked
-    machine-readable ``directives`` (reduce_slots / reduce_panels / split_pages / drop_group) so
-    a caller can branch on a boolean instead of parsing prose.
+    and a structured ``fit`` verdict. Nothing is ever squashed below its floor to fit a ceiling:
+    the column count is chosen so the whole image comes out near the profile's aspect given each
+    panel's floored size (tall panels take more columns, wide panels fewer), and when the content
+    needs more room than the profile *both* width and height are grown - the image is resized up.
+    ``fit`` reports ``status`` (ok / over_ceiling), ``legible``, ``over_width`` / ``over_height``,
+    the required vs ceiling dims, the achieved ``min_panel_height_px``, and ranked machine-readable
+    ``directives`` (reduce_slots / reduce_panels / split_pages / drop_group) so a caller can branch
+    on a boolean instead of parsing prose.
     """
     profile = PROFILES.get(delivery_profile, PROFILES["chat"])
     dpi = float(profile["dpi"])
@@ -513,10 +502,14 @@ def recommend_layout(
         left_band += y_tick_extra
 
     def _dims_for_ncol(nc: int) -> dict[str, float]:
-        """Honest canvas dims for a given column count, panels held at their floors."""
+        """Honest canvas dims for a given column count, panels held at their floors.
+
+        Neither dimension is clamped to a ceiling: the width grows to seat ``nc`` panels at
+        their width floor and the height grows to seat the rows at their height floor, so the
+        image is resized up rather than any slot or panel squashed.
+        """
         nr = math.ceil(n_panels / nc)
-        desired_w = nc * (panel_plot_w + left_band) + (nc - 1) * PANEL_GUTTER
-        w = min(max(base_w, desired_w), max_w)
+        w = max(base_w, nc * (panel_plot_w + left_band) + (nc - 1) * PANEL_GUTTER)
         pw = max(1.0, (w - nc * left_band - (nc - 1) * PANEL_GUTTER) / nc)
         if y_slots > 0:
             ph = max(MIN_PANEL_H if n_panels > 1 else 0.0, y_slots * max(slot_px, row_floor))
@@ -528,22 +521,23 @@ def recommend_layout(
         ph = max(ph, base_panel_h)
         ph = max(ph, pw / MAX_PANEL_ASPECT)
         h = nr * ph + (nr - 1) * PANEL_GUTTER + bands + axis_band
-        return {"ncol": nc, "nrow": nr, "desired_w": desired_w, "width": w,
+        return {"ncol": nc, "nrow": nr, "width": w,
                 "panel_w": pw, "panel_h": ph, "height": h}
 
-    # Choose the column count. Start near-square, then add columns - never past the point where a
-    # panel would drop below its width floor inside the width ceiling - to pull a tall facet stack
-    # under the height ceiling. This is the "how many columns are actually required" decision:
-    # more columns trade the scroll dimension (height) for width, up to the display's width bound.
+    # Choose the column count so the *whole image* comes out near the profile's own aspect,
+    # given each panel's floored size - this is the "how many columns are actually required"
+    # decision. Because both dimensions resize freely, the grid is not bounded by a ceiling;
+    # it is picked to balance the image: tall panels (many y-rows) take more columns so the
+    # image is not a narrow tower, wide panels take fewer. Fewest columns wins a tie.
     if n_panels > 1:
-        ncol0, _ = _facet_grid(n_panels, aspect=1.6)
-        per_col = panel_plot_w + left_band + PANEL_GUTTER
-        ncol_cap = max(1, min(n_panels, int((max_w + PANEL_GUTTER) // per_col)))
-        ncol = min(ncol0, ncol_cap)
-        dims = _dims_for_ncol(ncol)
-        while dims["height"] > max_h and ncol < ncol_cap:
-            ncol += 1
-            dims = _dims_for_ncol(ncol)
+        target_aspect = base_w / base_h
+        best_dev: Optional[float] = None
+        dims = _dims_for_ncol(1)
+        for nc in range(1, n_panels + 1):
+            cand = _dims_for_ncol(nc)
+            dev = abs(math.log((cand["width"] / cand["height"]) / target_aspect))
+            if best_dev is None or dev < best_dev - 1e-9:
+                best_dev, dims = dev, cand
     else:
         dims = _dims_for_ncol(1)
 
@@ -553,42 +547,45 @@ def recommend_layout(
     panel_plot_h = dims["panel_h"]
     height = dims["height"]
 
-    # Width is display-bound and is clamped (an over-wide chart genuinely crowds); height is the
-    # scroll dimension, so the image is resized up to keep every panel at its floor rather than
-    # squashed under a ceiling. Both cases are reported in warnings and the structured fit object.
-    width_crowded = dims["desired_w"] > max_w + 0.5
-    if width_crowded:
+    # Neither dimension is squashed to a ceiling: the whole image is resized up so every slot
+    # and panel keeps its floor. When the honest size is bigger than the profile box on either
+    # axis, report which and hand back ranked directives to shrink content if a smaller image is
+    # wanted.
+    over_width = width > max_w + 0.5
+    over_height = height > max_h + 0.5
+    if over_width:
         warnings.append(
-            f"content needs {dims['desired_w']:.0f}px of width but the {delivery_profile} "
-            f"ceiling is {max_w:.0f}px: {'slots' if x_slots else 'panels'} will crowd - thin "
-            "them, aggregate, or split the chart."
+            f"content needs {width:.0f}px of width, past the {delivery_profile} "
+            f"ceiling of {max_w:.0f}px: the image is widened to keep "
+            f"{'slots' if x_slots else 'panels'} legible - thin them, aggregate, or split to shrink it."
         )
-    if height > max_h + 0.5:
+    if over_height:
         warnings.append(
-            f"content needs {height:.0f}px of height but the {delivery_profile} ceiling is "
-            f"{max_h:.0f}px: the canvas is grown to keep rows legible - show a top-N, page, or "
-            "split the chart if a taller image is unwanted."
+            f"content needs {height:.0f}px of height, past the {delivery_profile} ceiling of "
+            f"{max_h:.0f}px: the image is grown to keep rows legible - show a top-N, page, or "
+            "split the chart to shrink it."
         )
 
     directives: list[dict[str, Any]] = []
-    if width_crowded:
+    if over_width and x_slots > 0:
         directives.append({"action": "reduce_slots"})
-    if height > max_h + 0.5 and n_panels > 1:
+    if over_height and n_panels > 1:
         row_stride = panel_plot_h + PANEL_GUTTER
         rows_fit = max(1, int((max_h - bands - axis_band + PANEL_GUTTER) // max(1.0, row_stride)))
         panels_fit = rows_fit * ncol
         directives.append({"action": "reduce_panels", "to": panels_fit})
         directives.append({"action": "split_pages", "pages": math.ceil(n_panels / max(1, panels_fit))})
-    elif height > max_h + 0.5:
+    elif over_height:
         directives.append({"action": "split_pages", "pages": math.ceil(height / max_h)})
+    elif over_width and n_panels > 1:
+        directives.append({"action": "split_pages", "pages": math.ceil(width / max_w)})
 
     fit = _build_fit(
-        required_width_px=dims["desired_w"],
+        required_width_px=width,
         required_height_px=height,
         max_width_px=max_w,
         max_height_px=max_h,
         min_panel_height_px=panel_plot_h,
-        width_crowded=width_crowded,
         directives=directives,
     )
 

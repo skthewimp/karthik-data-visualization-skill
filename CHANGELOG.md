@@ -2,23 +2,24 @@
 
 ## Unreleased
 
-### `recommend_layout`: choose columns, grow the image, never squash a panel
+### `recommend_layout`: choose columns, resize the whole image, never squash a slot or panel
 
-Both overflow branches used to clamp `height = max_h` and hand back panels scaled below their
-own `MIN_PANEL_H` floor - a sub-floor thumbnail returned as a clean fit, with the truth buried
-in a warning string a weak maker skips. Three fixes:
+Both overflow branches used to clamp `height = max_h` (and width to `max_w`) and hand back
+slots/panels scaled below their own floors - a sub-floor thumbnail returned as a clean fit,
+with the truth buried in a warning string a weak maker skips. Three fixes:
 
-- **No sub-floor squash.** A panel is never scaled below its legibility floor to force a
-  ceiling fit. Width stays display-bound and is clamped (crowd warning); height is the scroll
-  dimension, so the canvas is *grown* - the image resized up - to keep every panel at its floor.
-- **Column count is derived, not guessed once.** The facet grid starts near-square, then adds
-  columns (up to the point a panel would drop below its width floor inside the width ceiling)
-  to seat a tall stack, trading the scroll dimension for width before growing height.
-- **Structured `fit` verdict.** Both paths return `fit = {status (ok/over_ceiling/infeasible),
-  legible, required/ceiling dims, min_panel_height_px, min_panel_floor_px, directives}`, where
-  `directives` are ranked machine-readable actions (`reduce_slots`/`reduce_panels`/
-  `split_pages`/`drop_group`). A weak maker cannot skip a `legible: false` boolean the way it
-  skips a sentence, and a harness gate can branch on `status`.
+- **No squash on either axis.** Nothing is ever scaled below its legibility floor to force a
+  ceiling fit. When the content needs more room than the profile, *both* width and height are
+  grown - the whole image is resized up - so every slot keeps its density and every panel keeps
+  `MIN_PANEL_H`.
+- **Column count is derived from the image aspect.** The facet grid is chosen so the whole
+  image lands near the profile's own aspect given each panel's floored shape: tall panels (many
+  y-rows) take more columns so the image is not a narrow tower, wide panels take fewer.
+- **Structured `fit` verdict.** Both paths return `fit = {status (ok/over_ceiling), legible,
+  over_width, over_height, required/ceiling dims, min_panel_height_px, min_panel_floor_px,
+  directives}`, where `directives` are ranked machine-readable actions (`reduce_slots`/
+  `reduce_panels`/`split_pages`/`drop_group`). A weak maker cannot skip a boolean the way it
+  skips a sentence, and a harness gate can branch on `status` and `over_width`/`over_height`.
 
 `dataviz_mcp/layout.py`; docs (`docs/mcp.md`, `dataviz_mcp/README.md`) and tests updated.
 
