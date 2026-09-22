@@ -3472,3 +3472,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Checked every skill + reference file in the repo. Result: - **Word "teal"**: 0 hits anywhere. - **Teal hex** (`#0d9488`, `#0e7490`, `#008080`, etc.): 0 hits in any SKILL.md or references file. - Example accent hexes a...
 
 <!-- claude-session:0bb1ff76-cad9-4209-8718-97c1b6b73939:end -->
+
+<!-- claude-session:f4724f89-d602-42ab-8358-517ae238c422:start -->
+## 2026-09-22 07:05 IST | Claude session `f4724f89-d60`
+
+### User prompts
+> see the latest run of
+> see the latest run of @canonical-examples.pdf . LOTS of very bad graph selections and implemmentatino. suddenly things have regressed massively. what'shappening? full report at @integrated-transcript.json separate out...
+> dn't focus on the checkers. focus on the makres. the key issue is in getting things right in the first pass. not correcting.
+
+### Work done
+- Good. Let me look at `recommend_layout` to see how it warns vs decides.
+- Read both sizing paths. Found the actual bug - the tool lies. ## The bug: it squashes, then claims it didn't Both overflow branches **clamp `height = max_h` and hand back tiny panels**: - Group path (`layout.py:275-28...
+- Touched files: `integrated-transcript.json`
+
+<!-- claude-session:f4724f89-d602-42ab-8358-517ae238c422:end -->
