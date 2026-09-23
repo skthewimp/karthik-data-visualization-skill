@@ -304,14 +304,35 @@ def test_group_roles_are_echoed_verbatim_not_enumerated():
     ]
 
 
-def test_group_honours_a_declared_column_count():
-    # select may declare the grid shape ("a two-column grid of ten panels"); the sizer must
-    # not override it with its own near-square guess.
-    result = recommend_layout(panel_groups=[
-        {"role": "detail", "n_panels": 10, "ncol": 2, "filled_marks": True, "x_slots": 6},
-    ])
-    detail = result["regions"][0]
-    assert detail["facet_ncol"] == 2 and detail["facet_nrow"] == 5
+def test_band_height_follows_what_each_group_shows():
+    # A one-bar overview above a four-bar detail panel is not an equal split: each band takes
+    # its rows plus the axis expansion, so the overview gets about a third of the plot height.
+    result = recommend_layout(
+        y_labels=True, longest_y_label_chars=20,
+        panel_groups=[
+            {"role": "overview", "n_panels": 1, "filled_marks": True, "y_slots": 1},
+            {"role": "detail", "n_panels": 1, "filled_marks": True, "y_slots": 4},
+        ],
+    )
+    overview, detail = result["regions"]
+    share = overview["height"] / (overview["height"] + detail["height"])
+    assert 0.2 <= share <= 0.4
+
+
+def test_group_grid_aims_at_the_target_aspect():
+    # The tool picks the column count: a wide target spreads a ten-panel detail grid into more
+    # columns than a square one, and the whole image lands wider.
+    groups = [{"role": "overview", "n_panels": 1}, {"role": "detail", "n_panels": 10}]
+    square = recommend_layout(panel_groups=groups, target_aspect=1.0)
+    wide = recommend_layout(panel_groups=groups, target_aspect=16 / 9)
+    assert wide["regions"][1]["facet_ncol"] > square["regions"][1]["facet_ncol"]
+    assert wide["width_px"] / wide["height_px"] > square["width_px"] / square["height_px"]
+
+
+def test_default_target_is_the_delivery_aspect_not_square():
+    # With no target given, a facet grid aims at the profile's own aspect (16:9 for chat).
+    result = recommend_layout(n_panels=11, facet_scales="free_y")
+    assert result["width_px"] / result["height_px"] > 1.4
 
 
 def test_wide_panel_group_grows_width_never_squashes_slots():

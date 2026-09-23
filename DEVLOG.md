@@ -1,5 +1,46 @@
 # Devlog
 
+## 2026-09-23 - Phase 4: geometry fixes in the tools
+
+### User report
+
+- "look at canonical-fix-plan.md. let's get to phase 4."
+
+### What I did
+
+- `place_on_marks`: a value at the first or last vertex of a path mark now parks outward along
+  the run, beside the dot. On the case 02 geometry both dumbbell labels had their box corner on
+  the point, so both sat below and to the right. Found that local ggplot renders did not export
+  `geom_segment` at all (the grob has `x0`/`x1`, no `x`), so segments now export as two-point
+  paths.
+- `recommend_layout`: in a `panel_groups` stack each band was floored to `width / 2`, which made
+  a one-bar overview and a four-bar detail the same height (case 06). Discrete bands now take
+  their rows plus the 0.6-row axis expansion at each end. The aspect target is now an input
+  (`target_aspect`, default the profile's 16:9) instead of a square constant, and the group path
+  searches the column count against it. Declared `ncol`/`nrow` on groups are dropped: case 03's
+  select declared two columns, which is what made the 1200x2288 tower.
+- Annotation font role one step below labels; `chart-annotations` no longer tells the model to
+  reserve margin room for annotations. Case 08's right strip was reserved site-side by
+  `compose_regions`, which is not in this repo.
+- Category band cap 35% -> 20% of panel width.
+- `recommend_colours`: generated colours maximise hue gap first, then lightness separation.
+
+### Notes / decisions
+
+- Case 03 inputs now give a 4x3 detail grid at 1816x1326 (over the 1600 chat ceiling by width,
+  reported in `fit`). Case 06 inputs give a 30/70 split.
+- The first version of the group grid search let a continuous overview grow with the canvas
+  width (`width / 1.6`), so wider always meant a taller overview and the search ran off to a
+  4576px canvas. Capped a continuous band at one chart's plotting height.
+- Tried making `recommend_colours` swap out a supplied colour that fails `min_separation` for a
+  generated one (the "return a palette that passes" note from Phase 3). Backed it out: the
+  separation metric scores Okabe-Ito blue vs bluish green at 0.123, below case 01's green vs teal
+  at 0.155, so the rule replaced a vetted Okabe colour with a muddy generated green. Needs a better
+  distinctness metric first.
+- Line type as a second channel (flagged in Phase 2 as belonging here) is not done.
+- Checked by rendering: a geom_segment dumbbell through `place_on_marks` (labels outside both
+  ends, centred on the row) and a patchwork built from the case-06-shaped layout.
+
 ## 2026-09-23 - Phase 2: chart source scaffolded from the plan, checked on the built plot
 
 ### User report

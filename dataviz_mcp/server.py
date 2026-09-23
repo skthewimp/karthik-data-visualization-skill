@@ -407,6 +407,7 @@ def create_server() -> Any:
         longest_y_label_chars: int = 0,
         delivery_profile: str = "chat",
         panel_groups: list[dict[str, Any]] | None = None,
+        target_aspect: float | None = None,
     ) -> dict[str, Any]:
         """Size a clip-safe canvas (width/height/dpi), facet grid, and x-label rotation.
 
@@ -424,7 +425,8 @@ def create_server() -> Any:
         panel to fit them. The result reports ``reserved_left_px`` and ``data_panel_fraction``
         (the plot area's share of the canvas); a panel starved below 40% is warned. Nothing is
         squashed below the legibility floor: the column count is chosen so the whole image comes
-        out near the profile's aspect, and when the content needs more room both width and height
+        out near ``target_aspect`` (pass the source image's width:height when repairing; default
+        the profile's aspect), and when the content needs more room both width and height
         are grown (the image is resized up) rather than clamped. A ``fit`` object reports
         ``status`` (ok / over_ceiling), ``legible``, ``over_width`` / ``over_height``, required vs
         ceiling dims, and ranked ``directives`` (reduce_slots / reduce_panels / split_pages /
@@ -437,9 +439,10 @@ def create_server() -> Any:
 
         For a heterogeneous layout - an aggregate/overview panel set apart from a small-multiple
         detail grid (the selector's aggregate-and-parts guardrail) - pass ``panel_groups``: a
-        list of ``{role, n_panels, emphasis?, filled_marks?, x_slots?, y_slots?, ncol?, nrow?}``. Each group
-        is sized as its own sub-grid and stacked as a full-width band (``emphasis`` >1 makes a
-        band taller so the overview reads apart, not as one more equal cell), and the per-band
+        list of ``{role, n_panels, emphasis?, filled_marks?, x_slots?, y_slots?}``. Each group
+        is sized as its own sub-grid and stacked as a full-width band whose height follows what
+        it has to show (``emphasis`` >1 makes a band taller so the overview reads apart); the
+        column count is chosen here, not declared, and the per-band
         structure comes back as ``regions`` for Build to place - do not flatten it to one grid.
         ``role`` is a free-text label echoed back per band.
         """
@@ -459,6 +462,7 @@ def create_server() -> Any:
             longest_y_label_chars,
             delivery_profile,
             panel_groups,
+            target_aspect,
         )
 
     @server.tool()
@@ -611,7 +615,7 @@ def create_server() -> Any:
 
         The model writes only the body of ``chart_marks`` between the marks markers - layers
         mapping x = category, y = value, coloured from ``palette``/``ink``, numbers through
-        ``fmt_value``, text at ``label_size``. The scaffold adds its scales, labs and theme after
+        ``fmt_value``, text at ``label_size`` (a free annotation at ``annotation_size``). The scaffold adds its scales, labs and theme after
         the slot, so a stray override there loses. Returns ``source_path``, ``dimensions`` for
         the render, ``decided`` (what was applied, for ``recommendations_used``), a
         ``marks_brief`` for the build model and ``warnings``. Run ``check_chart`` after the

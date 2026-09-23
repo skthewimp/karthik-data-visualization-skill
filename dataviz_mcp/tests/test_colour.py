@@ -309,3 +309,18 @@ def test_validate_scale_flags_poles_that_collapse_in_grayscale():
     )
     assert result["verdict"] == "soft_fail"
     assert any("pole" in f["rule"] for f in result["findings"])
+
+
+def test_generated_colours_take_a_hue_of_their_own():
+    # A three-colour pool for five series: the two generated colours must each sit well round
+    # the wheel from every other colour, not land as a second shade of a hue already in play
+    # (lightness-weighted separation alone picks two purples here).
+    from dataviz_mcp.color_math import hue_lightness
+    from dataviz_mcp.palette import _circular_hue_distance
+
+    result = recommend_colours(["#0072B2", "#009E73", "#D55E00"], n_series=5)
+    assert len(result["generated_additions"]) == 2
+    hues = {c: hue_lightness(c)[0] for c in result["chosen"]}
+    for added in result["generated_additions"]:
+        gap = min(_circular_hue_distance(hues[added], h) for c, h in hues.items() if c != added)
+        assert gap >= 45, result["chosen"]

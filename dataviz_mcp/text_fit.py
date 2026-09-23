@@ -473,7 +473,9 @@ def recommend_text_placement(
             unbounded distance. It is nudged at most about one line-height to clear ANOTHER
             on-mark value it lands on (adjacent line ends), keeping it on its mark; when even
             that will not separate two on-mark values, both stay put and a warning asks the build
-            to move the movable label, stack them, or cut one. role ``axis_label`` is likewise
+            to move the movable label, stack them, or cut one. A ``data_label`` that declares a
+            ``placement`` side parks one gap beyond its anchor on that side, centred on it, instead
+            of putting its box corner on the anchor. role ``axis_label`` is likewise
             positioned by the plotting layer and wrapped without moving. role ``label`` (a category/series
             name) and ``annotation`` (a free callout) are movable: the anchor is the mark, and the
             box parks beside it. ``placement`` (one of right/above/below/left) sets the preferred
@@ -583,7 +585,8 @@ def recommend_text_placement(
     ordered = sorted(blocks, key=lambda b: _tier(b.get("role", "annotation")))
     for block in ordered:
         role = block.get("role", "annotation")
-        font_pt = float(block.get("font_pt") or FONT_PT.get(role, FONT_PT["annotation"]))
+        font_pt = float(block.get("font_pt") or FONT_PT.get(
+            role, FONT_PT["label"] if role in LABEL_ROLES else FONT_PT["annotation"]))
         # Measure widths in the font this block will actually be drawn in. Family/weight/style
         # are carried from the render context (a matplotlib artist or a ggplot theme); absent,
         # the measurer resolves the default face - still real advances, not a flat 0.5-em guess.
@@ -628,6 +631,12 @@ def recommend_text_placement(
                 text, font_pt, dpi, avail, max_lines, allow_curtail, measurer
             )
             bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
+            if role == "data_label" and block.get("placement") in ("right", "left", "above", "below"):
+                # A data label with a declared side parks one gap beyond its mark on that side,
+                # centred on it - not with its box corner on the point.
+                gap = max(4.0, round(0.3 * line_px(font_pt, dpi)))
+                bbox["x"], bbox["y"] = _park((ax, ay), block["placement"], gap, box_w, box_h)
+                ax, ay = bbox["x"], bbox["y"]
             nx, ny = _nudge_into_canvas(bbox, width_px, height_px, margin)
             if (round(nx), round(ny)) != (round(ax), round(ay)):
                 warnings.append("would clip the canvas edge; nudged inward")
@@ -995,6 +1004,45 @@ def _anchor_hits_mark(x: float, y: float, mark: dict[str, Any]) -> bool:
                 and box["y"] - tolerance <= y <= box["y"] + box["height"] + tolerance)
 
 
+def _path_end_side(
+    x: float, y: float, marks: list[dict[str, Any]]
+) -> Optional[tuple[str, tuple[float, float]]]:
+    """If ``(x, y)`` is the first or last vertex of a path mark (a dumbbell or range bar, a line's
+    start or end), return the outward side along the path's run - left of the start and right of
+    the end of a horizontal run, above/below for a vertical one - plus the anchor moved out to the
+    edge of any point mark drawn there, so the label clears the dot. ``None`` for anything else."""
+    tolerance = 1.0
+    for mark in marks:
+        for points in mark.get("segments") or ([mark["points"]] if mark.get("points") else []):
+            if len(points) < 2:
+                continue
+            (x0, y0), (x1, y1) = points[0], points[-1]
+            dx, dy = x1 - x0, y1 - y0
+            if math.hypot(dx, dy) <= tolerance:
+                continue  # a zero-length run has no outward direction
+            for end, sign in (((x0, y0), -1.0), ((x1, y1), 1.0)):
+                if math.hypot(x - end[0], y - end[1]) > tolerance:
+                    continue
+                if abs(dx) >= abs(dy):
+                    side = "right" if sign * dx > 0 else "left"
+                else:
+                    side = "below" if sign * dy > 0 else "above"
+                boxes = [m["bbox"] for m in marks if "bbox" in m and "points" not in m
+                         and "segments" not in m and _anchor_hits_mark(x, y, m)]
+                ex, ey = x, y
+                if boxes:
+                    if side == "right":
+                        ex = max(b["x"] + b["width"] for b in boxes)
+                    elif side == "left":
+                        ex = min(b["x"] for b in boxes)
+                    elif side == "below":
+                        ey = max(b["y"] + b["height"] for b in boxes)
+                    else:
+                        ey = min(b["y"] for b in boxes)
+                return side, (ex, ey)
+    return None
+
+
 def place_on_marks(
     width_px: int,
     height_px: int,
@@ -1036,7 +1084,10 @@ def place_on_marks(
             ``anchors_data`` is an optional list of ``{data_x, data_y}``
             candidate marks for a category ``label`` (it may sit beside any of them). Roles
             follow ``recommend_text_placement``: ``label`` / ``annotation`` move, ``data_label``
-            / ``axis_label`` stay on their projected spot.
+            / ``axis_label`` stay on their projected spot. A ``data_label`` with no ``placement``
+            whose point is the first or last vertex of a path mark (a dumbbell or range bar, a
+            line's start or end) parks outward along the run: left of the start and right of the
+            end of a horizontal run, below/above for a vertical one, clear of the dot drawn there.
         marks: the render's mark boxes (``layout['marks']`` and/or ``['series']``); their
             ``bbox`` values become the obstacles movable labels dodge.
         fixed_blocks: frame blocks from ``reserve_frame`` (already in px), passed through so
@@ -1099,6 +1150,13 @@ def place_on_marks(
             if key not in ("data_x", "data_y", "anchors_data")
         }
         block["anchor"] = {"x": px, "y": py}
+        if block.get("role") == "data_label" and not block.get("placement"):
+            # A value at the end of an interval or line goes outward along the run, beside the
+            # end mark: left of the minimum, right of the maximum.
+            end = _path_end_side(px, py, marks or [])
+            if end is not None:
+                block["placement"] = end[0]
+                block["anchor"] = {"x": end[1][0], "y": end[1][1]}
         anchors_data = label.get("anchors_data")
         if anchors_data:
             block["anchors"] = [

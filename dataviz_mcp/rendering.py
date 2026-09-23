@@ -827,6 +827,25 @@ capture_panel_grob <- function(g, prefix, px, py, pw, ph) {
     return(captured)
   }
   if (inherits(g, c("zeroGrob", "nullGrob"))) return(captured)
+  if (inherits(g, "segments")) {
+    # geom_segment draws each segment from (x0, y0) to (x1, y1), with no x/y: one two-point
+    # path per segment, so a dumbbell's or range bar's ends are known.
+    x0 <- px + unit_values(g$x0) * pw
+    y0 <- py + (1 - unit_values(g$y0)) * ph
+    x1 <- px + unit_values(g$x1) * pw
+    y1 <- py + (1 - unit_values(g$y1)) * ph
+    count <- min(length(x0), length(y0), length(x1), length(y1))
+    for (j in seq_len(count)) {
+      if (!all(is.finite(c(x0[j], y0[j], x1[j], y1[j])))) next
+      captured[[length(captured) + 1]] <- row_frame(
+        paste0(prefix, "-", j), prefix, "", min(x0[j], x1[j]), min(y0[j], y1[j]),
+        abs(x1[j] - x0[j]), abs(y1[j] - y0[j]), "polyline",
+        gp_value(g$gp, "col", j), "", "",
+        paste(c(x0[j], x1[j]), collapse=";"), paste(c(y0[j], y1[j]), collapse=";")
+      )
+    }
+    return(captured)
+  }
   xs <- unit_values(g$x)
   ys <- unit_values(g$y)
   if (!length(xs) || !length(ys) || any(!is.finite(c(xs, ys)))) return(captured)

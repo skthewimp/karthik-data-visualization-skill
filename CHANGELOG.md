@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### Geometry fixes from the canonical run (Phase 4)
+
+- **`place_on_marks`: values at the ends of an interval go outward.** A `data_label` whose
+  point is the first or last vertex of a path mark (a dumbbell, a range bar, a line's start or
+  end) parks left of the start and right of the end of a horizontal run (below/above for a
+  vertical one), centred on the row and clear of the dot there - not with its box corner on the
+  point, which put both labels below and to the right. `recommend_text_placement` honours a
+  `placement` side on a `data_label` the same way. ggplot `geom_segment` segments now export to
+  the render metadata as two-point paths, so a dumbbell drawn with segments is recognised.
+- **`recommend_layout`: band heights follow content; the image aims at the delivery aspect.** In
+  a `panel_groups` stack a band of discrete rows takes its rows plus the axis expansion instead of
+  being floored to the same letterbox height as every other band, so a one-bar overview above a
+  four-bar detail gets about a third of the height, not half. A continuous band is capped at a
+  single chart's plotting height so a wide stack does not blow one line up into a poster. The
+  column count is the tool's call for groups too (declared `ncol`/`nrow` are dropped), chosen
+  against the new `target_aspect` input - the source image's width:height when repairing,
+  default the delivery profile's aspect - which replaces the square `TARGET_IMAGE_ASPECT`.
+- **Annotations are a smaller role and sit inside the panel.** `FONT_PT` gains a `label` role
+  (series names and values, at the axis size) and `annotation` drops a step below it. The
+  scaffold writes `label_size` from `label` and a new `annotation_size`, and reserves end-label
+  room at the label size. `chart-annotations` now says an annotation sits in the panel's
+  whitespace with no margin strip reserved for it; only text past the data's far end gets room.
+- **Category labels wrap tighter.** The y category band cap drops from 35% to 20% of the panel
+  width, so long names wrap into more, narrower lines.
+- **`recommend_colours`: generated colours take a hue of their own.** When a short pool is filled
+  out, the generator maximises the hue gap to every placed colour (up to the even spacing for the
+  series count) before lightness separation, so it no longer adds a second shade of a hue already
+  in play.
+
 ### Chart source scaffolded from the plan; the model writes only the marks
 
 The canonical run showed weak build models getting settled mechanics wrong - tiny fonts, axis

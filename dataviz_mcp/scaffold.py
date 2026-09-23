@@ -218,8 +218,9 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "fmt_value <- scales::label_number("
         + (f"accuracy = {fmt['step']!r}, " if fmt["step"] else "")
         + f"big.mark = \",\", prefix = {_r_str(fmt['prefix'])}, suffix = {_r_str(fmt['suffix'])})",
-        "# Text: geom_text(size = label_size) for every label and annotation.",
-        f"label_size <- {fonts['annotation']} / .pt",
+        "# Text: geom_text(size = label_size) for labels and values, annotation_size for a free annotation.",
+        f"label_size <- {fonts['label']} / .pt",
+        f"annotation_size <- {fonts['annotation']} / .pt",
         "# Stacks: position = stack for stacked bars, stack_mid for their labels - the first",
         "# series sits at the baseline and each label on its own segment.",
         "stack <- position_stack(reverse = TRUE)",
@@ -349,8 +350,9 @@ def _matplotlib_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "# Colours: PALETTE[\"<series>\"] by name, INK for a single-colour mark.",
         f"PALETTE = {spec['palette']!r}",
         f"INK = {(spec['ordered'][0] if spec['ordered'] else '#1a1a1a')!r}",
-        "# Text: fontsize=LABEL_PT for every label and annotation.",
-        f"LABEL_PT = {fonts['annotation']}",
+        "# Text: fontsize=LABEL_PT for labels and values, ANNOTATION_PT for a free annotation.",
+        f"LABEL_PT = {fonts['label']}",
+        f"ANNOTATION_PT = {fonts['annotation']}",
         "# Text on a mark: color=ON_INK[series] - the ink that reads on that fill.",
         f"ON_INK = {spec['on_ink']!r}",
         "",
@@ -608,7 +610,7 @@ def scaffold_chart(
     reserved_px = dict(frame.get("reserved_px") or margin_px)
     extra = 0.0
     if end_chars:
-        need = end_chars * char_px(fonts["annotation"], dpi) + pt_to_px(fonts["annotation"], dpi) * 0.6
+        need = end_chars * char_px(fonts["label"], dpi) + pt_to_px(fonts["label"], dpi) * 0.6
         panel_w = width - float((frame.get("reserved_px") or margin_px)["left"]) - float(margin_px["right"])
         n_slots = len(_first_seen(rows, "category"))
         expansion = (0.6 * panel_w / max(1.2, n_slots + 0.2)) if x_kind == "discrete" and not horizontal else 0.05 * panel_w
@@ -670,14 +672,14 @@ def scaffold_chart(
                 "palette": ordered or stops,
                 "series_palette": palette,
                 "orientation": spec["orientation"],
-                "label_pt": fonts["annotation"],
+                "label_pt": fonts["label"],
             },
             indent=2,
         ),
         encoding="utf-8",
     )
     decided = [
-        f"canvas {width}x{height}px at {dpi}dpi; title {fonts['title']}pt, axis {fonts['axis']}pt, labels {fonts['annotation']}pt",
+        f"canvas {width}x{height}px at {dpi}dpi; title {fonts['title']}pt, axis {fonts['axis']}pt, labels {fonts['label']}pt, annotations {fonts['annotation']}pt",
         f"x axis {x_kind}{' (flipped horizontal)' if horizontal else ''}; value axis "
         + ("hidden - the planned value labels carry the reading" if hide_value_axis else "shown"),
         f"palette {'continuous ' + str(len(stops)) + ' stops' if stops else (palette or ordered)}",
@@ -953,7 +955,7 @@ def check_chart(source_path: str) -> dict[str, Any]:
             f"Marks use {', '.join(stray)}, which is not in the resolved palette. Colour marks from palette/ink "
             "(or a neutral grey for context) - never pick a hue by hand.",
         )
-    floor = float(record.get("label_pt") or FONT_PT["annotation"]) * _MIN_TEXT_SHARE
+    floor = float(record.get("label_pt") or FONT_PT["label"]) * _MIN_TEXT_SHARE
     small = [s for s in found.get("text_sizes") or [] if s < floor]
     if small:
         deviate(

@@ -79,11 +79,27 @@ def _hls_to_hex(hue_deg: float, lightness: float, saturation: float) -> str:
     return f"#{round(r * 255):02X}{round(g * 255):02X}{round(b * 255):02X}"
 
 
+def _hue_gap(colour: str, placed: Sequence[str]) -> float:
+    """Smallest hue distance (deg) from ``colour`` to any chromatic colour in ``placed``.
+    Greys and black carry no hue, so they never crowd a hue; 180 when nothing chromatic is placed."""
+    hl = hue_lightness(colour)
+    if hl is None:
+        return 0.0
+    gaps = [
+        _circular_hue_distance(hl[0], other_hl[0])
+        for other in placed
+        if (other_hl := hue_lightness(other)) is not None
+        and (_saturation(other) or 0.0) > _GREY_MAX_SATURATION
+    ]
+    return min(gaps, default=180.0)
+
+
 def _generate_distinguishable(
     placed: Sequence[str],
     background: str,
     count: int,
     min_contrast_mark: float,
+    min_hue_deg: float = 0.0,
 ) -> list[str]:
     """Algorithmically extend a palette when the curated/supplied pool is genuinely too
     small for the requested series count (the count is the hard constraint).
@@ -91,8 +107,12 @@ def _generate_distinguishable(
     Honours the same priority as selection: candidates come from an HLS lattice whose
     lightness bands are picked for the background (darker marks on a light ground, lighter
     on a dark one), so every candidate reads against the background; then they are appended
-    farthest-first to maximise separation from what is already placed. Not the default path
-    - only the shortage handler, so it never displaces a good recommended colour.
+    farthest-first from what is already placed. Separation is weighted to lightness, so on its
+    own it would happily add a second blue a shade darker than the first; so the hue gap to the
+    nearest placed hue is maximised first (up to ``min_hue_deg``, the even spacing, beyond which
+    more gap buys nothing) and separation breaks the tie - each added series gets a hue of its
+    own. Not the default path - only the shortage handler, so it never displaces a good
+    recommended colour.
     """
     bg_light = hue_lightness(background)
     is_light_bg = (bg_light[1] if bg_light else 1.0) >= 0.5
@@ -117,7 +137,10 @@ def _generate_distinguishable(
     while len(chosen) < count and candidates:
         best = max(
             candidates,
-            key=lambda c: min((_separation(c, other) for other in reference), default=0.0),
+            key=lambda c: (
+                min(_hue_gap(c, reference), min_hue_deg),
+                min((_separation(c, other) for other in reference), default=0.0),
+            ),
         )
         chosen.append(best)
         reference.append(best)
@@ -535,7 +558,10 @@ def recommend_colours(
     farthest-first, so every extra reads on the background), reported in `generated_additions`, so
     the hard count is met. `resolved` is false only in the pathological case where even generation
     cannot produce enough colours clearing the background bar (e.g. a mid-grey ground); then
-    `route_to` is "select" to change the background or drop a series.
+    `route_to` is "select" to change the background or drop a series. Generated colours keep a
+    hue of their own - as far round the wheel from every placed hue as the even spacing for
+    `n_series` allows - so a short pool is not filled out with a second shade of a hue already in
+    play.
 
     Without `semantic_hints`, the returned palette is **ordered and prefix-nested**: it
     is built by farthest-first traversal, so the first m colours are themselves a good
@@ -682,10 +708,15 @@ def recommend_colours(
     # algorithmically rather than give up - generated colours read on the background and are
     # farthest-first from everything already in play. This fires only when the pool cannot
     # cover the count, never as the default path.
+    # Generated series take a hue of their own, aiming for the even spacing a palette of this
+    # size would have round the wheel.
+    min_hue_deg = 360.0 / max(1, n_series)
     generated: list[str] = []
     deficit = len(remaining_slots) - len(supply)
     if deficit > 0:
-        generated = _generate_distinguishable(placed + supply, background, deficit, min_contrast_mark)
+        generated = _generate_distinguishable(
+            placed + supply, background, deficit, min_contrast_mark, min_hue_deg
+        )
         supply = supply + generated
     generated_set = set(generated)
 

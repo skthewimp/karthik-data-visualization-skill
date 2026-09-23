@@ -75,12 +75,12 @@ Where the harness ships forward placement tools, let them settle the geometry de
 
 - **Anchor on the datum, then offset into whitespace.** A group's centroid is the worst resting place; push the text to the outside edge where no mark sits.
 - Text must never sit on data, gridlines, or another label. A connector must never cross other data; use one only when proximity alone doesn't make the link clear.
-- **Reserve room for text in the margin, not by stretching the data scale.** Labels clip on every edge the text can reach, so make the room before rendering - widen the plot margin (or let `reserve_frame` reserve the band) rather than extending the axis limits to hold non-data content, and never reserve the same room twice. Turn clipping off; don't discover the clip after rendering.
-- If no honest placement exists, change the chart (widen margins, expand the range, move the panel) before dropping the mark.
+- **An annotation sits inside the panel, in the whitespace the data leaves; no margin strip is reserved for it.** Only text that must sit past the far end of the data - a series name at a line's end - gets room beyond the panel, and only as much as it needs. Make any room before rendering rather than extending the axis limits to hold non-data content, never reserve the same room twice, and turn clipping off; don't discover the clip after rendering.
+- If no honest placement exists, change the chart (expand the range, move the panel, wrap the text tighter) before dropping the mark.
 
 ## Visual weight
 
-- **Primary** (the annotation, or the one label the claim rests on): accent colour, bold, slightly larger; the datum it points at also takes the accent.
+- **Primary** (the annotation, or the one label the claim rests on): accent colour, bold, at the annotation size (a step below the axis text); the datum it points at also takes the accent.
 - **Supporting** (context labels, series names, period labels): grey, regular weight, smaller than axis labels.
 - **Text is freestanding, never boxed.** An annotation or direct label is text laid on the plot - no background fill, border, drop-shadow, or enclosing bubble. In ggplot that is `geom_text`, never `geom_label`. If the text won't read against the marks behind it, move it into whitespace or lift its colour and weight; boxing it to force contrast just stamps an opaque panel over the data it sits on.
 

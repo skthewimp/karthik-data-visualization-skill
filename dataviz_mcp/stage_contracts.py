@@ -1413,8 +1413,8 @@ setting you change there is lost. In the slot, in order:
      guides. Matplotlib: draw on ``ax`` from ``rows`` with ``pos(row)`` and ``row['value']``; no
      titles, limits, ticks or spines.
   2. Colour every data mark from ``palette`` / ``ink`` (a neutral grey for context); never type a
-     hue. Print every number with ``fmt_value()``; set every text at ``label_size`` (``LABEL_PT``);
-     plain text, never ``geom_label`` boxes.
+     hue. Print every number with ``fmt_value()``; set labels and values at ``label_size`` (``LABEL_PT``), a free
+     annotation at ``annotation_size`` (``ANNOTATION_PT``); plain text, never ``geom_label`` boxes.
   3. Label only the marks that carry the reading - a series' identity, an endpoint, the focal
      comparison, a genuine exception - never a value on every point of every series. When the
      plan's ``value_labels`` is above 0 the value axis is gone, so those labels must be drawn.

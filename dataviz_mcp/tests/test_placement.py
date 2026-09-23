@@ -803,3 +803,61 @@ def test_without_plot_area_no_boundary_correction_is_applied():
         marks=[_SURROUNDING_MARK],
     )
     assert result["placements"][0]["plot_boundary_correction"] is None
+
+
+def test_interval_end_values_go_outward_along_the_interval():
+    # A horizontal dumbbell: one path from the minimum to the maximum, a dot at each end. The
+    # minimum's value sits left of its dot and the maximum's right of its dot, both centred on the
+    # row - not with their box corners on the points (below and to the right of both).
+    lo, hi = TRANSFORM[0][0] * 20 + 100, TRANSFORM[0][0] * 80 + 100  # 140, 260
+    row = 600 - 5 * 40  # 400
+    marks = [
+        {"id": "bar", "role": "series", "points": [[lo, row], [hi, row]]},
+        {"id": "dot-lo", "role": "mark", "bbox": {"x": lo - 6, "y": row - 6, "width": 12, "height": 12}},
+        {"id": "dot-hi", "role": "mark", "bbox": {"x": hi - 6, "y": row - 6, "width": 12, "height": 12}},
+    ]
+    result = place_on_marks(
+        width_px=800, height_px=600, dpi=144, transform=TRANSFORM,
+        labels=[
+            {"id": "lo", "text": "20%", "role": "data_label", "data_x": 20, "data_y": 40,
+             "max_width_px": 80, "max_lines": 1},
+            {"id": "hi", "text": "80%", "role": "data_label", "data_x": 80, "data_y": 40,
+             "max_width_px": 80, "max_lines": 1},
+        ],
+        marks=marks,
+    )
+    lo_box, hi_box = _by_id(result, "lo")["bbox"], _by_id(result, "hi")["bbox"]
+    assert lo_box["x"] + lo_box["width"] <= lo - 6   # wholly left of the minimum's dot
+    assert hi_box["x"] >= hi + 6                     # wholly right of the maximum's dot
+    for box in (lo_box, hi_box):
+        assert abs(box["y"] + box["height"] / 2 - row) < 1  # centred on the row
+
+
+def test_ggplot_segments_export_as_paths_so_interval_ends_are_known(tmp_path):
+    # geom_segment draws from (x0, y0) to (x1, y1) with no x/y; the render metadata must still
+    # carry each segment as a two-point path, or the interval rule never sees a dumbbell.
+    from dataviz_mcp.rendering import probe_renderers, render_and_inspect_chart
+
+    if not probe_renderers()["renderers"]["ggplot2"]["available"]:
+        pytest.skip("ggplot2 unavailable")
+    source = tmp_path / "chart.R"
+    source.write_text(
+        "library(ggplot2)\n"
+        "build_chart <- function() {\n"
+        "  d <- data.frame(y = c('a', 'b'), lo = c(10, 20), hi = c(60, 80))\n"
+        "  ggplot(d) + geom_segment(aes(x = lo, xend = hi, y = y, yend = y))\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    bundle = render_and_inspect_chart(
+        str(source), str(tmp_path / "out"), dimensions={"width_px": 800, "height_px": 500, "dpi": 144}
+    )
+    import json
+    from pathlib import Path
+
+    meta = json.loads(Path(bundle["layout_metadata_path"]).read_text(encoding="utf-8"))
+    paths = [s for s in meta["series"] if len(s["points"]) == 2]
+    assert len(paths) == 2
+    for path in paths:
+        (x0, y0), (x1, y1) = path["points"]
+        assert abs(y0 - y1) < 0.5 and x1 > x0  # horizontal, drawn low to high
