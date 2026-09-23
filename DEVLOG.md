@@ -3649,3 +3649,14 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `integrated-transcript.json`
 
 <!-- claude-session:3a1e19ac-b094-4e27-8a78-9e7cb91692e0:end -->
+
+<!-- claude-session:4ba3bbba-b18e-4379-832d-35e3a7e73848:start -->
+## 2026-09-23 09:19 IST | Claude session `4ba3bbba-b18`
+
+### User prompts
+> despite all the changes we've made over teh last month, our chart doctor is still really unreliable and buggy. and way too slow (taking 5 mins per chart). look at the latest set of @canonical-examples.pdf . my comment...
+
+### Work done
+- Touched files: `canonical-examples-analysis.md`, `integrated-transcript.json`
+
+<!-- claude-session:4ba3bbba-b18e-4379-832d-35e3a7e73848:end -->
