@@ -3675,3 +3675,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:1b7009ea-1f9e-43a8-a059-e8796b47e932:end -->
+
+<!-- claude-session:5c7c56a9-ce1d-4a93-89a2-7544142aa3da:start -->
+## 2026-09-23 10:20 IST | Claude session `5c7c56a9-ce1`
+
+### User prompts
+> read @canonical-fix-plan.md . see if this has been made properly and edit if required. the latest run outputs are at @canonical-examples.pdf . my comments are at @canonical-examples-analysis.md . the run logs are at @...
+> remembmer no overfitting - on the "bollywood" thing
+
+### Work done
+- I checked `canonical-fix-plan.md` against your notes, the PDF and the code, and edited it. The core was right but it missed about a third of your comments. **What checks out:** the `ncol`/`nrow` override is real (`lay...
+- I've taken out the Bollywood rule, plus three other spots where the plan had copied your specific examples into rules. Each case now shows up only as evidence. 1. **Title rule:** "title keeps source subject (c01 'Boll...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:5c7c56a9-ce1d-4a93-89a2-7544142aa3da:end -->
