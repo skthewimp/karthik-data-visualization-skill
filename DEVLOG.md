@@ -1,5 +1,52 @@
 # Devlog
 
+## 2026-09-23 - Chart copy: hedges off, subject kept, numbers pre-rounded, legend last
+
+### User report
+
+- Phase 3 of the canonical-run fix plan: "Take all hedging and provenance text off the chart...
+  Subtitles are optional and must add a fact the title doesn't carry... The title keeps the
+  source's subject and scope noun... Numbers in the title and annotations go through
+  recommend_precision at the insight stage, using the spread rule... Legend: replace it with
+  coloured words in the subtitle or direct labels when there are only a few series."
+- "how will you do it?" then: "keep caption only to carry on captions that the source has.
+  nothing else. yeah you can add unit scaling to recommend_precision. yes, depend on ggtext. or
+  whatever the equivalent is in matplotlib"
+
+### What I did
+
+- Took the slot away instead of adding a rule: `public_copy` has no `footer`, and `caption` is the
+  diagnose stage's new `printed_caption`, copied verbatim. Every "chart footnote" route in
+  `stage_contracts.py` now points at the run report, and the same wording is gone from the skills.
+- Added `unit_multiplier` and a `compact` form to `recommend_precision`, plus
+  `precision.number_formats` for the driver to run before insight.
+- `identification_strategy` became a closed route with `subtitle_key` ahead of `legend`, and the
+  build rule for ggtext and Matplotlib `HPacker` went in.
+- Validated diagnose -> insight -> select on cases 01, 02, 05 and 06 with Sonnet and Haiku, plus a
+  quick ggplot build on case 02 to check the colour key in pixels.
+
+### Notes / decisions
+
+- The first validation round found three things, all fixed and rerun on Haiku:
+  - Haiku still wrote "reconstructed from source table" into the caption. The prose rule alone
+    didn't hold, which is why the caption is now tied to `printed_caption`.
+  - Case 06 came out as "$77.3K". The scale lived in the axis title, not the column header, so
+    the data table got a `unit` field. A bare "M" in that field is read as millions (a lowercase
+    "m" is not).
+  - Share columns named "25-34 years" were skipped as date columns. Label columns are now judged
+    on the whole header or on year-like values.
+- Also fixed on the way: `[11 ... 1653]` came out as "0.01K", so the compact unit now steps down
+  for the smallest value. `[38, 43]` came out as "38.0", so source digits are now a ceiling in the
+  spread path.
+- Both models wrote "(none - ...)" into empty copy fields, which build would print. The contract
+  now says to leave them blank.
+- Open: formats are per column. When the headline quotes a total that isn't its own column
+  (case 06, long-format table), the step comes from the segment spread, so the title gets "$77B"
+  where "$77.3B" would be better. One Haiku subtitle described the chart instead of adding a fact.
+  The execution gate is the backstop there.
+- The external site driver has to call `number_formats` and pass its output into insight. Nothing
+  in this repo does that yet.
+
 ## 2026-09-22 - dataviz-selector reconciled to chart-review feedback
 
 ### User report

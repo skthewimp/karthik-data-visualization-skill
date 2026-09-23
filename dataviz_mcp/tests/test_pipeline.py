@@ -250,6 +250,25 @@ def test_public_copy_split_out_of_design_prose() -> None:
         assert field in copy["properties"]
 
 
+def test_reader_copy_has_no_slot_for_run_limitations() -> None:
+    """Limitations reach the run report only: no footer slot, and no stage routes them on-chart."""
+    copy = sc._PUBLIC_COPY["properties"]
+    assert "footer" not in copy
+    assert "printed_caption" in copy["caption"]["description"]
+    assert "printed_caption" in sc._SOURCE_INVENTORY["properties"]
+    for name in dir(sc):
+        text = getattr(sc, name)
+        if isinstance(text, str) and name.startswith("_CONSTRUCT_"):
+            assert "footnote" not in text.replace("compact key or footnote", ""), name
+    checks = sc._ACCEPTANCE_CHECKS["items"]["properties"]["validation_type"]["description"]
+    assert "never on the chart" in checks
+
+
+def test_identification_strategy_is_a_closed_route() -> None:
+    route = sc._DESIGN["properties"]["identification_strategy"]
+    assert route["enum"] == ["direct_labels", "subtitle_key", "axis", "legend"]
+
+
 def test_handoff_spec_lists_content_sections_and_routing_block() -> None:
     select = sc.stage("repair", "select")
     spec = select.handoff_spec()

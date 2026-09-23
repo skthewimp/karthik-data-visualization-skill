@@ -38,7 +38,7 @@ Prefer the **lightest verdict the evidence supports**. A chart that reads and is
 Two disciplines keep this honest:
 
 - **"Clean, nothing to flag" is a valid result.** Its evidence is the absence of a defect at the inspected relationship - you do not owe a finding per check. Generic praise ("looks great") is not evidence; a named relationship that survives inspection is.
-- **Unknown and unavailable-evidence are footnotes, not blockers.** Never translate `Unknown` into `Fail`. Never withhold `Send` for a residual that does not mislead the reader. Reserve `Not evaluable` for a genuine inability to judge.
+- **Unknown and unavailable-evidence are reported limitations, not blockers.** Never translate `Unknown` into `Fail`. Never withhold `Send` for a residual that does not mislead the reader. Reserve `Not evaluable` for a genuine inability to judge.
 
 ## Artifact gate
 

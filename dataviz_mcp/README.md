@@ -355,7 +355,7 @@ Samples dominant hues from a source chart image as a repair prior (brand/WCAG ma
 
 ### `recommend_precision`
 
-Recommends significant digits / a uniform rounding place for a numeric column, derived from the spread (max - min), not individual values. Inputs: `values`, `role` (`axis`/`label`/`table_column`), `target_steps` (default 2), optional `smallest_meaningful_difference`, and `exact` (identifiers or exact-lookup only - preserves every digit and flags `exact_override`). Every value is rounded to one uniform place.
+Recommends significant digits / a uniform rounding place for a numeric column, derived from the spread (max - min), not individual values. Inputs: `values`, `role` (`axis`/`label`/`table_column`), `target_steps` (default 2), optional `smallest_meaningful_difference`, `exact` (identifiers or exact-lookup only - preserves every digit and flags `exact_override`), and `unit_multiplier` (base units per source unit for a pre-scaled column, e.g. `1e6` for "$MM"). Every value is rounded to one uniform place. Each preview row carries `shown` (source units) and `compact` (the largest short-scale unit the column supports, e.g. `70.4B`), plus `compact_suffix` and `compact_step`. `precision.number_formats(columns, rows)` runs this over a whole data table and returns the markdown formats block a driver hands the insight stage.
 
 ### `read_marks_from_anchors`
 

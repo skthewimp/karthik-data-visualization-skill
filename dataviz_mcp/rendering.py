@@ -539,7 +539,7 @@ def probe_renderers() -> dict[str, Any]:
         "available": False,
         "rscript": rscript,
         "r_version": None,
-        "packages": {p: None for p in ("ggplot2", "ragg", "gridExtra", "gtable", "jsonlite")},
+        "packages": {p: None for p in ("ggplot2", "ragg", "gridExtra", "gtable", "jsonlite", "ggtext")},
         "supported_output_types": [],
         "supported_source_types": [".r"],
         "failure_reasons": [],
@@ -549,7 +549,7 @@ def probe_renderers() -> dict[str, Any]:
     else:
         expression = (
             'cat("R\\t", paste(R.version$major, R.version$minor, sep="."), "\\n", sep=""); '
-            'for (p in c("ggplot2", "ragg", "gridExtra", "gtable", "jsonlite")) {'
+            'for (p in c("ggplot2", "ragg", "gridExtra", "gtable", "jsonlite", "ggtext")) {'
             ' if (requireNamespace(p, quietly=TRUE)) '
             'cat(p, "\\t", as.character(packageVersion(p)), "\\n", sep="") '
             'else cat(p, "\\tMISSING\\n", sep="") }'
@@ -583,7 +583,8 @@ def probe_renderers() -> dict[str, Any]:
                         ggplot_probe["failure_reasons"].append(
                             f"R package {package} is not installed"
                         )
-                for package in ("gridExtra", "gtable", "jsonlite"):
+                # ggtext draws a colour key in the subtitle; optional, reported not required.
+                for package in ("gridExtra", "gtable", "jsonlite", "ggtext"):
                     version = values.get(package)
                     if version and version != "MISSING":
                         ggplot_probe["packages"][package] = version

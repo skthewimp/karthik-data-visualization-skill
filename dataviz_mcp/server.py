@@ -334,6 +334,7 @@ def create_server() -> Any:
         target_steps: int = 2,
         smallest_meaningful_difference: float | None = None,
         exact: bool = False,
+        unit_multiplier: float = 1.0,
     ) -> dict[str, Any]:
         """Recommend significant digits / a uniform rounding place for a numeric column.
 
@@ -341,10 +342,12 @@ def create_server() -> Any:
         every value is rounded to one uniform place. Set ``role`` to axis/label/table_column.
         Set ``exact`` only for identifiers or a genuine exact-lookup requirement: it
         preserves every source digit and flags ``exact_override`` so the choice is never
-        silent - record why the default spread rule was overridden.
+        silent - record why the default spread rule was overridden. Set ``unit_multiplier``
+        when the column is already scaled (1e6 for "$MM"): each preview row's ``compact``
+        form ("70.4B") is what a title, subtitle or annotation writes.
         """
         return recommend_precision_core(
-            values, role, target_steps, smallest_meaningful_difference, exact
+            values, role, target_steps, smallest_meaningful_difference, exact, unit_multiplier
         )
 
     @server.tool()

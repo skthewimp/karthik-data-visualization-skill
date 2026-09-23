@@ -269,3 +269,15 @@ def test_render_handoff_spec_includes_sections_and_routing_keys():
 def test_render_handoff_spec_without_routing_has_no_block():
     spec = handoff.render_handoff_spec(("row_grain",))
     assert "```routing" not in spec
+
+
+def test_frame_measures_subtitle_key_without_markup() -> None:
+    marked = reserve_frame(
+        subtitle="<span style='color:#1f77b4'>Men</span> and <span style='color:#d62728'>women</span>",
+        width_px=800,
+        height_px=600,
+        dpi=144,
+    )
+    plain = reserve_frame(subtitle="Men and women", width_px=800, height_px=600, dpi=144)
+    assert marked["frame_blocks"][0]["wrapped_text"] == "Men and women"
+    assert marked["frame_blocks"][0]["bbox"] == plain["frame_blocks"][0]["bbox"]

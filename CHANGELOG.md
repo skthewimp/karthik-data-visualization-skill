@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+### Reader-facing copy: no hedges on the chart, subject kept in the title, numbers rounded before they are written
+
+The canonical run (cases 01, 02, 04, 05, 06, 08) put "the source doesn't define...", "reconstructed",
+"approximate" and "not shown" on nearly every chart. The cause was in the contracts:
+three stage prompts told the model to surface an unverified check "as a chart footnote", and the
+copy had a `footer` slot to put it in.
+
+- **Limitations go only to the run report.** `stage_contracts.py` routes unknown checks to
+  `open_issues` / `residual_limitations` and says they are never drawn. `public_copy` loses `footer`.
+  `caption` is now the diagnose stage's new `source_inventory.printed_caption`, copied verbatim, or
+  empty. The model never writes one. Unused copy fields are left blank, because weak models filled
+  them with "(none - ...)" notes that build would print. The guardrail preamble no longer tells
+  the model to label inferred values "approximate" in chart text. Matching wording was removed from
+  `chart-annotations`, `dataviz-execution`, `dataviz-idea-critique`, `dataviz-eval`,
+  `dataviz-critique` and `karthik-data-visualization`.
+- **Subtitles are optional** and must add a fact the title doesn't carry (a second finding, the
+  unit or base, a colour key). The "real caveat" allowance is gone.
+- **The headline keeps its subject and scope noun** (what is measured, for whom, where, when),
+  stated as a general rule in the insight prompt, `karthik-evidence-builder` and `chart-annotations`.
+- **`recommend_precision` gains unit scaling.** New `unit_multiplier` input. Each preview row now
+  carries a `compact` form (`70.4B`), plus `compact_suffix` and `compact_step`. The unit steps down
+  when the smallest value would read as a leading-zero fraction of it. The source's own digits are
+  now a hard ceiling in the spread path too: integer shares stay integers, never `38.0`.
+- **Numbers in the title are formatted before insight writes them.**
+  `precision.number_formats(columns, rows, unit)` turns the recovered table into a markdown
+  formats block for the driver to hand the insight stage. It reads the scale from column headers
+  or the data table's new `unit` field ("$MM"). The insight prompt says to copy those formats, and
+  falls back to the spread rule when no block is supplied.
+- **Series identity: `design.identification_strategy` is now a closed route**: `direct_labels`,
+  `subtitle_key`, `axis` or `legend`, with `legend` last. `subtitle_key` writes the series names
+  into the subtitle in their colours (ggtext `element_markdown()`; Matplotlib `TextArea` runs in an
+  `HPacker`). `reserve_frame` measures that subtitle without its markup, and `probe_renderers`
+  reports `ggtext`.
+
 ### Long horizontal-bar category labels wrap to a capped band instead of eating the panel
 
 Long category names on a horizontal bar's y-axis (ranked entities, department/model names) grew

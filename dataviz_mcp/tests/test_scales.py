@@ -228,3 +228,72 @@ def test_missing_field_skips_mark_without_crashing():
 def test_invalid_transform_raises():
     with pytest.raises(ValueError):
         read_marks_from_anchors([], transform="sqrt")
+
+
+def test_compact_form_scales_a_pre_scaled_column() -> None:
+    result = recommend_precision([70398, 77264], role="label", unit_multiplier=1e6)
+    assert [p["compact"] for p in result["preview"]] == ["70.4B", "77.3B"]
+    assert result["compact_suffix"] == "B"
+    assert result["compact_step"] == "0.1B"
+
+
+def test_compact_form_never_grows_a_decimal_tail() -> None:
+    # The zero-collapse guard forces a fine place; the compact unit must not become "0.00002K".
+    result = recommend_precision([1653, 0.019], role="label")
+    assert [p["compact"] for p in result["preview"]] == [p["shown"] for p in result["preview"]]
+
+
+def test_header_unit_multiplier_reads_stated_scale_only() -> None:
+    from dataviz_mcp.precision import header_unit_multiplier
+
+    assert header_unit_multiplier("Revenue ($MM)") == 1e6
+    assert header_unit_multiplier("Sales, in billions") == 1e9
+    assert header_unit_multiplier("Units '000") == 1e3
+    assert header_unit_multiplier("Height (m)") == 1.0
+
+
+def test_number_formats_table_skips_label_columns() -> None:
+    from dataviz_mcp.precision import number_formats
+
+    table = number_formats(
+        ["Year", "Revenue ($MM)", "Name"],
+        [[2019, 70398, "a"], [2020, "77,264", "b"]],
+    )
+    assert "| Revenue ($MM) | 0.1B | 70.4B to 77.3B |" in table
+    assert "Year" not in table.split("|---|")[-1]
+    assert number_formats(["Name"], [["a"]]) == ""
+
+
+def test_number_formats_reads_scale_from_table_unit() -> None:
+    from dataviz_mcp.precision import number_formats
+
+    table = number_formats(["Quarter", "Total"], [["Q1", 70398], ["Q2", 77264]], unit="$MM")
+    assert "70.4B to 77.3B" in table
+
+
+def test_number_formats_keeps_share_columns_named_in_years() -> None:
+    from dataviz_mcp.precision import number_formats
+
+    table = number_formats(["Period", "25-34 years"], [["2000-04", 44], ["2020-22", 25]])
+    assert "| 25-34 years | 1 | 25 to 44 |" in table
+    assert "Period" not in table.split("|---|")[-1]
+
+
+def test_compact_unit_suits_the_smallest_value() -> None:
+    result = recommend_precision([11, 64, 162, 1653], role="label")
+    assert [p["compact"] for p in result["preview"]] == ["10", "60", "160", "1,650"]
+
+
+def test_integer_source_never_gains_a_decimal() -> None:
+    result = recommend_precision([38, 43], role="label")
+    assert [p["shown"] for p in result["preview"]] == ["38", "43"]
+
+
+def test_unit_field_accepts_a_bare_scale_token() -> None:
+    from dataviz_mcp.precision import unit_field_multiplier
+
+    assert unit_field_multiplier("M") == 1e6
+    assert unit_field_multiplier("$bn") == 1e9
+    assert unit_field_multiplier("Millions (USD)") == 1e6
+    assert unit_field_multiplier("m") == 1.0
+    assert unit_field_multiplier("%") == 1.0

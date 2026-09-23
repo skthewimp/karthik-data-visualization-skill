@@ -77,7 +77,7 @@ A chart can be attractive and still fail if any side of the triangle is weak.
 
 **Visual encoding:** a form that loses the relevant magnitude/comparison/uncertainty/spatial meaning (risky forms need justification, not blanket prohibition); poor ordering (alphabetical when value/rank/time matters); overplotting, excessive categories, illegible labels, crowded legends; colour without meaning, too many similar hues, inaccessible contrast, red/green dependence, decorative palettes.
 
-**Communication:** title describing mechanics instead of a claim; annotation explaining the obvious not the insight; a legend forcing lookup where direct labels would work; caveats hidden or absent; a dashboard giving metrics but no interpretation, action, or priority.
+**Communication:** title describing mechanics instead of a claim; annotation explaining the obvious not the insight; a legend forcing lookup where direct labels would work; hedges or provenance notes on the chart that belong in the accompanying report; a dashboard giving metrics but no interpretation, action, or priority.
 
 ## Severity rubric
 

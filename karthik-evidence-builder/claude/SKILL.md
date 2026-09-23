@@ -33,7 +33,9 @@ State each `value` to the precision the evidence supports - the smallest differe
 actually matters, no more - and never fabricate precision to sound sharp ("up 23%", not
 "up 23.4%", unless the tenth is real and meaningful). Numbers you state in the headline or a
 candidate annotation are reproduced verbatim downstream; their precision is decided here,
-not re-rounded at build.
+not re-rounded at build. Write them in the spread-rule format of the column they come from -
+the `Number formats` table when the driver supplies one, else `recommend_precision` on that
+column - in its compact unit: $70.4B, not $70,398MM.
 
 ## Name the headline claim
 
@@ -48,7 +50,12 @@ headline when it:
   most changes what a reader would think or do;
 - **states its strength honestly** - a trend, a gap, a turning point, or an *honest null*.
   An exploratory or "no effect" result is a legitimate headline. Never inflate a weak signal
-  into a strong claim to manufacture drama.
+  into a strong claim to manufacture drama;
+- **keeps its subject** - it names what is measured and its scope (population, place, period)
+  in the source's or dataset's own terms, so the title still says what the chart is about.
+
+What the evidence cannot establish goes in `caveats`. Those feed the run report, never the
+chart's copy.
 
 When more than one message genuinely must be carried (a whole-and-parts story, a total
 alongside a mix-shift), name the primary headline and note the secondary message; leave the

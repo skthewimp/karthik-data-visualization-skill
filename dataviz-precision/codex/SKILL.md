@@ -26,6 +26,8 @@ Example: `{12483, 9210, 15040}` has a range of ~5830, so the place is hundreds a
 
 If you know the smallest difference that actually matters (`d`), pass `smallest_meaningful_difference=d`; the place is then `floor(log10(d))`.
 
+Each preview row also carries a `compact` form: the same place, written in the largest short-scale unit (K, M, B, T) the column supports. When the column is already scaled - "$MM", "in thousands" - pass `unit_multiplier` (1e6, 1e3) so the unit comes out right: `[70398, 77264]` in $MM reads `70.4B / 77.3B`. Numbers written in words - the title, a subtitle, an annotation - use the compact form; axis ticks and table cells use whichever the column reads best in.
+
 ## What this means in practice
 
 - **Significant digits, not decimal places.** The place cuts to the *left* of the decimal too: 12,483 becomes 12,500 or 12,000 when the spread is coarse. Large, widely spread values usually want fewer digits, not more.

@@ -39,7 +39,9 @@ I've labelled every point and it's a mess. Which few should carry labels?
 
 **Title states, labels quantify, annotation explains.** Three jobs, no overlap. The title carries the claim in words; direct labels carry the quantities that matter; the annotation carries the outside cause the chart cannot draw. If your annotation restates the title or a label, cut it.
 
-**A subtitle carries a claim or a real caveat, or it is omitted.** It is never a stock disclaimer of what the data does not say ("denominator/sample not specified", "association, not causation", "values approximate") - such hedges assert nothing and stamp the same boilerplate on every chart. Word a genuine limitation as a fact in the source/footnote line instead.
+**A subtitle is optional and adds a fact the title doesn't carry, or it is omitted** - a second finding, the unit or base the numbers need, or a colour key naming the series. Caveats, hedges and provenance notes ("approximate", "reconstructed", "the source doesn't define X", "not shown") never go on the chart at all; limitations belong in the run report. The caption carries only a caption the source chart itself printed.
+
+**The title keeps its subject and scope** - what is measured, for whom, where or when, in the source's own terms. **Numbers in words follow the spread rule:** round with `recommend_precision` on the column they come from and write the `compact` form ($70.4B, not $70,398MM).
 
 **Correlation is not cause.** Unless the causal link is established, word the mark as timing, not explanation - "coincides with the GST rollout", not "fell because of GST". Cite where the fact comes from; an annotation is a factual claim about the world.
 

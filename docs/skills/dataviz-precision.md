@@ -16,6 +16,8 @@ The **`recommend_precision`** MCP tool computes it:
 
 For example, `{12483, 9210, 15040}` spans ~5830, so the place is hundreds and the column shows `12,500 / 9,200 / 15,000` - and no more. If the smallest meaningful difference `d` is known, the place is taken from `d` directly.
 
+Each preview row also carries a `compact` form at the same place, in the largest short-scale unit (K, M, B, T) the column supports. Pass `unit_multiplier` when the column is already scaled ("$MM" is `1e6`), so `[70398, 77264]` reads `70.4B / 77.3B`. Numbers written in words - title, subtitle, annotations - use the compact form. For the insight stage, `number_formats(columns, rows)` in `dataviz_mcp.precision` turns a whole data table into a small markdown table of these formats (reading the unit from headers like "Revenue ($MM)") for the driver to hand in.
+
 The rule is the same for charts and tables; apply it per axis and per column, each with its own spread. In tables it works alongside `karthik-table-style` for decimal alignment and tabular figures.
 
 ## Labels are not measurements

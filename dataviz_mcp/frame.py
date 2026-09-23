@@ -23,6 +23,7 @@ measure render.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 from .layout import FONT_PT, PROFILES, char_px, house_font_pt, line_px, pt_to_px
@@ -44,10 +45,16 @@ def _wrap_block(
     dpi: float,
     avail_px: float,
 ) -> Optional[dict[str, Any]]:
-    """Wrap one full-width frame block and return a placement-ready record, or None if empty."""
+    """Wrap one full-width frame block and return a placement-ready record, or None if empty.
+
+    Rich-text markup (a ggtext ``<span style='color:...'>`` colour key in a subtitle) is not
+    drawn, so it is stripped before measuring; ``wrapped_text`` is the plain reading, and a
+    marked-up block that wraps takes a ``<br>`` at the same line breaks.
+    """
     if not text or not text.strip():
         return None
-    wrapped, box_w, box_h = _wrap(text, font_pt, dpi, avail_px)
+    plain = re.sub(r"<[^>]+>", "", text)
+    wrapped, box_w, box_h = _wrap(plain, font_pt, dpi, avail_px)
     return {
         "id": block_id,
         "role": role,

@@ -46,7 +46,8 @@ Answer each against the evidence, and be specific about what fails and why.
   something a reader would miss - or are they clutter, or restatements of what the axis already
   shows?
 - **Is it HONEST and COMPLETE?** Is anything key silently dropped (a breakdown the message
-  needs, a caveat that changes the reading)? Does the claim's strength match the evidence, or
+  needs, a limit that should weaken the claim itself)? A limit is fixed in the claim or the run
+  report, never by adding a caveat to the chart. Does the claim's strength match the evidence, or
   is a weak signal dressed as a strong one?
 
 ## One pass, exhaustive - and reconcile on re-review
@@ -89,7 +90,7 @@ is another round for you to object to. State the fix at the grain the receiving 
 Resolve on the evidence what the evidence can resolve; do not defer everything to "see how it
 renders" - that defeats the gate. Never return `blocked` for a missing **external** validation
 (an exact denominator, an authoritative dataset, a methodology to verify against): that is
-disclosed downstream as a footnote, not a reason to stop. Reserve `blocked` for a plan that
+reported in the run report, not a reason to stop. Reserve `blocked` for a plan that
 genuinely cannot be made honest and answerable from the evidence at hand.
 
 ## Handoff
