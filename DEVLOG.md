@@ -3948,3 +3948,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:cf7a5bcd-58d1-45d7-a233-b64aaefc807d:end -->
+
+<!-- claude-session:0c76769f-229f-4a81-b574-745a642148ce:start -->
+## 2026-09-23 12:49 IST | Claude session `0c76769f-229`
+
+### User prompts
+> look at @canonical-fix-plan.md . let's get to phase 4.
+> what instructions should i give the downstram harness in order to integrate this now?
+
+### Work done
+- Phase 4 is done and pushed to `origin/main`: all 385 tests pass, skill validation passes, and the local skill copies are reinstalled. I haven't run the Sonnet/Haiku runs on the 8 canonical inputs that the plan asks fo...
+- Paste the block below into the harness session. It covers only the site-side changes; the tool changes are already in the package. ```markdown # Integrate dataviz_mcp Phase 4 (commit "fix(tools): phase 4 geometry fixe...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:0c76769f-229f-4a81-b574-745a642148ce:end -->
