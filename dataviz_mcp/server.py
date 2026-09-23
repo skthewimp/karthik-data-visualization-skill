@@ -472,7 +472,7 @@ def create_server() -> Any:
         delivery_profile: str = "chat",
         typography: dict[str, Any] | None = None,
         delivery: dict[str, Any] | None = None,
-        treatment: dict[str, Any] | None = None,
+        treatment: dict[str, Any] | list[dict[str, Any]] | None = None,
         title: str = "",
         subtitle: str = "",
         notes: str = "",
@@ -489,8 +489,18 @@ def create_server() -> Any:
         padding_x_px, padding_y_px. delivery: max_width_px, max_height_px, dpi,
         display_width_px, minimum_text_px, allow_split. Set display width and minimum
         displayed text pixels for screen delivery; export dpi alone cannot ensure legibility.
-        treatment: skill-selected {kind: text/emphasis/bar/dot/shading/sparkline,
-        scope: column/row/table, commensurable?, ...scale and focal details}.
+        treatment: one skill-selected treatment or a LIST of them (a table may combine
+        row-wise shading with a sparkline column). Each: {kind: bar/shading/sparkline/
+        emphasis/text, columns: zero-based indices, rows?, scope: column/row/table,
+        commensurable?, higher_is_better?, scale?: auto/sequential/diverging, midpoint?,
+        domain?, baseline?, colour?/colours?}. Scope is which cells share one scale:
+        column (each metric its own), row (each row one comparable series), table.
+        emphasis needs rows (the focal entity). A column may carry raw ``values`` (numbers;
+        a list of lists for a sparkline column with blank cells) and ``align``; without
+        values, numeric display strings are parsed. The tool resolves every fill, ink,
+        bar extent and sparkline point into ``cell_styles`` and reserves graphic width, so
+        pass the result straight to render_table_from_plan. ``untreated_numeric_columns``
+        and a warning flag comparable numbers left as plain text.
         Widths balance measured header/body wrapping against shared row heights
         before construction; a manual max_width_px is optional. Type and padding
         stay fixed while the planner reduces avoidable allocated space. Do not
@@ -523,8 +533,11 @@ def create_server() -> Any:
         band, and the per-role title/subtitle/notes frame bands - so the drawn table cannot
         re-derive row positions or the frame and reintroduce clipping. `plan` is the
         recommend_table_layout result (object) or a path to its JSON; `page` is 1-based for a
-        multi-page (split) plan. Returns the same bundle as render_and_inspect_chart with
-        content="table".
+        multi-page (split) plan. Draws the plan's resolved treatment too - right-aligned
+        numbers, heat fills with their text ink, focal bold/tint, data bars trailing the
+        number, sparklines - and fails inspection with TREATMENT_NOT_DRAWN if any planned
+        fill, bar or sparkline is missing. Returns the same bundle as render_and_inspect_chart
+        with content="table".
         """
         return render_table_core(plan, output_dir, page, artifact_name)
 

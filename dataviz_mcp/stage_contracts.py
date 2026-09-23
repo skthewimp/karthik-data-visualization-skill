@@ -1299,11 +1299,19 @@ brief (repair). Choose the simplest form that makes the claim easiest to see and
 misread for the stated audience and medium; more than one chart is allowed when a single form
 cannot carry every message. Where the chart is a repair of an existing image, the source
 chart's form is not an input and gets no vote - select the form cold from the claim and data.
-A table is a valid verdict when the intent is exact lookup or the values are not commensurable
-on one scale - set ``builder`` to ``table`` in that case, otherwise ``chart``.
-For tables, state the reading task, focal entities and treatment (plain, emphasis,
-bars/dots, shading or sparklines) in the design, with comparison scope and scale
-semantics. Plan geometry with ``recommend_table_layout`` after display formatting,
+A table is a valid verdict when the intent is exact lookup, the values are not commensurable
+on one scale, or the data is a dense matrix - many entities against several metrics or
+periods - where the reader wants both the exact values and the overall pattern. Sharing one
+unit does not rule the matrix table out; it is where in-cell bars and shading earn their
+place. Set ``builder`` to ``table`` in those cases, otherwise ``chart``. A ranking of a
+handful of values or a single trend stays a chart.
+For tables, state the reading task, focal entities and treatment in the design. A table of
+comparable numbers is formatted by default - data bars when there is room, shading when it
+is dense, a sparkline column when rows run over an ordered sequence, bold plus tint for the
+focal row; plain text only for single-value lookup. Name the scale scope (column: each
+column its own metric; row: each row one comparable series; table: one honest scale), the
+direction (lower-is-better columns such as cost), and any summary column (a row average or
+total) the reading needs. Plan geometry with ``recommend_table_layout`` after display formatting,
 not chart slots. Table conditional/focal colour still sets ``needs_color_plan``:
 ``colour_groups`` counts assignments or scale anchors, not chart series. Record an
 ordered heat scale in ``colour_role`` and ``comparison_strategy``; preserve its
@@ -1444,9 +1452,11 @@ rather than inventing a target.
 Build the
 deliverable exactly to the plan, carrying every message with its required content. Use the
 builder skill supplied for the chosen builder (chart or table). For a table, call
-``recommend_table_layout`` on formatted content and the skill-selected treatment,
-apply its fonts, widths, wrapping and continuation pages, and inspect each page
-with the supplied type and display-size constraints. Do not run chart refitting
+``recommend_table_layout`` on formatted content, each column's raw ``values`` and the
+planned treatment list, then draw every page with ``render_table_from_plan`` - it applies the
+fonts, widths, wrapping, continuation pages and the resolved fills, bars and sparklines, and
+inspects each page with the supplied type and display-size constraints. Never hand-build the
+table or drop the treatment; resolve an untreated-numbers warning rather than ignoring it. Do not run chart refitting
 on tables; table geometry replaces the chart frame/mark-placement instructions below.
 Return page paths in the artifact inventory; revise a cannot-fit plan
 without discarding content. Ordered heat scales follow the selected scale, not
@@ -1570,7 +1580,9 @@ Inspect every delivered page at its supplied font/display minimums, including ne
 text, header collisions and cell overflow. Incomplete coverage is an explicit
 limitation, never a mechanical pass. Revise wrapping, widths or pagination rather
 than moving cell labels independently; check that emphasis and scale scope serve
-the reading task.
+the reading task. ``TREATMENT_NOT_DRAWN`` is a build defect: re-render through
+``render_table_from_plan``. A table of comparable numbers rendered as plain text is a
+defect to send back to select unless the task is single-value lookup.
 """
 
 _CONSTRUCT_EXPLAIN = """You are the explain stage of the dataviz construct process. You write

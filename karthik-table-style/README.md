@@ -18,8 +18,11 @@ figures, and conditional formatting.
 - Sizes columns to content and stops one column's wrap from distorting the grid.
 - Removes full gridlines and vertical rules; groups with a few horizontal rules
   and whitespace.
-- Chooses conditional-formatting scope deliberately - by column, by row, or
-  whole table - and only when scanning for magnitude is the task.
+- Formats comparable numbers by default - data bars when there is room, shading
+  when the table is dense, sparklines for rows over an ordered sequence, bold plus
+  tint for the focal row - with the scale scoped deliberately (by column, by row,
+  or whole table) and lower-is-better columns reversed. Plain text only for
+  single-value lookup.
 - Encourages rendering and inspecting the actual table, not just the code.
 
 ## Files

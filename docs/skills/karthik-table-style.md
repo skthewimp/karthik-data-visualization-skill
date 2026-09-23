@@ -12,7 +12,7 @@ It is designed for the failure mode where data that wants exact lookup, or that 
 - **Column widths sized to content** - long text columns wrap deliberately without distorting the grid; number columns stay narrow and scannable.
 - **Rules and whitespace** - no full gridlines, no vertical rules; a few horizontal rules and whitespace do the grouping.
 - **Tabular (lining) figures** - mono-width digits so columns align, with a clean text font.
-- **Conditional formatting, scoped deliberately** - by column (compare within a metric), by row (each row its own scale), or whole table (only when cells are commensurable); heat is a weak channel, for spotting hot and cold across many cells, not precise reading.
+- **Conditional formatting by default** - a table of comparable numbers gets data bars (room to spare) or shading (dense), scoped by column (compare within a metric), by row (each row its own scale), or whole table (only when cells are commensurable), with lower-is-better columns reversed. Sparkline columns for rows that run over an ordered sequence, a focal row in bold plus tint, and a summary column where the reading needs one. Plain text only for single-value lookup.
 
 ## Measured planning
 
@@ -24,8 +24,10 @@ columns, and the header band is its own layer above the body - a block wider tha
 the canvas is `cannot_fit`, resolved by narrowing, wrapping or splitting, never
 shipped clipped. This measured sizing is the mandatory first pass, not a revision
 step. Screen delivery accounts for display width as well as export size.
-Bars, dots, shading and sparklines follow the reading task and scale semantics;
-column count does not determine the treatment. See the [MCP interface](../mcp.md).
+Bars, shading, sparklines and emphasis follow the reading task and scale semantics;
+column count does not determine the treatment. The tool resolves every fill, ink,
+bar and sparkline point, and `render_table_from_plan` draws them. See the
+[MCP interface](../mcp.md).
 
 ## Rendering
 

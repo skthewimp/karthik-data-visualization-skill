@@ -346,6 +346,20 @@ def _planned_geometry_defects(metadata: dict[str, Any]) -> list[dict[str, Any]]:
             b["wrapped_text"] == p["wrapped_text"] and b["bbox"] == p["bbox"] for p in placements
         ))
 
+    # A table plan that resolved heat fills, data bars or sparklines must show them: a
+    # treatment dropped between plan and render is the failure this contract exists for.
+    treatment = contract.get("table_treatment")
+    if treatment:
+        drawn = {"rects": sum(m.get("kind") == "rect" for m in metadata.get("marks", [])),
+                 "lines": len(metadata.get("series", []))}
+        missing = {k: int(v) - drawn[k] for k, v in treatment.items() if int(v) > drawn.get(k, 0)}
+        if missing:
+            defects.append(_defect(
+                "TREATMENT_NOT_DRAWN", "high", [],
+                "The table plan resolved conditional formatting (fills/bars/sparklines) that the "
+                "render does not show; draw the plan through render_table_from_plan",
+                {"planned": treatment, "drawn": drawn}))
+
     # Match text plus planned geometry, not adapter-generated IDs or label/data_label roles.
     # The forward tools estimate glyph widths; they are not exact renderer metrics. Check
     # application of the returned top-left anchor and wrapping, not equality of glyph widths.
@@ -953,6 +967,8 @@ def inspect_rendered_chart(
             and not legends_meta
             and not series_axes_labelled
             and not one_series_per_facet
+            # A table's sparklines and rules are named by their row, not by colour.
+            and not metadata.get("coverage", {}).get("table_content")
         )
         if series_unidentified:
             ids = [s["id"] for s in all_series]

@@ -47,8 +47,9 @@ Table geometry is measured, never eyeballed. A clipped title or a header band
 overlapping the rows is a reservation skipped on the first pass, not a revision
 owed later. Before you render, in order:
 
-1. **Call `recommend_table_layout`** with the formatted headers and cells,
-   identifier columns, typography, and delivery constraints. Apply the column
+1. **Call `recommend_table_layout`** with the formatted headers and cells, raw
+   values, the treatment list, identifier columns, typography, and delivery
+   constraints. Apply the column
    widths, wrapping, header band, row heights, and continuation pages it returns.
    This is the mandatory sizing path, not an optional aid.
 2. **Reserve the frame like the columns.** The title, subtitle, and footer/notes
@@ -116,32 +117,60 @@ widths and heights when you draw, render, and confirm by eye before delivering.
 
 ## Treatment and layout
 
-Choose treatment from the reading task, before sizing. Keep exact display strings
-separate from raw values: strings determine geometry; values determine scales.
+A table of comparable numbers is formatted by default. Numbers alone make the reader
+do the comparison in their head; a magnitude channel in the cell (a bar or a shade)
+lets the eye see the pattern while the number stays there for lookup. Plain text is
+the exception, justified only when the task is looking up a single value and nothing
+in the table is compared.
 
-- **Lookup:** aligned text may be sufficient.
-- **Focal entity or winners:** identify the focal rows/cells and preserve ties.
-  Give the claim visible emphasis through weight or colour, not a barely changed grey.
-- **Magnitude comparison:** consider in-cell bars or dots with explicit domains
-  and baselines. Reserve space for both the number and its graphic. The number is
-  the primary read; place the bar so it *trails* the number in reading order - the
-  value on the left where the eye lands first (its decimal alignment intact), the
-  magnitude bar to its right as the secondary cue - not a bar leading in from the
-  left that the reader hits before the figure it encodes.
-- **Hot/cold scanning:** use shading with an explicit scope: column, row, or whole
-  table. A shared scale requires comparable meaning and units, not just numeric
-  columns or percent signs. Diverging scales need a meaningful midpoint.
-- **Change over an ordered sequence:** consider a sparkline, specifying whether
-  its scale is shared across rows. Unrelated metrics are not a time series.
+Decide the treatment before sizing, for every block of numbers:
 
-State the treatment's scope, domain, direction, missing-value handling, and focal
-entities where relevant. Column count does not decide bars versus shading. Use
-`recommend_colours` for categorical/focal assignments and `recommend_precision`
-for display strings. For shading, choose an ordered sequential or meaningful
-midpoint diverging scale from the brand/style palette or renderer; the categorical
-picker's distinct-hue ordering is inappropriate. Use `validate_palette` as a
-diagnostic and inspect text contrast against the actual cell fills. A plain table needs no
-palette call; a magnitude or focal treatment must not disappear behind “no series”.
+1. **Which cells compare with which?** That is the scale's scope.
+   - **Column** - each column is its own metric (revenue next to headcount next to
+     margin). Each column gets its own scale.
+   - **Row** - each row is one series whose cells compare with each other (a metric
+     across periods, a measure across segments, one entity's values across
+     comparable categories). Each row gets its own scale; mark it
+     `commensurable`.
+   - **Table** - every cell shares one honest scale (the same unit and meaning
+     everywhere, such as a matrix of scores on one 0-100 scale). One
+     scale; mark it `commensurable`.
+2. **Which magnitude channel?**
+   - **Data bars** when the table has room: they read as length, the most accurate
+     cue. The bar trails its number, so the value is read first with its decimal
+     alignment intact.
+   - **Shading** when the table is dense (many columns, a matrix) or space is tight:
+     a heat fill costs no width. Sequential for a one-sided magnitude, diverging
+     around a meaningful midpoint (zero, an average, a target) for signed or
+     above/below values.
+   - Column count does not decide this; room and density do.
+3. **Which direction is good?** Set `higher_is_better: false` where lower wins (cost,
+   latency, error, pace), so the strongest shade marks the best cell rather than the
+   biggest number.
+4. **Is there an ordered sequence?** When a row's values run over time or distance,
+   add a sparkline column at the end so the shape is visible next to the exact
+   values. Each sparkline shows its own row's shape unless the rows share a unit and
+   the comparison between their levels matters. Unrelated metrics are not a
+   sequence.
+5. **Is there a focal entity?** Emphasise the row the claim is about (bold plus a
+   tint), and preserve ties.
+6. **Would a summary help the reading?** A row average or total column (such as each
+   entity's mean across the columns) often answers the question the matrix raises.
+   Compute it, add it as a column, and give it the same treatment.
+
+A table may combine treatments: row-wise shading on the value block, a sparkline
+column, and a focal row.
+
+Pass the treatments to `recommend_table_layout` as a list, with raw `values` on each
+column (a list of lists for a sparkline column whose cells are blank). The tool
+computes every scale, fill, ink, bar extent and sparkline point, reserves the
+graphic width, and right-aligns numbers. Do not compute fills or bar lengths
+yourself, and do not re-derive them at build. The plan warns when comparable
+numeric columns are left untreated; resolve that warning or state why the task is
+single-value lookup. Use `recommend_precision` for display strings. For shading, the
+tool builds an ordered sequential or diverging scale that keeps every number legible
+on its fill. Pass brand pole colours as `colours` if there is a brand; never run the
+categorical colour picker on shades.
 
 The `recommend_table_layout` call from the reservation steps above takes the
 formatted headers/cells, identifier columns, typography, and delivery constraints.
@@ -185,7 +214,8 @@ at delivery size; do not substitute a chart's slot-count layout for table conten
 - **Delivered HTML or interactive tables:** author with the R `gt` package; it
   carries alignment, precision, grouping, and conditional formatting cleanly.
   Markdown or hand-built HTML is an acceptable fallback for non-R contexts.
-- **A gated raster (for inspection):** use `render_table_from_plan`. It uses
+- **A gated raster (for inspection):** use `render_table_from_plan`. It draws the
+  resolved treatment (fills, bars, sparklines, emphasis) with the geometry. It uses
   R/grid/ragg when available, otherwise Python/Matplotlib, with measured cell bounds
   for inspection on both paths. A failed R render is reported, never retried in
   Python. The same craft principles and delivery constraints apply to both.
@@ -199,11 +229,14 @@ at delivery size; do not substitute a chart's slot-count layout for table conten
 
 ## Guardrails
 
-- A table is chosen because the task is exact lookup or non-commensurable values,
-  not as a dumping ground for data a chart could show as a shape. If the message
-  is a trend or comparison the eye should grab at once, it is a chart - return to
-  `dataviz-selector`.
+- A table is not a dumping ground for data a chart could show as a shape. If the
+  message is one comparison the eye should grab at once (a ranking of a handful of
+  values, a single trend), it is a chart - return to `dataviz-selector`. A matrix of
+  many entities against several metrics or periods, where the reader wants both the
+  exact values and the pattern, is a formatted table.
 - Never widen precision to fill space or narrow it to hide spread; precision is a
   data decision, not a layout one.
 - One table, one main task. Split a table that serves two unrelated comparisons.
-- Do not repeat in shading what alignment and ordering already show.
+- A shaded or barred table is not finished until the render shows the treatment.
+  `TREATMENT_NOT_DRAWN` means the plan was bypassed; draw it through
+  `render_table_from_plan`.

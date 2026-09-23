@@ -13,6 +13,11 @@ page. A larger raster that shrinks in the delivery container is not a readabilit
 fix. `geometry_status: incomplete` cannot support a mechanical pass; inspect
 uncovered content explicitly and retain the limitation. Review the focal emphasis
 and conditional-formatting scale against the reading task, not just geometry.
+`TREATMENT_NOT_DRAWN` (a planned fill, bar or sparkline missing from the render) is a
+build defect: re-render through `render_table_from_plan`. A table of comparable numbers
+shipped as plain text is a defect too, unless its task is looking up single values:
+send it back for a treatment (bars with room, shading when dense, the scale scoped to
+the cells that compare, lower-is-better columns reversed).
 
 ## Check the execution
 

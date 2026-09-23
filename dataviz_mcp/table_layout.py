@@ -10,6 +10,11 @@ import tempfile
 from typing import Any
 
 from .layout import PROFILES, line_px
+from .table_treatment import resolve_treatments
+
+# Where a delivery profile implies a typical on-screen width, assume it unless the caller
+# says otherwise: a table exported wider than this is shrunk to fit and its text with it.
+_TABLE_DISPLAY = {"chat": {"display_width_px": 800, "minimum_text_px": 12}}
 
 
 def _metrics(texts, family, size, dpi, bold=False, use_r=True):
@@ -94,8 +99,11 @@ def recommend_table_layout(
     padding_x_px, padding_y_px. delivery: max_width_px, max_height_px, dpi,
     display_width_px, minimum_text_px, allow_split. Pixel sizes refer to export pixels
     except display_width_px and minimum_text_px, which refer to the displayed artifact.
-    treatment is a skill-selected plan with kind (text/emphasis/bar/dot/shading/sparkline),
-    scope (column/row/table), commensurable, and any renderer-specific scale/focal details.
+    treatment is one skill-selected treatment or a list of them, each {kind:
+    text/emphasis/bar/shading/sparkline, columns, rows?, scope: column/row/table,
+    commensurable?, higher_is_better?, scale?, midpoint?, domain?, baseline?, colour(s)?}.
+    Columns may carry raw ``values`` (a list of lists for a sparkline column) and ``align``.
+    The resolved per-cell fills, inks, bars and sparkline points come back as cell_styles.
     Width selection balances measured wrapping and shared row heights at fixed type
     and padding, preferring feasible delivery, fewer pages and a smaller footprint.
     Returned pages use zero-based column indices and half-open row ranges.
@@ -124,6 +132,7 @@ def recommend_table_layout(
     if any(len(c) != n for c in cells):
         raise ValueError("Columns must contain the same number of cells")
     profile = dict(PROFILES[delivery_profile])
+    profile.update(_TABLE_DISPLAY.get(delivery_profile, {}))
     profile.update(delivery or {})
     typo = {"family": "sans", "body_pt": 11, "header_pt": 12,
             "minimum_body_pt": 11, "minimum_header_pt": 11}
@@ -164,19 +173,13 @@ def recommend_table_layout(
     py = float(typo.get("padding_y_px", 0.15 * em_px))
     if min(px, py) < 0:
         raise ValueError("Padding must be nonnegative")
-    plan = dict(treatment or {"kind": "text"})
-    kind, scope = plan.get("kind", "text"), plan.get("scope", "column")
-    if kind not in {"text", "emphasis", "bar", "dot", "shading", "sparkline"}:
-        raise ValueError("Unknown treatment kind")
-    if scope not in {"column", "row", "table"}:
-        raise ValueError("Unknown comparison scope")
-    if kind in {"bar", "dot", "shading", "sparkline"} and scope in {"row", "table"} and not plan.get("commensurable"):
-        raise ValueError("A shared scale requires explicit commensurability")
+    resolved = resolve_treatments(cols, treatment, em_px)
+    emphasised = any(t.get("kind") == "emphasis" for t in resolved["treatments"])
     headers = [c["header"] for c in cols]
     from .rendering import probe_renderers
     use_r = probe_renderers()["table_rendering"]["r_available"]
     bm, backend = _metrics([v for c in cells for v in c], typo["family"], body, dpi, use_r=use_r)
-    if kind == "emphasis":
+    if emphasised:
         bold_metrics, bold_backend = _metrics([v for c in cells for v in c], typo["family"], body, dpi, True, use_r=use_r)
         bm = {text: max(width, bold_metrics[text]) for text, width in bm.items()}
         if bold_backend != backend:
@@ -207,8 +210,7 @@ def recommend_table_layout(
         bands += height
         block_width = max(block_width, width)
     options = []
-    for c, values, label in zip(cols, cells, headers):
-        visual = float(c.get("visual_width_px", 0))
+    for c, values, label, visual in zip(cols, cells, headers, resolved["visual_width_px"]):
         if visual < 0:
             raise ValueError("visual_width_px must be nonnegative")
         natural = max([bm[line] + visual for v in values for line in v.split("\n")] +
@@ -325,6 +327,11 @@ def recommend_table_layout(
     if status != "fits":
         warnings.append("Split/continuation required; retain all content and repeat headers and identifiers." if not impossible else
                         "Content cannot fit these constraints. Change delivery, supported wording, or form; do not shrink type.")
+    if resolved["untreated_numeric_columns"]:
+        warnings.append(
+            f"Numeric columns {resolved['untreated_numeric_columns']} carry no magnitude treatment. "
+            "Comparable numbers get data bars (room to spare) or shading (dense), scoped by which "
+            "cells compare; leave plain text only when the task is single-value lookup.")
     if header_backend != backend:
         warnings.append("Mixed measurement backends; render and inspect before accepting fit.")
     return {"status": status, "measurement_backend": backend, "dpi": dpi,
@@ -333,5 +340,9 @@ def recommend_table_layout(
             "col_widths_px": widths, "row_heights_px": heights, "header_height_px": hh,
             "headers": wrapped_headers, "cells": wrapped_cells, "blocks": blocks,
             "frame_bands": frame_bands, "reserved_band_px": math.ceil(bands),
-            "pages": pages, "treatment": plan, "warnings": warnings,
+            "pages": pages, "treatment": resolved["treatments"],
+            "cell_styles": resolved["styles"], "col_align": resolved["align"],
+            "visual_width_px": resolved["visual_width_px"],
+            "untreated_numeric_columns": resolved["untreated_numeric_columns"],
+            "warnings": warnings,
             "delivery": profile}

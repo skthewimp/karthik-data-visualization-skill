@@ -238,8 +238,9 @@ These size the canvas, reserve the chrome, and place the text *before* (or with 
 Table geometry comes from formatted content, not chart slots. The tool measures
 text with grid/ragg when the R table backend is available; otherwise it uses
 Matplotlib/Agg metrics for the Python fallback. No new
-packages are required. The skill chooses visual treatment; the tool validates
-shared-scale scope and reserves space supplied for inline graphics.
+packages are required. The skill chooses the treatment (which cells compare, which
+channel, which direction is better); the tool resolves it into per-cell fills, inks,
+bar extents and sparkline points, reserves the graphic width, and right-aligns numbers.
 
 ```json
 {
@@ -247,14 +248,19 @@ shared-scale scope and reserves space supplied for inline graphics.
     {"header": "Region", "identifier": true, "max_width_px": 190,
      "cells": ["Northern district", "Central", "South"]},
     {"header": "Revenue ($m)", "cells": ["12.5", "8.3", "15.0"],
-     "visual_width_px": 90}
+     "values": [12.5, 8.3, 15.0]},
+    {"header": "Cost ($m)", "cells": ["4.1", "6.0", "3.2"]}
   ],
   "title": "Revenue by region",
   "typography": {"family": "sans", "body_pt": 11, "header_pt": 12,
                  "minimum_body_pt": 11, "minimum_header_pt": 11},
   "delivery": {"max_width_px": 1200, "max_height_px": 900,
                "display_width_px": 600, "minimum_text_px": 14},
-  "treatment": {"kind": "bar", "scope": "column", "domain": [0, 15], "baseline": 0}
+  "treatment": [
+    {"kind": "bar", "columns": [1]},
+    {"kind": "shading", "columns": [2], "higher_is_better": false},
+    {"kind": "emphasis", "rows": [2]}
+  ]
 }
 ```
 
@@ -307,13 +313,27 @@ readability guarantee. Unsupported nested viewport references or graphics are
 reported as incomplete coverage, not silently passed. Decimal alignment, contrast
 against cell fills and visual emphasis still need visual review.
 
-Treatment kinds: `text`, `emphasis`, `bar`, `dot`, `shading`, `sparkline`. A `row` or
-`table` scale for quantitative graphics requires `commensurable: true`; sharing a
-unit alone is insufficient. The tool preserves scale and focal details for the
-builder, but cannot validate their meaning from display strings. The table skill
-owns that judgment. Categorical/focal assignments use the existing colour picker;
-heat scales retain their sequential/diverging order and use palette validation as
-a diagnostic, not the picker's distinct-hue ordering.
+`treatment` is one object or a list, so a table can combine row-wise shading, a
+sparkline column and a focal row. Each item: `kind` (`bar`, `shading`, `sparkline`,
+`emphasis`, `text`), `columns` (zero-based; required except for emphasis), optional
+`rows`, `scope` (`column` - each column its own scale; `row` - each row its own;
+`table` - one scale), `higher_is_better` (false reverses the shading so the best
+cell is strongest), `scale` (`auto`/`sequential`/`diverging`), `midpoint`, `domain`,
+`baseline` (bars, default 0), `colour` (bars, sparklines, focus tint) and `colours`
+(brand poles for shading). Shading and bars shared across a `row` or `table`, and a
+sparkline scale shared across rows (`column`/`table`; sparklines default to each
+row's own shape), require `commensurable: true`. Emphasis requires `rows`.
+
+Raw numbers come from each column's `values` (a list of lists for a sparkline column,
+whose cells can be blank), or are parsed from numeric display strings (currency, %,
+separators, K/M/B, parenthesised negatives). The result carries `cell_styles`
+(per column, per row: `fill`, `ink`, `bold`, `bar` {start, end, colour}, `spark`
+{points, colour}), `col_align`, `visual_width_px` and `untreated_numeric_columns`.
+Heat fills stop short of the pole and are eased until the chosen ink clears 4.5:1,
+so every number stays legible. A warning flags comparable numeric columns left as
+plain text. The `chat` profile assumes an 800 px display with a 12 px text minimum
+unless `delivery` says otherwise, which caps export width so text survives
+downscaling.
 
 ### `recommend_layout`
 
@@ -457,8 +477,10 @@ table rendering remains available on a normal Python-only installation.
 An R measurement or render failure is reported without retrying in Python.
 
 Both constructors consume wrapped headers/cells, measured widths and heights,
-frame bands, fonts, padding and continuation pages from the same plan. Python
-exports include measured cell bounds, so overflow and delivery-size checks remain
-active. The existing shared constructor's text-table scope is unchanged; richer
-conditional formatting still needs a builder that implements the selected treatment.
+frame bands, fonts, padding, continuation pages and the resolved `cell_styles` from
+the same plan: right-aligned numbers, heat fills with their ink, bold/tinted focal
+cells, data bars trailing the number, and sparklines. Python exports include measured
+cell bounds, so overflow and delivery-size checks remain active. Treatment graphics
+are captured as marks and series; `render_table_from_plan` passes the planned count
+to inspection, which reports `TREATMENT_NOT_DRAWN` when any are missing.
 The Python dependencies already include Matplotlib; R is optional.

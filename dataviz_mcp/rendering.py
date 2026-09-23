@@ -415,6 +415,23 @@ def _collect_layout(figure: Figure, artifact: dict[str, Any], render_kind: str =
                 }
             )
         unsupported_marks += len(axes.images)
+    # Table treatments are figure-level artists tagged treat-*: heat fills and data bars as
+    # marks, sparklines as series, so inspection can confirm the planned treatment was drawn.
+    for artist in figure.artists:
+        gid = artist.get_gid() or ""
+        if (not gid.startswith(("treat-", "rule-")) or not artist.get_visible()
+                or not isinstance(artist, (Patch, Line2D))):
+            continue
+        bbox = _bbox_dict(artist.get_window_extent(renderer).bounds, height)
+        if isinstance(artist, Patch):
+            marks.append({"id": gid, "role": "mark", "kind": "rect", "axes_id": None,
+                          "bbox": bbox, "fill": _colour(artist.get_facecolor()), "stroke": None})
+            continue
+        xy = artist.get_transform().transform(artist.get_xydata())
+        points = [[_round(float(x)), _round(height - float(y))] for x, y in xy]
+        series.append({"id": gid, "role": "series", "axes_id": None, "bbox": bbox,
+                       "colour": _colour(artist.get_color()), "points": points,
+                       "segments": [points], "stroke_width_pt": _round(artist.get_linewidth())})
     return {
         "schema_version": SCHEMA_VERSION,
         "coordinate_system": "pixels; origin top-left",
@@ -1005,6 +1022,25 @@ capture_table_grob <- function(g, prefix, cell_box) {
         as.character(g$label[k]), min(xs), min(ys), diff(range(xs)), diff(range(ys)),
         "text", as.character(gp$col), "", as.character(gp$fontsize * gp$cex),
         paste(cell_box, collapse=";"))
+    }
+    return(captured)
+  }
+  # Planned treatment graphics (heat fills, data bars, sparklines) are marks with real
+  # device bounds, so inspection can confirm a planned treatment was actually drawn.
+  if (!is.null(g$name) && (startsWith(g$name, "treat-") || startsWith(g$name, "rule-")) &&
+      inherits(g, c("rect", "lines"))) {
+    if (inherits(g, "rect")) {
+      loc <- deviceLoc(unit.c(grobX(g, 180), grobX(g, 0)), unit.c(grobY(g, 270), grobY(g, 90)),
+                       valueOnly=TRUE)
+      xs <- loc$x*dpi; ys <- height_px-loc$y*dpi
+      captured[[1]] <- row_frame(prefix, g$name, "", min(xs), min(ys), diff(range(xs)),
+        diff(range(ys)), "rect", "", as.character(g$gp$fill))
+    } else {
+      loc <- deviceLoc(g$x, g$y, valueOnly=TRUE)
+      xs <- loc$x*dpi; ys <- height_px-loc$y*dpi
+      captured[[1]] <- row_frame(prefix, g$name, "", min(xs), min(ys), diff(range(xs)),
+        diff(range(ys)), "polyline", as.character(g$gp$col), "",
+        x_points=paste(xs, collapse=";"), y_points=paste(ys, collapse=";"))
     }
     return(captured)
   }

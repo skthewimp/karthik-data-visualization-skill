@@ -31,6 +31,38 @@
   series count) before lightness separation, so it no longer adds a second shade of a hue already
   in play.
 
+### Tables get conditional formatting, and the renderer actually draws it
+
+Review of the selector outputs: tables never came out with data bars, shading or sparklines.
+The planner accepted a `treatment` but only echoed it back; both table constructors drew plain
+centred text and dropped it. The prompts also let a weak model default to plain text.
+
+- **`recommend_table_layout` resolves treatments** (new `dataviz_mcp/table_treatment.py`).
+  `treatment` is one object or a list, so a table can combine row-wise shading, a sparkline
+  column and a focal row. Each item names `kind` (bar/shading/sparkline/emphasis), `columns`,
+  optional `rows`, `scope` (column/row/table), `higher_is_better`, `scale`, `midpoint`, `domain`,
+  `baseline` and colours. Columns may carry raw `values` (lists for sparklines); otherwise
+  numeric display strings are parsed. The tool computes every scale, fill, text ink (eased
+  until it clears 4.5:1), bar extent and sparkline point into `cell_styles`, reserves graphic
+  width, and returns `col_align` so numbers are right-aligned. `dot` is removed.
+- **Both constructors draw the plan.** The R constructor and the Python fallback apply
+  alignment, heat fills, bold/tinted focal cells, data bars trailing the number and sparklines.
+  Both also draw a single rule under the header. The table inspection captures all of these as
+  marks and series.
+- **`TREATMENT_NOT_DRAWN`.** `render_table_from_plan` passes the planned fill/bar/sparkline count
+  to inspection, which fails a render that is missing any.
+- **Untreated-numbers warning.** The plan warns (and lists `untreated_numeric_columns`) when
+  comparable numeric columns are left as plain text.
+- **Chat tables assume an 800 px display with a 12 px text minimum** unless `delivery` says
+  otherwise, so an over-wide table no longer ships with text that shrinks below legibility.
+- **Skills and stage prompts.** `karthik-table-style` makes a formatted table the default for
+  comparable numbers, with a decision sequence (which cells compare, bars vs shading by room and
+  density, direction, sparklines for ordered sequences, focal row, summary column). The select
+  stage prompt now carries the dense-matrix table rule; build draws through
+  `render_table_from_plan`; execution treats a dropped treatment or an unformatted comparable
+  table as a defect. `dataviz-selector` keeps a handful of ranked values as a labelled bar chart
+  rather than a table.
+
 ### Chart source scaffolded from the plan; the model writes only the marks
 
 The canonical run showed weak build models getting settled mechanics wrong - tiny fonts, axis

@@ -39,9 +39,9 @@ def test_treatment_requires_shared_scale_semantics_not_column_counts():
     cols = [{"header": "Value", "cells": ["-3", "10"]}]
     with pytest.raises(ValueError, match="commensurability"):
         recommend_table_layout(cols, treatment={"kind": "shading", "scope": "table"})
-    plan = {"kind": "bar", "scope": "column", "domain": [-3, 10], "baseline": 0}
+    plan = {"kind": "bar", "columns": [0], "scope": "column", "domain": [-3, 10], "baseline": 0}
     out = recommend_table_layout(cols * 4, treatment=plan)
-    assert out["treatment"] == plan
+    assert out["treatment"] == [plan]
 
 
 @pytest.mark.parametrize("long_header", [True, False])
@@ -342,3 +342,137 @@ def test_r_measurement_error_is_not_retried_in_python(monkeypatch):
                         SimpleNamespace(returncode=1, stdout="", stderr="R metric failure"))
     with pytest.raises(RuntimeError, match="R metric failure"):
         _metrics(["text"], "sans", 12, 144, use_r=True)
+
+
+# ---- treatments: resolved per cell, drawn by both constructors ----
+
+from dataviz_mcp.color_math import _contrast_ratio
+from dataviz_mcp.table_treatment import parse_number
+
+
+def _benchmark_columns():
+    return [
+        {"header": "Model", "identifier": True, "cells": ["A", "B", "C", "D"]},
+        {"header": "Cost", "cells": ["$0.30", "$5.50", "$24.00", "$60.00"]},
+        {"header": "Score", "cells": ["88.8%", "89.1%", "91.4%", "67.4%"]},
+    ]
+
+
+def _lightness(colour):
+    return sum(int(colour[i:i + 2], 16) for i in (1, 3, 5))
+
+
+def test_display_strings_parse_to_numbers():
+    assert parse_number("$1,234.5") == 1234.5
+    assert parse_number("(3.2%)") == -3.2
+    assert parse_number("\u22122") == -2
+    assert parse_number("12.5K") == 12500
+    assert parse_number("n/a") is None
+
+
+def test_shading_resolves_ordered_fills_with_legible_ink():
+    out = recommend_table_layout(_benchmark_columns(), treatment=[
+        {"kind": "shading", "columns": [2]},
+        {"kind": "shading", "columns": [1], "higher_is_better": False}])
+    styles = out["cell_styles"]
+    score = [styles[2][r]["fill"] for r in range(4)]
+    # Higher score -> stronger (darker) fill; the lowest score is the lightest.
+    assert _lightness(score[2]) < _lightness(score[1]) < _lightness(score[0])
+    assert _lightness(score[3]) == max(map(_lightness, score))
+    # Lower cost is better, so the cheapest row gets the strongest fill.
+    cost = [styles[1][r]["fill"] for r in range(4)]
+    assert _lightness(cost[0]) == min(map(_lightness, cost))
+    for col in (1, 2):
+        for style in styles[col]:
+            assert _contrast_ratio(style["ink"], style["fill"]) >= 4.5
+    assert out["col_align"] == ["left", "right", "right"]
+    assert out["untreated_numeric_columns"] == []
+
+
+def test_shared_row_scale_needs_commensurability_and_normalises_each_row():
+    cols = [{"header": "Metric", "identifier": True, "cells": ["Pace", "HR"]}]
+    cols += [{"header": str(k), "cells": [str(p), str(h)]}
+             for k, (p, h) in enumerate([(300, 140), (360, 150), (330, 180)])]
+    with pytest.raises(ValueError, match="commensurability"):
+        recommend_table_layout(cols, treatment={"kind": "shading", "columns": [1, 2, 3], "scope": "row"})
+    out = recommend_table_layout(cols, treatment={"kind": "shading", "columns": [1, 2, 3],
+                                                  "scope": "row", "commensurable": True})
+    fills = [[out["cell_styles"][c][r]["fill"] for c in (1, 2, 3)] for r in (0, 1)]
+    # Each row is its own scale: row 0 peaks at column 2, row 1 at column 3.
+    assert min(fills[0], key=_lightness) == fills[0][1]
+    assert min(fills[1], key=_lightness) == fills[1][2]
+
+
+def test_bars_reserve_graphic_space_and_start_at_the_baseline():
+    plain = recommend_table_layout(_benchmark_columns())
+    out = recommend_table_layout(_benchmark_columns(), treatment={"kind": "bar", "columns": [1]})
+    assert out["visual_width_px"][1] > 0
+    assert out["col_widths_px"][1] > plain["col_widths_px"][1]
+    bars = [out["cell_styles"][1][r]["bar"] for r in range(4)]
+    assert all(b["start"] == 0 for b in bars)
+    assert bars[3]["end"] == 1 and bars[0]["end"] < bars[1]["end"] < bars[2]["end"]
+
+
+def test_sparklines_show_each_rows_shape_unless_shared():
+    cols = [{"header": "Metric", "identifier": True, "cells": ["Pace", "HR"]},
+            {"header": "Trend", "cells": ["", ""], "values": [[300, 360, 330], [140, 150, 180]]}]
+    out = recommend_table_layout(cols, treatment={"kind": "sparkline", "columns": [1]})
+    for r in (0, 1):
+        ys = [y for _, y in out["cell_styles"][1][r]["spark"]["points"]]
+        assert min(ys) == 0 and max(ys) == 1
+    with pytest.raises(ValueError, match="commensurability"):
+        recommend_table_layout(cols, treatment={"kind": "sparkline", "columns": [1], "scope": "column"})
+
+
+def test_emphasis_and_untreated_numbers_warning():
+    out = recommend_table_layout(_benchmark_columns(), treatment={"kind": "emphasis", "rows": [0]})
+    assert all(out["cell_styles"][c][0]["bold"] for c in range(3))
+    assert out["untreated_numeric_columns"] == [1, 2]
+    assert any("no magnitude treatment" in w for w in out["warnings"])
+    with pytest.raises(ValueError, match="numeric values"):
+        recommend_table_layout([{"header": "Name", "cells": ["x", "y"]}],
+                               treatment={"kind": "bar", "columns": [0]})
+
+
+def test_chat_tables_assume_a_screen_display_width():
+    wide = [{"header": f"Column {i}", "cells": ["1,234,567"] * 3} for i in range(20)]
+    out = recommend_table_layout(wide)
+    assert out["delivery"]["display_width_px"] == 800
+    assert all(p["width_px"] <= 800 * 22 / 12 + 1 for p in out["pages"])
+
+
+def _treated_plan():
+    return recommend_table_layout(_benchmark_columns(), treatment=[
+        {"kind": "bar", "columns": [1]}, {"kind": "shading", "columns": [2]},
+        {"kind": "emphasis", "rows": [0], "columns": [0]}],
+        title="Treated table", notes="Source: test")
+
+
+@pytest.mark.parametrize("with_r", [True, False])
+def test_both_constructors_draw_the_resolved_treatment(tmp_path, monkeypatch, with_r):
+    if with_r and not probe_renderers()["table_rendering"]["r_available"]:
+        pytest.skip("R table constructor dependencies unavailable")
+    if not with_r:
+        _no_r(monkeypatch)
+    plan = _treated_plan()
+    bundle = render_table_from_plan(plan, str(tmp_path))
+    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    report = json.loads(Path(bundle["inspection_path"]).read_text())
+    assert sum(m["kind"] == "rect" for m in layout["marks"]) == 4 + 4 + 1
+    # No sparklines here, so the one captured line is the rule under the header.
+    assert len(layout["series"]) == 1
+    codes = {d["code"] for d in report["defects"]}
+    assert not ({"TREATMENT_NOT_DRAWN", "LOW_TEXT_CONTRAST", "CELL_OVERFLOW"} & codes)
+    assert report["checks_complete"] is True
+
+
+def test_a_dropped_treatment_is_a_defect(tmp_path, monkeypatch):
+    _no_r(monkeypatch)
+    plan = _treated_plan()
+    stripped = {k: v for k, v in plan.items() if k != "cell_styles"}
+    build = write_table_build_source(stripped, tmp_path / "build.py")
+    bundle = render_and_inspect_chart(
+        build, str(tmp_path / "out"), content="table", build_function="build_table",
+        inspection_contract={"table_treatment": {"rects": 9, "lines": 0}})
+    report = json.loads(Path(bundle["inspection_path"]).read_text())
+    assert "TREATMENT_NOT_DRAWN" in {d["code"] for d in report["defects"]}

@@ -66,6 +66,7 @@ def _plan_page(plan: dict[str, Any] | str | Path, page: int):
 def build_table_from_plan(plan: dict[str, Any] | str | Path, page: int = 1):
     """Python fallback: apply measured pixel geometry without shrinking or rewrapping."""
     from matplotlib import pyplot as plt
+    from matplotlib.lines import Line2D
     from matplotlib.patches import Rectangle
 
     plan, pg = _plan_page(plan, page)
@@ -87,15 +88,51 @@ def build_table_from_plan(plan: dict[str, Any] | str | Path, page: int = 1):
     if family == "sans":
         family = "sans-serif"
 
-    def cell(text, x, y, w, h, size, bold=False, left=False, role="table_cell"):
+    pad = float(plan["padding_x_px"])
+    align = plan.get("col_align") or ["left"] * len(plan["headers"])
+    visual = plan.get("visual_width_px") or [0.0] * len(plan["headers"])
+    styles = plan.get("cell_styles")
+    line_px = float(plan["body_pt"]) * dpi / 72 * 1.25
+    gap_px = 0.4 * float(plan["body_pt"]) * dpi / 72
+
+    def box(x, y, w, h, colour, gid):
+        patch = Rectangle((x / width, 1 - (y + h) / height), w / width, h / height,
+                          transform=fig.transFigure, facecolor=colour, edgecolor="none", zorder=0.5)
+        patch.set_gid(gid)
+        fig.add_artist(patch)
+
+    def draw_style(style, col, row, x, y, w, h):
+        """Draw the planner's resolved treatment for one body cell; returns its text ink/bold."""
+        tag = f"{col}-{row}"
+        if style.get("fill"):
+            box(x, y, w, h, style["fill"], f"treat-fill-{tag}")
+        left = x + w - pad - visual[col] + gap_px
+        area = visual[col] - gap_px
+        if style.get("bar"):
+            bar = style["bar"]
+            bh = 0.6 * line_px
+            box(left + area * bar["start"], y + (h - bh) / 2, area * (bar["end"] - bar["start"]), bh,
+                bar["colour"], f"treat-bar-{tag}")
+        if style.get("spark"):
+            pts = style["spark"]["points"]
+            sh = 0.8 * line_px
+            line = Line2D([(left + area * px_) / width for px_, _ in pts],
+                          [1 - (y + h / 2 - (py_ - 0.5) * sh) / height for _, py_ in pts],
+                          transform=fig.transFigure, color=style["spark"]["colour"], linewidth=1.3)
+            line.set_gid(f"treat-spark-{tag}")
+            fig.add_artist(line)
+        return style.get("ink", "#222222"), bool(style.get("bold"))
+
+    def cell(text, x, y, w, h, size, bold=False, left=False, role="table_cell",
+             ink="#222222", inset_right=0.0):
         container = Rectangle((x / width, 1 - (y + h) / height), w / width, h / height,
                               transform=fig.transFigure, facecolor="none", edgecolor="none")
         fig.add_artist(container)
-        inset = float(plan["padding_x_px"]) if left else w / 2
-        label = fig.text((x + inset) / width, 1 - (y + h / 2) / height, text,
+        anchor = x + pad if left else x + w - pad - inset_right
+        label = fig.text(anchor / width, 1 - (y + h / 2) / height, text,
                          fontsize=size, fontfamily=family, fontweight="bold" if bold else "normal",
-                         color="#222222", ha="left" if left else "center", va="center",
-                         multialignment="left" if left else "center")
+                         color=ink, ha="left" if left else "right", va="center",
+                         multialignment="left" if left else "right")
         label.set_gid(f"{role}:cell-{len(fig.texts)}")
         # Inspection measures this rendered container, not an unverified copied plan bbox.
         label._dataviz_cell = container
@@ -108,10 +145,22 @@ def build_table_from_plan(plan: dict[str, Any] | str | Path, page: int = 1):
     for row, h in enumerate(heights):
         x = 0.0
         for col, w in zip(columns, widths):
-            text = plan["headers"][col] if row == 0 else plan["cells"][col][start + row - 1]
-            cell(text, x, y, w, h, plan["header_pt"] if row == 0 else plan["body_pt"], row == 0)
+            left = align[col] != "right"
+            if row == 0:
+                cell(plan["headers"][col], x, y, w, h, plan["header_pt"], True, left)
+            else:
+                r = start + row - 1
+                ink, bold = draw_style(styles[col][r] if styles else {}, col, r, x, y, w, h)
+                cell(plan["cells"][col][r], x, y, w, h, plan["body_pt"], bold, left,
+                     ink=ink, inset_right=visual[col])
             x += w
         y += h
+        if row == 0:
+            # One rule under the header makes it a distinct layer from the body.
+            rule = Line2D([0, 1], [1 - y / height] * 2, transform=fig.transFigure,
+                          color="#444444", linewidth=0.75)
+            rule.set_gid("rule-header")
+            fig.add_artist(rule)
     for band in bottom:
         cell(band["text"], 0, y, width, band["height_px"], band["font_pt"],
              band.get("bold", False), left=True, role="footer")
@@ -139,5 +188,12 @@ def render_table_from_plan(
     dimensions.update({k: delivery[k] for k in ("display_width_px", "minimum_text_size_pt") if k in delivery})
     if "minimum_text_px" in delivery:
         dimensions["minimum_text_size_px"] = delivery["minimum_text_px"]
+    start, end = pg["rows"]
+    page_styles = [plan["cell_styles"][c][r] for c in pg["columns"] for r in range(start, end)
+                   ] if plan.get("cell_styles") else []
+    treatment = {"rects": sum(bool(s.get("fill")) + bool(s.get("bar")) for s in page_styles),
+                 "lines": sum(bool(s.get("spark")) for s in page_styles)}
+    contract = {"table_treatment": treatment} if any(treatment.values()) else None
     return render_and_inspect_chart(build, output_dir, dimensions=dimensions,
-                                    artifact_name=artifact_name, build_function="build_table", content="table")
+                                    artifact_name=artifact_name, build_function="build_table",
+                                    content="table", inspection_contract=contract)
