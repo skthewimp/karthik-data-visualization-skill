@@ -3847,3 +3847,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:4eb3f069-899a-4a7e-8466-899dbef45e70:end -->
+
+<!-- claude-session:2756c319-9e80-47a0-9783-f4eca7ce8858:start -->
+## 2026-09-23 10:25 IST | Claude session `2756c319-9e8`
+
+### User prompts
+> despite a lot of changews ofver the lasty one month, the dataviz repair flow is slow and buggy. it takes 5 mins per run. it needs to be a minute. check out hte latest outputs at @canonical-examples.pdf and my notes on...
+> put these recommendations in a doc (don't commit or push) and then i'll give you the run logs
+> the full logs are at @integrated-transcript.json .
+
+### Work done
+- Profile a local refit of a simple ggplot source to find where the 40s goes.
+- I've updated `canonical-fix-plan.md` with the timings from the logs. It's not committed or pushed. **Where the 5 minutes goes (repair only, per case):** | Share | Cause | |---|---| | ~65%, 138–308s | Model calls: 8–14...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:2756c319-9e80-47a0-9783-f4eca7ce8858:end -->
