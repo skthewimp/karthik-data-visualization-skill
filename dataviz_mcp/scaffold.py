@@ -39,7 +39,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from .color_math import to_rgb
+from .color_math import _contrast_ratio, better_ink, to_rgb
 from .frame import reserve_frame
 from .inspection import _REDUNDANT_AXIS_MIN_LABELS
 from .layout import FONT_PT, PROFILES, char_px, house_font_pt, pt_to_px
@@ -55,6 +55,8 @@ _IDENTIFICATION = ("direct_labels", "subtitle_key", "axis", "legend")
 _NEUTRAL_SATURATION = 0.12
 # Text drawn smaller than this share of the planned label size reads as the tiny-font defect.
 _MIN_TEXT_SHARE = 0.8
+# WCAG AA for normal text; on-mark labels are judged against the fill they sit on.
+_MIN_ON_MARK_CONTRAST = 4.5
 
 _MONTHS = {m: i + 1 for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
@@ -222,6 +224,9 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "# series sits at the baseline and each label on its own segment.",
         "stack <- position_stack(reverse = TRUE)",
         "stack_mid <- position_stack(reverse = TRUE, vjust = 0.5)",
+        "# Text on a mark: aes(colour = on_fill_ink(series)) - the ink that reads on that fill.",
+        f"on_ink <- {_r_vec(list(spec['on_ink'].values()), list(spec['on_ink'].keys())) if spec['on_ink'] else 'c()'}",
+        "on_fill_ink <- function(series) I(unname(on_ink[as.character(series)]))",
         "",
     ]
     marks = [
@@ -346,6 +351,8 @@ def _matplotlib_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         f"INK = {(spec['ordered'][0] if spec['ordered'] else '#1a1a1a')!r}",
         "# Text: fontsize=LABEL_PT for every label and annotation.",
         f"LABEL_PT = {fonts['annotation']}",
+        "# Text on a mark: color=ON_INK[series] - the ink that reads on that fill.",
+        f"ON_INK = {spec['on_ink']!r}",
         "",
         "",
         "def fmt_value(value):",
@@ -373,7 +380,7 @@ def _matplotlib_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "",
         "",
         f"def stack(ax, rows, width=0.6, horizontal={horizontal}):",
-        '    """Draw stacked bars in series order from the baseline; return (row, position, mid) per segment."""',
+        '    """Draw stacked bars in series order from the baseline; return (row, position, mid, ink) per segment."""',
         "    base, placed = {}, []",
         "    for name in list(PALETTE) or [None]:",
         "        for row in rows:",
@@ -385,14 +392,14 @@ def _matplotlib_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "                ax.barh(x, row['value'], left=start, height=width, color=colour)",
         "            else:",
         "                ax.bar(x, row['value'], bottom=start, width=width, color=colour)",
-        "            placed.append((row, x, start + row['value'] / 2))",
+        "            placed.append((row, x, start + row['value'] / 2, ON_INK.get(row.get('series'), '#1a1a1a')))",
         "            base[x] = start + row['value']",
         "    return placed",
         "",
     ]
     marks = [
         "# Draw on ax from rows (one panel's rows). x = pos(row), y = row['value'];",
-        "# stacked bars: placed = stack(ax, rows), labels at each returned mid.",
+        "# stacked bars: placed = stack(ax, rows), labels at each returned mid in its ink.",
         "# For a horizontal chart use ax.barh / swap x and y. Columns: " + ", ".join(spec["columns"]) + ".",
         "# Marks and labels only - no titles, axis labels, limits, ticks or spines.",
         "def chart_marks(ax, rows):",
@@ -616,6 +623,7 @@ def scaffold_chart(
         "series_order": series_order,
         "facet_order": facet_order,
         "palette": palette,
+        "on_ink": {name: better_ink(hexc)[0] for name, hexc in palette.items()},
         "ordered": ordered,
         "stops": stops,
         "number_format": fmt,
@@ -710,7 +718,7 @@ suppressPackageStartupMessages(library(ggplot2))
 pdf(NULL)
 out <- list(error = NULL, non_layers = list(), geom_label = 0L, text_rows = 0L,
             mark_colours = list(), text_sizes = list(), unmapped = list(), label_mismatch = list(),
-            stack_order = FALSE)
+            stack_order = FALSE, on_mark = list())
 as_hex <- function(x) tryCatch(grDevices::rgb(t(grDevices::col2rgb(x)), maxColorValue = 255), error = function(e) as.character(x))
 flat <- function(x) if (is.list(x) && !inherits(x, "gg")) do.call(c, lapply(x, flat)) else list(x)
 is_text <- function(layer) inherits(layer$geom, "GeomText") || inherits(layer$geom, "GeomLabel") ||
@@ -742,28 +750,32 @@ tryCatch({
     if (is.null(m)) next
     data <- if (is.data.frame(layer$data)) layer$data else plot_data
     vals <- tryCatch(rlang::eval_tidy(m, data = data), error = function(e) NULL)
-    if ((is.character(vals) || is.factor(vals)) && !all(as.character(vals) %in% named))
+    if (!inherits(vals, "AsIs") && (is.character(vals) || is.factor(vals)) && !all(as.character(vals) %in% named))
       out$unmapped[[length(out$unmapped) + 1]] <- rlang::as_label(m)
   }
   # A printed number sitting inside a bar must be that bar's value.
   rects <- do.call(rbind, lapply(seq_along(plot$layers), function(i) {
     d <- b$data[[i]]
     if (is_text(plot$layers[[i]]) || !all(c("xmin", "xmax", "ymin", "ymax") %in% names(d))) return(NULL)
-    d[, c("PANEL", "xmin", "xmax", "ymin", "ymax")]
+    d$fill_hex <- if ("fill" %in% names(d)) as_hex(d$fill) else NA_character_
+    d[, c("PANEL", "xmin", "xmax", "ymin", "ymax", "fill_hex")]
   }))
   if (!is.null(rects)) for (i in seq_along(plot$layers)) {
     if (!is_text(plot$layers[[i]])) next
     d <- b$data[[i]]
     for (r in seq_len(nrow(d))) {
       text <- as.character(d$label[r])
+      if (is.na(text) || !nzchar(text)) next
+      hit <- rects[rects$PANEL == d$PANEL[r] & d$x[r] >= rects$xmin & d$x[r] <= rects$xmax &
+                   d$y[r] >= pmin(rects$ymin, rects$ymax) & d$y[r] <= pmax(rects$ymin, rects$ymax), ]
+      if (nrow(hit) != 1) next
+      # Text on a mark reads against the mark's fill, not the page.
+      out$on_mark[[length(out$on_mark) + 1]] <- list(text = text, ink = as_hex(d$colour[r]), fill = hit$fill_hex)
       if (grepl("[KMBT]\\b", text)) next
       token <- regmatches(text, regexpr("-?[0-9][0-9,]*\\.?[0-9]*", text))
       if (!length(token)) next
       shown <- as.numeric(gsub(",", "", token))
       decimals <- if (grepl("\\.", token)) nchar(sub(".*\\.", "", token)) else 0
-      hit <- rects[rects$PANEL == d$PANEL[r] & d$x[r] >= rects$xmin & d$x[r] <= rects$xmax &
-                   d$y[r] >= pmin(rects$ymin, rects$ymax) & d$y[r] <= pmax(rects$ymin, rects$ymax), ]
-      if (nrow(hit) != 1) next
       value <- abs(hit$ymax - hit$ymin)
       if (abs(value - shown) > 0.5 * 10^-decimals + 1e-9 && abs(value - shown) > 0.02 * abs(value))
         out$label_mismatch[[length(out$label_mismatch) + 1]] <- sprintf("'%s' sits on a bar of %s", text, format(signif(value, 4)))
@@ -843,6 +855,20 @@ def _check_matplotlib(source: Path, record: dict[str, Any]) -> dict[str, Any]:
                     continue
                 out["mark_colours"] += [mcolors.to_hex(c) for c in colours if c is not None and len(c)]
             out["stack_order"] = out.get("stack_order") or _mpl_stack_out_of_order(ax, record, Rectangle, mcolors)
+            # Text on a bar reads against the bar's fill, not the page.
+            bars = [p for p in ax.patches if isinstance(p, Rectangle)]
+            for text in ax.texts:
+                x, y = text.get_position()
+                for bar in bars:
+                    x0, x1 = sorted((bar.get_x(), bar.get_x() + bar.get_width()))
+                    y0, y1 = sorted((bar.get_y(), bar.get_y() + bar.get_height()))
+                    if x0 <= float(x) <= x1 and y0 <= float(y) <= y1:
+                        out.setdefault("on_mark", []).append({
+                            "text": text.get_text(),
+                            "ink": mcolors.to_hex(text.get_color()),
+                            "fill": mcolors.to_hex(bar.get_facecolor()),
+                        })
+                        break
     finally:
         plt.close(figure)
     return out
@@ -939,6 +965,17 @@ def check_chart(source_path: str) -> dict[str, Any]:
             "COLOUR_UNMAPPED",
             f"colour/fill = {expression} maps values the palette does not name, so they draw in the scale's "
             "NA grey. Map colour to series, or split the rows into layers with a fixed colour each.",
+        )
+    faint = sorted({
+        f"'{pair['text']}' ({pair['ink']} on {pair['fill']})"
+        for pair in found.get("on_mark") or []
+        if (_contrast_ratio(pair.get("ink"), pair.get("fill")) or 99.0) < _MIN_ON_MARK_CONTRAST
+    })
+    if faint:
+        deviate(
+            "LOW_CONTRAST_ON_MARK",
+            f"Text on a mark does not read on its fill: {', '.join(faint)}. Colour it with "
+            "colour = on_fill_ink(series) (Matplotlib: ON_INK[series]).",
         )
     if found.get("stack_order"):
         deviate(

@@ -130,3 +130,16 @@ def grayscale_value(colour: str) -> Optional[float]:
     if lum is None:
         return None
     return lum * 255.0
+
+
+def better_ink(surface: str, ink_light: str = "#ffffff", ink_dark: str = "#1a1a1a") -> tuple[str, float]:
+    """The text ink (light or dark) with the higher WCAG contrast against ``surface``, and that ratio.
+
+    Text on a mark takes its legibility from the mark's fill, not the page. An unparseable
+    surface defaults to dark ink with contrast unknown (0.0).
+    """
+    light_c = _contrast_ratio(ink_light, surface)
+    dark_c = _contrast_ratio(ink_dark, surface)
+    if light_c is None or dark_c is None:
+        return ink_dark, 0.0
+    return (ink_light, light_c) if light_c >= dark_c else (ink_dark, dark_c)

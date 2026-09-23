@@ -1420,7 +1420,9 @@ setting you change there is lost. In the slot, in order:
      plan's ``value_labels`` is above 0 the value axis is gone, so those labels must be drawn.
      Position a label with the same stat and position as its mark, never a separate cumsum:
      stacked bars take ``position = stack`` and their labels ``position = stack_mid`` (Matplotlib:
-     ``stack(ax, rows)``), so the first series sits at the baseline. A
+     ``stack(ax, rows)``), so the first series sits at the baseline. Text drawn on a mark takes
+     ``colour = on_fill_ink(series)`` (Matplotlib: ``ON_INK[series]``) - the ink that reads on that
+     fill - never a colour picked by hand. A
      per-row text colour is two layers with a fixed colour each, never a mapped hex column.
      Series names at the line ends sit past the last point (``hjust = 0``, small ``nudge_x``);
      the scaffold has already reserved that margin.

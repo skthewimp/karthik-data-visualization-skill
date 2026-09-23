@@ -1176,18 +1176,13 @@ def place_bar_value_labels(
     fits_inside, label_px}`` and the ``font_pt`` used, so the builder sets each ``geom_text``
     colour and vjust/hjust/nudge from the returned decision instead of a single global guess.
     """
-    from .color_math import _contrast_ratio  # local import: avoids a module cycle
+    from .color_math import better_ink  # local import: avoids a module cycle
 
     pad = pad_px if pad_px is not None else char_px(font_pt, dpi) * 0.6
     text_h = line_px(font_pt, dpi)
 
     def _better_ink(surface: str) -> tuple[str, float]:
-        light_c = _contrast_ratio(ink_light, surface)
-        dark_c = _contrast_ratio(ink_dark, surface)
-        # Unknown surface (unparseable colour): default to dark ink, contrast unknown.
-        if light_c is None or dark_c is None:
-            return ink_dark, 0.0
-        return (ink_light, light_c) if light_c >= dark_c else (ink_dark, dark_c)
+        return better_ink(surface, ink_light, ink_dark)
 
     placements: list[dict[str, Any]] = []
     for bar in bars:

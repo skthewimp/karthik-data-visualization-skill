@@ -46,6 +46,11 @@
   first series at the baseline, and `check_chart` flags `STACK_ORDER` by reading each stack's
   segment colours outward. Haiku case 02 rerun: stack runs cacheRead-first in both bars, every
   label on its own segment, all through `fmt_value`.
+- Follow-up ("ok how do we fix this thing?" then "fix"): white labels on the pink and green
+  segments. The scaffold now writes `on_ink` / `on_fill_ink(series)` from the palette with the
+  `place_bar_value_labels` rule (moved into `color_math.better_ink` so both share it), and
+  `check_chart` flags `LOW_CONTRAST_ON_MARK` when text on a bar falls below 4.5:1 against that
+  bar's fill. Haiku case 02 rerun: white on black, dark on pink and green, check clean.
 - Open: palette
   colours used as subtitle or label text fail 4.5:1 (Phase 4, colour tool); `check_chart` cannot
   see a hand-formatted number that bypasses `fmt_value`; subtitle colour key is ggplot-only; the

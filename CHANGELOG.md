@@ -24,7 +24,9 @@ now split by construction.
   plot: `BUILD_ERROR` (a value on a discrete position fails the continuous value axis - the
   flat-slopegraph bug), `MARKS_NON_LAYER`, `GEOM_LABEL`, `COLOUR_NOT_IN_PALETTE`,
   `COLOUR_UNMAPPED`, `TEXT_TOO_SMALL`, `LABEL_ON_WRONG_MARK` (a printed number on a bar whose value
-  it is not), `STACK_ORDER` (segments not in series order from the baseline; the scaffold defines
+  it is not), `LOW_CONTRAST_ON_MARK` (text on a bar below 4.5:1 against its fill; the scaffold writes
+  `on_ink` / `on_fill_ink(series)` from the palette with the `place_bar_value_labels` rule, now
+  shared as `color_math.better_ink`), `STACK_ORDER` (segments not in series order from the baseline; the scaffold defines
   `stack` / `stack_mid` and a Matplotlib `stack()` helper so bars and labels share one position), `VALUE_LABELS_MISSING`, `MARKS_SLOT_MISSING`. Returns a numbered `fix_list`.
 - **Select routing block** gains the scalars the scaffold reads: `identification_strategy`
   (moved out of `design`), `x_kind`, `value_labels`, `zero_baseline`, `value_encoding`. The

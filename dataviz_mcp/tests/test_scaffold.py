@@ -297,14 +297,15 @@ def test_stacked_labels_computed_apart_from_the_bars_are_caught(tmp_path: Path) 
 }""",
     )
     codes = {d["code"] for d in check_chart(result["source_path"])["deviations"]}
-    assert codes == {"COLOUR_UNMAPPED", "LABEL_ON_WRONG_MARK", "STACK_ORDER"}
+    # The unmapped hex falls to the scale's NA grey, which also fails against the fills.
+    assert codes == {"COLOUR_UNMAPPED", "LABEL_ON_WRONG_MARK", "STACK_ORDER", "LOW_CONTRAST_ON_MARK"}
     _fill(
         result["source_path"],
         """chart_marks <- function(d) {
   list(
     geom_col(aes(x = category, y = value, fill = series), position = stack),
-    geom_text(aes(x = category, y = value, label = fmt_value(value), group = series),
-              position = stack_mid, colour = "#FFFFFF", size = label_size)
+    geom_text(aes(x = category, y = value, label = fmt_value(value), group = series,
+                  colour = on_fill_ink(series)), position = stack_mid, size = label_size)
   )
 }""",
     )
@@ -362,3 +363,33 @@ def test_matplotlib_stack_helper_keeps_series_order(tmp_path: Path) -> None:
                 base[x] = base.get(x, 0.0) + row['value']""",
     )
     assert [d["code"] for d in check_chart(source)["deviations"]] == ["STACK_ORDER"]
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_text_on_a_mark_is_judged_against_its_fill(tmp_path: Path) -> None:
+    # White reads on the blue but not on the orange; the scaffold's ink reads on both.
+    result = _scaffold(tmp_path, zero_baseline=True)
+    source = Path(result["source_path"]).read_text(encoding="utf-8")
+    assert 'on_ink <- c("Reads" = "#ffffff", "Writes" = "#1a1a1a")' in source
+    bars = "geom_col(aes(x = category, y = value, fill = series), position = stack)"
+    white = (f"chart_marks <- function(d) list({bars}, geom_text(aes(x = category, y = value, "
+             "label = fmt_value(value), group = series), position = stack_mid, colour = '#FFFFFF', size = label_size))")
+    _fill(result["source_path"], white)
+    report = check_chart(result["source_path"])
+    assert [d["code"] for d in report["deviations"]] == ["LOW_CONTRAST_ON_MARK"]
+    assert "#ffffff on #D55E00".lower() in report["fix_list"].lower()
+    _fill(result["source_path"], white.replace("colour = '#FFFFFF', ", "").replace(
+        "group = series)", "group = series, colour = on_fill_ink(series))"))
+    assert check_chart(result["source_path"])["ok"]
+
+
+def test_matplotlib_on_mark_ink(tmp_path: Path) -> None:
+    result = _scaffold(tmp_path, renderer="matplotlib", zero_baseline=True)
+    source = result["source_path"]
+    labelled = """def chart_marks(ax, rows):
+    for row, x, mid, ink in stack(ax, rows):
+        ax.text(x, mid, fmt_value(row['value']), color=INK_CHOICE, ha='center', va='center', fontsize=LABEL_PT)"""
+    _fill(source, labelled.replace("INK_CHOICE", "ink"))
+    assert check_chart(source)["ok"]
+    _fill(source, labelled.replace("INK_CHOICE", "'#ffffff'"))
+    assert [d["code"] for d in check_chart(source)["deviations"]] == ["LOW_CONTRAST_ON_MARK"]
