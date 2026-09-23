@@ -26,25 +26,31 @@ Never chain two verbs on one line (`x %>% filter(...) %>% select(...)` on a sing
 
 ### 2. Right-assign pipelines
 
-A pipeline that builds a named object ends with `-> name`, so the chain can be selected and run top-down. Put `-> name` at the end of the final line; if that line is already long, drop the arrow and the name onto their own line.
+A pipeline that builds a named object ends with right assignment, so the chain can be selected and run top-down. Always put `->` at the end of the expression and the target object on the next line, indented 2 spaces from the pipeline's base indent. Never put the target on the same line as `->`, even for a short expression.
 
 ```r
 shows %>%
   summarise(
     first_show_date = min(show_date),
     .by = movie_id
-  ) -> movie_show_dates
+  ) ->
+  movie_show_dates
 
 movie_show_dates %>%
   left_join(selected_releases, by = "movie_id", relationship = "one-to-one") ->
   movie_releases
 ```
 
-Reserve `<-` for short, single-line assignments that are not pipelines (`outdir <- "report_assets"`, `emph <- "#C6462F"`). Reading a file into a name is itself a one-line right-assign: `read_parquet(path) -> movie_shows`.
+Reserve `<-` for short, single-line assignments that are not pipelines (`outdir <- "report_assets"`, `emph <- "#C6462F"`). Reading a file into a name also uses right assignment with the target on the next line:
+
+```r
+read_parquet(path) ->
+  movie_shows
+```
 
 ### 3. Expand multi-argument calls
 
-When a call carries several arguments, or won't sit comfortably on one line, put `(` at the end of the line, one argument (or one logical group) per line indented one step, and the closing `)` on its own line at the call's base indent. The next `%>%` or the `-> name` follows the `)`.
+When a call carries several arguments, or won't sit comfortably on one line, put `(` at the end of the line, one argument (or one logical group) per line indented one step, and the closing `)` on its own line at the call's base indent. The next `%>%` or `->` follows the `)`; after `->`, put the target object on the next line.
 
 ```r
 screens_raw %>%
@@ -52,7 +58,8 @@ screens_raw %>%
     rows = n(),
     seat_values = n_distinct(seats),
     .by = screen_id
-  ) -> screen_capacity
+  ) ->
+  screen_capacity
 ```
 
 For per-operation grouping (the default in `karthik-r-analysis-style`), put `.by = key` or `.by = c(key1, key2)` last, on its own argument line inside `mutate()`, `summarise()`, or another supporting verb. Avoid a surrounding `group_by()` / `ungroup()` pair for a single grouped operation.

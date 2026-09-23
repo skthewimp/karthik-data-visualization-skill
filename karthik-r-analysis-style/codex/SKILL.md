@@ -136,7 +136,7 @@ Prefer these over checklist EDA:
 - Prefer tidyverse `%>%` pipes. Use dplyr's native `.by` for per-operation grouping; do not switch to tidytable just to use `.by`.
 - Prefer `mutate(..., .by = key)` and `summarise(..., .by = c(key1, key2))` over `group_by() %>% ... %>% ungroup()`. Keep grouping local to each verb; use `group_by()` only when grouping genuinely needs to persist across several operations or the backend lacks `.by` support. For order-sensitive calculations, arrange explicitly before the grouped verb; preserve any required summary ordering with `arrange()`.
 - Preserve unrelated surrounding style in old notebooks, including `T/F`; apply the `.by` preference to new or edited grouped operations without gratuitously rewriting untouched code.
-- Default to right assignment (`->`) at the end of any long chain, so a pipe can run partially, line by line, in the console; the target is named once, at the bottom:
+- Default to right assignment (`->`) at the end of any long chain, so a pipe can run partially, line by line, in the console; always put the target on the next line after `->`, indented 2 spaces from the pipeline's base indent, even for short right assignments:
 
 ```r
 some_pipeline(...) %>%
