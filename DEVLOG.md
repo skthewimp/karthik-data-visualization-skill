@@ -3962,3 +3962,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:0c76769f-229f-4a81-b574-745a642148ce:end -->
+
+<!-- claude-session:e2466345-0006-4289-9da1-c90484408e5b:start -->
+## 2026-09-23 14:31 IST | Claude session `e2466345-000`
+
+### User prompts
+> look at @canonical-fix-plan.md that we made this morning. now look at both this repo and the harness hwich is at https://github.com/skthewimp/dataviz-repair-site (don't download it to this computer; i need a chinese w...
+> where should we do the position aesthetic check and palete policy?
+> ok fix both. with b rand colours, get initial colours from there, b ut if we need more, use this algo to pic, them
+
+### Work done
+- Now docs edits.
+- Both fixes are pushed as `66154c2`. The palette change won't reach the website until the harness pins `66154c2` and passes `available_source` from its colour plan into `recommend_colours`. I haven't touched the harnes...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:e2466345-0006-4289-9da1-c90484408e5b:end -->
