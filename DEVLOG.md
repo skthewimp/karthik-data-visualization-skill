@@ -1,5 +1,51 @@
 # Devlog
 
+## 2026-09-23 - Phase 2: chart source scaffolded from the plan, checked on the built plot
+
+### User report
+
+- "look at canonical-fix-plan.md. how do we build phase 2? the code correction tool."
+- On the first design (a tool that rewrites the model's finished code): "i'm not sure this is
+  appropriate". Then: "what should we do for this phase 2 thing? if you say that the model should
+  not correct code." Then: "ok do it. also modify skills accordingly".
+
+### What I did
+
+- Dropped the rewrite-after idea: the shipped code would say `limits = c(0, 100)` and a wrapper
+  would quietly undo it. Instead `scaffold_chart` writes everything the plan already decided and
+  leaves one `chart_marks` slot, and `check_chart` checks that slot on the built ggplot object (or
+  Matplotlib figure), not the code text. Edited scaffold regions are restored from a sidecar
+  record.
+- Select's routing block now carries the scalars the scaffold reads; `identification_strategy`
+  moved there from `design`. The handoff parser learned closed-word and count keys.
+- Rewrote the chart half of the build prompt around the slot, pointed execution at `check_chart`
+  first, and updated `karthik-data-visualization`, `dataviz-construct`, `dataviz-execution` and
+  `dataviz-selector`.
+- Validated with Sonnet and Haiku build runs on canonical cases 01 (four-line trend) and 02
+  (horizontal 100% stacked bars), judging the PNGs.
+
+### Notes / decisions
+
+- Round one found five scaffold gaps, all fixed and rerun:
+  - The subtitle was not drawn as `reserve_frame` had wrapped it, so it ran off the canvas.
+  - Panels clipped end labels invisibly, so neither the inspector nor refit could see them.
+    Panels now draw with `clip = "off"`.
+  - With no room past the last point, both models dragged series names back over the lines. The
+    scaffold now widens the right margin by the measured label width beyond the axis expansion,
+    and returns the frame as drawn so placement and the inspection contract use it.
+  - `coord_flip` put the first category at the bottom; the axis now reads top-down.
+  - Haiku computed stacked-label positions with its own cumsum in the opposite order to ggplot's
+    stack and mapped a hex column through the palette scale. `check_chart` passed it. Added
+    `LABEL_ON_WRONG_MARK` (a number inside a bar must be that bar's value) and `COLOUR_UNMAPPED`.
+- Round two: Sonnet case 01 used `place_on_marks` and came out clean. Haiku case 01 is clean
+  apart from two start labels swapped by a hand nudge. Haiku case 02 labels land on the right
+  segments now, but its stack runs right-to-left against the plan's order.
+- Open: stack direction is still the model's call (`position_stack(reverse = TRUE)`); palette
+  colours used as subtitle or label text fail 4.5:1 (Phase 4, colour tool); `check_chart` cannot
+  see a hand-formatted number that bypasses `fmt_value`; subtitle colour key is ggplot-only; the
+  scaffold does not compose `panel_groups` regions. The external site driver has to call
+  `scaffold_chart` and `check_chart` itself.
+
 ## 2026-09-23 - Chart copy: hedges off, subject kept, numbers pre-rounded, legend last
 
 ### User report

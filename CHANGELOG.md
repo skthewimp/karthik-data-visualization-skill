@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+### Chart source scaffolded from the plan; the model writes only the marks
+
+The canonical run showed weak build models getting settled mechanics wrong - tiny fonts, axis
+titles nobody planned, a value axis the direct labels already replaced, hand-picked hues,
+`limits = c(0, 100)`, one tick per month - and flagged defects shipping anyway. Rewriting the
+model's code afterwards was rejected: the shipped code would contradict itself. So the source is
+now split by construction.
+
+- **New `scaffold_chart` tool** (`dataviz_mcp/scaffold.py`). Writes the ggplot2 `.R` or
+  Matplotlib `.py` source from the plan and the existing tool results: data load and typing
+  (`x_kind: date` parses time labels to real dates with the renderer's own breaks; a period range
+  such as `2010-14` keeps the axis discrete), `fmt_value`, `palette`/`ink`, value scale (limits
+  only for `zero_baseline`), facet grid, titles as `reserve_frame` wrapped them, axis titles only
+  where declared, fonts, margin, theme, legend only for `legend`, a coloured subtitle key for
+  `subtitle_key`, `coord_flip` with top-down category order for horizontal charts, panels drawn
+  with `clip = "off"`, right-margin room for end labels, and the value axis dropped once
+  `value_labels` reach the redundant-axis floor. One `chart_marks` slot is left for the model;
+  the scaffold's scales, labs and theme come after it, so an override there loses.
+- **New `check_chart` tool.** Restores edited scaffold regions and checks the slot on the built
+  plot: `BUILD_ERROR` (a value on a discrete position fails the continuous value axis - the
+  flat-slopegraph bug), `MARKS_NON_LAYER`, `GEOM_LABEL`, `COLOUR_NOT_IN_PALETTE`,
+  `COLOUR_UNMAPPED`, `TEXT_TOO_SMALL`, `LABEL_ON_WRONG_MARK` (a printed number on a bar whose value
+  it is not), `VALUE_LABELS_MISSING`, `MARKS_SLOT_MISSING`. Returns a numbered `fix_list`.
+- **Select routing block** gains the scalars the scaffold reads: `identification_strategy`
+  (moved out of `design`), `x_kind`, `value_labels`, `zero_baseline`, `value_encoding`. The
+  handoff parser accepts closed-word and count keys leniently.
+- **Stage prompts.** Select decides the scaffolding as scalars and leaves axis titles empty unless
+  needed. Build writes only the slot, positions labels with the marks' own stat/position, and
+  runs `check_chart`. Execution runs `check_chart` first, routes scaffold-owned defects to select,
+  and skips the correction when nothing is found.
+- Skills updated to match: `karthik-data-visualization`, `dataviz-construct`, `dataviz-execution`,
+  `dataviz-selector`.
+
 ### Reader-facing copy: no hedges on the chart, subject kept in the title, numbers rounded before they are written
 
 The canonical run (cases 01, 02, 04, 05, 06, 08) put "the source doesn't define...", "reconstructed",

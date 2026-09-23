@@ -27,6 +27,7 @@ from .plot_data import prepare_plot_data as prepare_plot_data_core
 from .precision import recommend_precision as recommend_precision_core
 from .scale_transform import recommend_scale_transform as recommend_scale_transform_core
 from .refit import refit_chart as refit_core
+from .scaffold import check_chart as check_chart_core, scaffold_chart as scaffold_chart_core
 from .rendering import (
     probe_renderers as probe_core,
     render_and_inspect_chart as render_inspect_core,
@@ -574,6 +575,69 @@ def create_server() -> Any:
             font_pt,
             edge_margin_px,
         )
+
+    @server.tool()
+    async def scaffold_chart(
+        output_dir: str,
+        plot_data_path: str,
+        public_copy: dict[str, Any],
+        layout: dict[str, Any] | None = None,
+        frame: dict[str, Any] | None = None,
+        colours: Any = None,
+        number_format: dict[str, Any] | None = None,
+        identification: str = "direct_labels",
+        value_labels: int = 0,
+        x_kind: str = "discrete",
+        orientation: str | None = None,
+        zero_baseline: bool = False,
+        value_encoding: str = "position",
+        background: str = "#FFFFFF",
+        renderer: str = "ggplot2",
+        source_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Write the chart source from the plan, leaving one slot for the model's marks.
+
+        The mechanical half of a chart is decided before build, so the build model should not
+        write it: this writes a ggplot2 ``.R`` (or Matplotlib ``.py``) file that loads the
+        ``prepare_plot_data`` frame, types the x column (``x_kind`` date parses time labels to
+        real dates, drawn with the renderer's own breaks), and applies the number format
+        (``recommend_precision`` result, optional ``prefix``/``suffix``), the palette
+        (``recommend_colours`` or ``recommend_continuous_scale`` result), fonts and canvas
+        (``recommend_layout``), outer margin (``reserve_frame``), facet grid, titles from
+        ``public_copy`` (axis titles only where declared), legend only for ``identification``
+        legend, and a coloured subtitle key for subtitle_key. The value axis and its gridlines
+        are dropped when ``value_labels`` (marks printing their own value) reaches the same
+        two-label floor the redundant-axis check uses; limits appear only for ``zero_baseline``.
+
+        The model writes only the body of ``chart_marks`` between the marks markers - layers
+        mapping x = category, y = value, coloured from ``palette``/``ink``, numbers through
+        ``fmt_value``, text at ``label_size``. The scaffold adds its scales, labs and theme after
+        the slot, so a stray override there loses. Returns ``source_path``, ``dimensions`` for
+        the render, ``decided`` (what was applied, for ``recommendations_used``), a
+        ``marks_brief`` for the build model and ``warnings``. Run ``check_chart`` after the
+        model writes the slot.
+        """
+        return scaffold_chart_core(
+            output_dir, plot_data_path, public_copy, layout, frame, colours, number_format,
+            identification, value_labels, x_kind, orientation, zero_baseline, value_encoding,
+            background, renderer, source_name,
+        )
+
+    @server.tool()
+    async def check_chart(source_path: str) -> dict[str, Any]:
+        """Check a scaffolded chart's marks slot on the built plot, and restore the scaffold.
+
+        Scaffold regions edited by the model are restored from the scaffold record (the tool
+        wrote them). The slot is then checked on the built object, not by reading the code:
+        a build error (a value mapped to a discrete position fails the continuous value axis),
+        a non-layer returned from the slot (scale, coord, facet, labs, theme), ``geom_label``,
+        a data-mark colour outside the resolved palette (neutral greys are allowed), text
+        below the planned label size, and fewer drawn labels than ``value_labels`` promised
+        when the value axis was dropped. Returns ``ok``, ``restored_scaffold``, ``deviations``
+        ({code, severity, message}) and ``fix_list``, a numbered list the correcting model
+        reads. ``ok`` with a clean inspection means no model correction is needed.
+        """
+        return check_chart_core(source_path)
 
     @server.tool()
     async def place_on_marks(

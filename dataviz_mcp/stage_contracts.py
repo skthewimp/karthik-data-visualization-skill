@@ -485,22 +485,23 @@ _PLOT_DATA_MAP = {
     "additionalProperties": False,
 }
 
+_IDENTIFICATION_STRATEGY = {
+    "type": "string",
+    "enum": ["direct_labels", "subtitle_key", "axis", "legend"],
+    "description": (
+        "How the reader tells series apart. axis: position names each mark (one series "
+        "on a categorical axis). direct_labels: each series named on its own marks. "
+        "subtitle_key: the series names written in the subtitle in their colours, when "
+        "they fit on one subtitle line but not on the marks. legend: only when neither "
+        "fits. The reader should never look back and forth to decode a colour."
+    ),
+}
+
 _DESIGN = {
     "type": "object",
     "properties": {
         "chart_form": {"type": "string"},
         "comparison_strategy": {"type": "string"},
-        "identification_strategy": {
-            "type": "string",
-            "enum": ["direct_labels", "subtitle_key", "axis", "legend"],
-            "description": (
-                "How the reader tells series apart. axis: position names each mark (one series "
-                "on a categorical axis). direct_labels: each series named on its own marks. "
-                "subtitle_key: the series names written in the subtitle in their colours, when "
-                "they fit on one subtitle line but not on the marks. legend: only when neither "
-                "fits. The reader should never look back and forth to decode a colour."
-            ),
-        },
         "public_copy": _PUBLIC_COPY,
         "colour_role": {"type": "string"},
         "colour_groups": {
@@ -518,7 +519,6 @@ _DESIGN = {
     "required": [
         "chart_form",
         "comparison_strategy",
-        "identification_strategy",
         "public_copy",
         "colour_role",
         "colour_groups",
@@ -894,6 +894,37 @@ SELECT_SCHEMA: dict[str, object] = {
         "needs_explainer": {"type": "boolean"},
         "needs_color_plan": {"type": "boolean"},
         "needs_precision_plan": {"type": "boolean"},
+        "identification_strategy": _IDENTIFICATION_STRATEGY,
+        "x_kind": {
+            "type": "string",
+            "enum": ["discrete", "date", "continuous"],
+            "description": (
+                "How the x/category column is typed. date when it is time (years, months, "
+                "quarters, dates): it is parsed to real dates and drawn with the renderer's own "
+                "breaks, never one tick per period. continuous for a numeric x. discrete otherwise."
+            ),
+        },
+        "value_labels": {
+            "type": "integer",
+            "minimum": 0,
+            "description": (
+                "How many marks print their own value as a direct label (0 when the reader "
+                "reads values off the axis). Once the labelled marks carry the reading, the "
+                "scaffold drops the value axis and its gridlines; build must then draw them."
+            ),
+        },
+        "zero_baseline": {
+            "type": "boolean",
+            "description": (
+                "yes for a length encoding (bars, columns, areas) that needs a true zero; "
+                "otherwise the renderer fits the value axis to the data."
+            ),
+        },
+        "value_encoding": {
+            "type": "string",
+            "enum": ["position", "colour"],
+            "description": "position for bars/lines/points; colour when the value is a fill (heatmap).",
+        },
         "number_display_groups": _NUMBER_DISPLAY_GROUPS,
         "colour_plan": _COLOUR_PLAN,
         "plot_data": _PLOT_DATA_MAP,
@@ -907,6 +938,7 @@ SELECT_SCHEMA: dict[str, object] = {
         "needs_explainer",
         "needs_color_plan",
         "needs_precision_plan",
+        "identification_strategy",
         "number_display_groups",
         "colour_plan",
         "design",
@@ -1300,13 +1332,19 @@ otherwise, which is the common case, and standing down when the meaning is not s
 red/green polarity would collapse under colour-vision deficiency. This is the whole colour
 *decision*; the ordered palette is resolved deterministically downstream by ``recommend_colours``
 and checked by ``validate_palette``, and build applies it - you decide the plan, not the hexes.
-Keep the quantitative coordinate mapping separate from the scaffolding drawn around it: a shared
-or fixed scale preserves comparable positions but does not require visible ticks, tick labels, an
-axis title, or gridlines. State both decisions in the design or layout plan. When direct labels on
-the reading-carrying marks supply the values the reader needs, keep the common domain and remove
-scaffolding that only repeats those labels. An unlabelled supporting mark does not by itself earn
-an axis: retain a component only when the reader must estimate that mark's value, align values,
-read a meaningful baseline, or read a threshold; shape alone is already carried by the line.
+The chart's scaffolding - value axis, gridlines, axis titles, scales, fonts - is written by
+``scaffold_chart`` from routing scalars you set here, so decide them here, not in design prose.
+Set ``value_labels`` to how many marks will print their own value (0 when the reader reads values
+off the axis). Label the reading-carrying marks - endpoints, extremes, the focal comparison - and
+once they carry the reading the scaffold drops the value axis and its gridlines; an unlabelled
+supporting mark does not by itself earn an axis unless the reader must estimate its value, align
+values, or read a baseline or threshold. Set ``x_kind`` to ``date`` when the category is time,
+``continuous`` for a numeric x, ``discrete`` otherwise. Set ``zero_baseline`` yes only for a
+length encoding (bars, columns, areas); otherwise the renderer fits the value axis to the data.
+Set ``value_encoding`` to ``colour`` only when the value is a fill (heatmap). Leave
+``public_copy.axis_titles`` empty unless the reader cannot tell what an axis measures from the
+title, subtitle or labels - "Month", "Period", "Category" or a unit already in the title is
+duplicate ink.
 Set ``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels, or
 table cells). When it is true, enumerate ``number_display_groups`` - one entry per axis,
 numeric column, or labelled numeric series - and decide ``exact_lookup_required`` for each
@@ -1314,10 +1352,7 @@ HERE: true only for identifiers or a genuine exact-lookup requirement, false (th
 otherwise, with a reason either way. This flag is the whole precision *decision*; the actual
 format (how many digits) is then resolved deterministically downstream by ``recommend_precision``
 from the group's values and this flag, and the build stage only applies it - so decide the flag
-carefully here. Fit any value axis to the data's plotted extent, not to the measure's natural
-domain - a percentage running 1-44 is not a 0-100 axis. Let the renderer's own fitted range and
-nice breaks stand; set an explicit range only for a deliberate zero baseline or a genuine
-full-range case, never to stamp the unit's ceiling onto the axis. Write ``public_copy`` as the
+carefully here. Write ``public_copy`` as the
 reader sees it and nothing else. The subtitle is optional: keep one only when it states a fact
 the title does not, and leave it empty otherwise. The caption is the diagnose stage's
 ``printed_caption`` copied verbatim, or empty - you never write one. Build draws every
@@ -1363,51 +1398,45 @@ An R build error is a defect to fix, not a reason to switch backends. ``auto`` d
 translate existing source. For tables, ``render_table_from_plan`` selects the R constructor
 when available and otherwise applies the same plan through its Python constructor.
 
-GET PLACEMENT RIGHT BEFORE THE FIRST RENDER. Do these in order - a clipped title or a label
-off the canvas is a reservation you skipped, not a revision the gate must catch:
-  1. Size the canvas from the chart's shape with ``recommend_layout`` (chart), or take the
-     delivery width (table).
-  2. Reserve the frame BLIND, before any render. Chart: pass the title/subtitle/caption,
-     axis and legend strings plus canvas and font sizes to ``reserve_frame``, set ``plot.margin`` to
-     the ``plot_margin_px`` it returns (the outer edge alone - never derive margins from the
-     reserved bands, or the renderer's own chrome is reserved twice and the panel collapses), and
-     carry its advisory ``plot_area`` and ``frame_blocks`` forward as label boundary and obstacles. Table: call
-     ``recommend_table_layout``, then draw the plan through ``render_table_from_plan`` (the
-     shared constructor) so the measured column widths, row heights, header band and
-     title/subtitle/notes bands are applied verbatim, not re-normalised by hand; a title,
-     subtitle, footer or column wider than the canvas is ``cannot_fit`` - narrow, wrap or
-     split, never clip.
-  3. Place every data-glued label (values on bars, callouts on points): render once as a ruler,
-     then pass that render's ``transform`` and ``marks``, the labels in DATA coordinates,
-     ``plot_area`` and ``frame_blocks`` to ``place_on_marks``; draw from the coordinates it
-     returns. Never guess a label's pixels or hand-write a segment.
-  4. Settle the editorial set and the scaffolding it makes redundant BEFORE this first render, not
-     as a later revision. Label only the marks that carry the reading - a series' identity, an
-     endpoint, the focal comparison, a genuine exception, an exact lookup - never a value on every
-     point of every series (over-labelling is the top reason a chart reads busy and cheap). Then:
-     when you directly label the marks that carry the reading, do NOT also draw that value axis's
-     tick numbers and gridlines - they are duplicate ink, so drop them in this first render and
-     declare the labelled set as ``inspection_contract.direct_labels`` so the redundant-axis check
-     scores your key set. Keep a value axis, ticks, or gridline only for a task the labels don't do
-     (estimating an unlabelled mark, alignment, a baseline/threshold). Colour every series to clear
-     the actual PLOT-PANEL background - the paper/tint inside the panel, not the page - by passing
-     that panel background to ``recommend_colours``; a thin mark (a line or point) needs real
-     luminance separation from it, so a pale hue (yellow, light green, light grey) on a light panel
-     is not eligible for a line unless it is the single focal-plus-grey highlight. Draw series
-     identity by the plan's ``identification_strategy`` and draw no legend unless it says
-     ``legend``. For ``subtitle_key``, colour each series name in the subtitle with that
-     series' resolved hex: ggplot ``theme(plot.subtitle = ggtext::element_markdown())`` with
-     ``<span style='color:#hex'>Name</span>``; Matplotlib, one ``TextArea`` per word run packed
-     in an ``HPacker`` (``matplotlib.offsetbox``), each run in its own colour.
-For charts, pass the returned frame as ``inspection_contract.frame`` and returned label
+CHART BUILDS START FROM A SCAFFOLD. ``scaffold_chart`` writes the chart source from the plan:
+the plot data load, number format, palette, value and date scales, facet grid, titles, fonts,
+margins, theme, legend or subtitle colour key, and the value axis dropped when the plan's
+``value_labels`` carry the reading. You write ONLY the body of ``chart_marks`` between the marks
+markers. The driver normally hands you the file; if it did not, call ``scaffold_chart`` yourself
+with the ``prepare_plot_data`` frame, ``public_copy``, the ``recommend_layout``,
+``reserve_frame``, ``recommend_colours`` and ``recommend_precision`` results, and the select
+routing scalars (``identification_strategy``, ``value_labels``, ``x_kind``, ``zero_baseline``,
+``value_encoding``). Never edit outside the slot: ``check_chart`` restores the scaffold, so a
+setting you change there is lost. In the slot, in order:
+  1. Return geoms and labels only. ggplot: ``list(...)`` of layers mapping ``x = category`` and
+     ``y = value`` (the scaffold flips a horizontal chart); no scale, coord, facet, labs, theme or
+     guides. Matplotlib: draw on ``ax`` from ``rows`` with ``pos(row)`` and ``row['value']``; no
+     titles, limits, ticks or spines.
+  2. Colour every data mark from ``palette`` / ``ink`` (a neutral grey for context); never type a
+     hue. Print every number with ``fmt_value()``; set every text at ``label_size`` (``LABEL_PT``);
+     plain text, never ``geom_label`` boxes.
+  3. Label only the marks that carry the reading - a series' identity, an endpoint, the focal
+     comparison, a genuine exception - never a value on every point of every series. When the
+     plan's ``value_labels`` is above 0 the value axis is gone, so those labels must be drawn.
+     Position a label with the same stat and position as its mark (stacked bars:
+     ``position_stack(vjust = 0.5)`` on the same aesthetics), never a separate cumsum. A
+     per-row text colour is two layers with a fixed colour each, never a mapped hex column.
+     Series names at the line ends sit past the last point (``hjust = 0``, small ``nudge_x``);
+     the scaffold has already reserved that margin.
+  4. Place every data-glued label from ``place_on_marks``: render once as a ruler, then pass that
+     render's ``transform`` and ``marks``, the labels in DATA coordinates, ``plot_area`` and
+     ``frame_blocks`` from the scaffold's returned ``frame`` (it already carries the end-label
+     room) and draw from the coordinates it returns. Never
+     guess a label's pixels or hand-write a segment; draw a connector only when the placement
+     returns a ``leader_line``.
+  5. Run ``check_chart`` on the source and fix every numbered deviation it returns before the
+     render you deliver. Record the palette and number format the scaffold applied (its
+     ``decided`` list) in ``recommendations_used``.
+For charts, pass the scaffold's ``frame`` as ``inspection_contract.frame`` and the label
 placements as ``inspection_contract.placements`` to ``render_and_inspect_chart`` and
-``refit_chart``. These are the existing tool outputs, not a new text-classification scheme.
-For a known target, pass its exported ``mark_id`` in the label to ``place_on_marks``; derive
-the target and anchor from the same transformed data. Wrong anchors are rejected; report
-``unverified_attachments`` as a limitation rather than inventing a target. ggplot text roles
-do not identify which mark a label names.
-Only after 1-4 do you render the candidate; the inspect pass then only confirms the pixels.
-The paragraphs below carry the full detail of each step.
+``refit_chart``. For a known target, pass its exported ``mark_id`` in the label to
+``place_on_marks``; wrong anchors are rejected; report ``unverified_attachments`` as a limitation
+rather than inventing a target.
 
 Build the
 deliverable exactly to the plan, carrying every message with its required content. Use the
@@ -1435,44 +1464,11 @@ too much empty space for the ink, usually flagged with undersized text - is one 
 no shrink vector, so ``refit_chart`` reports it but never resizes it away, and acting on it is not
 the forbidden canvas-chasing (that rule is about growing to hide overflow). It is a design call you
 own: shrink the canvas to fit the ink, enlarge the marks and text, choose a denser layout, or switch
-to the requested table - do not re-render the same sparse canvas expecting refit to shrink it. Make no colour decision here: apply the ordered
-palette resolved from the select stage's ``colour_plan`` by ``recommend_colours`` (supplied by
-the driver, or produced by calling the tool with the plan's available colours, ``colour_groups``,
-background, focal, and semantic hints), assign it in the palette's order, and record what you
-applied in ``recommendations_used.palette``. Never substitute, omit, or invent a data-series
-colour, and never nudge a planned hex: every series is coloured from the resolved assignment
-exactly as given. Apply the assignment only when ``recommend_colours`` returns ``resolved`` true;
-a short pool is completed by the tool itself with generated distinguishable colours (reported in
-``generated_additions``), so a resolved assignment already covers every series. In the rare case
-it returns ``resolved`` false (even generation could not clear the background bar), report the plan
-as UNRESOLVED and route back to the select stage (its ``route_to``) to change the background or
-drop a series - do NOT improvise the missing hues or render a short palette yourself. Record the complete series-to-colour mapping in
-``recommendations_used.palette`` and validate that every assigned series colour is present and
-correct after rendering - not only the ones that happened to render. Background contrast is a soft
-diagnostic, not a reason to swap a colour: if ``validate_palette`` flags a contrast or adjacency
-problem, correct it against the plan; do not re-pick hues from scratch. Make no
-precision decision here. For every numeric
-display group (each axis, label, or table column), apply the resolved number format for that
-group - the format from ``recommend_precision`` keyed to the group's values and the select
-stage's ``exact_lookup_required`` flag, supplied by the driver, or produced by calling the tool
-here if it is available. Numbers that appear inside claim text - the headline and the candidate
-annotations - carry the precision the insight stage already gave them: reproduce them as stated,
-do not re-round them. Record each applied format in ``recommendations_used.number_formats`` with
-its reason. Let the renderer's own fitted range and nice breaks stand for the value axis; do not
-override them with the measure's natural domain (a percentage is not a 0-100 axis unless the data
-reaches it). Set an explicit range only for a deliberate zero baseline or a genuine full-range
-case. Place the frame before you draw: pass the raw title/subtitle/caption, axis and legend
-strings, and the canvas and font sizes to ``reserve_frame`` (all inputs); the renderer lays out
-the chrome natively inside the sized canvas, so set ``plot.margin`` to the returned
-``plot_margin_px`` (the outer edge alone) and never derive margins from the reserved bands -
-summing a band into the margin reserves the chrome twice and collapses the panel. Carry the
-advisory ``plot_area`` and ``frame_blocks`` forward as label boundary and obstacles - this
-measures the chrome up front, so nothing clips and the canvas is not left half-empty.
-For labels glued to specific marks (values on bars, callouts on points), do not guess their
-pixels: render once as a ruler, then pass the render's ``transform`` and ``marks``, the labels in
-DATA coordinates, and the ``frame_blocks`` to ``place_on_marks`` - it projects each to its true
-pixel spot and de-collides against the real marks, so text-mark and free-callout overlaps are gone
-on the first delivered chart. On-mark data values stay pinned to their marks (never shoved off);
+to the requested table - do not re-render the same sparse canvas expecting refit to shrink it. The palette and the number formats are resolved
+upstream and applied by the scaffold: never substitute, nudge or invent a series colour, and
+reproduce numbers inside claim text - the headline and candidate annotations - exactly as the
+insight stage wrote them.
+On-mark data values stay pinned to their marks (never shoved off);
 the tool nudges one at most a line-height to clear another value it lands on, but when two on-mark
 values genuinely overlap and cannot separate on their marks it says so - resolve that residual by
 moving the movable label (the series name at a crowded line end), flipping the value's offset side,
@@ -1485,14 +1481,9 @@ must not invent a universal character count. Set ``allow_curtail: true`` only wh
 ``full_text`` will also appear in a compact key or footnote. Otherwise keep an over-budget label
 intact and revise the layout, wording, or form. Treat directly labelled point values as fixed
 ``data_label`` blocks, using one consistent small offset from their marks, and series/category
-names as ``label`` blocks adjacent to their line or mark. Draw a connector only when the returned
-placement contains a ``leader_line`` - never add a decorative dash. If several ordinary direct
+names as ``label`` blocks adjacent to their line or mark; never add a decorative dash. If several ordinary direct
 labels need leaders, revise the label set, anchors, or layout rather than accepting a field of
-displaced callouts. Keep coordinate systems separate: a data scale spans the data's plotted extent
-(not the measure's natural domain - a percentage is not 0-100 unless the data reaches it), while titles, labels,
-annotations, legends, and their whitespace live in layout/screen coordinates. Never change a
-quantitative scale merely to reserve room for non-data content, and never reserve the same room
-in both the data domain and the physical layout. Record each acceptance check as pass, fail, or
+displaced callouts. Record each acceptance check as pass, fail, or
 unknown against observed evidence.
 A ``source_fidelity`` check is answerable here. An ``external_validation`` check whose ground
 truth (an exact denominator, dataset, or methodology) is not available in this run is recorded
@@ -1563,8 +1554,13 @@ defect and never a reason to withhold: carry it into ``residual_limitations`` (t
 not the chart) and still return ``deliver``. Chart text that reports a limitation of the run or
 the data's provenance is a copy defect: remove it from ``public_copy``. Reserve the ``blocked`` verdict for a genuine inability to
 produce any valid artifact at all - never for a missing external denominator, dataset, or
-methodology. Treat ``REDUNDANT_VALUE_AXIS`` as
-revision-required, not optional polish. A connector on an adjacent direct label is also redundant
+methodology. A chart built on ``scaffold_chart`` takes its fonts, axis titles, value axis,
+palette, scales and legend from the plan: a defect in one of those is a plan fix, not a build
+edit - route it to select (the routing scalar or ``public_copy`` string that caused it) and
+re-scaffold. ``REDUNDANT_VALUE_AXIS`` on a scaffolded chart means ``value_labels`` was set below
+the labels actually drawn. Run ``check_chart`` on the source first and put each deviation it
+returns in ``proposed_fixes``; when it returns none and the inspection carries no fatal or major
+defect, skip the correction pass and deliver. A connector on an adjacent direct label is also redundant
 ink; require the builder to reproduce ``leader_line`` only when the placement result contains one.
 For tables, replace chart refitting and mark-placement with the table layout path.
 Inspect every delivered page at its supplied font/display minimums, including nested
@@ -1619,6 +1615,11 @@ _SELECT_ROUTING_FIELDS = (
     "needs_explainer",
     "needs_color_plan",
     "needs_precision_plan",
+    "identification_strategy",
+    "x_kind",
+    "value_labels",
+    "zero_baseline",
+    "value_encoding",
 )
 
 # No builder-agnostic build conditionals remain: colour, precision, and the explainer note are

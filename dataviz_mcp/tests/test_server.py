@@ -33,6 +33,8 @@ EXPECTED_TOOLS = {
     "reserve_frame",
     "place_on_marks",
     "place_bar_value_labels",
+    "scaffold_chart",
+    "check_chart",
 }
 
 

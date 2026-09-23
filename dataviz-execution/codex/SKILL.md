@@ -54,6 +54,8 @@ The named flags:
 
 Before judging a **redesign** candidate, confirm the build carries a recorded cold form decision. A redesign that is a tidied re-render of the source form with no form choice behind it is a flow violation - route it back to `select` to choose the form cold and rebuild, rather than polishing the wrong chart. (A `bounded-edit` legitimately keeps the source form; it records the retained form and is not a violation.)
 
+When the chart was built on `scaffold_chart`, run `check_chart` on its source before the review: each deviation it returns (a slot that overrides a scale or theme, a hand-picked hue, undersized text, missing promised value labels, a value on a discrete axis) goes into the correction as written. The scaffold owns fonts, axis titles, the value axis, palette, scales and legend, so a defect in one of those is a plan fix - route it to select (the routing scalar or `public_copy` string that produced it) and re-scaffold, never a hand edit of the scaffold. A `REDUNDANT_VALUE_AXIS` on a scaffolded chart means `value_labels` was planned below the labels actually drawn. No deviations and no fatal or major inspection defect: skip the correction and deliver.
+
 When supplied with `inspection_contract.frame` and `.placements`, the renderer blocks `FRAME_PLAN_MISMATCH` and `TEXT_PLAN_MISMATCH`. Return to build to apply the measured design or remeasure the changed design; resizing alone does not resolve these. Retain that contract through `refit_chart`. `plan_checks: not_supplied` and forward placement's `unverified_attachments` are coverage limitations. Never infer mark identity from ggplot's `label`/`data_label` role assignment.
 
 ## One review, one correction, one verification

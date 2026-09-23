@@ -86,17 +86,33 @@ def coerce_bool(value: object) -> bool | None:
     return None
 
 
+# Routing keys that take one of a closed set of words; the first word is the soft default.
+ENUM_ROUTING_KEYS: dict[str, tuple[str, ...]] = {
+    "builder": ("chart", "table"),
+    "identification_strategy": ("direct_labels", "subtitle_key", "axis", "legend"),
+    "x_kind": ("discrete", "date", "continuous"),
+    "value_encoding": ("position", "colour"),
+}
+# Routing keys that take a count; soft default 0.
+INT_ROUTING_KEYS: frozenset[str] = frozenset({"value_labels"})
+
+
 def _default_for(key: str) -> object:
     """The soft default for a routing key when it is missing or unparseable."""
-    if key == "builder":
-        return "chart"
-    return False  # every other routing key we use is a needs_* boolean flag
+    if key in ENUM_ROUTING_KEYS:
+        return ENUM_ROUTING_KEYS[key][0]
+    if key in INT_ROUTING_KEYS:
+        return 0
+    return False  # every other routing key is a yes/no flag
 
 
 def _coerce_for(key: str, value: object) -> object:
-    if key == "builder":
-        token = str(value).strip().lower()
-        return token if token in ("chart", "table") else _default_for(key)
+    if key in ENUM_ROUTING_KEYS:
+        token = str(value).strip().strip("`'\"").lower().replace("-", "_").replace(" ", "_")
+        return token if token in ENUM_ROUTING_KEYS[key] else _default_for(key)
+    if key in INT_ROUTING_KEYS:
+        match = re.search(r"\d+", str(value))
+        return int(match.group(0)) if match else _default_for(key)
     coerced = coerce_bool(value)
     return _default_for(key) if coerced is None else coerced
 
@@ -195,10 +211,16 @@ def render_handoff_spec(
     routing_keys = list(routing_keys)
     if routing_keys:
         key_lines = "\n".join(f"{key}: <value>" for key in routing_keys)
+        forms = []
+        for key in routing_keys:
+            if key in ENUM_ROUTING_KEYS:
+                forms.append(f"`{key}` as " + " / ".join(f"`{w}`" for w in ENUM_ROUTING_KEYS[key]))
+            elif key in INT_ROUTING_KEYS:
+                forms.append(f"`{key}` as a whole number")
+        forms.append("every other key as `yes` or `no`")
         lines.append(
             "Then, as the LAST thing in your reply, emit a fenced routing block the driver "
-            "parses - exactly these keys, one per line, `builder` as `chart` or `table` and "
-            "every `needs_*` as `yes` or `no`:\n"
+            "parses - exactly these keys, one per line, " + ", ".join(forms) + ":\n"
             f"```routing\n{key_lines}\n```"
         )
     return "\n\n".join(lines)

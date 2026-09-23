@@ -265,7 +265,9 @@ def test_reader_copy_has_no_slot_for_run_limitations() -> None:
 
 
 def test_identification_strategy_is_a_closed_route() -> None:
-    route = sc._DESIGN["properties"]["identification_strategy"]
+    """Code reads it (the scaffold draws legend / subtitle key), so it is a routing scalar."""
+    assert "identification_strategy" in sc._SELECT_ROUTING_FIELDS
+    route = sc.SELECT_SCHEMA["properties"]["identification_strategy"]
     assert route["enum"] == ["direct_labels", "subtitle_key", "axis", "legend"]
 
 
