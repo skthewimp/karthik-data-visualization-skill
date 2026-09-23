@@ -3760,3 +3760,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`
 
 <!-- claude-session:f7ff83b5-6510-4f41-b0d7-96464dbed29c:end -->
+
+<!-- claude-session:7fdf8c85-283b-456c-96f7-67ef29b3ff23:start -->
+## 2026-09-23 10:31 IST | Claude session `7fdf8c85-283`
+
+### User prompts
+> we're having a lot of issues with the dataviz fix flows. one thing we need toimplement: <pasted_content id="c188"> - Take all hedging and provenance text off the chart. This is the biggest one. stage_contracts.py:528,...
+> keep caption onto to carry on captions that the source has. nothing else. yeah you can add unit scaling to recommend_precision yes, depend on ggtext. or whetever the equivalent is in matplotlib
+> <task-notification> <task-id>a31de49bedf09d2a7</task-id> <tool-use-id>toolu_01BdzMrBdrpGmkWq7SUfH1Rk</tool-use-id> <output-file>/private/tmp/claude-501/-Users-Karthik-Documents-work-karthik-data-visualization-skill/7f...
+
+### Work done
+- All five copy fixes are in and pushed to `main`, and the local Claude and Codex skill copies are reinstalled. Tests pass. Your 6 local devlog commits that hadn't been pushed went up with it. **One wiring step needed o...
+- The fix I'd make for the subtitle is to take it away from select. At the moment select writes the subtitle freehand. Haiku gave "Quartile comparison of prompt size, output, and cost metrics", which is a description wi...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:7fdf8c85-283b-456c-96f7-67ef29b3ff23:end -->
