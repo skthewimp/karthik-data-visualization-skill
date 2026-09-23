@@ -1,5 +1,35 @@
 # Devlog
 
+## 2026-09-23 - Position check and palette policy
+
+### User report
+
+- "where should we do the position aesthetic check and palete policy?" then "ok fix both. with
+  brand colours, get initial colours from there, but if we need more, use this algo to pick them"
+
+### What I did
+
+- Audited both repos against `canonical-fix-plan.md`. Two core gaps: no check that the value sits
+  on a position aesthetic, and `recommend_colours` still handed back a soft-failing proposed pool.
+- `check_chart`: `VALUE_NOT_ON_POSITION` from the built plot's value-axis extent against the data
+  range (under half = flagged). Went with the built extent rather than parsing `aes(y = value)`,
+  which breaks on `value / 100`, `reorder()` or pre-summarised data.
+- `recommend_colours(available_source=...)`: committed sources (`brand-skill`, `prompt`,
+  `provided`, or a pool with no source) fill first and only a count shortage is generated. Other
+  supplied pools drop a colour that fails distinctness or CVD against the placed series and
+  generate a replacement. Pulled the CVD pair test out of `validate_palette` so both share it.
+
+### Notes / decisions
+
+- Left the default Okabe-Ito pool alone. With replacement on, five or more default series swapped
+  the Okabe blue for generated dark purples next to black, which looked worse.
+- Grayscale is not part of "can be told apart": Okabe-Ito itself fails the 20-point grayscale
+  target at three series, so using it would regenerate almost everything.
+- Rendered case 01's lines before and after: the green/teal pair was the confusable one; after,
+  the fourth line is pink and reads apart.
+- The harness has to pass `available_source` from its colour plan (`provided` / `source` /
+  `proposed` / `defaults`) for the palette change to take effect there.
+
 ## 2026-09-23 - Phase 4: geometry fixes in the tools
 
 ### User report

@@ -1339,7 +1339,8 @@ a fixed brand), with an ``alternate`` away-kit and a one-line reason - leaving i
 otherwise, which is the common case, and standing down when the meaning is not shared here or a
 red/green polarity would collapse under colour-vision deficiency. This is the whole colour
 *decision*; the ordered palette is resolved deterministically downstream by ``recommend_colours``
-and checked by ``validate_palette``, and build applies it - you decide the plan, not the hexes.
+(given ``available_source``: brand and prompt colours are used as given, other sets are replaced
+where two series cannot be told apart) and checked by ``validate_palette``, and build applies it - you decide the plan, not the hexes.
 The chart's scaffolding - value axis, gridlines, axis titles, scales, fonts - is written by
 ``scaffold_chart`` from routing scalars you set here, so decide them here, not in design prose.
 Set ``value_labels`` to how many marks will print their own value (0 when the reader reads values

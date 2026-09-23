@@ -672,6 +672,7 @@ def scaffold_chart(
                 "palette": ordered or stops,
                 "series_palette": palette,
                 "orientation": spec["orientation"],
+                "value_encoding": value_encoding,
                 "label_pt": fonts["label"],
             },
             indent=2,
@@ -720,7 +721,7 @@ suppressPackageStartupMessages(library(ggplot2))
 pdf(NULL)
 out <- list(error = NULL, non_layers = list(), geom_label = 0L, text_rows = 0L,
             mark_colours = list(), text_sizes = list(), unmapped = list(), label_mismatch = list(),
-            stack_order = FALSE, on_mark = list())
+            stack_order = FALSE, on_mark = list(), value_span = NULL, mark_span = NULL)
 as_hex <- function(x) tryCatch(grDevices::rgb(t(grDevices::col2rgb(x)), maxColorValue = 255), error = function(e) as.character(x))
 flat <- function(x) if (is.list(x) && !inherits(x, "gg")) do.call(c, lapply(x, flat)) else list(x)
 is_text <- function(layer) inherits(layer$geom, "GeomText") || inherits(layer$geom, "GeomLabel") ||
@@ -745,6 +746,15 @@ tryCatch({
   b <- ggplot_build(plot)
   invisible(ggplotGrob(plot))
   for (i in seq_along(plot$layers)) if (is_text(plot$layers[[i]])) out$text_rows <- out$text_rows + nrow(b$data[[i]])
+  # How far the marks travel along the value axis (y before any coord_flip), against the data's range.
+  if (is.numeric(plot_data$value)) out$value_span <- diff(range(plot_data$value, na.rm = TRUE))
+  ys <- unlist(lapply(seq_along(plot$layers), function(i) {
+    d <- b$data[[i]]
+    if (is_text(plot$layers[[i]])) return(NULL)
+    unlist(lapply(intersect(c("y", "ymin", "ymax", "yend"), names(d)), function(k) as.numeric(d[[k]])))
+  }))
+  ys <- ys[is.finite(ys)]
+  if (length(ys)) out$mark_span <- diff(range(ys))
   # A mapped colour whose values the palette does not name falls to the scale's NA grey.
   named <- names(palette)
   if (!is.null(named)) for (layer in plot$layers) for (a in c("colour", "fill")) {
@@ -834,11 +844,23 @@ def _check_matplotlib(source: Path, record: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {"error": None, "non_layers": [], "geom_label": 0, "text_rows": 0,
                            "mark_colours": [], "text_sizes": []}
     try:
-        figure, _ = _unpack_build(_load_module(source).build_chart())
+        module = _load_module(source)
+        figure, _ = _unpack_build(module.build_chart())
     except Exception as exc:  # the model's code is what failed; report it, don't raise
         out["error"] = f"{type(exc).__name__}: {exc}"
         return out
+    values = [float(row["value"]) for row in getattr(module, "PLOT_DATA", []) if row.get("value") is not None]
+    if values:
+        out["value_span"] = max(values) - min(values)
+    horizontal = record.get("orientation") == "horizontal"
+    along: list[float] = []
     try:
+        for ax in figure.axes:
+            if ax.get_visible():
+                along += _mpl_value_coords(ax, horizontal, Line2D, Rectangle, Collection)
+        finite = [v for v in along if math.isfinite(v)]
+        if finite:
+            out["mark_span"] = max(finite) - min(finite)
         for ax in figure.axes:
             if not ax.get_visible():
                 continue
@@ -874,6 +896,30 @@ def _check_matplotlib(source: Path, record: dict[str, Any]) -> dict[str, Any]:
     finally:
         plt.close(figure)
     return out
+
+
+def _mpl_value_coords(ax: Any, horizontal: bool, line: Any, rectangle: Any, collection: Any) -> list[float]:
+    """Every value-axis coordinate the marks on ``ax`` reach (x for a horizontal chart)."""
+    axis = 0 if horizontal else 1
+    coords: list[float] = []
+    for artist in ax.lines:
+        if isinstance(artist, line):
+            data = artist.get_xdata() if horizontal else artist.get_ydata()
+            coords += [float(v) for v in data if isinstance(v, (int, float)) or hasattr(v, "__float__")]
+    for patch in ax.patches:
+        if isinstance(patch, rectangle):
+            start, extent = (patch.get_x(), patch.get_width()) if horizontal else (patch.get_y(), patch.get_height())
+            coords += [float(start), float(start + extent)]
+    for artist in ax.collections:
+        if not isinstance(artist, collection):
+            continue
+        offsets = artist.get_offsets()
+        if len(offsets):
+            coords += [float(point[axis]) for point in offsets]
+        else:
+            for path in artist.get_paths():
+                coords += [float(point[axis]) for point in path.vertices]
+    return coords
 
 
 def _mpl_stack_out_of_order(ax: Any, record: dict[str, Any], rectangle: Any, mcolors: Any) -> bool:
@@ -991,6 +1037,19 @@ def check_chart(source_path: str) -> dict[str, Any]:
             f"Label {mismatch}. Compute label positions with the same stacking as the bars "
             "(position_stack(vjust = 0.5) on the same data and grouping), never a separate cumsum.",
             "fatal",
+        )
+    needed, reached = found.get("value_span"), found.get("mark_span")
+    if (
+        record.get("value_encoding") != "colour"
+        and not found.get("error")
+        and needed
+        and (reached is None or reached < 0.5 * needed)
+    ):
+        deviate(
+            "VALUE_NOT_ON_POSITION",
+            "The marks do not spread along the value axis the way the data does, so the chart hides the "
+            "values it plots. Map y = value on the marks (the scaffold flips a horizontal chart itself; "
+            "Matplotlib: the value coordinate is row['value']).",
         )
     promised = int(record.get("value_labels") or 0)
     if promised and not found.get("error") and int(found.get("text_rows") or 0) < promised:

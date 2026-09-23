@@ -233,6 +233,36 @@ def test_value_on_a_discrete_axis_fails_the_build_with_a_fix(tmp_path: Path) -> 
 
 
 @pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_value_left_off_the_value_axis_is_caught(tmp_path: Path) -> None:
+    # A slopegraph that builds but draws flat: y is a constant, the value only in the labels.
+    result = _scaffold(tmp_path)
+    _fill(
+        result["source_path"],
+        """chart_marks <- function(d) {
+  list(
+    geom_line(aes(x = category, y = 1, group = series, colour = series)),
+    geom_text(aes(x = category, y = 1, label = fmt_value(value), colour = series), size = label_size)
+  )
+}""",
+    )
+    codes = [d["code"] for d in check_chart(result["source_path"])["deviations"]]
+    assert codes == ["VALUE_NOT_ON_POSITION"]
+
+
+def test_matplotlib_value_left_off_the_value_axis_is_caught(tmp_path: Path) -> None:
+    result = _scaffold(tmp_path, renderer="matplotlib")
+    source = result["source_path"]
+    _fill(
+        source,
+        """def chart_marks(ax, rows):
+    for name, colour in PALETTE.items():
+        pts = [pos(r) for r in rows if r['series'] == name]
+        ax.plot(pts, [1] * len(pts), color=colour)""",
+    )
+    assert [d["code"] for d in check_chart(source)["deviations"]] == ["VALUE_NOT_ON_POSITION"]
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
 def test_hidden_value_axis_requires_the_promised_labels(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, value_labels=4)
     _fill(

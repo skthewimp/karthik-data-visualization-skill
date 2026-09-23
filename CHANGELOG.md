@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Two leftovers from the canonical fix plan
+
+- **`check_chart` flags `VALUE_NOT_ON_POSITION`.** A slot that builds but leaves the value off
+  the value axis (case 02's flat slopegraph: `y` a constant, the value only in the labels) now
+  gets caught. The check reads the built plot, not the code: when the non-text marks reach less
+  than half the data's value range along the value axis, it reports the deviation with the fix
+  "map y = value". Matplotlib reads the same thing from the drawn artists. It is skipped for
+  colour-encoded values (heatmaps). The scaffold record now carries `value_encoding`.
+- **`recommend_colours` takes `available_source`.** Brand and prompt colours are spent first,
+  as given, and generation only fills a count shortage (a short brand set now keeps its own
+  colours in the first slots). A proposed set or source-extracted hues are a prior: a slot takes
+  a pool colour only when it reads on the background and passes `validate_palette`'s
+  distinctness and CVD tests against what is placed; otherwise the tool generates one that does.
+  Case 01's green/teal pair now comes back as green/pink. The default pool is unchanged.
+  Grayscale stays a report, since even Okabe-Ito fails it at three series.
+
 ### Geometry fixes from the canonical run (Phase 4)
 
 - **`place_on_marks`: values at the ends of an interval go outward.** A `data_label` whose

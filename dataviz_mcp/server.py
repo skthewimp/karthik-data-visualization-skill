@@ -180,6 +180,7 @@ def create_server() -> Any:
         background: str = "#FFFFFF",
         focal: str | None = None,
         semantic_hints: list[dict[str, Any]] | None = None,
+        available_source: str | None = None,
     ) -> dict[str, Any]:
         """Pick and assign colours for one graph from an available set (brand/context/default).
 
@@ -205,8 +206,17 @@ def create_server() -> Any:
         colour that clashes with a placed series moves to its first clearing away-kit - or,
         with none, is kept and flagged (``semantic_collision``), never silently reskinned.
         Unmet and collided hints are reported in ``semantic_findings``.
+
+        Pass the colour plan's ``available_source``. Brand and prompt colours
+        (``brand-skill``, ``prompt``) are used first, as supplied, and generation only covers
+        a count shortage. Any other source (``source-extracted``, ``accessibility-default``, a
+        proposed set) is a prior: a colour that cannot be told apart from a placed series
+        (distinctness or CVD) or does not read on the background is replaced by a generated
+        one that can.
         """
-        return recommend_colours_core(available, n_series, background, focal, semantic_hints)
+        return recommend_colours_core(
+            available, n_series, background, focal, semantic_hints, available_source=available_source
+        )
 
     @server.tool()
     async def recommend_continuous_scale(

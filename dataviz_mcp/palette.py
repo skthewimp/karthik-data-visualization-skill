@@ -14,7 +14,7 @@ Targets are soft: findings are reported, not hard-blocked. WCAG is a diagnostic.
 from __future__ import annotations
 
 import colorsys
-from typing import Any, Optional, Sequence
+from typing import Any, Callable, Optional, Sequence
 
 from .color_math import (
     contrast_ratio_rgb,
@@ -73,6 +73,14 @@ EXTENDED_CATEGORICAL = OKABE_ITO + _TOL_EXTRA
 
 _CVD_KINDS = ("deuteranope", "protanope", "tritanope")
 
+# Colour sources a person committed to (an installed brand/style skill, colours given in the
+# prompt): every colour is spent first, as supplied, and only a count shortage is generated. A
+# supplied pool from any other source (a proposed candidate set, hues read off the source image)
+# is a replaceable prior: a pool colour that cannot be told apart from a placed series, or does
+# not read on the background, does not count toward the supply. The vetted defaults are left as
+# they are. Both the select-stage and the website vocabularies are listed.
+COMMITTED_SOURCES = frozenset({"brand-skill", "prompt", "provided", "brand"})
+
 
 def _hls_to_hex(hue_deg: float, lightness: float, saturation: float) -> str:
     r, g, b = colorsys.hls_to_rgb((hue_deg % 360.0) / 360.0, lightness, saturation)
@@ -100,6 +108,7 @@ def _generate_distinguishable(
     count: int,
     min_contrast_mark: float,
     min_hue_deg: float = 0.0,
+    accept: Optional[Callable[[str], bool]] = None,
 ) -> list[str]:
     """Algorithmically extend a palette when the curated/supplied pool is genuinely too
     small for the requested series count (the count is the hard constraint).
@@ -112,7 +121,8 @@ def _generate_distinguishable(
     nearest placed hue is maximised first (up to ``min_hue_deg``, the even spacing, beyond which
     more gap buys nothing) and separation breaks the tie - each added series gets a hue of its
     own. Not the default path - only the shortage handler, so it never displaces a good
-    recommended colour.
+    recommended colour. ``accept`` narrows the lattice further (e.g. to colours distinct from
+    every placed series); when nothing passes it, the unfiltered lattice is used.
     """
     bg_light = hue_lightness(background)
     is_light_bg = (bg_light[1] if bg_light else 1.0) >= 0.5
@@ -131,6 +141,9 @@ def _generate_distinguishable(
                     continue
                 seen.add(hexv)
                 candidates.append(hexv)
+
+    if accept is not None:
+        candidates = [c for c in candidates if accept(c)] or candidates
 
     chosen: list[str] = []
     reference = list(placed)
@@ -215,6 +228,32 @@ def _pair_report(first: str, second: str) -> dict[str, Any]:
         "separation": round(_separation(first, second), 3),
         "_hl": (hl_a, hl_b),
     }
+
+
+def _cvd_pair(first: str, second: str, kind: str) -> Optional[tuple[float, float]]:
+    """(contrast ratio, RGB distance) of a pair as seen under one colour-vision deficiency."""
+    a, b = simulate_cvd(first, kind), simulate_cvd(second, kind)
+    if a is None or b is None:
+        return None
+    return contrast_ratio_rgb(a, b), sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
+
+
+def _cvd_confused(ratio: float, euclid: float) -> bool:
+    return ratio < 1.15 and euclid < 40
+
+
+def _confusable(colour: str, placed: Sequence[str], min_separation: float) -> bool:
+    """True when ``colour`` would fail ``validate_palette``'s series-distinctness or CVD test
+    against any placed series - the pair tests that decide whether two series can be told apart.
+    (Grayscale is left out: it is a print fallback that even Okabe-Ito fails at three series.)"""
+    for other in placed:
+        if _separation(colour, other) < min_separation:
+            return True
+        for kind in _CVD_KINDS:
+            measured = _cvd_pair(colour, other, kind)
+            if measured is not None and _cvd_confused(*measured):
+                return True
+    return False
 
 
 def _nudge(report: dict[str, Any]) -> str:
@@ -483,15 +522,13 @@ def validate_palette(
 
     # 3. CVD simulation.
     for kind in _CVD_KINDS:
-        simulated = {c: simulate_cvd(c, kind) for c in colours}
         for i in range(len(colours)):
             for j in range(i + 1, len(colours)):
-                a, b = simulated[colours[i]], simulated[colours[j]]
-                if a is None or b is None:
+                measured = _cvd_pair(colours[i], colours[j], kind)
+                if measured is None:
                     continue
-                ratio = contrast_ratio_rgb(a, b)
-                euclid = sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
-                if ratio < 1.15 and euclid < 40:
+                ratio, euclid = measured
+                if _cvd_confused(ratio, euclid):
                     findings.append(
                         {
                             "rule": f"cvd_{kind}",
@@ -538,6 +575,7 @@ def recommend_colours(
     family_tolerance_deg: float = 40.0,
     min_separation: float = 0.18,
     min_contrast_mark: float = 3.0,
+    available_source: Optional[str] = None,
 ) -> dict[str, Any]:
     """Pick and assign `n_series` colours for one graph from the `available` set.
 
@@ -562,6 +600,15 @@ def recommend_colours(
     hue of their own - as far round the wheel from every placed hue as the even spacing for
     `n_series` allows - so a short pool is not filled out with a second shade of a hue already in
     play.
+
+    `available_source` says whether a supplied pool is committed. Brand and prompt colours
+    (`COMMITTED_SOURCES`, and a supplied pool with no source named) fill the first slots, as
+    they are, and generated colours only cover a count shortage. Any other supplied pool - a
+    proposed candidate set, source-extracted hues - is a prior: a slot is filled from it only with a colour
+    that reads on the background and that `validate_palette` would not flag (series
+    distinctness or CVD) against the series already placed. When no pool colour qualifies, the
+    slot is generated from the lattice restricted to qualifying colours; the pool colour is used
+    only if generation cannot find one.
 
     Without `semantic_hints`, the returned palette is **ordered and prefix-nested**: it
     is built by farthest-first traversal, so the first m colours are themselves a good
@@ -724,11 +771,35 @@ def recommend_colours(
         ratio = _contrast_ratio(colour, background)
         return ratio is not None and ratio >= min_contrast_mark
 
+    # A replaceable pool counts only colours that can be told apart from what is placed; when
+    # none is left, that slot is a shortage and generation fills it.
+    committed = not available or available_source is None or (
+        available_source.strip().lower() in COMMITTED_SOURCES
+    )
     for idx in remaining_slots:
-        if not supply:
+        options = supply
+        if committed:
+            # Committed colours take the first slots; generated ones follow.
+            options = [c for c in supply if c not in generated_set] or supply
+        elif placed:
+            options = [c for c in supply if _reads(c) and not _confusable(c, placed, min_separation)]
+            if not options:
+                fresh = _generate_distinguishable(
+                    placed + supply + generated,
+                    background,
+                    1,
+                    min_contrast_mark,
+                    min_hue_deg,
+                    accept=lambda c: not _confusable(c, placed, min_separation),
+                )
+                fresh = [c for c in fresh if not _confusable(c, placed, min_separation)]
+                generated += fresh
+                generated_set.update(fresh)
+                options = fresh or supply
+        if not options:
             break
         best = max(
-            supply,
+            options,
             key=lambda c: (
                 1 if _reads(c) else 0,
                 min((_separation(c, other) for other in placed), default=0.0),

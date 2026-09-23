@@ -324,3 +324,27 @@ def test_generated_colours_take_a_hue_of_their_own():
     for added in result["generated_additions"]:
         gap = min(_circular_hue_distance(hues[added], h) for c, h in hues.items() if c != added)
         assert gap >= 45, result["chosen"]
+
+
+def test_proposed_pool_replaces_a_colour_it_cannot_tell_apart():
+    # A proposed (not committed) set with a green and a teal that fail series distinctness: the
+    # tool generates a colour that can be told apart instead of handing back the pair.
+    pool = ["#007C91", "#D97706", "#7C3AED", "#2F855A"]
+    result = recommend_colours(pool, 4, "#FAFAF7", available_source="proposed")
+    assert len(result["generated_additions"]) == 1
+    rules = {f["rule"] for f in result["validation"]["findings"]}
+    assert "series_distinctness" not in rules
+    assert not any(rule.startswith("cvd_") for rule in rules)
+
+
+def test_brand_pool_is_spent_as_supplied_and_first():
+    pool = ["#007C91", "#D97706", "#7C3AED", "#2F855A"]
+    assert recommend_colours(pool, 4, "#FAFAF7", available_source="brand-skill")["generated_additions"] == []
+    # Short brand set: brand colours take the first slots, generated ones only fill the count.
+    result = recommend_colours(["#007C91", "#D97706"], 4, "#FAFAF7", available_source="brand-skill")
+    assert result["chosen"][:2] == ["#007C91", "#D97706"]
+    assert result["chosen"][2:] == result["generated_additions"]
+
+
+def test_default_pool_is_not_replaced():
+    assert recommend_colours(None, 6)["generated_additions"] == []
