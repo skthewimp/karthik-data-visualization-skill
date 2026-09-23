@@ -58,6 +58,8 @@ screens_raw %>%
   ) -> screen_capacity
 ```
 
+For per-operation grouping (the default in `karthik-r-analysis-style`), put `.by = key` or `.by = c(key1, key2)` last, on its own argument line inside `mutate()`, `summarise()`, or another supporting verb. Avoid a surrounding `group_by()` / `ungroup()` pair for a single grouped operation.
+
 Don't expand trivial calls. `n()`, `select(chat_id, year)`, `count(uuid)` stay inline - the rule is for calls with real argument lists, not every set of parentheses.
 
 ### 4. ggplot: `+` per line

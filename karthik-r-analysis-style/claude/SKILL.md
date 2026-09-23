@@ -96,6 +96,7 @@ require(tidytable)   # if grouped summaries get compact
 - The notebook is for running chunk by chunk while exploring, never for knitting. Add nothing that only serves a knitted output (figure sizing/captions, `knitr::opts_chunk$set`, cross-references, run-all/knit-ready structure, YAML author/date, global config, package abstraction) unless local precedent does it or the user asked. Assume every chunk runs one at a time in the console.
 - Use absolute paths or `setwd()` when chunk-by-chunk execution needs it.
 - Keep chunks short - one chunk = one thought/probe. Print raw objects early (`head()`, `count()`, `summary()`).
+- Each displayed output gets its own chunk. Put separate tables, plots, printed objects, and diagnostic summaries in separate chunks, even when they answer the same question. A chunk may include the preparation needed for its one output; preparation-only chunks are fine. Split multiple outputs rather than hiding or suppressing them.
 - Use section titles/prose as steering notes, not report copy. Leave dead ends if they explain the next move. Reassign objects freely when the cleaning step is local and obvious.
 
 ## Prose style inside notebooks
@@ -112,7 +113,7 @@ Prefer these over checklist EDA:
 
 - `count(..., sort = T)` for categories, statuses, years, teams, parties, stores, cities, SKUs.
 - Direct object printing to understand shape.
-- `summarise(...)` / `summarise.(..., .by = ...)` with `n()`, `n_distinct()`, min/max dates, sums, means, medians.
+- `summarise(..., .by = ...)` with `n()`, `n_distinct()`, min/max dates, sums, means, medians.
 - Quick proportions: `mutate(prop = n / sum(n), .by = ...)`.
 - Meaningful filters: recent years, top entities, enough observations, non-missing fields, competitive candidates, active stores.
 - Change grain deliberately: ball → innings → match → season; order → store-day → store; hour → day/month/year; candidate → constituency/state.
@@ -129,8 +130,9 @@ Prefer these over checklist EDA:
 
 ## Code defaults
 
-- Prefer tidyverse `%>%` pipes. Use `tidytable` (`summarise.`, `mutate.`, `filter.`) when `.by` makes code shorter.
-- Preserve surrounding style - old notebooks may use `group_by() %>% summarise()` and `T/F`; don't modernize gratuitously.
+- Prefer tidyverse `%>%` pipes. Use dplyr's native `.by` for per-operation grouping; do not switch to tidytable just to use `.by`.
+- Prefer `mutate(..., .by = key)` and `summarise(..., .by = c(key1, key2))` over `group_by() %>% ... %>% ungroup()`. Keep grouping local to each verb; use `group_by()` only when grouping genuinely needs to persist across several operations or the backend lacks `.by` support. For order-sensitive calculations, arrange explicitly before the grouped verb; preserve any required summary ordering with `arrange()`.
+- Preserve unrelated surrounding style in old notebooks, including `T/F`; apply the `.by` preference to new or edited grouped operations without gratuitously rewriting untouched code.
 - Default to right assignment (`->`) at the end of any long chain, so a pipe can run partially, line by line, in the console; the target is named once, at the bottom:
 
 ```r
