@@ -41,7 +41,10 @@ It also checks the pairwise mismatches:
 
 The skill applies Karthik's stricter visualization standards:
 
-- **Clarity first** — a visual must stand alone. Missing axes, unclear units, ambiguous chart types, unexplained shading, and mystery colours are serious failures.
+- **Production, not provenance** — every chart is for publication. Hedges, provenance notes and "the source does not say" text are serious failures wherever they sit; those limitations go in the accompanying report. The title keeps the source's subject and scope.
+- **Clarity first** — a visual must stand alone. Unrecoverable units, ambiguous chart types, unexplained shading, and mystery colours are serious failures. The test is whether the reader can recover the information, not whether a particular axis title or legend carries it.
+- **Less is more** — an axis, axis title, legend, subtitle or note stays only if it carries something the title, direct labels and ticks don't. A legend the reader has to look back and forth to is a serious failure when the series could be labelled in place.
+- **Read at display size** — type and layout are judged at the width the reader sees the image, and the canvas shape has to fit the content.
 - **Intentional design** — every colour, shade, line, label, sort order, and annotation must earn its place.
 - **Fundamentals before polish** — check denominators, dimensions, sample sizes, uncertainty, and whether the comparison is meaningful before talking about aesthetics.
 - **Purpose with evidence** — a chart should communicate its analytical job and defensible result, including an honest null or exploratory outcome.
@@ -72,7 +75,7 @@ A full critique should contain:
    - **Major**: materially slows or misleads interpretation.
    - **Minor**: readability or polish.
 5. **Recommended alternatives** — only options that solve a diagnosed mismatch.
-6. **Implementation notes** — title, annotation, caveats, and checks.
+6. **Implementation notes** — title, annotation, and checks for the run report (never on the chart).
 
 For quick requests, the skill can compress this to the verdict and smallest consequential fix set. Alternatives are optional.
 

@@ -43,15 +43,27 @@ Each gate is marked `Pass`, `Concern`, `Fail`, or `Unknown`:
 
 These are gates, not inputs to an average score. Evidence, visual reasoning, information fit, and delivery are always required for a rendered artifact. The report marks whether the declared scope also requires question and insight recovery; genuinely missing, non-required intent stays `Unknown` rather than being forced into a pass. Wrong evidence, the wrong question, or an unreadable export cannot be cancelled out by attractive typography. The evaluator records the tested display size instead of assuming one universal Telegram or slide width.
 
-Render defects and composition are not eval's to re-derive. `dataviz-execution` owns rendering defects (geometry, overlap, label-to-mark association, colour contrast, CVD/grayscale survival, precision, redundant ink) and `dataviz-aesthetic` owns composition (first read, single emphasis, earned ink, whitespace). When those gates' verdicts are supplied, eval consumes them as the render evidence rather than re-running their checklists. When no gate output is available, eval inspects the export only for a render failure that would block the reading - clipping, off-canvas text, overlap that destroys a mapping, illegibility at delivery size, or an export that differs from what was inspected - and treats anything below a blocker as optional polish. It does not manufacture a finding to fill a form: the absence of a defect at an inspected relationship is valid evidence.
+## The publishability frame
+
+Every chart is for production, so the question is whether it could go out today under a publication's name, read at the size the reader actually sees it. Source fidelity is one check inside that (are the values and claims right?), never a reason to keep an element.
+
+The previous version framed the evidence gate as fidelity to the source's qualifications and provenance, told the reviewer not to remove legends, axes or context, and limited the render check to blockers. On the canonical repair run that made the reviewer defend exactly what a publisher would cut: it praised extraction caveats as honest, asked for a legend back, kept empty axis titles, froze the creator's canvas as a constraint, read text at native pixels, and named one issue per chart. So the reviewer now runs a **publishability sweep** on every artifact:
+
+- **Copy speaks about the data, never the chart's making.** Hedges, provenance, method and extraction notes are Major findings wherever they sit. The title keeps its subject and scope, its numbers carry the precision the spread supports, and a subtitle must add a fact.
+- **The eraser test.** Each axis title, value axis, legend, per-panel axis, caption and key must carry something the reader can't get from the title, ticks, direct labels or context. Deleting an element is only a defect when its information is gone from the chart.
+- **Type at display width.** Effective size is rendered size scaled to the display width, not native pixels.
+- **Canvas fits content.** Aspect, panel allocation and reserved margins are judged against what each part has to show.
+- **Encodings decode easily.** Series separate by lightness and line type, not hue alone; labels sit where the eye expects them; time axes use natural breaks.
+
+Execution and aesthetic findings are evidence for the sweep, not a discharge of it. Only the user's stated constraints bind; canvas, form, legend and notes the creator chose stay open to required changes.
 
 For a narrow repair, the reviewer treats the user's requested changes and preservation requirements as a change contract. Changed regions must pass the full standard. Untouched regions are compared with the source or latest accepted candidate for regressions. An unchanged pre-existing defect outside the authorized scope is recorded as a baseline concern, not turned into an unrelated required action, unless it blocks the requested correction or leaves the artifact materially misleading. Explicit user instructions outrank reviewer preferences, so an evaluator cannot keep or restore an element the user asked to remove.
 
 ## Verdicts
 
-The evaluator prefers the lightest verdict the evidence supports; a chart that reads and is honest gets `Send` even when a nicer one is imaginable.
+The verdict follows the worst finding, but the report lists every Fatal and Major finding, ranked, plus Minor ones whose fix is a deletion.
 
-- **Send:** all required gates pass and no blocking render failure remains. A clean chart passes and the loop stops.
+- **Send:** no Fatal or Major finding remains. A clean chart passes and the loop stops.
 - **Revise:** the analytical design works, but a bounded, executable change is required to clear a gate. A fixable execution defect - an overlap, a low-contrast series, a missing label - lands here.
 - **Redesign:** reserved for the idea. The intended question is wrong, the form cannot carry the claim, or the evidence-to-claim relationship is broken. A fixable render defect is never a redesign.
 - **Not evaluable:** the artifact cannot be inspected, or a required decision depends on missing evidence or context.

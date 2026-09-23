@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### `dataviz-eval` judges publishability; `dataviz-critique` stops protecting furniture
+
+- **`dataviz-eval` asks whether the chart could be published, read at display size.** On the
+  canonical run the reviewer caught about 5 of the 33 issues in the maintainer's notes and
+  recommended the opposite on about 10: keep the extraction caveats, add a legend back, keep an
+  empty axis title, don't change the canvas. The causes were in the rubric: fidelity framed as
+  keeping the source's qualifications and provenance, a "do not remove legends, axes, sources"
+  calibration rule, a blockers-only render check, and the creator's choices read as a change
+  contract. Eval now runs a publishability sweep on every artifact: copy speaks about the data
+  and never the chart's making (new code `F4`), the eraser test on every axis title, value axis,
+  legend and note, type judged at display width rather than native pixels, canvas shape against
+  content, and series separable without hue alone. It lists every Fatal and Major finding instead
+  of one, `Send` means none remain, and only user-stated constraints bind. Gate names, verdicts
+  and the report shape are unchanged, so `case_manager.py` still parses it.
+- **The sweep is a forced 10-item element walk** (title against the source title, subtitle,
+  notes, each axis, legend, smallest text at display width, canvas and panel shares, the two
+  most similar series colours, label placement, data against source), one line each, `clean`
+  or findings. Without it sonnet stopped at the copy problems. Validated with sonnet on the seven
+  annotated canonical cases: recall of the maintainer's notes went from about 5/33 (site run) to
+  about 17/33, with opposite recommendations down from about 10 to 1. Haiku cannot run this
+  gate: it confused images across cases and invented text sizes.
+- **`dataviz-critique`** gains the production, less-is-more and display-size lenses. The source
+  inventory no longer keeps source notes by default, "missing axis labels" became "unrecoverable
+  units", and unprinted values are measured from mark geometry instead of flagged as approximate.
+
 ### Two leftovers from the canonical fix plan
 
 - **`check_chart` flags `VALUE_NOT_ON_POSITION`.** A slot that builds but leaves the value off

@@ -44,32 +44,32 @@ For a consequential evaluation, collect:
 | Field | Why it matters |
 |---|---|
 | Delivered artifact | The export, not the code or editor viewport, is what the reader sees. |
-| Source data or source chart | Needed to verify values, transformations, omissions, and provenance. |
+| Source data or source chart | Needed to verify values, transformations, and omissions. |
 | Analytical question | Establishes what comparison the artifact should make easy. |
 | Intended insight | Establishes the point, caveat, or null result the reader should recover. |
 | Audience | Sets knowledge, vocabulary, likely misreads, and action needs. |
 | Situation | Distinguishes exploration, explanation, decision support, teaching, and monitoring. |
-| Medium and size | Sets the real geometry, compression, distance, and interaction constraints. |
-| Change contract | Names each requested addition, removal, relocation, and preservation constraint as an observable release check. |
+| Medium and display width | Sets the size text is actually read at, plus compression, distance, and interaction constraints. |
+| Change contract | Names each user-requested addition, removal, relocation, and preservation constraint as an observable release check. The creator's own choices are not part of it. |
 | Creator version | Required for regression tests and skill attribution. |
 
-Missing fields become `Unknown`; they are not silently inferred. Declare whether the evidence gate covers **data validation** or only **source fidelity**. In a repair workflow, the supplied source chart can establish whether values, categories, qualifications, and provenance were preserved. That does not validate the upstream data, but the narrower gate can still pass.
+Missing fields become `Unknown`; they are not silently inferred. Declare whether the evidence gate covers **data validation** or only **source fidelity**. In a repair workflow, the supplied source chart can establish whether values and categories were carried over correctly. That does not validate the upstream data, but the narrower gate can still pass. Source fidelity is about values and claims; it never obliges the repair to keep the source's furniture, notes, or form, and it never obliges the chart to disclose what the source did not say.
 
 ### Reviewer separation
 
 The creator and release reviewer must have separate contexts. A creator who has just chosen the form, written the code, and described its own fixes is anchored to intent and cannot supply a genuine blind read. First give a fresh reviewer only the source and delivered artifact and save its blind reads. Then reveal the user request, audience, medium, and acceptance checks. Withhold creator reasoning, claimed fixes, preferred verdict, and code throughout. Record different creator and reviewer identities, artifact hash, tested size, observed evidence, verdict, and minimum pass set in a durable report.
 
-Render defects and composition are not eval's to re-derive. `dataviz-execution` owns rendering defects (geometry, overlap, label-to-mark association, colour contrast, CVD/grayscale survival, precision as displayed, redundant ink); `dataviz-aesthetic` owns composition (first read, single emphasis, earned ink, whitespace). When those gates' verdicts are supplied, **consume them as the render evidence** - a clean execution pass plus a clean aesthetic pass discharges defects and composition. A known metadata-backed failure from those gates is real and can't be waved off by a clean-looking overview.
+`dataviz-execution` (rendering defects) and `dataviz-aesthetic` (composition) run inside the creator's loop. When their findings are supplied, carry them into the sweep as evidence. A known metadata-backed failure from those gates is real and can't be waved off by a clean-looking overview. A clean pass from them does not discharge the publishability sweep: they share the creator's context and have endorsed hedging captions and redundant furniture before.
 
-When no gate output is supplied, inspect the exact export at the audience's real size only for a render failure that would **block the reading** - clipping, off-canvas text, overlap that destroys a mapping, illegibility at delivery size, or an export that differs from what was inspected. Flag blockers; treat everything below that as optional polish, not a gate failure. Do not reconstruct execution's or aesthetic's full checklists, and do not manufacture a finding to fill a form.
+Run the publishability sweep on the exact export at display size whether or not gate output is supplied. Record every finding the sweep principles support, with severity. Do not manufacture a finding to fill a form: a principle the chart satisfies needs no entry.
 
-Evidence, Visual reasoning, Information fit, and Delivery are always required for a rendered artifact. Question and Insight can be non-required only when the task supplies no intended outcome to compare; they remain `Unknown`, not fake passes. `Send` requires every required outcome gate to pass and no blocking render failure to remain - it does not require a defect logged against every relationship. A required gate that passes needs only its named evidence; the absence of a defect at an inspected relationship is valid evidence.
+Evidence, Visual reasoning, Information fit, and Delivery are always required for a rendered artifact. Question and Insight can be non-required only when the task supplies no intended outcome to compare; they remain `Unknown`, not fake passes. `Send` requires no Fatal or Major finding to remain - it does not require a defect logged against every relationship. A required gate that passes needs only its named evidence; the absence of a defect at an inspected relationship is valid evidence.
 
 Carry unresolved required actions forward between iterations. Treat every active, non-superseded user acceptance check the same way: one stable id, one explicit result, and direct evidence from the current artifact. Reveal them only after the next blind read, then require the reviewer to reinspect each named target. A prior action or user check closes only with an explicit `Pass`; silence or a better overall gate does not clear it. Do not carry forward a preference-level observation as though it were a blocker.
 
-The change contract outranks reviewer preference. An explicit “only change X”, “remove Y”, or “preserve the rest” instruction is a release condition. A required action cannot contradict it. When later user feedback replaces an evaluator action, record that action as superseded instead of carrying two incompatible gates.
+The change contract outranks reviewer preference. An explicit user “only change X”, “remove Y”, or “preserve the rest” instruction is a release condition. A required action cannot contradict it. Nothing the creator chose becomes a preservation constraint by having been chosen: canvas, aspect, form, legend, axis titles, subtitle and notes stay open to required actions. When later user feedback replaces an evaluator action, record that action as superseded instead of carrying two incompatible gates.
 
-For narrow repairs, evaluate changed or targeted regions against the full standard. Evaluate untouched regions for preservation and regression against the source or latest accepted candidate. Keep unchanged pre-existing defects outside the authorized scope as explicit baseline concerns; they do not become minimum-pass actions unless they block the requested change or leave the artifact materially misleading. New regressions always fail.
+For narrow repairs the user scoped, evaluate changed or targeted regions against the full standard. Evaluate untouched regions for preservation and regression against the source or latest accepted candidate. Keep unchanged pre-existing defects outside the authorized scope as explicit baseline concerns; they do not become minimum-pass actions unless they block the requested change or leave the artifact materially misleading. New regressions always fail.
 
 For every change that applies across repeated structures, derive the expected instance set from the source and change contract, then verify each applicable instance. Passing one instance cannot stand in for untested siblings.
 
@@ -79,9 +79,11 @@ Use `Pass`, `Concern`, `Fail`, or `Unknown`. These are anchored judgments, not n
 
 ### Evidence
 
-- **Pass:** within the declared evidence scope, values, calculations, denominators, scales, transformations, source, and material caveats are correct and complete enough for the claim.
-- **Concern:** evidence appears plausible but a non-fatal caveat, precision choice, or provenance detail weakens confidence.
+- **Pass:** within the declared evidence scope, values, calculations, denominators, scales, and transformations are correct and complete enough for the claim.
+- **Concern:** a non-fatal value or precision error, or a value the source draws that the chart dropped without changing the reading.
 - **Fail:** a value, denominator, scale, encoding, omission, or claim materially misleads the reader.
+
+The presence of a caveat is never evidence of a Pass, and its absence is never a Concern. Disclosure of what the source lacks belongs in the run report.
 - **Unknown:** the evidence required by the declared scope is unavailable.
 
 ### Question recovery
@@ -109,19 +111,19 @@ For exploration, an honest "no defensible pattern" is a valid intended outcome. 
 
 ### Information fit
 
-- **Pass:** title, subtitle, labels, direct labels, legend, units, time, source, annotations, and highlights agree and provide enough context.
-- **Concern:** one secondary element is weak or redundant but the reading remains stable.
-- **Fail:** elements conflict, a mapping is ambiguous, or required context was removed.
+- **Pass:** every text and furniture element is correct, publishable, and earns its place: the title keeps its subject and scope, numbers carry the precision the spread supports, the subtitle adds a fact, and no axis title, legend, value axis, or note restates what the reader already has.
+- **Concern:** a Major sweep finding - a hedge or provenance note, a legend where direct labels would read, a redundant value axis, an empty subtitle, a title that lost its scope - with the reading otherwise stable.
+- **Fail:** elements conflict, a mapping is ambiguous, or information the reader needs is gone from the chart entirely.
 - **Unknown:** required context or source material was not supplied.
 
 ### Delivery
 
-- **Pass:** the delivered artifact remains legible and intact at the tested viewing size.
-- **Concern:** reading is possible but crowded, imbalanced, or effortful.
-- **Fail:** clipping, overlap, cropping, illegible type, broken aspect ratio, off-canvas labels, compression, or export mismatch blocks the reading.
+- **Pass:** the delivered artifact is legible and intact at display width, and its canvas fits its content.
+- **Concern:** reading is possible but crowded, imbalanced, or effortful; space is wasted on reserved margins or equal allocation to unequal panels.
+- **Fail:** clipping, overlap, cropping, text that needs zooming at display width, a canvas shape that crushes its content, off-canvas labels, compression, or export mismatch blocks the reading.
 - **Unknown:** the evaluator saw only code, a viewport, or an unavailable link rather than the deliverable, or no defensible display-size assumption can be made.
 
-Do not invent a universal Telegram or slide width. Record the tested size and whether the image must work without opening. If exact conditions are unknown, use a representative preview and reserve `Fail` for failures that persist across plausible conditions.
+Judge type at display width, not native pixels: effective size is rendered size times display width over image width. Record the display width assumed. When it is not stated, assume a typical content column or chat bubble, well under a wide export's native width, and never 100% native size. A clean read at native size proves nothing about the reader's view.
 
 ### Accessibility and target style
 
@@ -151,7 +153,7 @@ Assign the smallest set of codes that explains the failure. Do not tag every min
 | Code | Failure |
 |---|---|
 | `D1` | Data, calculation, denominator, transformation, or plotted value is wrong or incomplete. |
-| `D2` | Required unit, source, time period, baseline, denominator, or provenance is missing. |
+| `D2` | A unit, time period, baseline, or denominator the reader needs is missing from the chart and not recoverable from context. |
 | `D3` | Scale, precision, uncertainty, or omission materially misleads. |
 
 ### Visual reasoning
@@ -168,7 +170,8 @@ Assign the smallest set of codes that explains the failure. Do not tag every min
 |---|---|
 | `F1` | Title, subtitle, takeaway, or annotation conflicts with the chart or describes process instead of meaning. |
 | `F2` | Labels, legend, direct labels, or colour mappings are ambiguous, incomplete, or inconsistent. |
-| `F3` | A redesign removed information the reader still needs, such as source, unit, time, baseline, or endpoints. |
+| `F3` | A redesign removed information the reader still needs and cannot recover anywhere else on the chart. |
+| `F4` | Hedge, provenance, method, or extraction note on the chart; a subtitle or caption that adds no fact; redundant furniture (axis title, value axis, legend, per-panel axes) that restates what the reader already has. |
 
 ### Rendering and medium
 
@@ -195,12 +198,14 @@ Prioritize by reader consequence:
 1. False or misleading evidence
 2. Wrong analytical question
 3. Wrong, absent, or overstated insight
-4. Unsupported action or lost context
-5. Render failure or avoidable effort
+4. Unreadable at display size, or a canvas that crushes its content
+5. Unpublishable copy: hedges, provenance, lost title scope, excess precision
+6. Look-back effort: legends, redundant axes, labels away from their marks, indistinct series
+7. Polish
 
 Reviewer agreement strengthens confidence, but it does not override consequence. An expert-only integrity failure can be fatal even when an audience reviewer does not notice it.
 
-Use effort as a tie-breaker. Prefer a small change that clears a hard gate over a large aesthetic rewrite that does not.
+Use effort as a tie-breaker. List every consequential finding, not only the top one: a reviewer that names one issue and calls the rest fine sends the chart round the loop once per issue.
 
 Translate each diagnosis into a chart-spec operation:
 
@@ -212,7 +217,7 @@ Why: endpoint labels become legible at Telegram thumbnail size
 Codes: R2, R3
 ```
 
-State which operations are required to cross the pass line. Keep possible improvements below that line in an optional section.
+State which operations are required to cross the pass line (every Fatal and Major finding, plus Minor deletions). Keep other improvements below that line in an optional section.
 
 ## Benchmark design
 
@@ -298,7 +303,7 @@ These cases come from Karthik's observed repair sessions. They are not templates
 
 ### Pie to horizontal bars: pass after one repair
 
-The first bar-chart repair made the comparison easier, preserved the source values and context, and survived the intended output. The original had no underlying dataset or provenance, so the evidence gate covered source fidelity rather than upstream validation. This should not be kept in revision merely because a tighter crop, another palette, or new context could also improve it. Once the scoped gates pass, stop.
+The first bar-chart repair made the comparison easier, carried the source values over, and read at the intended size. The original had no underlying dataset, so the evidence gate covered source fidelity rather than upstream validation. This should not be kept in revision merely because a tighter crop or another palette could also improve it. Once no Major finding remains, stop.
 
 ### AI-prioritisation chart: repeated effort failures
 
@@ -306,7 +311,7 @@ Several outputs remained unreadable at chat size despite looking substantial at 
 
 ### Annual growth chart: redesign lost information
 
-Changing grouped bars to lines and direct labels improved the time comparison. Removing axes and the legend also removed source, time, and other context. A cleaner artifact can still fail `F3` and `D2`. Every redesign must account for the information carried by deleted elements.
+Changing grouped bars to lines and direct labels improved the time comparison. Removing axes and the legend also removed the time period and other context that no remaining element carried. Deleting furniture the direct labels already covered was fine; losing information nothing else carried was not. The test is recoverability, not preservation: a deleted element is `F3` only when nothing else on the chart carries its information.
 
 ### Two-year debt chart: viewport success, export failure
 
@@ -315,6 +320,10 @@ A slopegraph was the right analytical form, but repeated wide canvases, off-canv
 ### Two-panel finance chart: false `Send` from a generic inspection
 
 The first repair was marked `Send`, but FY20 appeared as a floating label inside the top plot rather than on the x-axis. A later colour edit changed the legend swatch without changing the corresponding stacked bars, while yellow segments sat against a white background. More fundamentally, the stacked bars labelled only their totals, so the disinvestment and dividend components named in the claim could not be compared precisely. The case then recorded HTML as the iteration while sending a browser screenshot, and only the first of four iterations received an evaluation. The overall chart looked plausible, but the form, colour, and named elements were wrong. This is why the gate must inspect exact delivered media, audit every expected label and legend mapping, test colour separation, ask whether stacked components are actually readable, and rerun after every revision.
+
+### Canonical repair run: a reviewer defending the wrong things
+
+An independent reviewer ran on eight repaired charts and found about one in six of the issues the maintainer later marked, while recommending the opposite of the maintainer on about ten. It praised extraction caveats as honest disclosure and asked for them to be kept, asked for a legend to be added back, kept an axis title that said nothing, froze the creator's canvas as a constraint while the canvas was the main defect, called text legible at native pixels that was unreadable at display width, and asked for a line to break around years the source drew but did not label. Each note named one issue and called the rest fine. The causes were in this rubric: fidelity framed as keeping the source's qualifications, a keep-by-default rule for legends and axes, a blockers-only render check, and the creator's choices treated as a change contract. The fixes are the publishability frame, the eraser test, display-width type, and user-only constraints.
 
 ## Provenance
 

@@ -28,7 +28,7 @@ Run a semantic ambiguity scan before stylistic critique: does the visual invite 
 
 Before critique, identify: chart type and encodings; apparent question or claim; the main thing made salient; likely audience interpretation; assumptions from missing context.
 
-For a repair handoff, also freeze a source inventory before proposing changes: chart/panel structure; every visible period, category, series, unit, qualification, source note, and annotation that can change the reading; semantic colour/shape/order mappings; repeated instances; anything too uncertain to reproduce. Diagnose the full artifact and neighbouring zones, not only the defect the user named. The inventory is the raw catalogue; the key-messages judgment below decides which of it must survive.
+For a repair handoff, also freeze a source inventory before proposing changes: chart/panel structure; every visible period, category, series, unit, and annotation that can change the reading; qualifications that change how the data reads (projected, excludes X, fiscal year); semantic colour/shape/order mappings; repeated instances; anything too uncertain to reproduce. Diagnose the full artifact and neighbouring zones, not only the defect the user named. The inventory is the raw catalogue; the key-messages judgment below decides which of it must survive. Furniture (axis titles, legends, notes, the source's hedges) is catalogued for its information, not as something to keep: it survives only if the rebuild has no better home for that information.
 
 If the chart is impossible to interpret, say so directly and explain why.
 
@@ -42,7 +42,7 @@ Cataloguing what a chart contains is not judging what matters. After the invento
 - **The form declares its messages.** What a chart encodes as its primary structure is presumptively a key message: a stacked, multi-series, or faceted chart exists to show that composition or comparison. Treat the primary encoded dimension (whatever colour, stack, or facet carries) as key unless the prompt redirects to a different question. Reducing such a chart to a single total or one series drops a key message, however tidy the result.
 - **Preserving the message is not preserving the form.** The data must survive; the *encoding* often should not. Re-rendering the source form more cleanly fails the message when that form was what made it hard to read - a tidier many-series stack no reader can trace one series through, a dual-axis chart implying an unsupported correlation, a map used for a ranking, a too-fine pie. When the source form is why a key message is hard to read, changing the form *is* the repair; reproducing it is the bug.
 - **Required content per message.** For each key message, name the data and encoding a rebuild must show - the specific series, periods, breakdowns, comparisons, or annotations without which it collapses. A per-category breakdown is required for "the mix is shifting", not for "the total is growing".
-- **"Hard to recover" is not "not key".** Difficulty (approximate values, too many categories, unrecoverable labels, a legend naming fewer categories than encoded) is grounds for a *better form* (small multiples, direct-labelled lines, top-N plus explicit "other", share-of-total), never to delete data. When some labels can't be recovered, keep the categories and mark the unrecovered ones generically - approximate values and imperfect labels still carry the message.
+- **"Hard to recover" is not "not key".** Difficulty (approximate values, too many categories, unrecoverable labels, a legend naming fewer categories than encoded) is grounds for a *better form* (small multiples, direct-labelled lines, top-N plus explicit "other", share-of-total), never to delete data. When some labels can't be recovered, keep the categories and name the unrecovered ones generically. A value the source draws but does not print is measured from the mark's geometry and used, not dropped, gapped, or noted as missing. Approximate values and imperfect labels still carry the message - and the chart never says they are approximate; that goes in the report.
 - **Explicit drops.** A drop is legitimate only when the information serves no key message, not when it's inconvenient to recover or render. Name what you drop and why, in message terms. Silence is not a decision: a multi-category chart reduced to a bare total has silently lost the breakdown.
 - **One chart or several.** Note when the messages need more than one chart (whole-and-parts, a totals view alongside a per-category view). Decide messages and required content here; leave chart count, decomposition, and form to reconstruction.
 
@@ -64,7 +64,10 @@ A chart can be attractive and still fail if any side of the triangle is weak.
 
 ## Karthik critique lens
 
-- **Clarity first:** the chart must stand alone. Missing axis labels, unclear units, ambiguous type, unexplained shading, mystery encodings are major failures.
+- **Production, not provenance:** every chart is for publication. Text that hedges, reports provenance, or explains what the source lacks is a major failure wherever it sits; limitations go in the accompanying report. The title keeps the source's subject and scope, and its numbers carry only the precision the spread supports.
+- **Clarity first:** the chart must stand alone. Unrecoverable units, ambiguous type, unexplained shading, mystery encodings are major failures. The test is whether the reader can recover the information, not whether a particular element carries it: an axis title that repeats the ticks or the title is ink, not clarity.
+- **Less is more:** every axis, axis title, legend, gridline, subtitle and note must carry something the reader can't get from the title, direct labels, or tick labels. A legend the reader has to look back and forth to is a major failure when the series could be labelled in place or keyed by coloured words.
+- **Read at display size:** judge type and layout at the width the reader sees the image, not native pixels. A canvas whose shape fights its content (many panels in a narrow column, big marks with tiny labels, equal space for unequal panels) is a major failure.
 - **Intentional design:** every colour, annotation, shade, line, sort order, and layout choice earns its place. Defaults are not a defence.
 - **Fundamentals before polish:** dimensional consistency, denominators, statistical meaning, uncertainty, whether comparisons make analytical sense.
 - **Purpose with evidence:** communicate the analytical job and a defensible result. An honest null or exploratory outcome is valid; don't invent a claim for drama.
@@ -137,7 +140,7 @@ Repeat this block only for alternatives that solve a diagnosed mismatch:
 
 ## Implementation notes
 - Title/annotation: ...
-- Caveats/checks: ...
+- Checks for the run report (never on the chart): ...
 ```
 
 For quick requests, return the verdict and the smallest consequential fix set; add alternatives only when redesign is useful.
