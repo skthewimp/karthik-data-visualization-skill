@@ -3832,3 +3832,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:7fdf8c85-283b-456c-96f7-67ef29b3ff23:end -->
+
+<!-- claude-session:4eb3f069-899a-4a7e-8466-899dbef45e70:start -->
+## 2026-09-23 11:07 IST | Claude session `4eb3f069-899`
+
+### User prompts
+> look at @canonical-fix-plan.md . how do we build phase 2? t eh code correcxtion tool .
+> i'm not sure this is approporiate
+> ok now back to this conversation - what should we do for this phase 2 thing? if you say that the model should not correct code.
+
+### Work done
+- Most of the change is in the driver: it has to call the new tools itself, before and after the build model. The skills and prompts already assume that. ## Between select and build (driver, no model turn) 1. **Read the...
+- No, Phase 4 hasn't been started. None of its five items is in the code or the git history. The last commits are the Phase 3 copy rules and the three Phase 2 scaffold commits. | Phase 4 item | State | |---|---| | 1. `p...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:4eb3f069-899a-4a7e-8466-899dbef45e70:end -->
