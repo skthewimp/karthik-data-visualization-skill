@@ -3689,3 +3689,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:5c7c56a9-ce1d-4a93-89a2-7544142aa3da:end -->
+
+<!-- claude-session:d94fe59f-0e53-46a8-a243-085b78981491:start -->
+## 2026-09-23 10:25 IST | Claude session `d94fe59f-0e5`
+
+### User prompts
+> remove @canonical-fix-plan.md
+
+### Work done
+- I deleted `canonical-fix-plan.md`. Git never tracked it, so there was nothing to commit. `canonical-examples-analysis.md` and `integrated-transcript.json` are still there, untracked.
+- Touched files: `canonical-examples-analysis.md`, `integrated-transcript.json`
+
+<!-- claude-session:d94fe59f-0e53-46a8-a243-085b78981491:end -->
