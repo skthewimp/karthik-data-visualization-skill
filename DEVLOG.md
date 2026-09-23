@@ -40,7 +40,13 @@
 - Round two: Sonnet case 01 used `place_on_marks` and came out clean. Haiku case 01 is clean
   apart from two start labels swapped by a hand nudge. Haiku case 02 labels land on the right
   segments now, but its stack runs right-to-left against the plan's order.
-- Open: stack direction is still the model's call (`position_stack(reverse = TRUE)`); palette
+- Follow-up ("how do we fix this stack direction?" then "yeah fix this"): ggplot's default stack
+  puts the first series furthest from the baseline. The scaffold now defines `stack` /
+  `stack_mid` (and a Matplotlib `stack()` helper) so bars and labels share one position with the
+  first series at the baseline, and `check_chart` flags `STACK_ORDER` by reading each stack's
+  segment colours outward. Haiku case 02 rerun: stack runs cacheRead-first in both bars, every
+  label on its own segment, all through `fmt_value`.
+- Open: palette
   colours used as subtitle or label text fail 4.5:1 (Phase 4, colour tool); `check_chart` cannot
   see a hand-formatted number that bypasses `fmt_value`; subtitle colour key is ggplot-only; the
   scaffold does not compose `panel_groups` regions. The external site driver has to call

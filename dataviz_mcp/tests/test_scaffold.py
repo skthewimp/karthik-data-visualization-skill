@@ -261,9 +261,8 @@ def test_matplotlib_scaffold_checks_and_renders(tmp_path: Path) -> None:
     bundle = render_and_inspect_chart(source, str(tmp_path / "out"), renderer="matplotlib", dimensions=result["dimensions"])
     assert Path(bundle["artifact"]["path"]).is_file()
     # A hand-picked hue in the slot is caught on the built figure.
-    Path(source).write_text(
-        Path(source).read_text(encoding="utf-8").replace("color=colour)", "color='#3366cc')", 1), encoding="utf-8"
-    )
+    stray = body.replace("color=colour)", "color='#3366cc')")
+    Path(source).write_text(f"{head}{MARKS_BEGIN}\n{stray}\n{MARKS_END}{tail}", encoding="utf-8")
     assert [d["code"] for d in check_chart(source)["deviations"]] == ["COLOUR_NOT_IN_PALETTE"]
     assert re.search(r"1\. Marks use #3366cc", check_chart(source)["fix_list"])
 
@@ -298,14 +297,14 @@ def test_stacked_labels_computed_apart_from_the_bars_are_caught(tmp_path: Path) 
 }""",
     )
     codes = {d["code"] for d in check_chart(result["source_path"])["deviations"]}
-    assert codes == {"COLOUR_UNMAPPED", "LABEL_ON_WRONG_MARK"}
+    assert codes == {"COLOUR_UNMAPPED", "LABEL_ON_WRONG_MARK", "STACK_ORDER"}
     _fill(
         result["source_path"],
         """chart_marks <- function(d) {
   list(
-    geom_col(aes(x = category, y = value, fill = series)),
+    geom_col(aes(x = category, y = value, fill = series), position = stack),
     geom_text(aes(x = category, y = value, label = fmt_value(value), group = series),
-              position = position_stack(vjust = 0.5), colour = "#FFFFFF", size = label_size)
+              position = stack_mid, colour = "#FFFFFF", size = label_size)
   )
 }""",
     )
@@ -326,3 +325,40 @@ def test_returned_frame_matches_the_drawn_margin(tmp_path: Path) -> None:
     extra = drawn["plot_margin_px"]["right"] - frame["plot_margin_px"]["right"]
     assert extra > 0
     assert drawn["plot_area"]["width"] == round(frame["plot_area"]["width"] - extra, 1)
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_default_stack_runs_against_the_series_order(tmp_path: Path) -> None:
+    # ggplot's default stack puts the first series furthest from the baseline.
+    result = _scaffold(tmp_path, zero_baseline=True, orientation="horizontal")
+    _fill(
+        result["source_path"],
+        "chart_marks <- function(d) list(geom_col(aes(x = category, y = value, fill = series), "
+        "position = position_stack(vjust = 0.5)))",
+    )
+    assert [d["code"] for d in check_chart(result["source_path"])["deviations"]] == ["STACK_ORDER"]
+    _fill(
+        result["source_path"],
+        "chart_marks <- function(d) list(geom_col(aes(x = category, y = value, fill = series), position = stack))",
+    )
+    assert check_chart(result["source_path"])["ok"]
+
+
+def test_matplotlib_stack_helper_keeps_series_order(tmp_path: Path) -> None:
+    result = _scaffold(tmp_path, renderer="matplotlib", orientation="horizontal", zero_baseline=True)
+    source = result["source_path"]
+    _fill(source, "def chart_marks(ax, rows):\n    stack(ax, rows)")
+    assert check_chart(source)["ok"]
+    # Drawing the series in reverse puts the last series at the baseline.
+    _fill(
+        source,
+        """def chart_marks(ax, rows):
+    base = {}
+    for name in reversed(list(PALETTE)):
+        for row in rows:
+            if row['series'] == name:
+                x = pos(row)
+                ax.barh(x, row['value'], left=base.get(x, 0.0), color=PALETTE[name])
+                base[x] = base.get(x, 0.0) + row['value']""",
+    )
+    assert [d["code"] for d in check_chart(source)["deviations"]] == ["STACK_ORDER"]

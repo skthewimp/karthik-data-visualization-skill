@@ -218,6 +218,10 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         + f"big.mark = \",\", prefix = {_r_str(fmt['prefix'])}, suffix = {_r_str(fmt['suffix'])})",
         "# Text: geom_text(size = label_size) for every label and annotation.",
         f"label_size <- {fonts['annotation']} / .pt",
+        "# Stacks: position = stack for stacked bars, stack_mid for their labels - the first",
+        "# series sits at the baseline and each label on its own segment.",
+        "stack <- position_stack(reverse = TRUE)",
+        "stack_mid <- position_stack(reverse = TRUE, vjust = 0.5)",
         "",
     ]
     marks = [
@@ -367,10 +371,29 @@ def _matplotlib_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "",
         "PLOT_DATA = _load()",
         "",
+        "",
+        f"def stack(ax, rows, width=0.6, horizontal={horizontal}):",
+        '    """Draw stacked bars in series order from the baseline; return (row, position, mid) per segment."""',
+        "    base, placed = {}, []",
+        "    for name in list(PALETTE) or [None]:",
+        "        for row in rows:",
+        "            if name is not None and row.get('series') != name:",
+        "                continue",
+        "            x, start = pos(row), base.get(pos(row), 0.0)",
+        "            colour = PALETTE.get(row.get('series'), INK)",
+        "            if horizontal:",
+        "                ax.barh(x, row['value'], left=start, height=width, color=colour)",
+        "            else:",
+        "                ax.bar(x, row['value'], bottom=start, width=width, color=colour)",
+        "            placed.append((row, x, start + row['value'] / 2))",
+        "            base[x] = start + row['value']",
+        "    return placed",
+        "",
     ]
     marks = [
         "# Draw on ax from rows (one panel's rows). x = pos(row), y = row['value'];",
-        "# for a horizontal chart use ax.barh / swap x and y. Columns: " + ", ".join(spec["columns"]) + ".",
+        "# stacked bars: placed = stack(ax, rows), labels at each returned mid.",
+        "# For a horizontal chart use ax.barh / swap x and y. Columns: " + ", ".join(spec["columns"]) + ".",
         "# Marks and labels only - no titles, axis labels, limits, ticks or spines.",
         "def chart_marks(ax, rows):",
         "    pass",
@@ -637,6 +660,8 @@ def scaffold_chart(
                 "tail": f"\n{tail}\n",
                 "value_labels": int(value_labels) if hide_value_axis else 0,
                 "palette": ordered or stops,
+                "series_palette": palette,
+                "orientation": spec["orientation"],
                 "label_pt": fonts["annotation"],
             },
             indent=2,
@@ -684,7 +709,8 @@ args <- commandArgs(trailingOnly = TRUE)
 suppressPackageStartupMessages(library(ggplot2))
 pdf(NULL)
 out <- list(error = NULL, non_layers = list(), geom_label = 0L, text_rows = 0L,
-            mark_colours = list(), text_sizes = list(), unmapped = list(), label_mismatch = list())
+            mark_colours = list(), text_sizes = list(), unmapped = list(), label_mismatch = list(),
+            stack_order = FALSE)
 as_hex <- function(x) tryCatch(grDevices::rgb(t(grDevices::col2rgb(x)), maxColorValue = 255), error = function(e) as.character(x))
 flat <- function(x) if (is.list(x) && !inherits(x, "gg")) do.call(c, lapply(x, flat)) else list(x)
 is_text <- function(layer) inherits(layer$geom, "GeomText") || inherits(layer$geom, "GeomLabel") ||
@@ -743,6 +769,23 @@ tryCatch({
         out$label_mismatch[[length(out$label_mismatch) + 1]] <- sprintf("'%s' sits on a bar of %s", text, format(signif(value, 4)))
     }
   }
+  # Stacked segments read in series order outward from the baseline.
+  if (!is.null(named)) {
+    by_colour <- setNames(named, toupper(unname(palette)))
+    for (i in seq_along(plot$layers)) {
+      d <- b$data[[i]]
+      if (is_text(plot$layers[[i]]) || !all(c("xmin", "xmax", "ymin", "ymax", "fill") %in% names(d))) next
+      d$key <- paste(d$PANEL, round((d$xmin + d$xmax) / 2, 6))
+      for (k in unique(d$key)) {
+        g <- d[d$key == k, ]
+        if (nrow(g) < 2 || any(pmin(g$ymin, g$ymax) < 0)) next
+        g <- g[order(pmin(g$ymin, g$ymax)), ]
+        seen <- unname(by_colour[toupper(as_hex(g$fill))])
+        seen <- seen[!is.na(seen)]
+        if (length(seen) > 1 && !identical(seen, named[named %in% seen])) out$stack_order <- TRUE
+      }
+    }
+  }
 }, error = function(e) out$error <<- conditionMessage(e))
 jsonlite::write_json(out, args[[2]], auto_unbox = TRUE, null = "null")
 '''
@@ -765,10 +808,10 @@ def _check_ggplot(source: Path) -> dict[str, Any]:
         return json.loads(result.read_text(encoding="utf-8"))
 
 
-def _check_matplotlib(source: Path) -> dict[str, Any]:
+def _check_matplotlib(source: Path, record: dict[str, Any]) -> dict[str, Any]:
     from matplotlib.collections import Collection
     from matplotlib.lines import Line2D
-    from matplotlib.patches import Patch
+    from matplotlib.patches import Patch, Rectangle
     import matplotlib.colors as mcolors
     import matplotlib.pyplot as plt
 
@@ -799,9 +842,31 @@ def _check_matplotlib(source: Path) -> dict[str, Any]:
                 else:
                     continue
                 out["mark_colours"] += [mcolors.to_hex(c) for c in colours if c is not None and len(c)]
+            out["stack_order"] = out.get("stack_order") or _mpl_stack_out_of_order(ax, record, Rectangle, mcolors)
     finally:
         plt.close(figure)
     return out
+
+
+def _mpl_stack_out_of_order(ax: Any, record: dict[str, Any], rectangle: Any, mcolors: Any) -> bool:
+    """True when a stacked bar's segments do not run in series order from the baseline."""
+    order = list(record.get("series_palette") or {})
+    by_colour = {hexc.lower(): name for name, hexc in (record.get("series_palette") or {}).items()}
+    horizontal = record.get("orientation") == "horizontal"
+    groups: dict[float, list[tuple[float, str]]] = {}
+    for patch in ax.patches:
+        if not isinstance(patch, rectangle):
+            continue
+        centre = patch.get_y() + patch.get_height() / 2 if horizontal else patch.get_x() + patch.get_width() / 2
+        start = patch.get_x() if horizontal else patch.get_y()
+        name = by_colour.get(mcolors.to_hex(patch.get_facecolor()).lower())
+        if name is not None:
+            groups.setdefault(round(centre, 6), []).append((start, name))
+    for segments in groups.values():
+        seen = [name for _start, name in sorted(segments)]
+        if len(seen) > 1 and seen != [name for name in order if name in seen]:
+            return True
+    return False
 
 
 def _is_neutral(hex_colour: str) -> bool:
@@ -839,7 +904,7 @@ def check_chart(source_path: str) -> dict[str, Any]:
         source.write_text(f"{record['head']}{MARKS_BEGIN}{body}{MARKS_END}{record['tail']}", encoding="utf-8")
         restored = True
 
-    found = _check_ggplot(source) if record["renderer"] == "ggplot2" else _check_matplotlib(source)
+    found = _check_ggplot(source) if record["renderer"] == "ggplot2" else _check_matplotlib(source, record)
     if found.get("error"):
         message = " ".join(line.strip() for line in found["error"].splitlines() if line.strip()) or "build failed"
         hint = ""
@@ -874,6 +939,12 @@ def check_chart(source_path: str) -> dict[str, Any]:
             "COLOUR_UNMAPPED",
             f"colour/fill = {expression} maps values the palette does not name, so they draw in the scale's "
             "NA grey. Map colour to series, or split the rows into layers with a fixed colour each.",
+        )
+    if found.get("stack_order"):
+        deviate(
+            "STACK_ORDER",
+            "Stacked segments do not run in series order from the baseline. Stack bars with "
+            "position = stack and their labels with position = stack_mid (Matplotlib: stack(ax, rows)).",
         )
     for mismatch in found.get("label_mismatch") or []:
         deviate(

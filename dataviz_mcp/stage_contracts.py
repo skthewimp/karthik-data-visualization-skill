@@ -1418,8 +1418,9 @@ setting you change there is lost. In the slot, in order:
   3. Label only the marks that carry the reading - a series' identity, an endpoint, the focal
      comparison, a genuine exception - never a value on every point of every series. When the
      plan's ``value_labels`` is above 0 the value axis is gone, so those labels must be drawn.
-     Position a label with the same stat and position as its mark (stacked bars:
-     ``position_stack(vjust = 0.5)`` on the same aesthetics), never a separate cumsum. A
+     Position a label with the same stat and position as its mark, never a separate cumsum:
+     stacked bars take ``position = stack`` and their labels ``position = stack_mid`` (Matplotlib:
+     ``stack(ax, rows)``), so the first series sits at the baseline. A
      per-row text colour is two layers with a fixed colour each, never a mapped hex column.
      Series names at the line ends sit past the last point (``hjust = 0``, small ``nudge_x``);
      the scaffold has already reserved that margin.
