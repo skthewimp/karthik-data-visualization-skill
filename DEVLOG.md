@@ -3977,3 +3977,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:e2466345-0006-4289-9da1-c90484408e5b:end -->
+
+<!-- claude-session:8575556a-15f9-44d1-9a45-a770c5210992:start -->
+## 2026-09-23 15:30 IST | Claude session `8575556a-15f`
+
+### User prompts
+> look through @canonical-examples-analysis.md and @canonical-examples.pdf . the dataviz eval skill and maybe evne the critqiue skill seem broekn. they highlighyt the wrong things. looiking at what i've highlighted here...
+> yeah fix the skills
+> what's happening? why is this so slow?
+
+### Work done
+- The skill changes are pushed as `47d9d97` on `origin/main`, and your local Claude and Codex copies are installed, so you can start your run. - **What went in:** - The rewritten dataviz-eval with the 10-item element wa...
+- I'm stopping the wording changes here. Round 4 found about 16 of your 33 issues, which is level with round 3's 17, so the prompt changes have run out of gains. The pushed commit `47d9d97` already contains the round-4...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:8575556a-15f9-44d1-9a45-a770c5210992:end -->
