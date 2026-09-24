@@ -7,7 +7,9 @@
 - **Key words are darkened to text contrast in their own hue.** `scaffold_chart`'s subtitle key
   coloured each series name with its bar colour; a light bar colour (a pale blue, an orange) is
   2.7:1 as words on white. New `color_math.text_ink()` keeps the hue and moves the lightness
-  until the words read at 4.5:1; colours that already read are unchanged.
+  until the words read at 4.5:1; colours that already read are unchanged. `end_labels()` sets
+  line names the same way (leaders keep the line's own colour), and the scaffold exposes
+  `page_ink(<colour>)` for any other text the slot sets on the page in a series colour.
 - **Runs of one subtitle line are not a collision.** ggtext draws a coloured key as abutting
   fragments of one text grob, and our glyph estimates overlapped them by a few pixels, so every
   subtitle-key chart reported `HIERARCHY_TEXT_COLLISION` (high). Fragments of the same frame

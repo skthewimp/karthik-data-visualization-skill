@@ -610,6 +610,11 @@ def test_end_labels_spread_crowded_line_names_apart(tmp_path: Path) -> None:
     metadata = json.loads(Path(bundle["layout_metadata_path"]).read_text())
     tops = {e["text"]: e["bbox"]["y"] for e in metadata["elements"] if e["text"] in names}
     assert sorted(tops, key=tops.get) == list(reversed(names))
+    # Light line colours (sky blue, orange) are set as words in their own hue at text contrast.
+    inks = {e["text"]: e["colour"] for e in metadata["elements"] if e["text"] in names}
+    assert all(_contrast_ratio(ink, "#FFFFFF") >= 4.5 for ink in inks.values())
+    assert abs(hue_delta(inks["Model E"], "#56B4E9")) < 3 and inks["Model A"].lower() == "#0072b2"
+    assert not any(d["code"] == "LOW_TEXT_CONTRAST" for d in report["defects"])
 
 
 # ---- lenient routing, interval frames, label measures, regions ----

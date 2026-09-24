@@ -437,7 +437,8 @@ GeomEndLabel <- ggproto("GeomEndLabel", GeomText,
 )
 makeContent.dvz_end_labels <- function(x) {
   d <- x$coords
-  gp <- lapply(seq_len(nrow(d)), function(r) grid::gpar(col = d$colour[r], fontsize = d$size[r] * .pt,
+  # The names are words on the page: their series hue at text contrast, the leaders in the line's own colour.
+  gp <- lapply(seq_len(nrow(d)), function(r) grid::gpar(col = page_ink(d$colour[r]), fontsize = d$size[r] * .pt,
     fontfamily = d$family[r], fontface = d$fontface[r], lineheight = d$lineheight[r]))
   h <- vapply(seq_len(nrow(d)), function(r) grid::convertHeight(grid::grobHeight(
     grid::textGrob(d$label[r], gp = gp[[r]])), "npc", TRUE), 0) * 1.15
@@ -470,6 +471,9 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
     horizontal = spec["orientation"] == "horizontal"
     value_pos, cat_pos = ("x", "y") if horizontal else ("y", "x")
     colour_encoded = spec["value_encoding"] == "colour"
+    # Each palette colour as text on the page: a bar colour light enough to fill a mark is often
+    # too light to set words in, so page text takes the same hue at text contrast.
+    page_text = {c.upper(): text_ink(c, spec["background"]) for c in spec["ordered"]}
 
     head = [
         _SCAFFOLD_BANNER,
@@ -507,11 +511,15 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "stack <- position_stack(reverse = TRUE)",
         "stack_mid <- position_stack(reverse = TRUE, vjust = 0.5)",
         "# Text on a mark: aes(colour = on_fill_ink(series)) - the ink that reads on that fill;",
-        "# on_fill_ink() for the single-colour ink. Text on the page takes ink or its series colour.",
+        "# on_fill_ink() for the single-colour ink. Text on the page takes ink or page_ink(<its series colour>),",
+        "# the same hue darkened where needed to read as text (end_labels() applies it itself).",
         f"on_ink <- {_r_vec(list(spec['on_ink'].values()), list(spec['on_ink'].keys())) if spec['on_ink'] else 'c()'}",
         "on_fill_ink <- function(series = NULL) I(if (is.null(series)) "
         + f"{_r_str(better_ink(spec['ordered'][0] if spec['ordered'] else '#1a1a1a')[0])} "
         + "else unname(on_ink[as.character(series)]))",
+        f"page_text <- {_r_vec(list(page_text.values()), list(page_text.keys())) if page_text else 'c()'}",
+        "page_ink <- function(colour) { key <- toupper(as.character(colour)); "
+        "ifelse(key %in% names(page_text), unname(page_text[key]), as.character(colour)) }",
         _GGPLOT_BAR_VALUES,
         _GGPLOT_END_LABELS,
         "",
