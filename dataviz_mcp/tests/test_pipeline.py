@@ -216,12 +216,13 @@ def test_only_select_stages_declare_routing_fields() -> None:
 
 
 def test_plot_data_map_is_carried_by_select_for_the_mechanical_frame() -> None:
-    """select names the role map so build reshapes nothing; the map whitelists x + value."""
+    """select names the role map so build reshapes nothing; geometry is a value or two ends."""
     props = sc.SELECT_SCHEMA["properties"]
     assert "plot_data" in props
     plot_data = props["plot_data"]
-    assert set(plot_data["required"]) == {"x", "value"}
-    for role in ("x", "value", "series", "facet", "category_order", "series_order", "aggregate"):
+    assert set(plot_data["required"]) == {"x"}
+    for role in ("x", "value", "start", "end", "labels", "series", "facet", "category_order",
+                 "series_order", "aggregate"):
         assert role in plot_data["properties"]
     # It is not mandatory - a table or single-number stat carries no plotting frame.
     assert "plot_data" not in sc.SELECT_SCHEMA["required"]

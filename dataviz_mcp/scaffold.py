@@ -39,18 +39,18 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from . import handoff
 from .color_math import _contrast_ratio, better_ink, to_rgb
 from .frame import reserve_frame
 from .inspection import _REDUNDANT_AXIS_MIN_LABELS
-from .layout import FONT_PT, PROFILES, char_px, house_font_pt, pt_to_px
+from .layout import FONT_PT, GROUP_BREAK, PROFILES, char_px, house_font_pt, pt_to_px
+from .precision import recommend_precision
 from .text_metrics import TextMeasurer
 
 MARKS_BEGIN = "# ==== marks: the build model writes geoms and labels here ===="
 MARKS_END = "# ==== end marks ===="
 _SCAFFOLD_BANNER = "# ==== scaffold: written by scaffold_chart from the plan - do not edit ===="
 
-_X_KINDS = ("discrete", "date", "continuous")
-_IDENTIFICATION = ("direct_labels", "subtitle_key", "axis", "legend")
 # A mark colour whose HLS saturation is below this reads as a neutral grey: context ink the
 # palette does not need to own (focal-plus-grey, reference lines, muted labels).
 _NEUTRAL_SATURATION = 0.12
@@ -141,6 +141,7 @@ def _number_format(number_format: dict[str, Any] | None) -> dict[str, Any]:
         "decimals": int(number_format.get("decimals", 0) or 0),
         "prefix": str(number_format.get("prefix", "") or ""),
         "suffix": str(number_format.get("suffix", "") or ""),
+        "signed": bool(number_format.get("signed")),
     }
 
 
@@ -150,7 +151,110 @@ def _format_number(value: float, fmt: dict[str, Any]) -> str:
     decimals = max(0, -int(math.floor(math.log10(step)))) if step and step < 1 else 0
     if step:
         value = round(value / step) * step
-    return f"{fmt['prefix']}{value:,.{decimals}f}{fmt['suffix']}"
+    sign = "+" if fmt.get("signed") and value > 0 else ""
+    return f"{sign}{fmt['prefix']}{value:,.{decimals}f}{fmt['suffix']}"
+
+
+def _label_formats(rows: list[dict[str, str]], units: dict[str, Any], given: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """One number format per label measure, in its own units and at its own precision.
+
+    A format the plan resolved is used as given; otherwise the precision comes from the
+    measure's own values by the spread rule, so a growth rate never borrows the revenue format.
+    """
+    formats: dict[str, dict[str, Any]] = {}
+    for name, unit in units.items():
+        if given.get(name):
+            formats[name] = _number_format({**unit, **given[name]})
+            continue
+        values = [float(r[name]) for r in rows if r.get(name) not in ("", None)]
+        resolved = recommend_precision(values, role="label") if values else {}
+        formats[name] = _number_format({**unit, "step": resolved.get("step"), "decimals": resolved.get("decimals")})
+    return formats
+
+
+def _region_membership(regions: list[dict[str, Any]], categories: list[str]) -> tuple[dict[str, str], str | None]:
+    """Which region draws each category: the regions that name their categories claim them, and
+    one region that names none takes the rest. Returns ({} , why) when the rows cannot be split."""
+    if not regions:
+        return {}, None
+    named = [r for r in regions if r.get("categories")]
+    open_regions = [r for r in regions if not r.get("categories")]
+    if not named or len(open_regions) > 1:
+        return {}, ("the layout has panel-group regions but they do not name their categories, so the "
+                    "scaffold draws one grid; give each region its categories")
+    fold = {c.strip().casefold(): c for c in categories}
+    region_of: dict[str, str] = {}
+    for region in named:
+        for label in region["categories"]:
+            category = fold.get(str(label).strip().casefold())
+            if category is not None and category not in region_of:
+                region_of[category] = str(region.get("role") or "")
+    rest = [c for c in categories if c not in region_of]
+    if rest:
+        home = open_regions[0] if open_regions else named[-1]
+        for category in rest:
+            region_of[category] = str(home.get("role") or "")
+        if not open_regions:
+            return region_of, f"categories {rest[:3]} are in no region; drawn in {home.get('role')!r}"
+    return region_of, None
+
+
+def _region_boxes(
+    regions: list[dict[str, Any]], frame: dict[str, Any], margin_px: dict[str, Any],
+    width: int, height: int, facet_order: list[str], rows: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    """Place each region between the page frame's text bands, in proportion to its band height.
+
+    The frame is reserved once for the page: the title and subtitle above, a caption below,
+    the margins at the sides. Each region's axes and headings live inside its own box.
+    """
+    blocks = frame.get("frame_blocks") or []
+    tops = [b["bbox"]["y"] + b["bbox"]["height"] for b in blocks if b.get("role") in ("title", "subtitle") and b.get("bbox")]
+    bottoms = [b["bbox"]["y"] for b in blocks if b.get("role") in ("caption", "footer") and b.get("bbox")]
+    gap = GROUP_BREAK / 2
+    top = max(tops) + gap if tops else float(margin_px["top"])
+    bottom = min(bottoms) - gap / 2 if bottoms else height - float(margin_px["bottom"])
+    x = float(margin_px["left"])
+    inner_w = width - x - float(margin_px["right"])
+    weights = [max(1.0, float(r.get("height") or 1)) for r in regions]
+    boxes, y = [], top
+    for i, (region, weight) in enumerate(zip(regions, weights)):
+        h = (bottom - top) * weight / sum(weights)
+        role = str(region.get("role") or "")
+        cats = _first_seen([r for r in rows if r["region"] == role], "category")
+        facets = _first_seen([r for r in rows if r["region"] == role], "facet") if facet_order else []
+        ncol = int(region.get("facet_ncol") or max(1, round(len(facets) ** 0.5))) if facets else 1
+        boxes.append({
+            "role": role, "categories": cats, "facets": facets,
+            "x": round(x), "y": round(y), "width": round(inner_w), "height": round(h),
+            "facet_ncol": ncol,
+            "margin_top": gap / 2 if i else 0.0, "margin_bottom": gap / 2 if i < len(regions) - 1 else 0.0,
+        })
+        y += h
+    return boxes
+
+
+def _r_formatter(fmt: dict[str, Any]) -> str:
+    return (
+        "scales::label_number("
+        + (f"accuracy = {fmt['step']!r}, " if fmt["step"] else "")
+        + f"big.mark = \",\", prefix = {_r_str(fmt['prefix'])}, suffix = {_r_str(fmt['suffix'])}"
+        + (', style_positive = "plus"' if fmt.get("signed") else "")
+        + ")"
+    )
+
+
+def _py_formatter(name: str, fmt: dict[str, Any], doc: str) -> list[str]:
+    step = fmt["step"]
+    sign = "('+' if value > 0 else '')" if fmt.get("signed") else "''"
+    return [
+        f"def {name}(value):",
+        f'    """{doc}"""',
+        (f"    value = round(float(value) / {step!r}) * {step!r}" if step else "    value = float(value)"),
+        f"    return {sign} + f\"{fmt['prefix']}{{value:,.{fmt['decimals']}f}}{fmt['suffix']}\"",
+        "",
+        "",
+    ]
 
 
 def _r_str(value: str) -> str:
@@ -190,7 +294,9 @@ _GGPLOT_BAR_VALUES = r'''
 # Bar values: bar_values(aes(label = fmt_value(value), fill = series), position = <the bars' own
 # position>) prints each bar's value inside its end, in the ink that reads on that fill, or just
 # past the end in ink when the bar is too short to hold it - decided when drawn, from the bar's
-# drawn length and the label's own glyphs. Map fill as the bars do (default: ink).
+# drawn length and the label's own glyphs. Map fill as the bars do (default: ink). A second
+# reading for the same bar (a growth rate beside a revenue) goes in note = ...: it prints past the
+# bar's end, after the value when the value is outside too, so the two never land on each other.
 bar_value_ink <- function(fill) {
   lum <- function(col) {
     v <- grDevices::col2rgb(col) / 255
@@ -213,6 +319,11 @@ bar_value_place <- function(lo, hi, thick, along, cross, dir, stacked, inner, pa
   just <- ifelse(centre, 0.5, ifelse(fits, (1 + dir) / 2, (1 - dir) / 2))
   list(at = at, just = just, inside = inside)
 }
+# A note starts past the bar's end, or past the value when the value sits outside too.
+bar_value_note <- function(place, along, dir, end, pad) {
+  outside <- !place$inside
+  list(at = ifelse(outside, place$at + dir * (along + 2 * pad), end + dir * pad), just = (1 - dir) / 2)
+}
 # Which way each bar grows, and whether it is a stacked segment with another beyond it.
 bar_value_stack <- function(data) {
   dir <- ifelse(data$ymax > 0, 1, -1)
@@ -225,13 +336,15 @@ bar_value_stack <- function(data) {
 }
 bar_value_aes <- GeomText$default_aes
 bar_value_aes$fill <- "#1a1a1a"
+# A segment that does not start at zero (a stacked or floating interval) gives its own ymin/ymax.
 GeomBarValue <- ggproto("GeomBarValue", GeomText,
   default_aes = bar_value_aes,
+  optional_aes = c("ymin", "ymax", "note"),
   extra_params = c("na.rm", "width"),
   setup_data = function(data, params) {
     if (is.null(data$width)) data$width <- if (is.null(params$width)) resolution(data$x, FALSE, TRUE) * 0.9 else params$width
-    data$ymin <- pmin(data$y, 0)
-    data$ymax <- pmax(data$y, 0)
+    if (is.null(data$ymin)) data$ymin <- pmin(data$y, 0)
+    if (is.null(data$ymax)) data$ymax <- pmax(data$y, 0)
     data$xmin <- data$x - data$width / 2
     data$xmax <- data$x + data$width / 2
     data$width <- NULL
@@ -265,6 +378,16 @@ makeContent.dvz_bar_values <- function(x) {
     hjust = if (x$flip) place$just[r] else 0.5, vjust = if (x$flip) 0.5 else place$just[r],
     gp = grid::gpar(col = ink[r], fontsize = d$size[r] * .pt, fontfamily = d$family[r],
                     fontface = d$fontface[r], lineheight = d$lineheight[r])))
+  if (!is.null(d$note)) {
+    note <- bar_value_note(place, if (x$flip) w else h, x$dir, ifelse(x$dir > 0, inch(hi, x$flip), inch(lo, x$flip)),
+      0.3 * d$size * .pt / 72)
+    note_at <- grid::unit(note$at / inch(1, x$flip), "npc")
+    for (r in which(!is.na(d$note) & nzchar(d$note))) kids[[length(kids) + 1]] <- grid::textGrob(d$note[r],
+      x = if (x$flip) note_at[r] else mid[r], y = if (x$flip) mid[r] else note_at[r],
+      hjust = if (x$flip) note$just[r] else 0.5, vjust = if (x$flip) 0.5 else note$just[r],
+      gp = grid::gpar(col = d$colour[r], fontsize = d$size[r] * .pt, fontfamily = d$family[r],
+                      fontface = d$fontface[r], lineheight = d$lineheight[r]))
+  }
   grid::setChildren(x, do.call(grid::gList, kids))
 }
 bar_values <- function(mapping = NULL, data = NULL, position = "identity", ..., width = NULL, size = label_size) {
@@ -369,9 +492,12 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         f"palette <- {_r_vec(list(spec['palette'].values()), list(spec['palette'].keys())) if spec['palette'] else _r_vec(spec['ordered'])}",
         f"ink <- {_r_str(spec['ordered'][0] if spec['ordered'] else '#1a1a1a')}",
         "# Numbers: fmt_value(x) formats any value you print, at the planned precision.",
-        "fmt_value <- scales::label_number("
-        + (f"accuracy = {fmt['step']!r}, " if fmt["step"] else "")
-        + f"big.mark = \",\", prefix = {_r_str(fmt['prefix'])}, suffix = {_r_str(fmt['suffix'])})",
+        f"fmt_value <- {_r_formatter(fmt)}",
+    ]
+    if spec["label_formats"]:
+        head.append("# Label measures ride beside the marks, never on a position: print each with its own formatter.")
+        head += [f"fmt_{name} <- {_r_formatter(f)}" for name, f in spec["label_formats"].items()]
+    head += [
         "# Text: geom_text(size = label_size) for labels and values, annotation_size for a free annotation.",
         f"label_size <- {fonts['label']} / .pt",
         f"annotation_size <- {fonts['annotation']} / .pt",
@@ -390,7 +516,9 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "",
     ]
     marks = [
-        "# Map x = category and y = value (the scaffold flips a horizontal chart itself).",
+        ("# Map x = category; each mark spans y = start to yend = end (the scaffold flips a horizontal chart itself)."
+         if spec["interval"] else
+         "# Map x = category and y = value (the scaffold flips a horizontal chart itself)."),
         "# Columns: " + ", ".join(spec["columns"]) + ". Return a list of layers only -",
         "# no scales, coords, facets, labs or theme: the scaffold owns those.",
         "chart_marks <- function(d) {",
@@ -430,59 +558,105 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         theme[f"axis.text.{value_pos}"] = "element_blank()"
         theme[f"axis.title.{value_pos}"] = "element_blank()"
         theme[f"panel.grid.major.{value_pos}"] = "element_blank()"
-    theme_lines = [f"{key} = {value}" for key, value in theme.items()]
 
-    layers = ["ggplot(plot_data)", "chart_marks(plot_data)"]
-    if spec["stops"]:
-        layers.append(f"scale_fill_gradientn(colours = {_r_vec(spec['stops'])}, labels = fmt_value)")
-    elif has_series:
-        layers.append('scale_colour_manual(values = palette, aesthetics = c("colour", "fill"))')
-    if not colour_encoded:
-        value_args = ["labels = fmt_value"]
-        if spec["zero_baseline"]:
-            value_args += ["limits = c(0, NA)", "expand = expansion(mult = c(0, 0.05))"]
-        layers.append(f"scale_y_continuous({', '.join(value_args)})")
-    if spec["x_kind"] == "date":
-        layers.append("scale_x_date(labels = scales::label_date_short())")
-    elif spec["x_kind"] == "discrete":
-        # The axis runs in the planned category order whatever order the layers train it in (a
-        # layer drawn from a subset would otherwise put its categories first), over the categories
-        # the marks draw. A flipped axis would put the first category at the bottom; read order
-        # runs top-down.
-        order = _r_vec(spec["category_order"])
-        drawn = f"intersect({order}, x)"
-        discrete_args = [f"limits = function(x) {'rev(' + drawn + ')' if horizontal else drawn}"]
-        if spec["wrap_label_chars"]:
-            discrete_args.append(f"labels = scales::label_wrap({spec['wrap_label_chars']})")
-        layers.append(f"scale_x_discrete({', '.join(discrete_args)})")
-    # Clip off: a direct label past the panel edge draws into the margin, where the inspector
-    # measures it and refit_chart grows the canvas, instead of being cut invisibly at the panel.
-    layers.append('coord_flip(clip = "off")' if horizontal else 'coord_cartesian(clip = "off")')
-    if has_facet:
-        # A panel heading wider than its panel is cut at the panel edge; wrap it to the panel instead.
-        labeller = f", labeller = label_wrap_gen(width = {spec['strip_wrap_chars']})" if spec["strip_wrap_chars"] else ""
-        layers.append(f'facet_wrap(~facet, ncol = {spec["facet_ncol"]}, scales = {_r_str(spec["facet_scales"])}{labeller})')
-    # Axis titles are declared by displayed position; under coord_flip the y aesthetic is drawn
-    # along the bottom, so the labs() keys swap.
-    shown = spec["axis_titles"]
-    titles = {"x": shown.get("y"), "y": shown.get("x")} if horizontal else shown
-    labs_args = [
-        f"title = {_r_str(spec['title'])}",
-        f"subtitle = {_r_str(spec['subtitle']) if spec['subtitle'] else 'NULL'}",
-        f"caption = {_r_str(spec['caption']) if spec['caption'] else 'NULL'}",
-        f"x = {_r_str(titles['x']) if titles.get('x') else 'NULL'}",
-        f"y = {_r_str(titles['y']) if titles.get('y') else 'NULL'}",
-        "colour = NULL",
-        "fill = NULL",
+    def plot_layers(data: str, ncol: str, page_text: bool) -> list[str]:
+        layers = [f"ggplot({data})", f"chart_marks({data})"]
+        if spec["stops"]:
+            layers.append(f"scale_fill_gradientn(colours = {_r_vec(spec['stops'])}, labels = fmt_value)")
+        elif has_series:
+            layers.append('scale_colour_manual(values = palette, aesthetics = c("colour", "fill"))')
+        if not colour_encoded:
+            value_args = ["labels = fmt_value"]
+            shared = spec.get("shared_limits") if data == "d" else None
+            if shared:
+                value_args.append(f"limits = c({shared[0]!r}, {shared[1]!r})")
+            elif spec["zero_baseline"]:
+                value_args.append("limits = c(0, NA)")
+            if spec["zero_baseline"]:
+                value_args.append("expand = expansion(mult = c(0, 0.05))")
+            layers.append(f"scale_y_continuous({', '.join(value_args)})")
+        if spec["x_kind"] == "date":
+            layers.append("scale_x_date(labels = scales::label_date_short())")
+        elif spec["x_kind"] == "discrete":
+            # The axis runs in the planned category order whatever order the layers train it in (a
+            # layer drawn from a subset would otherwise put its categories first), over the categories
+            # the marks draw. A flipped axis would put the first category at the bottom; read order
+            # runs top-down.
+            order = _r_vec(spec["category_order"])
+            drawn = f"intersect({order}, x)"
+            discrete_args = [f"limits = function(x) {'rev(' + drawn + ')' if horizontal else drawn}"]
+            if spec["wrap_label_chars"]:
+                discrete_args.append(f"labels = scales::label_wrap({spec['wrap_label_chars']})")
+            layers.append(f"scale_x_discrete({', '.join(discrete_args)})")
+        # Clip off: a direct label past the panel edge draws into the margin, where the inspector
+        # measures it and refit_chart grows the canvas, instead of being cut invisibly at the panel.
+        layers.append('coord_flip(clip = "off")' if horizontal else 'coord_cartesian(clip = "off")')
+        if has_facet:
+            # A panel heading wider than its panel is cut at the panel edge; wrap it to the panel instead.
+            labeller = f", labeller = label_wrap_gen(width = {spec['strip_wrap_chars']})" if spec["strip_wrap_chars"] else ""
+            layers.append(f'facet_wrap(~facet, ncol = {ncol}, scales = {_r_str(spec["facet_scales"])}{labeller})')
+        # Axis titles are declared by displayed position; under coord_flip the y aesthetic is drawn
+        # along the bottom, so the labs() keys swap.
+        shown = spec["axis_titles"]
+        titles = {"x": shown.get("y"), "y": shown.get("x")} if horizontal else shown
+        text = {k: spec[k] if page_text else "" for k in ("title", "subtitle", "caption")}
+        labs_args = [
+            f"title = {_r_str(text['title']) if text['title'] else 'NULL'}",
+            f"subtitle = {_r_str(text['subtitle']) if text['subtitle'] else 'NULL'}",
+            f"caption = {_r_str(text['caption']) if text['caption'] else 'NULL'}",
+            f"x = {_r_str(titles['x']) if titles.get('x') else 'NULL'}",
+            f"y = {_r_str(titles['y']) if titles.get('y') else 'NULL'}",
+            "colour = NULL",
+            "fill = NULL",
+        ]
+        layers.append("labs(\n      " + ",\n      ".join(labs_args) + "\n    )")
+        layers.append(f"theme_minimal(base_size = {fonts['axis']})")
+        return layers
+
+    def theme_call(entries: dict[str, str]) -> str:
+        return "theme(\n      " + ",\n      ".join(f"{key} = {value}" for key, value in entries.items()) + "\n    )"
+
+    if not spec["regions"]:
+        layers = plot_layers("plot_data", str(spec["facet_ncol"]), True) + [theme_call(theme)]
+        tail = [
+            _SCAFFOLD_BANNER,
+            "build_chart <- function() {",
+            "  " + " +\n    ".join(layers),
+            "}",
+        ]
+        return "\n".join(head), "\n".join(marks), "\n".join(tail)
+
+    # Regions: one native plot per panel group, each drawn from its own rows inside its own box,
+    # and one page frame around them. A compositor places chart_regions() at the returned boxes;
+    # build_chart() composes the same boxes here.
+    page_keys = ("plot.title.position", "plot.caption.position", "plot.title", "plot.subtitle", "plot.caption",
+                 "plot.background", "plot.margin")
+    page_theme = {k: theme[k] for k in page_keys}
+    region_theme = {k: v for k, v in theme.items() if k not in page_keys}
+    region_theme["plot.background"] = theme["plot.background"]
+    region_theme["plot.margin"] = "margin(top, 0, bottom, 0, unit = \"pt\")"
+    layers = plot_layers("d", "ncol", False) + [theme_call(region_theme)]
+    calls = [
+        f"    {_r_str(r['role'])} = region_plot(plot_data[plot_data$region == {_r_str(r['role'])}, , drop = FALSE], "
+        f"ncol = {r['facet_ncol']}, top = {_pt(r['margin_top'], dpi)}, bottom = {_pt(r['margin_bottom'], dpi)})"
+        for r in spec["regions"]
     ]
-    layers.append("labs(\n      " + ",\n      ".join(labs_args) + "\n    )")
-    layers.append(f"theme_minimal(base_size = {fonts['axis']})")
-    layers.append("theme(\n      " + ",\n      ".join(theme_lines) + "\n    )")
-
+    heights = ", ".join(str(r["height"]) for r in spec["regions"])
+    page_labs = ", ".join(
+        f"{k} = {_r_str(spec[k]) if spec[k] else 'NULL'}" for k in ("title", "subtitle", "caption")
+    )
     tail = [
         _SCAFFOLD_BANNER,
-        "build_chart <- function() {",
+        "region_plot <- function(d, ncol, top, bottom) {",
         "  " + " +\n    ".join(layers),
+        "}",
+        "chart_regions <- function() {",
+        "  list(\n" + ",\n".join(calls) + "\n  )",
+        "}",
+        "build_chart <- function() {",
+        f"  page <- patchwork::wrap_plots(chart_regions(), ncol = 1, heights = c({heights})) +",
+        f"    patchwork::plot_annotation({page_labs}, theme = {theme_call(page_theme)})",
+        "  patchwork::patchworkGrob(page)",
         "}",
     ]
     return "\n".join(head), "\n".join(marks), "\n".join(tail)
@@ -499,7 +673,7 @@ def _matplotlib_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
     width, height, dpi = spec["width_px"], spec["height_px"], spec["dpi"]
     reserved = spec["reserved_px"]
     horizontal = spec["orientation"] == "horizontal"
-    step = fmt["step"]
+    numeric = (["start", "end"] if spec["interval"] else ["value"]) + list(spec["label_formats"])
     head = [
         _SCAFFOLD_BANNER,
         "import csv",
@@ -522,12 +696,9 @@ def _matplotlib_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         f"ON_INK = {spec['on_ink']!r}",
         "",
         "",
-        "def fmt_value(value):",
-        '    """Format any value you print at the planned precision."""',
-        (f"    value = round(float(value) / {step!r}) * {step!r}" if step else "    value = float(value)"),
-        f"    return f\"{fmt['prefix']}{{value:,.{fmt['decimals']}f}}{fmt['suffix']}\"",
-        "",
-        "",
+        *_py_formatter("fmt_value", fmt, "Format any value you print at the planned precision."),
+        *[line for name, f in spec["label_formats"].items()
+          for line in _py_formatter(f"fmt_{name}", f, f"Format {name}: a label measure, in its own units.")],
         "def pos(row):",
         '    """The x position of a row: category index, date, or number."""',
         {"date": "    return date.fromisoformat(row['category'])",
@@ -539,7 +710,8 @@ def _matplotlib_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         f"    with open({spec['data_path']!r}, newline='', encoding='utf-8') as handle:",
         "        rows = list(csv.DictReader(handle))",
         "    for row in rows:",
-        "        row['value'] = float(row['value'])",
+        f"        for key in {numeric!r}:",
+        "            row[key] = float(row[key]) if row.get(key) not in ('', None) else None",
         "    return rows",
         "",
         "",
@@ -676,26 +848,56 @@ def scaffold_chart(
     background: str = "#FFFFFF",
     renderer: str = "ggplot2",
     source_name: str | None = None,
+    label_formats: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Write the chart source with every planned setting applied and one slot for the marks."""
     if renderer not in ("ggplot2", "matplotlib"):
         raise ValueError("renderer must be ggplot2 or matplotlib")
-    if x_kind not in _X_KINDS:
-        raise ValueError(f"x_kind must be one of {_X_KINDS}")
-    if identification not in _IDENTIFICATION:
-        raise ValueError(f"identification must be one of {_IDENTIFICATION}")
-    if value_encoding not in ("position", "colour"):
-        raise ValueError("value_encoding must be position or colour")
-    if not (public_copy or {}).get("title"):
-        raise ValueError("public_copy.title is required")
+    warnings: list[str] = []
+    # Routing scalars arrive as a model wrote them. Read them the way the routing block is read -
+    # a near-miss spelling resolves, an unknown word takes the default - and say so, so a stray
+    # word never turns the build off the scaffold.
+    planned = {"identification_strategy": identification, "x_kind": x_kind, "value_encoding": value_encoding,
+               "value_labels": value_labels, "zero_baseline": zero_baseline}
+    read = {key: handoff._coerce_for(key, raw) for key, raw in planned.items()}
+    for key, raw in planned.items():
+        token = str(raw).strip().strip("`'\"").lower().replace(" ", "_").replace("-", "_")
+        unread = (token not in handoff.ENUM_ROUTING_KEYS[key] if key in handoff.ENUM_ROUTING_KEYS
+                  else not re.search(r"\d", token) if key in handoff.INT_ROUTING_KEYS
+                  else handoff.coerce_bool(raw) is None)
+        if unread:
+            warnings.append(f"{key} {raw!r} is not a word the scaffold knows; read as {read[key]!r}")
+    identification, x_kind, value_encoding = read["identification_strategy"], read["x_kind"], read["value_encoding"]
+    value_labels, zero_baseline = int(read["value_labels"]), bool(read["zero_baseline"])
+    public_copy = dict(public_copy or {})
+    if not public_copy.get("title"):
+        warnings.append("public_copy has no title; the chart is drawn without one")
 
     destination = Path(output_dir).expanduser().resolve()
     destination.mkdir(parents=True, exist_ok=True)
-    columns, rows = _read_plot_data(Path(plot_data_path).expanduser().resolve())
-    if not {"category", "value"} <= set(columns):
-        raise ValueError("plot data must be the prepare_plot_data frame (category and value columns)")
-    warnings: list[str] = []
+    data_source = Path(plot_data_path).expanduser().resolve()
+    columns, rows = _read_plot_data(data_source)
+    interval = {"start", "end"} <= set(columns)
+    if "category" not in columns or not ("value" in columns or interval):
+        raise ValueError("plot data must be the prepare_plot_data frame (category, and value or start/end)")
+    roles_path = data_source.with_suffix(".json")
+    roles = json.loads(roles_path.read_text(encoding="utf-8")) if roles_path.is_file() else {}
+    label_units = {name: unit for name, unit in (roles.get("labels") or {}).items() if name in columns}
     layout = layout or {}
+    # Panel groups the layout set apart (an overview above its detail) are drawn as one native
+    # plot per region, each from its own rows, composed on one page under one frame.
+    regions = [dict(r) for r in layout.get("regions") or []]
+    region_of, region_warning = _region_membership(regions, _first_seen(rows, "category"))
+    if region_warning:
+        warnings.append(region_warning)
+    if region_of and renderer != "ggplot2":
+        warnings.append("panel-group regions are composed on ggplot2 only; matplotlib draws one grid")
+        region_of = {}
+    if region_of:
+        regions = [r for r in regions if r.get("role") in set(region_of.values())]
+        columns = columns + ["region"]
+        for row in rows:
+            row["region"] = region_of[row["category"]]
 
     # Type the x column. A time axis parsed to real dates gets the renderer's own breaks,
     # so a monthly series never draws one tick per month.
@@ -735,8 +937,6 @@ def scaffold_chart(
             caption=public_copy.get("caption", ""), width_px=width, height_px=height, dpi=dpi,
             font_pt=fonts,
         )
-    if layout.get("regions"):
-        warnings.append("layout has panel_groups regions; the scaffold draws one grid - compose regions by hand")
 
     facet_order = _first_seen(rows, "facet") if "facet" in columns else []
     per_panel = [sum(1 for r in rows if r.get("facet", "") == f) for f in (facet_order or [""])]
@@ -764,7 +964,9 @@ def scaffold_chart(
     # own expansion holds some of that, the rest is reserved in the margin before anything draws,
     # so the model never has to pull labels back over the marks to keep them on the canvas.
     fmt = _number_format(number_format)
-    shown = [_format_number(float(r["value"]), fmt) for r in rows if r.get("value") not in ("", None)]
+    geometry = ("start", "end") if interval else ("value",)
+    shown = [_format_number(float(r[k]), fmt) for r in rows for k in geometry if r.get(k) not in ("", None)]
+    label_fmts = _label_formats(rows, label_units, label_formats or {})
     value_chars = max((len(v) for v in shown), default=0)
     end_chars = 0
     if identification == "direct_labels" and series_order and not horizontal:
@@ -816,6 +1018,9 @@ def scaffold_chart(
         "caption": caption,
         "axis_titles": axis_titles,
         "background": background,
+        "interval": interval,
+        "label_formats": label_fmts,
+        "regions": [],
     }
     if facet_order and not layout.get("facet_ncol"):
         spec["facet_ncol"] = max(1, round(len(facet_order) ** 0.5))
@@ -823,6 +1028,14 @@ def scaffold_chart(
     spec["strip_wrap_chars"] = _strip_wrap_chars(
         facet_order, float(frame["plot_area"]["width"]) - extra, spec["facet_ncol"], fonts["axis"], dpi,
     ) if facet_order and frame.get("plot_area") else 0
+
+    if region_of:
+        spec["regions"] = _region_boxes(regions, frame, margin_px, width, height, facet_order, rows)
+        # Regions of one measure are read against each other, so they share the value range unless
+        # the layout freed the value scale: an overview bar is never drawn to its own full width.
+        points = [float(r[k]) for r in rows for k in geometry if r.get(k) not in ("", None)]
+        if points and spec["facet_scales"] in ("fixed", "free_x"):
+            spec["shared_limits"] = [min(points + [0.0]) if zero_baseline else min(points), max(points)]
 
     build = _ggplot_scaffold if renderer == "ggplot2" else _matplotlib_scaffold
     head, marks, tail = build(spec)
@@ -844,6 +1057,8 @@ def scaffold_chart(
                 "label_pt": fonts["label"],
                 "dimensions": {"width_px": width, "height_px": height, "dpi": dpi},
                 "background": background,
+                "regions": [{"role": r["role"], "width_px": r["width"], "height_px": r["height"]}
+                            for r in spec["regions"]],
             },
             indent=2,
         ),
@@ -857,6 +1072,9 @@ def scaffold_chart(
         f"right margin {margin_px['right']}px (room for end labels)",
         "axis titles " + (", ".join(f"{k}: {v}" for k, v in spec["axis_titles"].items() if v) or "none"),
     ]
+    decided += [f"label measure {name}: fmt_{name}() {_format_number(1234.5, f)}" for name, f in label_fmts.items()]
+    if spec["regions"]:
+        decided.append("regions " + ", ".join(f"{r['role']} {r['width']}x{r['height']}px" for r in spec["regions"]))
     # The frame as drawn: the end-label room narrows the plot area, so downstream placement and
     # the inspection contract read this, not the pre-scaffold reserve_frame result.
     drawn_frame = {**frame, "plot_margin_px": margin_px, "reserved_px": reserved_px}
@@ -870,22 +1088,16 @@ def scaffold_chart(
         "renderer": renderer,
         "dimensions": {"width_px": width, "height_px": height, "dpi": dpi},
         "value_axis_hidden": hide_value_axis,
+        # Each region is a native plot (chart_regions() in the source) for a compositor to place at
+        # its box under the page frame; build_chart() composes the same boxes into one image.
+        "regions": [
+            {"role": r["role"], "function": "chart_regions", "x": r["x"], "y": r["y"],
+             "width_px": r["width"], "height_px": r["height"], "categories": r["categories"]}
+            for r in spec["regions"]
+        ],
         "decided": decided,
-        "marks_brief": (
-            f"Write only the body of chart_marks between the markers in {source.name}. "
-            + ("Return list(...) of ggplot layers mapping x = category, y = value; use palette/ink, "
-               "fmt_value() for printed numbers and size = label_size for text. Print bar values with "
-               "bar_values(aes(x = category, y = value, label = fmt_value(value), fill = <the bars' fill>), "
-               "position = <the bars' own position>): it puts each value inside its bar or past the end, "
-               "in ink that reads there. Name lines at their ends with end_labels(aes(x = category, y = value, "
-               "label = series, colour = series), data = <each line's last row>): it spreads crowded names "
-               "apart with leaders. Other text keeps the position of the marks it labels."
-               if renderer == "ggplot2" else
-               "Draw on ax from rows with pos(row) and row['value']; use PALETTE/INK, fmt_value() and "
-               "fontsize=LABEL_PT.")
-            + (f" The value axis is hidden, so label at least {value_labels} marks with their values."
-               if hide_value_axis else "")
-        ),
+        "marks_brief": _marks_brief(source.name, renderer, interval, label_fmts, len(spec["regions"]),
+                                    value_labels if hide_value_axis else 0),
         "warnings": warnings,
     }
 
@@ -904,39 +1116,17 @@ if (requireNamespace("ragg", quietly = TRUE)) {
 }
 out <- list(error = NULL, non_layers = list(), geom_label = 0L, text_rows = 0L,
             mark_colours = list(), text_sizes = list(), unmapped = list(), wrong_mark = list(),
-            stack_order = FALSE, surfaces = list(), detached = list(), stretch = list(), value_span = NULL, mark_span = NULL)
+            stack_order = FALSE, surfaces = list(), detached = list(), stretch = list(), spans = list())
 as_hex <- function(x) tryCatch(grDevices::rgb(t(grDevices::col2rgb(x)), maxColorValue = 255), error = function(e) as.character(x))
 flat <- function(x) if (is.list(x) && !inherits(x, "gg")) do.call(c, lapply(x, flat)) else list(x)
 is_text <- function(layer) inherits(layer$geom, "GeomText") || inherits(layer$geom, "GeomLabel") ||
   grepl("Text|Label", class(layer$geom)[1])
 num <- function(v, fallback) { v <- suppressWarnings(as.numeric(v)); if (!length(v) || !is.finite(v[1])) fallback else v[1] }
-tryCatch({
-  source(args[[1]], local = .GlobalEnv)
-  for (e in flat(chart_marks(plot_data))) {
-    if (!inherits(e, "LayerInstance")) {
-      out$non_layers[[length(out$non_layers) + 1]] <- class(e)[1]
-      next
-    }
-    if (inherits(e$geom, "GeomLabel")) out$geom_label <- out$geom_label + 1L
-    if (is_text(e)) {
-      if (!is.null(e$aes_params$size)) out$text_sizes[[length(out$text_sizes) + 1]] <- e$aes_params$size * .pt
-    } else {
-      for (a in c("colour", "fill")) if (!is.null(e$aes_params[[a]]) && !is.na(e$aes_params[[a]][1]))
-        out$mark_colours[[length(out$mark_colours) + 1]] <- as_hex(e$aes_params[[a]][1])
-    }
-  }
-  built <- build_chart()
-  plot <- if (inherits(built, "ggplot")) built else built$plot
-  # Tag every layer row with the observation it draws, as a numeric aesthetic (numeric, so it
-  # never changes grouping), so a label and a bar are matched by identity, not by the number printed.
-  keys <- intersect(c("category", "series", "facet"), names(plot_data))
-  key_of <- function(frame) do.call(paste, c(lapply(keys, function(k) as.character(frame[[k]])), sep = "\r"))
-  obs_keys <- key_of(plot_data)
-  .dvz_obs <- function(...) match(do.call(paste, c(lapply(list(...), as.character), sep = "\r")), obs_keys)
+check_plot <- function(out, plot, width_px, height_px) {
   for (layer in plot$layers) {
     data <- if (is.data.frame(layer$data)) layer$data else if (is.function(layer$data)) {
-      tryCatch(layer$data(plot_data), error = function(e) NULL)
-    } else plot_data
+      tryCatch(layer$data(plot$data), error = function(e) NULL)
+    } else plot$data
     if (is.null(data) || !all(keys %in% names(data))) next
     mapping <- if (is.null(layer$mapping)) aes() else layer$mapping
     mapping[["dvzobs"]] <- rlang::new_quosure(as.call(c(quote(.dvz_obs), lapply(keys, as.name))), environment())
@@ -947,12 +1137,14 @@ tryCatch({
   for (i in seq_along(plot$layers)) if (is_text(plot$layers[[i]])) out$text_rows <- out$text_rows + nrow(b$data[[i]])
   # How far the marks travel along the value axis (y before any coord_flip), against the data's
   # range, both in the value scale's own space (a log axis compares logs with logs).
-  if (is.numeric(plot_data$value)) {
+  span <- list(value = NULL, mark = NULL)
+  if (has_geom) {
     scale_y <- b$layout$panel_scales_y[[1]]
     trans <- tryCatch(scale_y$get_transformation(), error = function(e) NULL)
-    values <- if (is.null(trans)) plot_data$value else suppressWarnings(trans$transform(plot_data$value))
+    raw <- geom_values(plot$data)
+    values <- if (is.null(trans)) raw else suppressWarnings(trans$transform(raw))
     values <- values[is.finite(values)]
-    if (length(values)) out$value_span <- diff(range(values))
+    if (length(values)) span$value <- diff(range(values))
   }
   ys <- unlist(lapply(seq_along(plot$layers), function(i) {
     d <- b$data[[i]]
@@ -960,13 +1152,14 @@ tryCatch({
     unlist(lapply(intersect(c("y", "ymin", "ymax", "yend"), names(d)), function(k) as.numeric(d[[k]])))
   }))
   ys <- ys[is.finite(ys)]
-  if (length(ys)) out$mark_span <- diff(range(ys))
+  if (length(ys)) span$mark <- diff(range(ys))
+  out$spans[[length(out$spans) + 1]] <- span
   # A mapped colour whose values the palette does not name falls to the scale's NA grey.
   named <- names(palette)
   if (!is.null(named)) for (layer in plot$layers) for (a in c("colour", "fill")) {
     m <- layer$mapping[[a]]
     if (is.null(m)) next
-    data <- if (is.data.frame(layer$data)) layer$data else plot_data
+    data <- if (is.data.frame(layer$data)) layer$data else plot$data
     vals <- tryCatch(rlang::eval_tidy(m, data = data), error = function(e) NULL)
     if (!inherits(vals, "AsIs") && (is.character(vals) || is.factor(vals)) && !all(as.character(vals) %in% named))
       out$unmapped[[length(out$unmapped) + 1]] <- rlang::as_label(m)
@@ -1037,8 +1230,8 @@ tryCatch({
       obs <- if ("dvzobs" %in% names(d)) d$dvzobs[r] else NA
       # A value mark is one whose length along the value axis is its own observation's value;
       # a band or background tile drawn behind the data is not.
-      value_mark <- !is.na(obs) && is.numeric(plot_data$value) &&
-        isTRUE(abs(abs(d$ymax[r] - d$ymin[r]) - abs(plot_data$value[obs])) <= 1e-6 * max(1, abs(plot_data$value[obs])))
+      value_mark <- !is.na(obs) && has_geom &&
+        isTRUE(abs(abs(d$ymax[r] - d$ymin[r]) - obs_len(obs)) <= 1e-6 * max(1, obs_len(obs)))
       rects[[length(rects) + 1]] <- list(panel = as.character(d$PANEL[r]), x0 = min(a$x), x1 = max(a$x),
         y0 = min(a$y), y1 = max(a$y), fill = as_hex(d$fill[r]), alpha = alpha, obs = obs,
         value_mark = value_mark, layer = i)
@@ -1063,7 +1256,7 @@ tryCatch({
   }
   # A layer that is not a data mark (a shaded band, a backdrop tile) must not set the value
   # range: finite extents far past what the data marks reach stretch the axis and flatten them.
-  if (is.numeric(plot_data$value)) {
+  if (has_geom) {
     data_y <- c(); other <- list()
     for (i in seq_along(plot$layers)) {
       d <- b$data[[i]]
@@ -1074,8 +1267,9 @@ tryCatch({
         ys_r <- ys_r[is.finite(ys_r)]
         if (!length(ys_r)) next
         obs <- if ("dvzobs" %in% names(d)) d$dvzobs[r] else NA
-        own <- !is.na(obs) && (any(abs(ys_r - plot_data$value[obs]) <= 1e-9 * max(1, abs(plot_data$value[obs]))) ||
-          (all(c("ymin", "ymax") %in% names(d)) && isTRUE(abs(abs(d$ymax[r] - d$ymin[r]) - abs(plot_data$value[obs])) <= 1e-6 * max(1, abs(plot_data$value[obs])))))
+        at <- obs_at(obs)
+        own <- !is.na(obs) && (any(abs(outer(ys_r, at, "-")) <= 1e-9 * max(1, abs(at), na.rm = TRUE), na.rm = TRUE) ||
+          (all(c("ymin", "ymax") %in% names(d)) && isTRUE(abs(abs(d$ymax[r] - d$ymin[r]) - obs_len(obs)) <= 1e-6 * max(1, obs_len(obs)))))
         if (own) data_y <- c(data_y, ys_r) else other[[class(plot$layers[[i]]$geom)[1]]] <- c(other[[class(plot$layers[[i]]$geom)[1]]], ys_r)
       }
     }
@@ -1192,6 +1386,46 @@ tryCatch({
       }
     }
   }
+  out
+}
+tryCatch({
+  source(args[[1]], local = .GlobalEnv)
+  for (e in flat(chart_marks(plot_data))) {
+    if (!inherits(e, "LayerInstance")) {
+      out$non_layers[[length(out$non_layers) + 1]] <- class(e)[1]
+      next
+    }
+    if (inherits(e$geom, "GeomLabel")) out$geom_label <- out$geom_label + 1L
+    if (is_text(e)) {
+      if (!is.null(e$aes_params$size)) out$text_sizes[[length(out$text_sizes) + 1]] <- e$aes_params$size * .pt
+    } else {
+      for (a in c("colour", "fill")) if (!is.null(e$aes_params[[a]]) && !is.na(e$aes_params[[a]][1]))
+        out$mark_colours[[length(out$mark_colours) + 1]] <- as_hex(e$aes_params[[a]][1])
+    }
+  }
+  # Tag every layer row with the observation it draws, as a numeric aesthetic (numeric, so it
+  # never changes grouping), so a label and a bar are matched by identity, not by the number printed.
+  keys <- intersect(c("category", "series", "facet"), names(plot_data))
+  key_of <- function(frame) do.call(paste, c(lapply(keys, function(k) as.character(frame[[k]])), sep = "\r"))
+  obs_keys <- key_of(plot_data)
+  .dvz_obs <- function(...) match(do.call(paste, c(lapply(list(...), as.character), sep = "\r")), obs_keys)
+  # An observation's geometry: its value (a mark from zero), or its two ends (an interval).
+  interval <- all(c("start", "end") %in% names(plot_data))
+  has_geom <- interval || is.numeric(plot_data$value)
+  obs_at <- function(obs) if (interval) c(plot_data$start[obs], plot_data$end[obs]) else plot_data$value[obs]
+  obs_len <- function(obs) if (interval) abs(plot_data$end[obs] - plot_data$start[obs]) else abs(plot_data$value[obs])
+  geom_values <- function(d) if (interval) c(d$start, d$end) else d$value
+  # Regions are native plots checked each at its own size; a single chart is one region.
+  plots <- if (exists("chart_regions", mode = "function")) chart_regions() else {
+    built <- build_chart()
+    list(if (inherits(built, "ggplot")) built else built$plot)
+  }
+  sizes <- setup$regions
+  for (k in seq_along(plots)) {
+    w <- if (length(sizes)) as.numeric(sizes$width_px[k]) else width_px
+    h <- if (length(sizes)) as.numeric(sizes$height_px[k]) else height_px
+    out <- check_plot(out, plots[[k]], w, h)
+  }
 }, error = function(e) out$error <<- conditionMessage(e))
 jsonlite::write_json(out, args[[2]], auto_unbox = TRUE, null = "null")
 '''
@@ -1204,7 +1438,7 @@ def _check_ggplot(source: Path, record: dict[str, Any]) -> dict[str, Any]:
     # Geometry is measured at the delivery size; a sidecar written before it was recorded
     # falls back to the chat profile.
     dims = record.get("dimensions") or {k: PROFILES["chat"][k] for k in ("width_px", "height_px", "dpi")}
-    setup = {**dims, "background": record.get("background") or "#FFFFFF"}
+    setup = {**dims, "background": record.get("background") or "#FFFFFF", "regions": record.get("regions") or []}
     with tempfile.TemporaryDirectory() as tmp:
         script = Path(tmp) / "check.R"
         result = Path(tmp) / "check.json"
@@ -1237,9 +1471,10 @@ def _check_matplotlib(source: Path, record: dict[str, Any]) -> dict[str, Any]:
     except Exception as exc:  # the model's code is what failed; report it, don't raise
         out["error"] = f"{type(exc).__name__}: {exc}"
         return out
-    values = [float(row["value"]) for row in getattr(module, "PLOT_DATA", []) if row.get("value") is not None]
-    if values:
-        out["value_span"] = max(values) - min(values)
+    values = [float(row[k]) for row in getattr(module, "PLOT_DATA", []) for k in ("value", "start", "end")
+              if row.get(k) is not None]
+    span: dict[str, Any] = {"value": max(values) - min(values) if values else None, "mark": None}
+    out["spans"] = [span]
     horizontal = record.get("orientation") == "horizontal"
     along: list[float] = []
     try:
@@ -1248,7 +1483,7 @@ def _check_matplotlib(source: Path, record: dict[str, Any]) -> dict[str, Any]:
                 along += _mpl_value_coords(ax, horizontal, Line2D, Rectangle, Collection)
         finite = [v for v in along if math.isfinite(v)]
         if finite:
-            out["mark_span"] = max(finite) - min(finite)
+            span["mark"] = max(finite) - min(finite)
         for ax in figure.axes:
             if not ax.get_visible():
                 continue
@@ -1349,13 +1584,23 @@ def check_chart(source_path: str) -> dict[str, Any]:
     """Restore edited scaffold regions and check the model's marks slot on the built plot."""
     source = Path(source_path).expanduser().resolve()
     sidecar = source.with_name(source.name + ".scaffold.json")
-    if not sidecar.is_file():
-        raise ValueError(f"No scaffold record next to {source.name}; write the source with scaffold_chart")
-    record = json.loads(sidecar.read_text(encoding="utf-8"))
     deviations: list[dict[str, str]] = []
 
     def deviate(code: str, message: str, severity: str = "major") -> None:
         deviations.append({"code": code, "severity": severity, "message": message})
+
+    if not sidecar.is_file():
+        # A hand-written chart skipped the settings the plan resolved; the fix is to start over
+        # from the scaffold, not to patch this file.
+        deviate(
+            "UNSCAFFOLDED_BUILD",
+            f"{source.name} was not written by scaffold_chart, so the planned fonts, scales, palette and "
+            "margins are not applied. Run scaffold_chart and move only the geoms and labels into its marks slot.",
+            "fatal",
+        )
+        return {"ok": False, "restored_scaffold": False, "deviations": deviations,
+                "fix_list": _fix_list(deviations)}
+    record = json.loads(sidecar.read_text(encoding="utf-8"))
 
     parts = _source_parts(source.read_text(encoding="utf-8"))
     restored = False
@@ -1471,13 +1716,13 @@ def check_chart(source_path: str) -> dict[str, Any]:
             "data. Give a band or backdrop ymin = -Inf, ymax = Inf (geom_rect, annotate('rect')): it fills "
             "the panel without setting the range.",
         )
-    needed, reached = found.get("value_span"), found.get("mark_span")
-    if (
-        record.get("value_encoding") != "colour"
-        and not found.get("error")
-        and needed
-        and (reached is None or reached < 0.5 * needed)
-    ):
+    # Each region (or the one chart) must spread its marks the way its own data spreads.
+    flat = [found.get("spans")] if isinstance(found.get("spans"), dict) else found.get("spans") or []
+    flat_marks = any(
+        span.get("value") and (span.get("mark") is None or span["mark"] < 0.5 * span["value"])
+        for span in flat if isinstance(span, dict)
+    )
+    if record.get("value_encoding") != "colour" and not found.get("error") and flat_marks:
         deviate(
             "VALUE_NOT_ON_POSITION",
             "The marks do not spread along the value axis the way the data does, so the chart hides the "
@@ -1497,6 +1742,47 @@ def check_chart(source_path: str) -> dict[str, Any]:
         "deviations": deviations,
         "fix_list": _fix_list(deviations),
     }
+
+
+def _marks_brief(name: str, renderer: str, interval: bool, label_fmts: dict[str, Any], n_regions: int,
+                 promised: int) -> str:
+    """What the build model reads before it writes the slot: the frame's columns and the helpers."""
+    parts = [f"Write only the body of chart_marks between the markers in {name}."]
+    if n_regions:
+        parts.append(f"chart_marks(d) draws each of the {n_regions} regions from that region's rows.")
+    if renderer != "ggplot2":
+        parts.append("Draw on ax from rows with pos(row) and "
+                     + ("row['start'] to row['end']" if interval else "row['value']")
+                     + "; use PALETTE/INK, fmt_value() and fontsize=LABEL_PT.")
+    elif interval:
+        parts.append(
+            "Return list(...) of ggplot layers. Each mark spans its row's start to end: bars or segments as "
+            "geom_tile(aes(x = category, y = (start + end) / 2, height = end - start, fill = <fill>), width = 0.6), "
+            "ranges as geom_segment(aes(x = category, xend = category, y = start, yend = end)). Use palette/ink, "
+            "fmt_value() for printed numbers and size = label_size for text. Print a bar's value with "
+            "bar_values(aes(x = category, y = end, ymin = start, ymax = end, label = <text>, fill = <the bars' fill>), "
+            "width = <the bars' width>): it puts each value inside its segment or past the end, in ink that reads there."
+        )
+    else:
+        parts.append(
+            "Return list(...) of ggplot layers mapping x = category, y = value; use palette/ink, fmt_value() for "
+            "printed numbers and size = label_size for text. Print bar values with bar_values(aes(x = category, "
+            "y = value, label = fmt_value(value), fill = <the bars' fill>), position = <the bars' own position>): it "
+            "puts each value inside its bar or past the end, in ink that reads there. Name lines at their ends with "
+            "end_labels(aes(x = category, y = value, label = series, colour = series), data = <each line's last row>): "
+            "it spreads crowded names apart with leaders. Other text keeps the position of the marks it labels."
+        )
+    for label in label_fmts:
+        parts.append(
+            f"The {label} column is a label measure: print it with fmt_{label}({label}) in its own units, never as a "
+            "position, colour or series"
+            + (f" - on bars through bar_values(): as its label = fmt_{label}({label}) when it is the only number the "
+               f"bar prints, or as note = fmt_{label}({label}) beside the bar's value, which prints it past the bar's "
+               "end after the value; elsewhere as text beside its mark." if renderer == "ggplot2" else ".")
+        )
+    if promised:
+        parts.append(f"The value axis is hidden, so label at least {promised} marks with their values.")
+    return " ".join(parts)
 
 
 def _strip_wrap_chars(names: list[str], plot_w: float, ncol: int, font_pt: float, dpi: float) -> int:

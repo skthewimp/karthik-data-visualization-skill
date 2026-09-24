@@ -955,19 +955,32 @@ def inspect_rendered_chart(
         # Bars: colour restates the category axis when every bar carries its own fill and the
         # axis already ticks each one by name. A focal-plus-grey highlight (fewer fills than
         # bars) is meaningful emphasis and stays silent. Tick labels are not tagged per-axes, so
-        # count the category (non-numeric) ticks across the chart.
-        category_tick_count = sum(
-            el.get("role") == "tick_label" and not _looks_numeric(el.get("text", ""))
-            for el in all_elements
-        )
+        # count the category (non-numeric) ticks that sit beside these bars - left of them or
+        # below them, level with their span - so two series sharing one category in a panel of
+        # their own are not read as named by every other panel's ticks.
+        category_ticks = [
+            el["bbox"] for el in all_elements
+            if el.get("role") == "tick_label" and el.get("bbox") and not _looks_numeric(el.get("text", ""))
+        ]
         bar_colour_redundant_axes: list[str] = []
         for axes_id in {m.get("axes_id") for m in bar_marks if m.get("axes_id")}:
             axes_bars = [m for m in bar_marks if m.get("axes_id") == axes_id]
             fills = {m.get("fill") for m in axes_bars}
+            boxes = [m["bbox"] for m in axes_bars if m.get("bbox")]
+            if boxes:
+                x0, x1 = min(b["x"] for b in boxes), max(b["x"] + b["width"] for b in boxes)
+                y0, y1 = min(b["y"] for b in boxes), max(b["y"] + b["height"] for b in boxes)
+                beside = sum(
+                    (y0 <= t["y"] + t["height"] / 2 <= y1 and t["x"] + t["width"] <= x0 + 1)
+                    or (x0 <= t["x"] + t["width"] / 2 <= x1 and t["y"] >= y1 - 1)
+                    for t in category_ticks
+                )
+            else:
+                beside = len(category_ticks)
             if (
                 len(fills) >= 2
                 and len(fills) == len(axes_bars)
-                and category_tick_count >= len(fills)
+                and beside >= len(fills)
             ):
                 bar_colour_redundant_axes.append(axes_id)
 

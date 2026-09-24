@@ -22,6 +22,7 @@ EXPECTED_TOOLS = {
     "validate_scale",
     "extract_palette_from_image",
     "prepare_plot_data",
+    "default_plot_data_map",
     "recommend_precision",
     "read_marks_from_anchors",
     "recommend_scale_transform",

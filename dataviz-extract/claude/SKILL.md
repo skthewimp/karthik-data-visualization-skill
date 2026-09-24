@@ -39,7 +39,13 @@ Produce, explicitly:
 
 ## Output shape
 
-A tidy long table is preferred (one row per period × category), or a wide period-by-category grid. Include a units line. For example:
+A tidy long table is preferred (one row per period × category), or a wide period-by-category grid. Include a units line. One row is one observation - one mark:
+
+- A number printed beside a mark but not drawn by it (a growth rate on a revenue bar, a share printed on a count) is its own column on that mark's row, with its unit in the column name. Never give it rows of its own: a "YouTube Ads growth" row is a second observation the chart does not have, and it lands on the value scale as if it were revenue.
+- A mark drawn between two numbers (a stacked or floating segment, a range, a dumbbell) carries both ends as columns, as read. Carry a printed value beside them if the chart prints one.
+- A visible mark is read from its geometry like any other, printed label or not. A cell with nothing to read stays empty: never compute it from its neighbours (the residual of a 100% bar) and carry it as if read.
+
+For example:
 
 ```markdown
 Units: weekly requests (millions)

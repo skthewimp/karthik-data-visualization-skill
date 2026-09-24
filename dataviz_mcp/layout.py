@@ -376,7 +376,8 @@ def _size_panel_groups(
                 grp_row_floor = max(grp_row_floor, line_px(FONT_PT["axis"], dpi) * (grp_lines + 0.6))
         left_band = axis_band + (FREE_AXIS_BAND if (n > 1 and y_scales_free) else 0.0) + y_extra
         base.append({
-            "role": str(g.get("role", "")), "n": n, "gy": gy, "slot": slot,
+            "role": str(g.get("role", "")), "categories": [str(c) for c in g.get("categories") or []],
+            "n": n, "gy": gy, "slot": slot,
             "emphasis": emphasis, "left_band": left_band, "row_floor": grp_row_floor,
             "panel_plot_w": panel_plot_w,
         })
@@ -474,6 +475,7 @@ def _size_panel_groups(
     for s in sized:
         regions.append({
             "role": s["role"],
+            "categories": s["categories"],
             "n_panels": s["n"],
             "facet_ncol": s["ncol"],
             "facet_nrow": s["nrow"],
@@ -543,12 +545,13 @@ def recommend_layout(
         longest_x_label_chars: longest x tick label, for the rotate check.
         delivery_profile: chat / slide / document - base size, dpi, and the growth ceiling.
         panel_groups: optional heterogeneous layout. A list of groups, each
-            ``{role, n_panels, emphasis?, filled_marks?, x_slots?, y_slots?}``, sized as its
+            ``{role, n_panels, categories?, emphasis?, filled_marks?, x_slots?, y_slots?}``, sized as its
             own sub-grid and stacked as a full-width band. A band's height follows what it
             has to show (its rows, or its panel aspect), so an overview with one bar does not
             get the same height as a detail panel with many; ``emphasis`` (>1) scales a band
             up to set it apart. ``role`` is a free-text label echoed back per band, never
-            branched on. The column count is chosen here, not declared. When given,
+            branched on; ``categories`` (the category values the group draws) is echoed back
+            too, so ``scaffold_chart`` draws each band from its own rows. The column count is chosen here, not declared. When given,
             ``n_panels`` and the top-level facet grid describe the largest group and the
             per-band structure is returned as ``regions``.
         target_aspect: width:height the whole image should land near - the source image's

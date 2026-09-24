@@ -288,3 +288,68 @@ def test_skips_non_numeric_but_preserves_positions():
     entry = result["per_series"][0]
     assert entry["total"] == 3  # three finite values
     assert all(isinstance(i, int) for i in entry["label_indices"])
+
+
+# ---- interval and label-measure roles ----
+
+import json
+
+from dataviz_mcp.plot_data import default_plot_data_map
+
+SHARES = ["panel", "part", "share", "from", "to", "printed"]
+SHARE_ROWS = [
+    ["tokens", "reads", 95, 0, 95, "95.0%"],
+    ["tokens", "writes", 4.3, 95, 99.3, ""],
+    ["dollars", "reads", 50.2, 0, 50.2, "50.2%"],
+    ["dollars", "input", None, 99.2, None, ""],
+]
+
+
+def test_interval_ends_are_emitted_as_read_and_a_missing_end_stays_blank(tmp_path):
+    result = prepare_plot_data(
+        str(tmp_path), x="panel", series="part", start="from", end="to", columns=SHARES, rows=SHARE_ROWS,
+    )
+    frame = _read(result["plot_data_path"])
+    assert result["geometry"] == "interval"
+    assert "value" not in frame[0] and {"start", "end"} <= set(frame[0])
+    input_row = [r for r in frame if r["series"] == "input"][0]
+    # Nothing derived: the unread end is not filled from 100 - 99.2 or anything else.
+    assert input_row["start"] == "99.2" and input_row["end"] == ""
+    assert any("missing an end" in w for w in result["warnings"])
+
+
+def test_label_measures_ride_on_their_row_in_their_own_units(tmp_path):
+    result = prepare_plot_data(
+        str(tmp_path), x="panel", value="share", series="part", columns=SHARES, rows=SHARE_ROWS[:3],
+        labels={"printed share": {"column": "printed", "suffix": "%"}},
+    )
+    frame = _read(result["plot_data_path"])
+    assert [r["printed_share"] for r in frame] == ["95.0", "", "50.2"]
+    # A label measure never becomes a series.
+    assert result["series_order"] == ["reads", "writes"]
+    roles = json.loads(Path(result["roles_path"]).read_text())
+    assert roles["labels"]["printed_share"]["suffix"] == "%"
+
+
+def test_a_label_measure_cannot_take_a_canonical_name(tmp_path):
+    with pytest.raises(ValueError, match="reserved"):
+        prepare_plot_data(str(tmp_path), x="panel", value="share", columns=SHARES, rows=SHARE_ROWS[:1],
+                          labels={"value": "printed"})
+
+
+def test_intervals_are_never_aggregated(tmp_path):
+    with pytest.raises(ValueError, match="not aggregated"):
+        prepare_plot_data(str(tmp_path), x="panel", start="from", end="to", columns=SHARES,
+                          rows=SHARE_ROWS[:2], aggregate="sum")
+
+
+def test_default_map_keeps_numbers_off_the_series():
+    mapping = default_plot_data_map(SHARES, SHARE_ROWS)
+    assert mapping["x"] == "panel" and mapping["series"] == "part" and mapping["value"] == "share"
+    # Printed "95.0%" is a number; it and the ends ride along as label measures, never as keys.
+    assert set(mapping["labels"].values()) == {"from", "to", "printed"}
+
+
+def test_default_map_reads_a_quarter_label_as_text():
+    mapping = default_plot_data_map(["period", "revenue"], [["Q1'24", "$70,398"], ["Q1'25", "$77,264"]])
+    assert mapping == {"x": "period", "value": "revenue"}

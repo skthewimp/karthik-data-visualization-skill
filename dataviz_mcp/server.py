@@ -23,7 +23,7 @@ from .palette import (
     validate_scale as validate_scale_core,
 )
 from .mark_read import read_marks_from_anchors as read_marks_from_anchors_core
-from .plot_data import prepare_plot_data as prepare_plot_data_core
+from .plot_data import default_plot_data_map as default_plot_data_map_core, prepare_plot_data as prepare_plot_data_core
 from .precision import recommend_precision as recommend_precision_core
 from .scale_transform import recommend_scale_transform as recommend_scale_transform_core
 from .refit import refit_chart as refit_core
@@ -297,7 +297,7 @@ def create_server() -> Any:
     async def prepare_plot_data(
         output_dir: str,
         x: str,
-        value: str | list[str],
+        value: str | list[str] | None = None,
         dataset_path: str | None = None,
         columns: list[str] | None = None,
         rows: list[list[Any]] | None = None,
@@ -306,6 +306,10 @@ def create_server() -> Any:
         category_order: list[str] | None = None,
         series_order: list[str] | None = None,
         aggregate: str | None = None,
+        start: str | None = None,
+        end: str | None = None,
+        labels: dict[str, Any] | None = None,
+        approximate: str | None = None,
     ) -> dict[str, Any]:
         """Reshape the source into a tidy plotting frame so the builder reshapes nothing.
 
@@ -323,6 +327,14 @@ def create_server() -> Any:
         last); a duplicate with none is an error, not a silent pick. Decided at ``select`` (the
         role map), applied at ``build`` by loading the returned file - the fourth mechanical
         resolution beside recommend_colours / recommend_precision / reserve_frame.
+
+        A mark drawn between two numbers (a stacked or floating segment, a range) maps ``start``
+        and ``end`` instead of ``value``; both are emitted as read and a missing end stays blank.
+        Numbers printed beside a mark but never drawn go in ``labels`` ({name: column}, or {name:
+        {column, prefix, suffix, signed}}): each becomes its own column on the observation's row,
+        formatted in its own units by the scaffold, never a series and never on the value scale.
+        ``approximate`` names a column flagging estimated observations. The roles are written
+        beside the frame as ``plot-data.json`` for ``scaffold_chart``.
         """
         return prepare_plot_data_core(
             output_dir,
@@ -336,7 +348,23 @@ def create_server() -> Any:
             category_order,
             series_order,
             aggregate,
+            start,
+            end,
+            labels,
+            approximate,
         )
+
+    @server.tool()
+    async def default_plot_data_map(columns: list[str], rows: list[list[Any]]) -> dict[str, Any]:
+        """A prepare_plot_data role map read off the table itself, for when the plan gave none.
+
+        Deterministic: columns whose filled cells are mostly bare numbers are measures, the rest
+        keys. The first key is the category, the next the series, the next the facet; the first
+        measure is the value and every other measure rides along as a label measure. Returns the
+        keyword arguments for prepare_plot_data. The plan's own map is always better - this keeps
+        a build on the scaffolded path when the plan's map is missing or unusable.
+        """
+        return default_plot_data_map_core(columns, rows)
 
     @server.tool()
     async def recommend_precision(
@@ -618,14 +646,15 @@ def create_server() -> Any:
         colours: Any = None,
         number_format: dict[str, Any] | None = None,
         identification: str = "direct_labels",
-        value_labels: int = 0,
+        value_labels: int | str = 0,
         x_kind: str = "discrete",
         orientation: str | None = None,
-        zero_baseline: bool = False,
+        zero_baseline: bool | str = False,
         value_encoding: str = "position",
         background: str = "#FFFFFF",
         renderer: str = "ggplot2",
         source_name: str | None = None,
+        label_formats: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Write the chart source from the plan, leaving one slot for the model's marks.
 
@@ -648,11 +677,22 @@ def create_server() -> Any:
         the render, ``decided`` (what was applied, for ``recommendations_used``), a
         ``marks_brief`` for the build model and ``warnings``. Run ``check_chart`` after the
         model writes the slot.
+
+        Routing scalars are read leniently, as the routing block is: a near-miss spelling resolves
+        and an unknown word takes the default with a warning, so a stray word never stops the
+        scaffold. An interval frame (``start``/``end``) is drawn mark by mark between its ends.
+        Each label measure in the frame gets its own formatter, ``fmt_<name>()``, from
+        ``label_formats`` ({name: number format}) or from its own values by the spread rule, in
+        the units prepare_plot_data recorded. When ``layout`` carries ``regions`` whose panel groups
+        name their ``categories``, the source draws one native ggplot per region -
+        ``chart_regions()`` - each from its own rows, sharing the value range unless the facet
+        scales are free; ``regions`` returns each one's box on the page under the one frame, for
+        a compositor, and ``build_chart()`` composes the same boxes into one image.
         """
         return scaffold_chart_core(
             output_dir, plot_data_path, public_copy, layout, frame, colours, number_format,
             identification, value_labels, x_kind, orientation, zero_baseline, value_encoding,
-            background, renderer, source_name,
+            background, renderer, source_name, label_formats,
         )
 
     @server.tool()
@@ -665,7 +705,9 @@ def create_server() -> Any:
         a non-layer returned from the slot (scale, coord, facet, labs, theme), ``geom_label``,
         a data-mark colour outside the resolved palette (neutral greys are allowed), text
         below the planned label size, and fewer drawn labels than ``value_labels`` promised
-        when the value axis was dropped. Returns ``ok``, ``restored_scaffold``, ``deviations``
+        when the value axis was dropped. A page of regions is checked region by region, each at
+        its own size. A source with no scaffold record returns ``UNSCAFFOLDED_BUILD``: re-scaffold
+        and move the marks into the slot. Returns ``ok``, ``restored_scaffold``, ``deviations``
         ({code, severity, message}) and ``fix_list``, a numbered list the correcting model
         reads. ``ok`` with a clean inspection means no model correction is needed.
         """

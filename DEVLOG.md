@@ -1,5 +1,59 @@
 # Devlog
 
+## 2026-09-24 - Why two canonical cases never reached the scaffold
+
+### User report
+
+- "scaffold is not being used by the harness in all cases, and that's resulting in both delays
+  and misplaced labels. what can be done?" Then: check the latest integrated transcript, split
+  the fixes between this repo and the harness, and "fix all the stuff that you can fix here",
+  with the harness model's own recommendations: carry label-only measures through preparation
+  with their own units, add composable scaffold regions returned as native plots, and add
+  interval roles without manufacturing segment values.
+
+### What I found
+
+- The 24 Sep run scaffolded 01, 04 and 08 and not 02 or 06 (03 and 05 were tables). In both
+  misses select wrote prose into the plot-data role map ("Not applicable: ... Build should use
+  the unchanged canonical table"), so the harness had no frame, never called the scaffold, and
+  fell back to the full hand-built contract: five build calls instead of two, and the run's
+  worst label defects (02: collisions and a stray legend; 06: a growth label detached from its
+  bar).
+- Both declines were real gaps, not model laziness. 02's recovered table holds each segment as
+  start/end with one value missing; the frame only knew a single value. 06's table puts growth
+  rates in rows of their own, in percent, beside revenue rows in dollars, and the plan wanted an
+  overview band above a detail band, which the scaffold only warned about.
+
+### What changed
+
+- `prepare_plot_data`: `start`/`end` interval roles (a missing end stays blank - the harness
+  model was right that deriving the dollar residual would be manufacturing a reading), `labels`
+  for printed-only measures with their own units, `approximate`, a `plot-data.json` roles
+  sidecar. New `default_plot_data_map` for a harness whose plan gave no usable map.
+- `scaffold_chart`: interval frames; `fmt_<name>()` per label measure; `bar_values()` takes
+  `ymin`/`ymax` and a `note` that prints past the bar's end after the value (the first manual
+  06 render put `-2%` on top of `$7,256`); regions as `chart_regions()` native plots with page
+  boxes, a patchwork `build_chart()`, and a shared value range (the first region render drew the
+  $77B total bar as long as the $51B Search bar); lenient routing words; no-title warning.
+- `check_chart`: per-region checks, interval-aware value and attachment tests,
+  `UNSCAFFOLDED_BUILD` instead of an exception.
+- Inspection: `REDUNDANT_COLOUR` fired on the total region (two periods in one category) because
+  it counted every category tick on the page. It now counts the ticks beside that panel's bars.
+- Select contract, extract skill, builder skill and docs: every chart has a role map; one row
+  per observation; printed-only numbers are columns; gaps stay gaps.
+
+### Validation
+
+- Full pytest, `./sync.sh --no-pull --validate-only`, `git diff --check`.
+- Weak-model build runs on the rebuilt 02 and 06 scaffolds, sonnet and haiku, each writing only
+  the marks slot from the `marks_brief`: all four passed `check_chart` on the first attempt and
+  rendered with no mark-level defects; I checked each PNG. Sonnet flagged one ambiguity - a
+  label measure that is a bar's only number - so the brief now says `label =` in that case and
+  `note =` beside a value.
+- Remaining inspection noise on these charts is pre-existing: the coloured subtitle key's
+  ggtext pieces are reported as overlapping each other, and a light series colour in the key
+  fails text contrast.
+
 ## 2026-09-24 - First-pass placement, contrast and layout: trace and fix
 
 ### User report

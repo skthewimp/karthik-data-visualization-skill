@@ -605,3 +605,131 @@ def test_end_labels_spread_crowded_line_names_apart(tmp_path: Path) -> None:
     metadata = json.loads(Path(bundle["layout_metadata_path"]).read_text())
     tops = {e["text"]: e["bbox"]["y"] for e in metadata["elements"] if e["text"] in names}
     assert sorted(tops, key=tops.get) == list(reversed(names))
+
+
+# ---- lenient routing, interval frames, label measures, regions ----
+
+
+def test_routing_words_are_read_leniently_not_refused(tmp_path: Path) -> None:
+    result = _scaffold(tmp_path, identification="direct labels", x_kind="Discrete", value_encoding="length",
+                       value_labels="8 labels", zero_baseline="yes", public_copy={"title": ""})
+    source = Path(result["source_path"]).read_text(encoding="utf-8")
+    assert "limits = c(0, NA)" in source
+    assert result["value_axis_hidden"]
+    # Only the word it could not read, and the missing title, are reported.
+    assert any("value_encoding 'length'" in w for w in result["warnings"])
+    assert any("no title" in w for w in result["warnings"])
+    assert not any("zero_baseline" in w or "identification" in w for w in result["warnings"])
+
+
+def test_check_reports_a_hand_written_chart(tmp_path: Path) -> None:
+    source = tmp_path / "chart.R"
+    source.write_text("build_chart <- function() ggplot2::ggplot()\n", encoding="utf-8")
+    result = check_chart(str(source))
+    assert not result["ok"] and [d["code"] for d in result["deviations"]] == ["UNSCAFFOLDED_BUILD"]
+
+
+SEGMENTS = [["tokens", "reads", 0, 95, 95], ["tokens", "writes", 95, 100, None],
+            ["dollars", "reads", 0, 50.2, 50.2], ["dollars", "writes", 50.2, 100, 49.8]]
+
+
+def _segments(tmp_path: Path, **kwargs) -> dict:
+    frame = prepare_plot_data(
+        str(tmp_path / "data"), x="panel", series="part", start="from", end="to",
+        columns=["panel", "part", "from", "to", "printed"], rows=SEGMENTS,
+        labels={"share": {"column": "printed", "suffix": "%"}},
+    )
+    return scaffold_chart(
+        str(tmp_path), frame["plot_data_path"], {"title": "Reads are most tokens but half the cost"},
+        layout={"width_px": 1200, "height_px": 600, "dpi": 144}, colours=PALETTE,
+        orientation="horizontal", zero_baseline=True, **kwargs,
+    )
+
+
+def test_label_measure_gets_its_own_formatter(tmp_path: Path) -> None:
+    result = _segments(tmp_path)
+    source = Path(result["source_path"]).read_text(encoding="utf-8")
+    assert re.search(r'fmt_share <- scales::label_number\(accuracy = [\d.]+, big.mark = ",", prefix = "", suffix = "%"\)', source)
+    assert "fmt_share(share)" in result["marks_brief"] and "start" in result["marks_brief"]
+    signed = _segments(tmp_path / "signed", label_formats={"share": {"step": 1, "signed": True}})
+    assert 'style_positive = "plus"' in Path(signed["source_path"]).read_text(encoding="utf-8")
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_interval_marks_are_checked_against_their_own_ends(tmp_path: Path) -> None:
+    result = _segments(tmp_path)
+    _fill(result["source_path"], """chart_marks <- function(d) list(
+  geom_tile(aes(x = category, y = (start + end) / 2, height = end - start, fill = series), width = 0.6),
+  bar_values(aes(x = category, y = end, ymin = start, ymax = end, label = fmt_share(share), fill = series), width = 0.6)
+)""")
+    assert check_chart(result["source_path"])["ok"]
+    # Drawn at a constant instead of between its ends, the marks no longer carry the data.
+    _fill(result["source_path"], """chart_marks <- function(d) list(
+  geom_tile(aes(x = category, y = 1, fill = series), width = 0.6)
+)""")
+    assert "VALUE_NOT_ON_POSITION" in _codes(result["source_path"])
+
+
+REVENUE = [["Q1'24", "Total", 70398, 14], ["Q1'24", "Search", 46156, None], ["Q1'24", "YouTube", 8090, None],
+           ["Q1'25", "Total", 77264, 10], ["Q1'25", "Search", 50702, 10], ["Q1'25", "YouTube", 8927, 10]]
+
+
+def _regions(tmp_path: Path, **layout_kwargs) -> dict:
+    frame = prepare_plot_data(
+        str(tmp_path / "data"), x="category", value="revenue", series="period",
+        columns=["period", "category", "revenue", "growth"], rows=REVENUE,
+        labels={"growth": {"column": "growth", "suffix": "%", "signed": True}},
+    )
+    layout = recommend_layout(y_slots=2, filled_marks=True, title_lines=1, panel_groups=[
+        {"role": "total", "n_panels": 1, "y_slots": 1, "filled_marks": True, "categories": ["Total"]},
+        {"role": "parts", "n_panels": 1, "y_slots": 2, "filled_marks": True},
+    ], **layout_kwargs)
+    return scaffold_chart(
+        str(tmp_path), frame["plot_data_path"], {"title": "Revenue grew 10%"}, layout=layout,
+        colours=PALETTE, orientation="horizontal", zero_baseline=True, value_labels=6,
+    )
+
+
+REGION_MARKS = """chart_marks <- function(d) {
+  dodge <- position_dodge(width = 0.8)
+  list(
+    geom_col(aes(x = category, y = value, fill = series), position = dodge, width = 0.8),
+    bar_values(aes(x = category, y = value, label = fmt_value(value), note = fmt_growth(growth), fill = series,
+                   group = series), position = dodge, width = 0.8)
+  )
+}"""
+
+
+def test_regions_draw_each_panel_group_from_its_own_rows(tmp_path: Path) -> None:
+    result = _regions(tmp_path)
+    boxes = result["regions"]
+    assert [b["role"] for b in boxes] == ["total", "parts"]
+    # The region with no category list takes every category the others did not claim.
+    assert boxes[0]["categories"] == ["Total"] and boxes[1]["categories"] == ["Search", "YouTube"]
+    # Stacked under the one page frame, inside the page margins, the overview the smaller band.
+    assert boxes[0]["y"] + boxes[0]["height_px"] == boxes[1]["y"]
+    assert boxes[0]["height_px"] < boxes[1]["height_px"]
+    source = Path(result["source_path"]).read_text(encoding="utf-8")
+    assert "chart_regions <- function()" in source and "patchwork::plot_annotation" in source
+    # One measure across the regions: they share the value range.
+    assert source.count("limits = c(0.0, 77264.0)") == 1
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_region_page_checks_and_renders_with_notes_clear_of_values(tmp_path: Path) -> None:
+    result = _regions(tmp_path)
+    _fill(result["source_path"], REGION_MARKS)
+    assert check_chart(result["source_path"])["ok"]
+    rendered = render_and_inspect_chart(
+        result["source_path"], str(tmp_path / "render"), renderer="ggplot2", dimensions=result["dimensions"],
+    )
+    codes = {d["code"] for d in json.loads(Path(rendered["inspection_path"]).read_text())["defects"]}
+    assert not codes & {"TEXT_TEXT_COLLISION", "REDUNDANT_COLOUR", "TEXT_CLIPPED"}
+
+
+def test_regions_without_categories_stay_one_grid(tmp_path: Path) -> None:
+    frame = prepare_plot_data(str(tmp_path / "data"), x="category", value="revenue", series="period",
+                              columns=["period", "category", "revenue", "growth"], rows=REVENUE)
+    layout = recommend_layout(y_slots=2, panel_groups=[{"role": "a", "n_panels": 1}, {"role": "b", "n_panels": 1}])
+    result = scaffold_chart(str(tmp_path), frame["plot_data_path"], {"title": "t"}, layout=layout, colours=PALETTE)
+    assert result["regions"] == [] and any("categories" in w for w in result["warnings"])

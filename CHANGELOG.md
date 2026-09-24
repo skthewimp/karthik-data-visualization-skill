@@ -2,6 +2,47 @@
 
 ## Unreleased
 
+### The scaffold covers the shapes that sent charts off it
+
+In the 24 September canonical run, cases 02 and 06 were never scaffolded: select wrote prose
+("Not applicable: ...") where the plot-data role map belonged, because the frame had no way to
+hold a segment drawn between two numbers (02) or a growth rate printed beside a revenue bar (06).
+Both then took three extra build calls and shipped the worst label defects of the run.
+
+- **`prepare_plot_data` takes interval and label-measure roles.** `start`/`end` carry a mark
+  drawn between two numbers, as read - a missing end stays blank, nothing is derived to fill it,
+  and intervals are never aggregated. `labels` carries numbers printed beside a mark but never
+  drawn, each as its own column on the observation's row with its own units (`prefix`,
+  `suffix`, `signed`) - never a series, never on the value scale. `approximate` carries an
+  estimate flag. The roles are written beside the frame as `plot-data.json`. `value` is optional
+  when `start`/`end` are given.
+- **New tool `default_plot_data_map(columns, rows)`.** A role map read off the table itself -
+  mostly-numeric columns are measures, the first is the value and the rest label measures - so
+  a harness whose plan returned no usable map stays on the scaffolded path.
+- **`scaffold_chart` draws those frames.** Interval frames are scaled and checked between their
+  ends; `bar_values()` takes `ymin`/`ymax` for segments that do not start at zero. Each label
+  measure gets `fmt_<name>()` from `label_formats` or its own values by the spread rule, and
+  `bar_values(aes(..., note = ...))` prints it past the bar's end, after the value, so the two
+  never collide. The `marks_brief` says which columns the frame has and how to draw them.
+- **Composable regions.** When `recommend_layout(panel_groups=...)` groups name their
+  `categories` (one may name none and take the rest), the source draws one native ggplot per
+  region - `chart_regions()` - each from its own rows through one `chart_marks(d)`, under one
+  page frame reserved once. Regions of one measure share the value range unless the facet scales
+  are free. `regions` returns each box on the page for a compositor; `build_chart()` composes the
+  same boxes with patchwork. `check_chart` checks each region at its own size.
+- **Routing words never stop the scaffold.** `scaffold_chart` reads `x_kind`,
+  `identification`, `value_encoding`, `value_labels` and `zero_baseline` the way the routing
+  block does (a near-miss resolves, an unknown word takes the default with a warning); a missing
+  title is a warning.
+- **`check_chart` reports a hand-written chart** as `UNSCAFFOLDED_BUILD` instead of raising.
+- **Select, extract and build copy.** The select contract says every chart has a role map and
+  how to map segments, printed-only numbers and gaps; `layout_plan.regions` take `categories`.
+  `dataviz-extract` keeps one row per observation: a printed-only number is a column on its
+  mark's row, a segment carries both ends, an unreadable cell stays empty.
+- **Inspection:** `REDUNDANT_COLOUR` counts only the category ticks beside a panel's bars, so two
+  series sharing one category in a region of their own are not read as named by every other
+  panel's ticks.
+
 ### First-pass label placement, contrast and layout fixes from the 22-23 September audit
 
 - **`check_chart` judges text on the geometry actually drawn.** The slot is laid out at the

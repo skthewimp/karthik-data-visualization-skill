@@ -357,7 +357,12 @@ _KEY_MESSAGES = {
 
 _DATA_TABLE = {
     "type": "object",
-    "description": "Full period-by-category table recovered from the source (colour is data).",
+    "description": (
+        "Full period-by-category table recovered from the source (colour is data). One row per "
+        "observation: a number printed beside a mark but not drawn by it (a growth rate on a "
+        "revenue bar) is its own column on that mark's row, never a row of its own; a mark drawn "
+        "between two numbers carries both ends as columns. An unreadable cell stays empty."
+    ),
     "properties": {
         "dimensions": _STRING_ARRAY,
         "columns": {"type": "array", "minItems": 1, "items": {"type": "string"}},
@@ -452,18 +457,43 @@ _PLOT_DATA_MAP = {
         "The role map handed to prepare_plot_data so the plotting frame is built mechanically, "
         "not reshaped by the builder. Names the source columns by role; the tool keeps only "
         "these (a helper column cannot leak in as a series) and pins one canonical order shared "
-        "by marks and labels. Empty/omitted only when no tabular data is plotted."
+        "by marks and labels. Every chart has one - a chart is drawn only from this frame. Map "
+        "the table as it is: a mark drawn between two numbers takes start and end, a number "
+        "printed beside a mark but not drawn takes labels, and nothing is derived to fill a gap."
     ),
     "properties": {
         "x": {"type": "string", "description": "Source column that is the category / x position."},
         "value": {
-            "type": ["string", "array"],
+            "type": ["string", "array", "null"],
             "items": {"type": "string"},
             "description": (
-                "Source column that is the numeric value; or a list of value columns for a wide "
-                "frame (one per series, e.g. one per model), each melted into a series named by "
-                "the column. A list and a series column are mutually exclusive."
+                "Source column that is the numeric value the marks are drawn to; or a list of "
+                "value columns for a wide frame (one per series, e.g. one per model), each melted "
+                "into a series named by the column. A list and a series column are mutually "
+                "exclusive. Null when start and end give the geometry."
             ),
+        },
+        "start": {
+            "type": ["string", "null"],
+            "description": (
+                "With end: the source columns holding each mark's two ends on the value axis - a "
+                "stacked or floating segment, a range, a dumbbell. A missing end stays blank."
+            ),
+        },
+        "end": {"type": ["string", "null"], "description": "The other end, paired with start."},
+        "labels": {
+            "type": "object",
+            "description": (
+                "Numbers printed as labels but never drawn as geometry - a growth rate beside a "
+                "revenue bar, a printed share on a segment - as {name: source column}, or {name: "
+                "{column, prefix, suffix, signed}} when its units differ from the value's. Each "
+                "stays on its observation's row: never a series, never on the value scale."
+            ),
+            "additionalProperties": True,
+        },
+        "approximate": {
+            "type": ["string", "null"],
+            "description": "Source column flagging an estimated observation, if the table has one.",
         },
         "series": {"type": ["string", "null"], "description": "Column that splits series / colour, if any (long-format input only)."},
         "facet": {"type": ["string", "null"], "description": "Column that splits panels, if any."},
@@ -481,7 +511,7 @@ _PLOT_DATA_MAP = {
             "description": "How to collapse duplicate (category, series, facet) keys; null when keys are unique.",
         },
     },
-    "required": ["x", "value"],
+    "required": ["x"],
     "additionalProperties": False,
 }
 
@@ -538,6 +568,14 @@ _LAYOUT_PLAN = {
                 "properties": {
                     "role": {"type": "string"},
                     "treatment": {"type": "string"},
+                    "categories": {
+                        **_STRING_ARRAY,
+                        "description": (
+                            "For a panel group set apart from the rest (an overview above its "
+                            "detail): the category values it draws, as the table prints them. "
+                            "The scaffold draws each group from its own rows."
+                        ),
+                    },
                 },
                 "required": ["role", "treatment"],
                 "additionalProperties": False,
@@ -1343,6 +1381,13 @@ red/green polarity would collapse under colour-vision deficiency. This is the wh
 where two series cannot be told apart) and checked by ``validate_palette``, and build applies it - you decide the plan, not the hexes.
 The chart's scaffolding - value axis, gridlines, axis titles, scales, fonts - is written by
 ``scaffold_chart`` from routing scalars you set here, so decide them here, not in design prose.
+It draws from the frame your ``plot_data`` role map builds, so a chart always has one - there is
+no "not applicable". Map the recovered table as it stands: a mark drawn between two numbers (a
+stacked or floating segment, a range) takes ``start`` and ``end``; a number printed beside a mark
+but not drawn (a growth rate on a revenue bar) goes under ``labels`` with its own units, never as
+a value or a series; a gap stays a gap - never derive a number to fill it. Numbers in different
+units are never one value column. A panel group set apart in ``layout_plan`` (an overview above
+its detail) names the ``categories`` it draws.
 Set ``value_labels`` to how many marks will print their own value (0 when the reader reads values
 off the axis). Label the reading-carrying marks - endpoints, extremes, the focal comparison - and
 once they carry the reading the scaffold drops the value axis and its gridlines; an unlabelled
@@ -1422,8 +1467,12 @@ setting you change there is lost. In the slot, in order:
      guides. Matplotlib: draw on ``ax`` from ``rows`` with ``pos(row)`` and ``row['value']``; no
      titles, limits, ticks or spines.
   2. Colour every data mark from ``palette`` / ``ink`` (a neutral grey for context); never type a
-     hue. Print every number with ``fmt_value()``; set labels and values at ``label_size`` (``LABEL_PT``), a free
+     hue. Print every value with ``fmt_value()`` and each label measure with its own ``fmt_<name>()``;
+     set labels and values at ``label_size`` (``LABEL_PT``), a free
      annotation at ``annotation_size`` (``ANNOTATION_PT``); plain text, never ``geom_label`` boxes.
+     Follow the scaffold's ``marks_brief``: an interval frame draws each mark from ``start`` to
+     ``end``; a label measure rides beside its mark (on bars, ``note =`` in ``bar_values``), never
+     on a position; a page of regions calls ``chart_marks(d)`` once per region with its own rows.
   3. Label only the marks that carry the reading - a series' identity, an endpoint, the focal
      comparison, a genuine exception - never a value on every point of every series. When the
      plan's ``value_labels`` is above 0 the value axis is gone, so those labels must be drawn.
