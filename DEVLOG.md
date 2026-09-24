@@ -3992,3 +3992,4 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:8575556a-15f9-44d1-9a45-a770c5210992:end -->
+
