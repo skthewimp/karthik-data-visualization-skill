@@ -4148,3 +4148,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:3b7571ad-e1bb-45b2-aed1-14762b4dab4c:end -->
+
+<!-- claude-session:3375ba29-e112-4832-8750-e3373580befa:start -->
+## 2026-09-24 11:11 IST | Claude session `3375ba29-e11`
+
+### User prompts
+> related issue - scaffold is not being used by the harness in all cases, and that's resulting in both delays and misplaced labels. what can be done?
+> check the latste integrated transcript
+> what fixes here and what in the harness? and delete the harness code, if any, from this computer. intentionally kept separate
+
+### Work done
+- This is fixed and pushed as `85e6f55` on `origin/main`. Both warnings came from the coloured subtitle key added in the scaffold work: one was a real contrast problem, the other a false alarm. 1. **Light key words were...
+- Line-end series names are now darkened the same way as the subtitle key, and this is pushed as `3a071bc` on `origin/main`. - **What changed:** names placed at line ends by `end_labels()` keep their line's hue but are...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:3375ba29-e112-4832-8750-e3373580befa:end -->
