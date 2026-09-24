@@ -1,5 +1,94 @@
 # Devlog
 
+## 2026-09-24 - First-pass placement, contrast and layout: trace and fix
+
+### User report
+
+- "We are still having too many issues in the harness with initial graphs not being rendered
+  properly and a lot of them have to do with the tools defined here", with a brief: fix the
+  reusable label-placement and layout failures in the upstream tools from the 22-23 September
+  first-pass audit (39 of 44 first reviews asked for correction), trace each failure from
+  approved design to correction request, classify who owns it, fix what is upstream, hand the
+  website a precise list, and do not add model calls, retries or case-specific rules.
+
+### What I did
+
+- Pulled the audit and the saved runs from the server and replayed every saved scaffold attempt
+  of the 23 Sep 10:43 and 08:59 batches locally (source, sidecar, data, dimensions).
+- Traced the latest batch. Most of the rework was the checker, not the placement:
+  - Case 02: attempt 1 put values past the bar ends in the bar colour - readable. `check_chart`
+    tested the anchor point, which sits on the bar end, and called it green-on-green. Its fix
+    ("on_fill_ink(series)", with no series to pass) plus the website's stack instruction moved
+    the labels to `stack_mid` on 1px bars: the reviewed failure. Checker bug, then misapplied.
+  - Case 06: attempt 1 was correct grouped bars. `LABEL_ON_WRONG_MARK` parsed "Q1'24: $70,398"
+    as 1, and its fix text said "position_stack", which with the website's "stack bars" line
+    produced stacked bars where grouped were approved.
+  - Case 03: a 4%-alpha tile counted as an opaque fill and as a bar of 100; the fix put
+    `stack_mid` on line labels (a cluster). Separately the tile trained the discrete axis first
+    (P05-P14 before P01-P04) and its height of 100 set the value range.
+  - Case 04: `recommend_layout` promised 150px panels for a 3x3 facet grid; the render drew 117px.
+    It never reserved the per-row strips or the edge margin. Headings were cut at the panel edge
+    and the inspection could not see it - strips are gtables and were skipped as empty.
+  - `FRAME_PLAN_MISMATCH` / `TEXT_PLAN_MISMATCH`: ggplot stacks the subtitle under the title's
+    real ink, above reserve_frame's line-box estimate, and panels use a little more room than the
+    estimated plot area. Neither is visible; reviews dismissed them.
+- Rewrote the ggplot check around drawn geometry: layout at the delivery size, text boxes from
+  glyphs and justification, marks from the trained data, fills composited with alpha, and a
+  numeric observation id on every layer row so labels match marks by identity. Added
+  `LABEL_OFF_ITS_MARK`, `LOW_CONTRAST_ON_PAGE`, `DECORATION_STRETCHES_AXIS`; log-space spans for
+  `VALUE_NOT_ON_POSITION`.
+- Scaffold: `bar_values()` and `end_labels()` layers that decide placement at draw time from the
+  drawn geometry (the `place_bar_value_labels` rule, and a least-movement 1D spread), category
+  `limits` in plan order, facet heading wrap, `on_fill_ink()` for the single ink.
+- `recommend_layout`: strips per row (and per detail band), edge margin once. Rendering: capture
+  gtable strips and draw-time grobs. Inspection: alpha compositing, strip overflow, band-based
+  frame text. `place_bar_value_labels`: glyph measurement and orientation-aware extents.
+  `recommend_labels`: `name_index`.
+
+### Replay results (old check -> new check)
+
+| Attempt | Old | New |
+|---|---|---|
+| 02 a1, a2 (outside labels, fine in the PNG) | LOW_CONTRAST_ON_MARK | clean |
+| 02 a3 (centred on 1px bars) | LOW_CONTRAST_ON_MARK | LOW_CONTRAST_ON_MARK |
+| 03 a1 (tile of height 100) | WRONG_MARK, CONTRAST | DECORATION_STRETCHES_AXIS |
+| 03 a2, a3 (stack_mid line labels, white ink) | WRONG_MARK, CONTRAST | OFF_ITS_MARK, ON_PAGE, STRETCH |
+| 06 a1 (grouped, white spill on short bars) | WRONG_MARK x10 | LOW_CONTRAST_ON_PAGE |
+| 08:59 01 a2 (three invisible series names) | clean | LOW_CONTRAST_ON_PAGE |
+
+With the website's build packet rebuilt on the new scaffold (and the stack sentence replaced as in
+the handoff below), haiku and sonnet each wrote the marks for cases 02, 03, 04 and 06 once, cold.
+7 of 8 passed the check first time. The eighth (sonnet, case 02) mapped `aes(fill = ink)`, so its
+values were dark on the green bar: 3.9:1, which the check failed at 4.5:1 while the render
+inspection passes 14pt text at 3:1. The check now uses the inspection's large-text rule, and 8 of
+8 pass. The PNGs read cleanly: values inside or past the bars, grouped bars dodged, ten crowded
+line names spread with leaders, facet headings whole. Remaining inspection findings are the
+underfilled canvas and case 03's palette colours below 4.5:1 on white.
+
+### Website handoff (not edited here)
+
+- `public_site/scaffold_build.py` build instructions: "Stack bars with position=stack and labels
+  with position=stack_mid so their order matches" applies stacking to every form. Make it
+  conditional on the approved form, and point at `bar_values()` / `end_labels()`.
+- `recommend_text_placement` is called with `dpi=192` (`DELIVERY_DPI`) against 144dpi canvases;
+  pass the canvas dpi.
+- Pass `longest_facet_label_chars` to `recommend_layout` for faceted designs.
+- `axis_settings` mapped four date labels onto the first four placeholder categories (case 03);
+  breaks must be the categories the labels belong to.
+- Case 06 plot data mixes the percentage "Total Y/Y Growth" rows into the revenue frame; the
+  approved design keeps them as annotations.
+
+### Notes / decisions
+
+- Kept `check_chart` a build-and-lay-out check (about 1s), not a render: the website already
+  renders every attempt, and the check has to explain the slot in slot terms.
+- The page-contrast check only flags ink the slot chose (not palette colours): a palette colour
+  below 4.5:1 on the page is `recommend_colours`' problem, and the slot cannot fix it. Case 03's
+  series colours at 3.2-4.4:1 are still flagged by the render inspection.
+- `recommend_layout` for panel groups got the strips but not the edge margin, because the site
+  composes regions itself from the returned `y`/`height`; changing that coordinate frame needs
+  the site in step.
+
 ## 2026-09-23 - Position check and palette policy
 
 ### User report

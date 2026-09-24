@@ -1215,6 +1215,8 @@ def place_bar_value_labels(
     ink_dark: str = "#1a1a1a",
     pad_px: Optional[float] = None,
     orientation: str = "vertical",
+    font_family: Optional[str] = None,
+    font_weight: str = "normal",
 ) -> dict[str, Any]:
     """Decide, per bar, whether its value label sits INSIDE the bar or OUTSIDE past its end, and
     which text colour keeps it legible on whatever surface it lands on.
@@ -1233,6 +1235,12 @@ def place_bar_value_labels(
     (bar width). Returns per bar ``{id, placement: "inside"|"outside", colour, contrast_ratio,
     fits_inside, label_px}`` and the ``font_pt`` used, so the builder sets each ``geom_text``
     colour and vjust/hjust/nudge from the returned decision instead of a single global guess.
+
+    The label's extent is its measured glyph advance in ``font_family``/``font_weight`` (the
+    renderer's own face; the default face when unset), not a character count. Along the value
+    axis a label takes its width on a horizontal bar and its line height on a vertical column,
+    and across the bar the other extent; the scaffold's ``bar_values`` layer applies the same
+    rule when it draws.
     """
     from .color_math import better_ink  # local import: avoids a module cycle
 
@@ -1243,14 +1251,18 @@ def place_bar_value_labels(
         return better_ink(surface, ink_light, ink_dark)
 
     placements: list[dict[str, Any]] = []
+    measurer = TextMeasurer(dpi, font_family, font_weight)
+    horizontal = orientation == "horizontal"
     for bar in bars:
         text = str(bar.get("value_text", ""))
-        label_px = len(text) * char_px(font_pt, dpi) + 2 * pad
+        text_w = measurer.width(text, font_pt)
+        along, cross = (text_w, text_h) if horizontal else (text_h, text_w)
+        label_px = along + 2 * pad
         length = float(bar.get("bar_length_px", 0.0))
         thickness = bar.get("bar_thickness_px")
         fits_length = label_px <= length
         # When the cross extent is known, the text must also fit across the bar to sit inside.
-        fits_thickness = True if thickness is None else text_h <= float(thickness)
+        fits_thickness = True if thickness is None else cross <= float(thickness)
         inside = fits_length and fits_thickness
         surface = bar.get("fill", background) if inside else background
         colour, ratio = _better_ink(surface)

@@ -100,10 +100,12 @@ def test_scaffold_writes_the_planned_settings_and_one_slot(tmp_path: Path) -> No
     assert f"size = {layout['font_pt']['title']}" in source
     assert 'palette <- c("Reads" = "#0072B2", "Writes" = "#D55E00")' in source
     assert "accuracy = 1.0" in source and 'suffix = "%"' in source
-    # Only the declared axis title is drawn; no legend without a legend strategy; no limits.
+    # Only the declared axis title is drawn; no legend without a legend strategy; no value limits.
     assert 'x = "Period"' in source and "y = NULL" in source
     assert 'legend.position = "none"' in source
-    assert "limits" not in source
+    assert "scale_y_continuous(labels = fmt_value)" in source
+    # The category axis keeps the planned order whatever order a layer trains it in.
+    assert 'scale_x_discrete(limits = function(x) intersect(c("Tokens", "Cost"), x))' in source
     # Labels past the panel edge must reach the canvas, where refit can measure and grow for them.
     assert 'coord_cartesian(clip = "off")' in source
     # The scaffold's scales, labs and theme come after the slot, so the slot cannot win.
@@ -130,7 +132,7 @@ def test_horizontal_chart_flips_and_reads_top_down(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, orientation="horizontal", public_copy={"title": "t", "axis_titles": {"x": "Share"}})
     source = Path(result["source_path"]).read_text(encoding="utf-8")
     assert 'coord_flip(clip = "off")' in source
-    assert "scale_x_discrete(limits = rev)" in source
+    assert 'scale_x_discrete(limits = function(x) rev(intersect(c("Tokens", "Cost"), x)))' in source
     # A displayed-x title lands on the value aesthetic under the flip.
     assert 'y = "Share"' in source and "x = NULL" in source
 
@@ -327,8 +329,10 @@ def test_stacked_labels_computed_apart_from_the_bars_are_caught(tmp_path: Path) 
 }""",
     )
     codes = {d["code"] for d in check_chart(result["source_path"])["deviations"]}
-    # The unmapped hex falls to the scale's NA grey, which also fails against the fills.
-    assert codes == {"COLOUR_UNMAPPED", "LABEL_ON_WRONG_MARK", "STACK_ORDER", "LOW_CONTRAST_ON_MARK"}
+    # The unmapped hex falls to the scale's NA grey, which also fails against the fills; the
+    # label placed on the other series' segment is also far from its own.
+    assert codes == {"COLOUR_UNMAPPED", "LABEL_ON_WRONG_MARK", "LABEL_OFF_ITS_MARK", "STACK_ORDER",
+                     "LOW_CONTRAST_ON_MARK"}
     _fill(
         result["source_path"],
         """chart_marks <- function(d) {
@@ -423,3 +427,181 @@ def test_matplotlib_on_mark_ink(tmp_path: Path) -> None:
     assert check_chart(source)["ok"]
     _fill(source, labelled.replace("INK_CHOICE", "'#ffffff'"))
     assert [d["code"] for d in check_chart(source)["deviations"]] == ["LOW_CONTRAST_ON_MARK"]
+
+
+# ---- label attachment and the surface behind text (canonical first-pass failures) ----
+
+TINY = [["cacheRead", 95.0], ["cacheWrite", 4.2], ["output", 0.5], ["input", 0.3]]
+
+
+def _single(tmp_path: Path, rows=TINY, **kwargs) -> dict:
+    path = prepare_plot_data(str(tmp_path), "Kind", ["Share"], columns=["Kind", "Share"], rows=rows)["plot_data_path"]
+    return scaffold_chart(
+        str(tmp_path), path, {"title": "Cache reads dominate"},
+        layout={"width_px": 1200, "height_px": 700, "dpi": 144},
+        colours={"ordered_palette": ["#247A52"]}, orientation="horizontal", zero_baseline=True, **kwargs,
+    )
+
+
+def _codes(source: str) -> list[str]:
+    return [d["code"] for d in check_chart(source)["deviations"]]
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_value_past_the_bar_end_reads_on_the_page_not_the_fill(tmp_path: Path) -> None:
+    # The label anchors at the bar's end but its glyphs run outward onto the page, so the bar
+    # colour is legible there; judging it by its anchor called it green-on-green.
+    result = _single(tmp_path)
+    outside = """chart_marks <- function(d) list(
+  geom_col(aes(x = category, y = value), fill = ink, width = 0.7),
+  geom_text(aes(x = category, y = value, label = fmt_value(value)), colour = ink, size = label_size, hjust = -0.1)
+)"""
+    _fill(result["source_path"], outside)
+    assert check_chart(result["source_path"])["ok"]
+    # Centred on the bars, the same ink is on its own fill.
+    _fill(result["source_path"], outside.replace("hjust = -0.1", "hjust = 0.5, position = position_stack(vjust = 0.5)"))
+    assert _codes(result["source_path"]) == ["LOW_CONTRAST_ON_MARK"]
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_on_fill_ink_spilling_off_a_short_bar_is_caught_on_the_page(tmp_path: Path) -> None:
+    result = _single(tmp_path)
+    _fill(result["source_path"], """chart_marks <- function(d) list(
+  geom_col(aes(x = category, y = value), fill = ink, width = 0.7),
+  geom_text(aes(x = category, y = value, label = fmt_value(value)), colour = on_fill_ink(), size = label_size, hjust = 1.1)
+)""")
+    report = check_chart(result["source_path"])
+    assert [d["code"] for d in report["deviations"]] == ["LOW_CONTRAST_ON_PAGE"]
+    # The long bars hold their white labels; only the shortest spill onto the page.
+    assert "'95.0'" not in report["fix_list"] and "'0.3'" in report["fix_list"]
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_bar_values_put_each_value_where_it_reads(tmp_path: Path) -> None:
+    result = _single(tmp_path)
+    _fill(result["source_path"], """chart_marks <- function(d) list(
+  geom_col(aes(x = category, y = value), fill = ink, width = 0.7),
+  bar_values(aes(x = category, y = value, label = fmt_value(value)))
+)""")
+    assert check_chart(result["source_path"])["ok"]
+    bundle = render_and_inspect_chart(result["source_path"], str(tmp_path / "render"), renderer="ggplot2",
+                                      dimensions=result["dimensions"])
+    inspection = json.loads(Path(bundle["inspection_path"]).read_text())
+    assert not inspection["low_contrast_elements"]
+    metadata = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    ink = {e["text"]: e["colour"].lower() for e in metadata["elements"] if e["role"] == "data_label"}
+    # Inside the long bar in white; past the ends of the short ones in dark ink.
+    assert ink["95.0"].startswith("#ffffff") and ink["0.3"].startswith("#1a1a1a")
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_grouped_labels_are_matched_by_identity_not_by_the_printed_number(tmp_path: Path) -> None:
+    rows = [["Total", 70398, 77264], ["Network", 7413, 7256]]
+    path = prepare_plot_data(str(tmp_path), "Line", ["Q1'24", "Q1'25"], columns=["Line", "Q1'24", "Q1'25"],
+                             rows=rows)["plot_data_path"]
+    result = scaffold_chart(str(tmp_path), path, {"title": "t"}, layout={"width_px": 1200, "height_px": 600, "dpi": 144},
+                            colours=PALETTE, orientation="horizontal", zero_baseline=True)
+    bars = "geom_col(aes(x = category, y = value, fill = series, group = series), position = position_dodge(width = 0.8), width = 0.8)"
+    # A label carrying its period ("Q1'24: $70,398") is not a number to parse: its first digit is
+    # the quarter. Matched by observation, it is on its own bar.
+    label = "label = paste0(series, ': $', fmt_value(value))"
+    _fill(result["source_path"], f"chart_marks <- function(d) list({bars}, bar_values(aes(x = category, y = value, "
+          f"fill = series, group = series, {label}), position = position_dodge(width = 0.8)))")
+    assert check_chart(result["source_path"])["ok"]
+    # Labels left undodged sit on the boundary of the touching pair, over one period's bar: the
+    # fix names the bars' own dodge.
+    _fill(result["source_path"], f"chart_marks <- function(d) list({bars}, geom_text(aes(x = category, y = value, "
+          f"group = series, {label}), colour = on_fill_ink(), hjust = 1.1, size = label_size))")
+    report = check_chart(result["source_path"])
+    assert "LABEL_ON_WRONG_MARK" in [d["code"] for d in report["deviations"]]
+    assert "position_dodge(width = 0.8)" in report["fix_list"] and "stack" not in report["fix_list"]
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_stacking_line_labels_detaches_them_from_their_lines(tmp_path: Path) -> None:
+    rows = [[str(2010 + i), 40 + i, 10 + i] for i in range(6)]
+    result = _scaffold(tmp_path, plot_data_path=_frame(tmp_path, rows=rows))
+    end = "d[d$category == tail(levels(d$category), 1), ]"
+    labels = (f"geom_text(data = {end}, aes(x = category, y = value, label = series, colour = series, group = series), "
+              "size = label_size, hjust = 0POSITION)")
+    body = ("chart_marks <- function(d) list(geom_line(aes(x = category, y = value, colour = series, group = series)), "
+            + labels + ")")
+    _fill(result["source_path"], body.replace("POSITION", ""))
+    assert check_chart(result["source_path"])["ok"]
+    _fill(result["source_path"], body.replace("POSITION", ", position = stack_mid"))
+    report = check_chart(result["source_path"])
+    assert {d["code"] for d in report["deviations"]} == {"LABEL_OFF_ITS_MARK"}
+    assert "drop that adjustment" in report["fix_list"]
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_a_faint_background_band_is_not_a_mark(tmp_path: Path) -> None:
+    # A shaded projection band behind the lines is neither a bar to match labels to nor a fill
+    # that the labels must contrast with - its 4% tint leaves the page behind them.
+    rows = [[str(2010 + i), 40 + i, 10 + i] for i in range(6)]
+    result = _scaffold(tmp_path, plot_data_path=_frame(tmp_path, rows=rows))
+    band = """chart_marks <- function(d) list(
+  BAND,
+  geom_line(aes(x = category, y = value, colour = series, group = series)),
+  geom_text(data = d[d$category == tail(levels(d$category), 1), ],
+            aes(x = category, y = value, label = fmt_value(value), colour = series), size = label_size, hjust = 0)
+)"""
+    _fill(result["source_path"], band.replace("BAND", "annotate('rect', xmin = 3.5, xmax = Inf, ymin = -Inf, ymax = Inf, fill = ink, alpha = 0.045)"))
+    assert check_chart(result["source_path"])["ok"]
+    # The same band drawn as a finite tile twice the data's height sets the axis instead.
+    _fill(result["source_path"], band.replace("BAND", "geom_tile(data = d[d$series == 'Reads' & as.integer(d$category) > 3, ], "
+                                              "aes(x = category, y = 50), inherit.aes = FALSE, width = 1, height = 100, fill = ink, alpha = 0.045)"))
+    assert _codes(result["source_path"]) == ["DECORATION_STRETCHES_AXIS"]
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_value_span_is_compared_in_the_value_scale_space(tmp_path: Path) -> None:
+    rows = [["A", 1, 10], ["B", 100, 1000], ["C", 10000, 100000]]
+    result = _scaffold(tmp_path, plot_data_path=_frame(tmp_path, rows=rows))
+    sidecar = Path(result["source_path"] + ".scaffold.json")
+    record = json.loads(sidecar.read_text())
+    # A consumer that puts the value axis on a log scale extends the scaffold record itself.
+    record["tail"] = record["tail"].replace("scale_y_continuous(labels = fmt_value)",
+                                            'scale_y_continuous(labels = fmt_value, transform = "log10")')
+    sidecar.write_text(json.dumps(record))
+    source = Path(result["source_path"])
+    source.write_text(source.read_text().replace("scale_y_continuous(labels = fmt_value)",
+                                                 'scale_y_continuous(labels = fmt_value, transform = "log10")'))
+    _fill(result["source_path"], GOOD_MARKS)
+    assert check_chart(result["source_path"])["ok"]
+
+
+def test_long_panel_headings_wrap_to_their_panel(tmp_path: Path) -> None:
+    names = ["Cereals", "Vegetable oils, oilseeds and products (oil eq.)", "Meat"]
+    rows = [[str(year), name, 10.0] for name in names for year in (1970, 2000)]
+    path = prepare_plot_data(str(tmp_path), "Year", ["Share"], columns=["Year", "Food", "Share"], rows=rows,
+                             facet="Food")["plot_data_path"]
+    result = scaffold_chart(str(tmp_path), path, {"title": "t"},
+                            layout={"width_px": 1230, "height_px": 712, "dpi": 144, "facet_ncol": 3, "facet_nrow": 1},
+                            colours={"ordered_palette": ["#000000"]}, x_kind="continuous")
+    source = Path(result["source_path"]).read_text()
+    wrap = int(re.search(r"label_wrap_gen\(width = (\d+)\)", source).group(1))
+    assert 8 <= wrap < len(names[1])
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_end_labels_spread_crowded_line_names_apart(tmp_path: Path) -> None:
+    # Six lines ending within a label's height of each other: their names spread apart along the
+    # value axis, in order, instead of printing over each other at the last points.
+    names = [f"Model {c}" for c in "ABCDEF"]
+    rows = [[str(2020 + t)] + [10 + t + 0.2 * k for k in range(6)] for t in range(5)]
+    path = prepare_plot_data(str(tmp_path), "Year", names, columns=["Year", *names], rows=rows)["plot_data_path"]
+    result = scaffold_chart(str(tmp_path), path, {"title": "t"}, layout={"width_px": 1000, "height_px": 600, "dpi": 144},
+                            colours={"ordered_palette": ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#56B4E9", "#E69F00"]})
+    _fill(result["source_path"], """chart_marks <- function(d) list(
+  geom_line(aes(x = category, y = value, colour = series, group = series)),
+  end_labels(aes(x = category, y = value, label = series, colour = series), data = d[d$category == tail(levels(d$category), 1), ])
+)""")
+    assert check_chart(result["source_path"])["ok"]
+    bundle = render_and_inspect_chart(result["source_path"], str(tmp_path / "render"), renderer="ggplot2",
+                                      dimensions=result["dimensions"])
+    report = json.loads(Path(bundle["inspection_path"]).read_text())
+    assert not report["text_text_collisions"]
+    metadata = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    tops = {e["text"]: e["bbox"]["y"] for e in metadata["elements"] if e["text"] in names}
+    assert sorted(tops, key=tops.get) == list(reversed(names))

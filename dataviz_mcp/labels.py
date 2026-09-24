@@ -86,15 +86,18 @@ def recommend_labels(
             first, then the largest changes fill what is left. A series with no more points than
             the budget is labelled in full.
 
-    Returns per-series ``label_indices`` (which points to ink) with a ``reasons`` map, plus a
-    ``principle`` line. It selects points; it does not place them - feed the chosen anchors to
-    ``recommend_text_placement`` to wrap and de-collide them.
+    Returns per-series ``label_indices`` (which points to ink) with a ``reasons`` map, a
+    ``name_index`` (the one chosen point that carries the series name - its last, the line end;
+    every other chosen point prints its value alone), plus a ``principle`` line. It selects points;
+    it does not place them - feed the chosen anchors to ``recommend_text_placement`` to wrap and
+    de-collide them.
     """
     budget = max(1, int(max_labels_per_series))
     per_series: list[dict[str, Any]] = []
     for entry in series:
         picked = _pick_one_series(entry.get("values", []), budget)
         picked["id"] = entry.get("id")
+        picked["name_index"] = picked["label_indices"][-1] if picked["label_indices"] else None
         per_series.append(picked)
 
     return {
@@ -103,6 +106,7 @@ def recommend_labels(
         "principle": (
             "Preserve every value in the data (table or note); print only these direct labels. "
             "Endpoints and extremes anchor the read, the largest changes show the focal moves; "
-            "labelling every point collides and is not what 'keep every value' asks for."
+            "labelling every point collides and is not what 'keep every value' asks for. Name each "
+            "series once, at its name_index; the other chosen points carry the value alone."
         ),
     }

@@ -400,7 +400,9 @@ def test_ggplot_adapter_captures_every_panel_and_repeated_mark_structure(
         item["id"] for item in layout["plot_areas"]
     }
     assert len(layout["marks"]) == 6
-    assert sum("panel-" in Path(path).name for path in bundle["review_view_paths"]) == 2
+    assert sum("-panel-0" in Path(path).name for path in bundle["review_view_paths"]) == 2
+    # Facet strips are gtables (parts in $grobs, not $children): their headings are captured.
+    assert sorted(e["text"] for e in layout["elements"] if e["role"] == "panel_heading") == ["North", "South"]
 
 
 @pytest.mark.skipif(
@@ -886,3 +888,40 @@ def test_coffee_annotation_repair_loop_crosses_mechanical_pass_line(tmp_path: Pa
     assert comparison["blocking_defect_count"]["after"] == 0
     assert comparison["introduced_defects"] == []
     assert comparison["passes_geometry_checks"] == {"before": False, "after": True}
+
+
+def _panel_meta(elements: list[dict], marks: list[dict]) -> dict:
+    return {
+        "canvas": {"x": 0, "y": 0, "width": 400, "height": 300},
+        "plot_areas": [{"id": "p", "bbox": {"x": 40, "y": 40, "width": 320, "height": 220}}],
+        "elements": elements, "series": [], "marks": marks, "legends": [],
+        "coverage": {"text_bounds": True}, "background": "#ffffff",
+    }
+
+
+def test_a_faint_tint_behind_a_label_leaves_the_page_as_its_surface(tmp_path: Path) -> None:
+    # A 4%-alpha projection band sits behind a label drawn in the band's own hue: the label
+    # reads on the (almost white) page, not on an opaque fill of its own colour.
+    label = {"id": "p/label", "role": "data_label", "text": "Others 10", "axes_id": "p", "colour": "#6C5B7B",
+             "font_size_pt": 12, "bbox": {"x": 100, "y": 100, "width": 60, "height": 14}}
+    band = {"id": "p/band", "role": "mark", "kind": "rect", "axes_id": "p", "fill": "#6C5B7B0B",
+            "bbox": {"x": 80, "y": 40, "width": 200, "height": 220}}
+    report = _bundle(tmp_path, 400, 300, _panel_meta([label], [band]))
+    assert "LOW_TEXT_CONTRAST" not in _codes(report)
+    # The same hue as an opaque bar is its own fill: invisible, and flagged against it.
+    report = _bundle(tmp_path, 400, 300, _panel_meta([label], [{**band, "fill": "#6C5B7B"}]))
+    record = next(r for r in report["low_contrast_elements"] if r["id"] == "p/label")
+    assert record["against"] == "mark_fill"
+
+
+def test_a_panel_heading_wider_than_its_strip_is_cut_not_colliding(tmp_path: Path) -> None:
+    strip = {"x": 40, "y": 20, "width": 150, "height": 18}
+    long = {"id": "s1", "role": "panel_heading", "text": "Vegetable oils, oilseeds and products", "colour": "#1a1a1a",
+            "font_size_pt": 11, "bbox": {"x": 42, "y": 22, "width": 230, "height": 14}, "cell_bbox": strip}
+    neighbour = {"id": "s2", "role": "panel_heading", "text": "Meat", "colour": "#1a1a1a", "font_size_pt": 11,
+                 "bbox": {"x": 202, "y": 22, "width": 40, "height": 14},
+                 "cell_bbox": {**strip, "x": 200}}
+    report = _bundle(tmp_path, 400, 300, _panel_meta([long, neighbour], []))
+    codes = _codes(report)
+    # The heading is cut at its strip edge; its ink past the cut never reaches the neighbour.
+    assert "CELL_OVERFLOW" in codes and "HIERARCHY_TEXT_COLLISION" not in codes

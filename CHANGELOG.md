@@ -2,6 +2,52 @@
 
 ## Unreleased
 
+### First-pass label placement, contrast and layout fixes from the 22-23 September audit
+
+- **`check_chart` judges text on the geometry actually drawn.** The slot is laid out at the
+  delivery size from the sidecar (now recording `dimensions` and `background`), each text box
+  from its own glyphs and justification. A value anchored at a bar's end but running outward is
+  on the page, not the bar: the old anchor test called case 02's correct outside labels
+  green-on-green, and the "fix" moved them onto 1px bars. Contrast is against the surface behind
+  the text, fills painted over the page with their alpha, so a 4% projection band no longer
+  counts as an opaque fill. Large text (14pt and up) reads at 3:1, as the render inspection
+  judges it.
+- **`LABEL_ON_WRONG_MARK` matches by observation, not by a number parsed from the label.** Every
+  built row is tagged with the observation it draws; a label is wrong only when its box sits on
+  another observation's value bar. The old regex read "Q1'24: $70,398" as 1 and sent case 06 to
+  stacking. Backdrop tiles are not value marks. The fix names the bars' own position adjustment
+  (a dodge for grouped bars), never a stack the plan did not choose.
+- **New checks:** `LABEL_OFF_ITS_MARK` (a label drawn lines away from its own observation's
+  mark - `position_stack` applied to line labels, case 03), `LOW_CONTRAST_ON_PAGE` (on-fill white
+  spilled off a short bar or a line end, case 01's invisible series names), and
+  `DECORATION_STRETCHES_AXIS` (a finite backdrop tile that sets the value range and flattens the
+  data). `VALUE_NOT_ON_POSITION` compares spans in the value scale's own space, so a log axis no
+  longer reads as flat.
+- **Scaffold layers that place labels when drawn.** `bar_values()` puts each bar's value inside
+  its end in the ink that reads on its fill, or past the end when the bar is too short, through
+  dodge, stack and `coord_flip`; `end_labels()` names lines past their last points and spreads
+  crowded names apart with leaders by the least total movement. `on_fill_ink()` with no argument
+  gives the single-colour ink. The `marks_brief` points the build model at both.
+- **Scaffold layout fixes.** The category axis keeps the planned order over the categories the
+  marks draw (a layer drawn from a subset reordered case 03's periods), and a facet heading wider
+  than its panel wraps to the panel instead of being cut.
+- **`recommend_layout` reserves each facet row's heading strip and the frame's edge margin.**
+  Case 04's 3x3 grid promised 150px panels and drew 117px. New optional
+  `longest_facet_label_chars` gives a wrapping heading its lines; `panel_groups` detail bands
+  carry their strips too.
+- **Inspection.** Facet strips are captured (a gtable keeps its parts in `$grobs`, so every strip
+  was skipped as empty) and a heading cut at its strip is `CELL_OVERFLOW`; grobs that build their
+  children when drawn are resolved and measured; mark fills are composited with their alpha.
+  `FRAME_PLAN_MISMATCH` now means a panel in the edge margin or running into header/footer text,
+  not a panel past the estimated plot area; `TEXT_PLAN_MISMATCH` checks renderer-stacked title,
+  subtitle and caption by content inside their band, not at the estimated anchor. Reviews had
+  dismissed both as not visible.
+- **`place_bar_value_labels`** measures the label's glyph advances (`font_family`,
+  `font_weight`, optional) instead of counting characters, and uses the extent that runs along the
+  bar: width on a horizontal bar, line height up a column.
+- **`recommend_labels`** returns `name_index` per series: the series name is printed once, at the
+  line end; the other chosen points carry the value alone.
+
 ### `dataviz-eval` judges publishability; `dataviz-critique` stops protecting furniture
 
 - **`dataviz-eval` asks whether the chart could be published, read at display size.** On the

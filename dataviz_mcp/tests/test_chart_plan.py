@@ -281,3 +281,26 @@ def test_frame_measures_subtitle_key_without_markup() -> None:
     plain = reserve_frame(subtitle="Men and women", width_px=800, height_px=600, dpi=144)
     assert marked["frame_blocks"][0]["wrapped_text"] == "Men and women"
     assert marked["frame_blocks"][0]["bbox"] == plain["frame_blocks"][0]["bbox"]
+
+
+def test_renderer_stacked_header_text_is_checked_in_its_band_not_at_the_estimate():
+    # ggplot stacks the subtitle under the title's real ink, higher than reserve_frame's line-box
+    # estimate: present, wrapped as planned and inside the header band is what the plan requires.
+    frame = reserve_frame(title="Cache reads dominate", subtitle="Reads are 95% of tokens", width_px=800,
+                          height_px=600, dpi=144)
+    blocks = {b["role"]: b for b in frame["frame_blocks"]}
+    drawn = lambda role, dy: {"id": role, "role": role, "text": blocks[role]["wrapped_text"],
+                              "bbox": {**blocks[role]["bbox"], "y": blocks[role]["bbox"]["y"] - dy}}
+    panel = {**frame["plot_area"], "y": frame["plot_area"]["y"] - 10, "height": frame["plot_area"]["height"] + 10}
+    metadata = {"canvas": {"width": 800, "height": 600}, "artifact": {"dpi": [144, 144]},
+                "plot_areas": [{"id": "panel", "bbox": panel}],
+                "elements": [drawn("title", 0), drawn("subtitle", 12)],
+                "inspection_contract": {"frame": frame}}
+    # The panel also runs a little past the estimated plot area without reaching the margin or text.
+    assert not _planned_geometry_defects(metadata)
+    # Text that changed, or a subtitle pushed down into the plot, still fails.
+    metadata["elements"][1]["text"] = "Reads are 96% of tokens"
+    assert [d["code"] for d in _planned_geometry_defects(metadata)] == ["TEXT_PLAN_MISMATCH"]
+    metadata["elements"][1] = drawn("subtitle", -200)
+    codes = [d["code"] for d in _planned_geometry_defects(metadata)]
+    assert "TEXT_PLAN_MISMATCH" in codes and "FRAME_PLAN_MISMATCH" in codes

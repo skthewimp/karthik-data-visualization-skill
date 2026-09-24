@@ -834,6 +834,15 @@ capture_panel_grob <- function(g, prefix, px, py, pw, ph) {
     }
     return(captured)
   }
+  # A grob that builds its children when drawn (value labels placed by fit, repelled labels)
+  # is resolved here in its own panel's viewport, so its text is measured like any other.
+  if (inherits(g, "gTree") && !length(g$children) &&
+      !is.null(utils::getS3method("makeContent", class(g)[1], optional=TRUE))) {
+    pushViewport(viewport(x=unit(px/dpi, "in"), y=unit(1, "npc") - unit(py/dpi, "in"),
+      width=unit(pw/dpi, "in"), height=unit(ph/dpi, "in"), just=c("left", "top")))
+    g <- tryCatch(makeContent(g), error=function(e) g)
+    popViewport()
+  }
   if (inherits(g, "gTree") && length(g$children)) {
     for (child_name in names(g$children)) {
       child_rows <- capture_panel_grob(
@@ -1075,8 +1084,9 @@ for (i in seq_len(nrow(gt$layout))) {
   # zeroGrob. Emitting it produced a phantom panel-sized "legend" that made every
   # in-panel direct label register a false legend collision.
   grob_name <- as.character(item$name)
+  # A gtable (a facet strip) keeps its parts in $grobs, not $children: it is not empty.
   grob_empty <- inherits(grob, c("zeroGrob", "nullGrob")) ||
-    (inherits(grob, "gTree") && !length(grob$children))
+    (inherits(grob, "gTree") && !length(grob$children) && !(inherits(grob, "gtable") && length(grob$grobs)))
   if (grob_empty && startsWith(grob_name, "guide-box")) {
     next
   }
@@ -1109,7 +1119,8 @@ for (i in seq_len(nrow(gt$layout))) {
       for (j in seq_along(text_rows)) {
         text_rows[[j]]$name <- grob_name
         text_rows[[j]]$kind <- "textzone"
-        text_rows[[j]]$x_points <- ""
+        # A panel heading is drawn inside its strip, which clips it: keep the strip's box.
+        text_rows[[j]]$x_points <- if (startsWith(grob_name, "strip")) paste(c(px, py, pw, ph), collapse=";") else ""
       }
       panel_rows <- c(panel_rows, text_rows)
       next
@@ -1402,6 +1413,7 @@ def _render_ggplot2(
                         "clip_on": False,
                         "font_size_pt": float(row["font_size"]) if row.get("font_size") else None,
                         "colour": row.get("colour") or None,
+                        **(_cell_bbox_field(row, "table") if role == "panel_heading" else {}),
                     }
                 )
             continue

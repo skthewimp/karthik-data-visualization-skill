@@ -418,6 +418,7 @@ def create_server() -> Any:
         delivery_profile: str = "chat",
         panel_groups: list[dict[str, Any]] | None = None,
         target_aspect: float | None = None,
+        longest_facet_label_chars: int = 0,
     ) -> dict[str, Any]:
         """Size a clip-safe canvas (width/height/dpi), facet grid, and x-label rotation.
 
@@ -455,6 +456,9 @@ def create_server() -> Any:
         column count is chosen here, not declared, and the per-band
         structure comes back as ``regions`` for Build to place - do not flatten it to one grid.
         ``role`` is a free-text label echoed back per band.
+
+        Faceted grids reserve each row's heading strip and the frame's edge margin; pass
+        ``longest_facet_label_chars`` so a heading that must wrap to its panel gets its lines.
         """
         return recommend_layout_core(
             x_slots,
@@ -473,6 +477,7 @@ def create_server() -> Any:
             delivery_profile,
             panel_groups,
             target_aspect,
+            longest_facet_label_chars,
         )
 
     @server.tool()
@@ -731,6 +736,8 @@ def create_server() -> Any:
         ink_dark: str = "#1a1a1a",
         pad_px: float | None = None,
         orientation: str = "vertical",
+        font_family: str | None = None,
+        font_weight: str = "normal",
     ) -> dict[str, Any]:
         """Decide inside-vs-outside and the text colour for each bar's value label, deterministically.
 
@@ -749,6 +756,9 @@ def create_server() -> Any:
         that bar's ``geom_text`` and nudge inside labels in from the value end, outside labels just
         past it. A ``low_contrast`` bar clears neither ink on its fill - restyle the fill, don't ship
         it. Run it at build, before the first render, from the bar geometry the layout already fixes.
+        Labels are measured in ``font_family``/``font_weight`` (the renderer's face; default face
+        when unset); ``orientation`` says which label extent runs along the bar. A scaffolded
+        ggplot2 chart gets the same rule applied at draw time by its ``bar_values()`` layer.
         """
         return place_bar_value_labels_core(
             bars,
@@ -759,6 +769,8 @@ def create_server() -> Any:
             ink_dark=ink_dark,
             pad_px=pad_px,
             orientation=orientation,
+            font_family=font_family,
+            font_weight=font_weight,
         )
 
     @server.tool()
@@ -772,8 +784,10 @@ def create_server() -> Any:
         print every value as ink - stamping all of them collides and is unreadable. Pass one
         entry per series ``{id, values:[...]}`` in order; it claims endpoints and extremes
         first, then fills the budget with the largest step-to-step changes. Returns per-series
-        ``label_indices`` and ``reasons``. It selects points, not placement - feed the chosen
-        anchors to ``recommend_text_placement`` to wrap and de-collide them.
+        ``label_indices``, ``reasons`` and a ``name_index``: the series name is printed once, at
+        that point (its line end); every other chosen point prints its value alone. It selects
+        points, not placement - feed the chosen anchors to ``recommend_text_placement`` to wrap
+        and de-collide them.
         """
         return recommend_labels_core(series, max_labels_per_series)
 

@@ -43,6 +43,7 @@ from .color_math import _contrast_ratio, better_ink, to_rgb
 from .frame import reserve_frame
 from .inspection import _REDUNDANT_AXIS_MIN_LABELS
 from .layout import FONT_PT, PROFILES, char_px, house_font_pt, pt_to_px
+from .text_metrics import TextMeasurer
 
 MARKS_BEGIN = "# ==== marks: the build model writes geoms and labels here ===="
 MARKS_END = "# ==== end marks ===="
@@ -57,6 +58,10 @@ _NEUTRAL_SATURATION = 0.12
 _MIN_TEXT_SHARE = 0.8
 # WCAG AA for normal text; on-mark labels are judged against the fill they sit on.
 _MIN_ON_MARK_CONTRAST = 4.5
+# Text on the page below the large-text floor cannot be read at all (white on white).
+_MIN_ON_PAGE_CONTRAST = 3.0
+# Text this large reads at the large-text floor, as the render inspection judges it.
+_LARGE_TEXT_PT = 14.0
 
 _MONTHS = {m: i + 1 for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
@@ -181,6 +186,155 @@ def _subtitle_key(subtitle: str, palette: dict[str, str]) -> str:
 # --------------------------------------------------------------------------- #
 
 
+_GGPLOT_BAR_VALUES = r'''
+# Bar values: bar_values(aes(label = fmt_value(value), fill = series), position = <the bars' own
+# position>) prints each bar's value inside its end, in the ink that reads on that fill, or just
+# past the end in ink when the bar is too short to hold it - decided when drawn, from the bar's
+# drawn length and the label's own glyphs. Map fill as the bars do (default: ink).
+bar_value_ink <- function(fill) {
+  lum <- function(col) {
+    v <- grDevices::col2rgb(col) / 255
+    v <- ifelse(v <= 0.04045, v / 12.92, ((v + 0.055) / 1.055)^2.4)
+    colSums(v * c(0.2126, 0.7152, 0.0722))
+  }
+  ratio <- function(a, b) (pmax(a, b) + 0.05) / (pmin(a, b) + 0.05)
+  l <- lum(fill)
+  ifelse(ratio(1, l) >= ratio(lum("#1a1a1a"), l), "#ffffff", "#1a1a1a")
+}
+# One rule for the render and the check: along/cross are the label's extent along and across the
+# value axis, lo/hi the bar's value extent and thick its cross extent (one unit, any), dir the side
+# its value grows to; a stacked segment is centred, and one with another beyond it never moves out.
+bar_value_place <- function(lo, hi, thick, along, cross, dir, stacked, inner, pad) {
+  fits <- along + 2 * pad <= hi - lo & cross <= thick
+  end <- ifelse(dir > 0, hi, lo)
+  centre <- inner | (stacked & fits)
+  inside <- fits | inner
+  at <- ifelse(centre, (lo + hi) / 2, ifelse(fits, end - dir * pad, end + dir * pad))
+  just <- ifelse(centre, 0.5, ifelse(fits, (1 + dir) / 2, (1 - dir) / 2))
+  list(at = at, just = just, inside = inside)
+}
+# Which way each bar grows, and whether it is a stacked segment with another beyond it.
+bar_value_stack <- function(data) {
+  dir <- ifelse(data$ymax > 0, 1, -1)
+  touches <- function(r, beyond) {
+    edge <- if (xor(dir[r] > 0, beyond)) data$ymax - data$ymin[r] else data$ymin - data$ymax[r]
+    any(data$PANEL == data$PANEL[r] & abs(data$x - data$x[r]) < 1e-9 & seq_len(nrow(data)) != r & abs(edge) < 1e-9)
+  }
+  inner <- vapply(seq_len(nrow(data)), touches, TRUE, beyond = TRUE)
+  list(dir = dir, inner = inner, stacked = inner | vapply(seq_len(nrow(data)), touches, TRUE, beyond = FALSE))
+}
+bar_value_aes <- GeomText$default_aes
+bar_value_aes$fill <- "#1a1a1a"
+GeomBarValue <- ggproto("GeomBarValue", GeomText,
+  default_aes = bar_value_aes,
+  extra_params = c("na.rm", "width"),
+  setup_data = function(data, params) {
+    if (is.null(data$width)) data$width <- if (is.null(params$width)) resolution(data$x, FALSE, TRUE) * 0.9 else params$width
+    data$ymin <- pmin(data$y, 0)
+    data$ymax <- pmax(data$y, 0)
+    data$xmin <- data$x - data$width / 2
+    data$xmax <- data$x + data$width / 2
+    data$width <- NULL
+    data
+  },
+  draw_panel = function(data, panel_params, coord, na.rm = FALSE) {
+    flip <- inherits(coord, "CoordFlip")
+    stack <- bar_value_stack(data)
+    coords <- coord$transform(data, panel_params)
+    grid::gTree(coords = coords, flip = flip, dir = stack$dir, stacked = stack$stacked, inner = stack$inner, cl = "dvz_bar_values")
+  }
+)
+makeContent.dvz_bar_values <- function(x) {
+  d <- x$coords
+  inch <- function(v, horizontal) if (horizontal) grid::convertWidth(grid::unit(v, "npc"), "in", TRUE) else
+    grid::convertHeight(grid::unit(v, "npc"), "in", TRUE)
+  # flip: the value axis runs across the screen, so its extents are the x columns after transform.
+  lo <- if (x$flip) d$xmin else d$ymin; hi <- if (x$flip) d$xmax else d$ymax
+  c0 <- if (x$flip) d$ymin else d$xmin; c1 <- if (x$flip) d$ymax else d$xmax
+  gp <- lapply(seq_len(nrow(d)), function(r) grid::gpar(fontsize = d$size[r] * .pt, fontfamily = d$family[r],
+    fontface = d$fontface[r], lineheight = d$lineheight[r]))
+  w <- vapply(seq_len(nrow(d)), function(r) grid::convertWidth(grid::grobWidth(grid::textGrob(d$label[r], gp = gp[[r]])), "in", TRUE), 0)
+  h <- vapply(seq_len(nrow(d)), function(r) grid::convertHeight(grid::grobHeight(grid::textGrob(d$label[r], gp = gp[[r]])), "in", TRUE), 0)
+  place <- bar_value_place(inch(lo, x$flip), inch(hi, x$flip), abs(inch(c1, !x$flip) - inch(c0, !x$flip)),
+    if (x$flip) w else h, if (x$flip) h else w, x$dir, x$stacked, x$inner, 0.3 * d$size * .pt / 72)
+  # Back to npc, the unit every other text in the panel is placed in.
+  at <- grid::unit(place$at / inch(1, x$flip), "npc"); mid <- grid::unit((c0 + c1) / 2, "npc")
+  ink <- ifelse(place$inside, bar_value_ink(d$fill), d$colour)
+  kids <- lapply(seq_len(nrow(d)), function(r) grid::textGrob(d$label[r],
+    x = if (x$flip) at[r] else mid[r], y = if (x$flip) mid[r] else at[r],
+    hjust = if (x$flip) place$just[r] else 0.5, vjust = if (x$flip) 0.5 else place$just[r],
+    gp = grid::gpar(col = ink[r], fontsize = d$size[r] * .pt, fontfamily = d$family[r],
+                    fontface = d$fontface[r], lineheight = d$lineheight[r])))
+  grid::setChildren(x, do.call(grid::gList, kids))
+}
+bar_values <- function(mapping = NULL, data = NULL, position = "identity", ..., width = NULL, size = label_size) {
+  params <- list(width = width, size = size, ...)
+  if (is.null(mapping$fill) && is.null(params$fill)) params$fill <- ink
+  if (is.null(mapping$colour) && is.null(params$colour)) params$colour <- "#1a1a1a"
+  layer(geom = GeomBarValue, stat = "identity", data = data, mapping = mapping,
+        position = position, params = params, show.legend = FALSE)
+}
+'''.strip("\n")
+
+
+_GGPLOT_END_LABELS = r'''
+# Line ends: end_labels(aes(x = category, y = value, label = series, colour = series), data = <each
+# line's last row>) names each line just past its last point; labels that would overlap are spread
+# apart along the value axis by the least total movement and tied back to their points by short leaders.
+end_label_spread <- function(y, h, lo, hi) {
+  o <- order(y)
+  ys <- y[o]; hs <- h[o]
+  need <- c(0, cumsum((head(hs, -1) + tail(hs, -1)) / 2))
+  # Least-squares positions keeping every gap: isotonic regression of y - need, then add it back.
+  z <- ys - need
+  blocks <- lapply(seq_along(z), function(i) c(sum = z[i], n = 1))
+  k <- 1
+  while (k < length(blocks)) {
+    if (blocks[[k]]["sum"] / blocks[[k]]["n"] > blocks[[k + 1]]["sum"] / blocks[[k + 1]]["n"]) {
+      blocks[[k]] <- blocks[[k]] + blocks[[k + 1]]
+      blocks[[k + 1]] <- NULL
+      k <- max(1, k - 1)
+    } else k <- k + 1
+  }
+  fitted <- unlist(lapply(blocks, function(b) rep(b["sum"] / b["n"], b["n"])))
+  out <- fitted + need
+  # Keep the labels inside the panel, pushing on only the neighbours that would then overlap.
+  step <- diff(need)
+  out[1] <- max(out[1], lo + hs[1] / 2)
+  for (i in seq_along(out)[-1]) out[i] <- max(out[i], out[i - 1] + step[i - 1])
+  out[length(out)] <- min(out[length(out)], hi - hs[length(hs)] / 2)
+  for (i in rev(seq_along(out))[-1]) out[i] <- min(out[i], out[i + 1] - step[i])
+  out[order(o)]
+}
+GeomEndLabel <- ggproto("GeomEndLabel", GeomText,
+  draw_panel = function(data, panel_params, coord, na.rm = FALSE) {
+    grid::gTree(coords = coord$transform(data, panel_params), cl = "dvz_end_labels")
+  }
+)
+makeContent.dvz_end_labels <- function(x) {
+  d <- x$coords
+  gp <- lapply(seq_len(nrow(d)), function(r) grid::gpar(col = d$colour[r], fontsize = d$size[r] * .pt,
+    fontfamily = d$family[r], fontface = d$fontface[r], lineheight = d$lineheight[r]))
+  h <- vapply(seq_len(nrow(d)), function(r) grid::convertHeight(grid::grobHeight(
+    grid::textGrob(d$label[r], gp = gp[[r]])), "npc", TRUE), 0) * 1.15
+  y <- end_label_spread(d$y, h, 0, 1)
+  gap <- grid::convertWidth(grid::unit(0.3 * d$size * .pt, "points"), "npc", TRUE)
+  # Once any label has moved, every label in the column takes a leader, so they align.
+  moved <- rep(any(abs(y - d$y) > h / 2), nrow(d))
+  lead <- ifelse(moved, 3 * gap, 0)
+  kids <- lapply(seq_len(nrow(d)), function(r) grid::textGrob(d$label[r], x = d$x[r] + gap[r] + lead[r],
+    y = y[r], hjust = 0, vjust = 0.5, gp = gp[[r]]))
+  leaders <- lapply(which(moved), function(r) grid::segmentsGrob(d$x[r] + gap[r] / 2, d$y[r],
+    d$x[r] + gap[r] + lead[r] * 0.8, y[r], gp = grid::gpar(col = d$colour[r], lwd = 0.6)))
+  grid::setChildren(x, do.call(grid::gList, c(kids, leaders)))
+}
+end_labels <- function(mapping = NULL, data = NULL, ..., size = label_size) {
+  layer(geom = GeomEndLabel, stat = "identity", data = data, mapping = mapping,
+        position = "identity", params = list(size = size, ...), show.legend = FALSE)
+}
+'''.strip("\n")
+
+
 def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
     """Return (head, marks body, tail) for the ggplot2 source."""
     fonts = spec["font_pt"]
@@ -225,9 +379,14 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "# series sits at the baseline and each label on its own segment.",
         "stack <- position_stack(reverse = TRUE)",
         "stack_mid <- position_stack(reverse = TRUE, vjust = 0.5)",
-        "# Text on a mark: aes(colour = on_fill_ink(series)) - the ink that reads on that fill.",
+        "# Text on a mark: aes(colour = on_fill_ink(series)) - the ink that reads on that fill;",
+        "# on_fill_ink() for the single-colour ink. Text on the page takes ink or its series colour.",
         f"on_ink <- {_r_vec(list(spec['on_ink'].values()), list(spec['on_ink'].keys())) if spec['on_ink'] else 'c()'}",
-        "on_fill_ink <- function(series) I(unname(on_ink[as.character(series)]))",
+        "on_fill_ink <- function(series = NULL) I(if (is.null(series)) "
+        + f"{_r_str(better_ink(spec['ordered'][0] if spec['ordered'] else '#1a1a1a')[0])} "
+        + "else unname(on_ink[as.character(series)]))",
+        _GGPLOT_BAR_VALUES,
+        _GGPLOT_END_LABELS,
         "",
     ]
     marks = [
@@ -286,17 +445,23 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
     if spec["x_kind"] == "date":
         layers.append("scale_x_date(labels = scales::label_date_short())")
     elif spec["x_kind"] == "discrete":
-        # A flipped axis would put the first category at the bottom; read order runs top-down.
-        discrete_args = ["limits = rev"] if horizontal else []
+        # The axis runs in the planned category order whatever order the layers train it in (a
+        # layer drawn from a subset would otherwise put its categories first), over the categories
+        # the marks draw. A flipped axis would put the first category at the bottom; read order
+        # runs top-down.
+        order = _r_vec(spec["category_order"])
+        drawn = f"intersect({order}, x)"
+        discrete_args = [f"limits = function(x) {'rev(' + drawn + ')' if horizontal else drawn}"]
         if spec["wrap_label_chars"]:
             discrete_args.append(f"labels = scales::label_wrap({spec['wrap_label_chars']})")
-        if discrete_args:
-            layers.append(f"scale_x_discrete({', '.join(discrete_args)})")
+        layers.append(f"scale_x_discrete({', '.join(discrete_args)})")
     # Clip off: a direct label past the panel edge draws into the margin, where the inspector
     # measures it and refit_chart grows the canvas, instead of being cut invisibly at the panel.
     layers.append('coord_flip(clip = "off")' if horizontal else 'coord_cartesian(clip = "off")')
     if has_facet:
-        layers.append(f'facet_wrap(~facet, ncol = {spec["facet_ncol"]}, scales = {_r_str(spec["facet_scales"])})')
+        # A panel heading wider than its panel is cut at the panel edge; wrap it to the panel instead.
+        labeller = f", labeller = label_wrap_gen(width = {spec['strip_wrap_chars']})" if spec["strip_wrap_chars"] else ""
+        layers.append(f'facet_wrap(~facet, ncol = {spec["facet_ncol"]}, scales = {_r_str(spec["facet_scales"])}{labeller})')
     # Axis titles are declared by displayed position; under coord_flip the y aesthetic is drawn
     # along the bottom, so the labs() keys swap.
     shown = spec["axis_titles"]
@@ -655,6 +820,9 @@ def scaffold_chart(
     if facet_order and not layout.get("facet_ncol"):
         spec["facet_ncol"] = max(1, round(len(facet_order) ** 0.5))
         spec["facet_nrow"] = -(-len(facet_order) // spec["facet_ncol"])
+    spec["strip_wrap_chars"] = _strip_wrap_chars(
+        facet_order, float(frame["plot_area"]["width"]) - extra, spec["facet_ncol"], fonts["axis"], dpi,
+    ) if facet_order and frame.get("plot_area") else 0
 
     build = _ggplot_scaffold if renderer == "ggplot2" else _matplotlib_scaffold
     head, marks, tail = build(spec)
@@ -674,6 +842,8 @@ def scaffold_chart(
                 "orientation": spec["orientation"],
                 "value_encoding": value_encoding,
                 "label_pt": fonts["label"],
+                "dimensions": {"width_px": width, "height_px": height, "dpi": dpi},
+                "background": background,
             },
             indent=2,
         ),
@@ -704,7 +874,12 @@ def scaffold_chart(
         "marks_brief": (
             f"Write only the body of chart_marks between the markers in {source.name}. "
             + ("Return list(...) of ggplot layers mapping x = category, y = value; use palette/ink, "
-               "fmt_value() for printed numbers and size = label_size for text."
+               "fmt_value() for printed numbers and size = label_size for text. Print bar values with "
+               "bar_values(aes(x = category, y = value, label = fmt_value(value), fill = <the bars' fill>), "
+               "position = <the bars' own position>): it puts each value inside its bar or past the end, "
+               "in ink that reads there. Name lines at their ends with end_labels(aes(x = category, y = value, "
+               "label = series, colour = series), data = <each line's last row>): it spreads crowded names "
+               "apart with leaders. Other text keeps the position of the marks it labels."
                if renderer == "ggplot2" else
                "Draw on ax from rows with pos(row) and row['value']; use PALETTE/INK, fmt_value() and "
                "fontsize=LABEL_PT.")
@@ -718,14 +893,23 @@ def scaffold_chart(
 _R_CHECK = r'''
 args <- commandArgs(trailingOnly = TRUE)
 suppressPackageStartupMessages(library(ggplot2))
-pdf(NULL)
+suppressPackageStartupMessages(library(grid))
+setup <- jsonlite::fromJSON(args[[3]])
+width_px <- as.numeric(setup$width_px); height_px <- as.numeric(setup$height_px); dpi <- as.numeric(setup$dpi)
+# Text is measured on the device the render uses, at the delivery size, so a label's box is its ink.
+if (requireNamespace("ragg", quietly = TRUE)) {
+  ragg::agg_png(tempfile(fileext = ".png"), width = width_px, height = height_px, units = "px", res = dpi)
+} else {
+  pdf(NULL, width = width_px / dpi, height = height_px / dpi)
+}
 out <- list(error = NULL, non_layers = list(), geom_label = 0L, text_rows = 0L,
-            mark_colours = list(), text_sizes = list(), unmapped = list(), label_mismatch = list(),
-            stack_order = FALSE, on_mark = list(), value_span = NULL, mark_span = NULL)
+            mark_colours = list(), text_sizes = list(), unmapped = list(), wrong_mark = list(),
+            stack_order = FALSE, surfaces = list(), detached = list(), stretch = list(), value_span = NULL, mark_span = NULL)
 as_hex <- function(x) tryCatch(grDevices::rgb(t(grDevices::col2rgb(x)), maxColorValue = 255), error = function(e) as.character(x))
 flat <- function(x) if (is.list(x) && !inherits(x, "gg")) do.call(c, lapply(x, flat)) else list(x)
 is_text <- function(layer) inherits(layer$geom, "GeomText") || inherits(layer$geom, "GeomLabel") ||
   grepl("Text|Label", class(layer$geom)[1])
+num <- function(v, fallback) { v <- suppressWarnings(as.numeric(v)); if (!length(v) || !is.finite(v[1])) fallback else v[1] }
 tryCatch({
   source(args[[1]], local = .GlobalEnv)
   for (e in flat(chart_marks(plot_data))) {
@@ -743,11 +927,33 @@ tryCatch({
   }
   built <- build_chart()
   plot <- if (inherits(built, "ggplot")) built else built$plot
+  # Tag every layer row with the observation it draws, as a numeric aesthetic (numeric, so it
+  # never changes grouping), so a label and a bar are matched by identity, not by the number printed.
+  keys <- intersect(c("category", "series", "facet"), names(plot_data))
+  key_of <- function(frame) do.call(paste, c(lapply(keys, function(k) as.character(frame[[k]])), sep = "\r"))
+  obs_keys <- key_of(plot_data)
+  .dvz_obs <- function(...) match(do.call(paste, c(lapply(list(...), as.character), sep = "\r")), obs_keys)
+  for (layer in plot$layers) {
+    data <- if (is.data.frame(layer$data)) layer$data else if (is.function(layer$data)) {
+      tryCatch(layer$data(plot_data), error = function(e) NULL)
+    } else plot_data
+    if (is.null(data) || !all(keys %in% names(data))) next
+    mapping <- if (is.null(layer$mapping)) aes() else layer$mapping
+    mapping[["dvzobs"]] <- rlang::new_quosure(as.call(c(quote(.dvz_obs), lapply(keys, as.name))), environment())
+    layer$mapping <- mapping
+  }
   b <- ggplot_build(plot)
-  invisible(ggplotGrob(plot))
+  gt <- ggplotGrob(plot)
   for (i in seq_along(plot$layers)) if (is_text(plot$layers[[i]])) out$text_rows <- out$text_rows + nrow(b$data[[i]])
-  # How far the marks travel along the value axis (y before any coord_flip), against the data's range.
-  if (is.numeric(plot_data$value)) out$value_span <- diff(range(plot_data$value, na.rm = TRUE))
+  # How far the marks travel along the value axis (y before any coord_flip), against the data's
+  # range, both in the value scale's own space (a log axis compares logs with logs).
+  if (is.numeric(plot_data$value)) {
+    scale_y <- b$layout$panel_scales_y[[1]]
+    trans <- tryCatch(scale_y$get_transformation(), error = function(e) NULL)
+    values <- if (is.null(trans)) plot_data$value else suppressWarnings(trans$transform(plot_data$value))
+    values <- values[is.finite(values)]
+    if (length(values)) out$value_span <- diff(range(values))
+  }
   ys <- unlist(lapply(seq_along(plot$layers), function(i) {
     d <- b$data[[i]]
     if (is_text(plot$layers[[i]])) return(NULL)
@@ -765,32 +971,208 @@ tryCatch({
     if (!inherits(vals, "AsIs") && (is.character(vals) || is.factor(vals)) && !all(as.character(vals) %in% named))
       out$unmapped[[length(out$unmapped) + 1]] <- rlang::as_label(m)
   }
-  # A printed number sitting inside a bar must be that bar's value.
-  rects <- do.call(rbind, lapply(seq_along(plot$layers), function(i) {
+
+  # ---- Native geometry: panels, marks and text boxes in device px (origin top-left) ----
+  resolve_tracks <- function(track_units, total_px) {
+    types <- unitType(track_units)
+    fixed <- convertUnit(track_units, "in", valueOnly = TRUE) * dpi
+    null <- types == "null"
+    weights <- rep(0, length(track_units))
+    if (any(null)) weights[null] <- as.numeric(track_units[null])
+    remaining <- max(0, total_px - sum(fixed[!null]))
+    if (sum(weights) > 0) fixed[null] <- remaining * weights[null] / sum(weights)
+    fixed
+  }
+  widths <- resolve_tracks(gt$widths, width_px)
+  heights <- resolve_tracks(gt$heights, height_px)
+  x_before <- c(0, cumsum(widths)); y_before <- c(0, cumsum(heights))
+  boxes <- list()
+  for (i in seq_len(nrow(gt$layout))) {
+    item <- gt$layout[i, ]
+    if (!startsWith(item$name, "panel")) next
+    boxes[[item$name]] <- c(x_before[item$l], y_before[item$t],
+                            sum(widths[item$l:item$r]), sum(heights[item$t:item$b]))
+  }
+  lay <- b$layout$layout
+  flip <- inherits(plot$coordinates, "CoordFlip")
+  to_px <- list(); panel_box <- list()
+  for (k in seq_len(nrow(lay))) {
+    pp <- b$layout$panel_params[[k]]
+    name <- if (length(boxes) == 1) names(boxes)[1] else paste0("panel-", lay$COL[k], "-", lay$ROW[k])
+    box <- boxes[[name]]
+    xr <- pp$x.range; yr <- pp$y.range
+    if (is.null(box) || length(xr) != 2 || length(yr) != 2 || !diff(xr) || !diff(yr)) next
+    panel_box[[as.character(lay$PANEL[k])]] <- box
+    # coord_flip reports screen ranges: x.range runs across (data y), y.range up (data x).
+    to_px[[as.character(lay$PANEL[k])]] <- local({
+      bx <- box; hx <- xr; vy <- yr
+      function(x, y) {
+        across <- if (flip) y else x
+        up <- if (flip) x else y
+        list(x = bx[1] + (across - hx[1]) / diff(hx) * bx[3],
+             y = bx[2] + bx[4] - (up - vy[1]) / diff(vy) * bx[4])
+      }
+    })
+  }
+  background <- as.character(setup$background)
+  mix <- function(top, alpha, under) {
+    a <- grDevices::col2rgb(top) / 255; u <- grDevices::col2rgb(under) / 255
+    grDevices::rgb(t(alpha * a + (1 - alpha) * u))
+  }
+  # Filled rectangles in draw order: later layers, and later rows, paint over earlier ones.
+  rects <- list()
+  for (i in seq_along(plot$layers)) {
     d <- b$data[[i]]
-    if (is_text(plot$layers[[i]]) || !all(c("xmin", "xmax", "ymin", "ymax") %in% names(d))) return(NULL)
-    d$fill_hex <- if ("fill" %in% names(d)) as_hex(d$fill) else NA_character_
-    d[, c("PANEL", "xmin", "xmax", "ymin", "ymax", "fill_hex")]
-  }))
-  if (!is.null(rects)) for (i in seq_along(plot$layers)) {
+    if (is_text(plot$layers[[i]]) || !all(c("xmin", "xmax", "ymin", "ymax", "fill") %in% names(d))) next
+    for (r in seq_len(nrow(d))) {
+      f <- to_px[[as.character(d$PANEL[r])]]
+      if (is.null(f) || is.na(d$fill[r])) next
+      a <- f(c(d$xmin[r], d$xmax[r]), c(d$ymin[r], d$ymax[r]))
+      # A band drawn to -Inf/Inf spans the panel.
+      box <- panel_box[[as.character(d$PANEL[r])]]
+      a$x <- pmin(pmax(a$x, box[1]), box[1] + box[3]); a$y <- pmin(pmax(a$y, box[2]), box[2] + box[4])
+      if (!all(is.finite(c(a$x, a$y)))) next
+      fill_alpha <- grDevices::col2rgb(d$fill[r], alpha = TRUE)[4] / 255
+      alpha <- num(if ("alpha" %in% names(d)) d$alpha[r] else NA, 1) * fill_alpha
+      obs <- if ("dvzobs" %in% names(d)) d$dvzobs[r] else NA
+      # A value mark is one whose length along the value axis is its own observation's value;
+      # a band or background tile drawn behind the data is not.
+      value_mark <- !is.na(obs) && is.numeric(plot_data$value) &&
+        isTRUE(abs(abs(d$ymax[r] - d$ymin[r]) - abs(plot_data$value[obs])) <= 1e-6 * max(1, abs(plot_data$value[obs])))
+      rects[[length(rects) + 1]] <- list(panel = as.character(d$PANEL[r]), x0 = min(a$x), x1 = max(a$x),
+        y0 = min(a$y), y1 = max(a$y), fill = as_hex(d$fill[r]), alpha = alpha, obs = obs,
+        value_mark = value_mark, layer = i)
+    }
+  }
+  # Where each observation's own marks sit along the value axis (screen px), to test attachment.
+  value_px <- function(p) if (flip) p$x else p$y
+  own_marks <- list()
+  for (i in seq_along(plot$layers)) {
+    d <- b$data[[i]]
+    if (is_text(plot$layers[[i]]) || !("dvzobs" %in% names(d))) next
+    for (r in seq_len(nrow(d))) {
+      f <- to_px[[as.character(d$PANEL[r])]]
+      if (is.null(f) || is.na(d$dvzobs[r])) next
+      span <- if (all(c("ymin", "ymax", "xmin", "xmax") %in% names(d))) {
+        value_px(f(c(d$xmin[r], d$xmax[r]), c(d$ymin[r], d$ymax[r])))
+      } else if (all(c("x", "y") %in% names(d))) value_px(f(d$x[r], d$y[r])) else NULL
+      if (is.null(span) || !all(is.finite(span))) next
+      key <- paste(d$PANEL[r], d$dvzobs[r])
+      own_marks[[key]] <- c(own_marks[[key]], range(span))
+    }
+  }
+  # A layer that is not a data mark (a shaded band, a backdrop tile) must not set the value
+  # range: finite extents far past what the data marks reach stretch the axis and flatten them.
+  if (is.numeric(plot_data$value)) {
+    data_y <- c(); other <- list()
+    for (i in seq_along(plot$layers)) {
+      d <- b$data[[i]]
+      if (is_text(plot$layers[[i]])) next
+      cols <- intersect(c("y", "ymin", "ymax", "yend"), names(d))
+      for (r in seq_len(nrow(d))) {
+        ys_r <- unlist(lapply(cols, function(k) as.numeric(d[[k]][r])))
+        ys_r <- ys_r[is.finite(ys_r)]
+        if (!length(ys_r)) next
+        obs <- if ("dvzobs" %in% names(d)) d$dvzobs[r] else NA
+        own <- !is.na(obs) && (any(abs(ys_r - plot_data$value[obs]) <= 1e-9 * max(1, abs(plot_data$value[obs]))) ||
+          (all(c("ymin", "ymax") %in% names(d)) && isTRUE(abs(abs(d$ymax[r] - d$ymin[r]) - abs(plot_data$value[obs])) <= 1e-6 * max(1, abs(plot_data$value[obs])))))
+        if (own) data_y <- c(data_y, ys_r) else other[[class(plot$layers[[i]]$geom)[1]]] <- c(other[[class(plot$layers[[i]]$geom)[1]]], ys_r)
+      }
+    }
+    if (length(data_y)) {
+      lo <- min(data_y, 0); hi <- max(data_y); span <- max(hi - lo, 1e-9)
+      for (g in names(other)) {
+        over <- max(other[[g]]) - hi; under <- lo - min(other[[g]])
+        if (max(over, under) > 0.25 * span) out$stretch[[length(out$stretch) + 1]] <- list(geom = g,
+          reach = signif(if (over >= under) max(other[[g]]) else min(other[[g]]), 4), lo = signif(lo, 4), hi = signif(hi, 4))
+      }
+    }
+  }
+  position_name <- function(layer) {
+    p <- layer$position
+    cls <- class(p)[1]
+    if (inherits(p, "PositionDodge")) return(sprintf("position_dodge(width = %s)", format(num(p$width, 0.9))))
+    if (inherits(p, "PositionStack")) return(if (inherits(p, "PositionFill")) "position_fill()" else "stack")
+    if (inherits(p, "PositionIdentity")) return("no position adjustment")
+    cls
+  }
+  just_value <- function(v, low_side) {
+    if (is.numeric(v)) return(v)
+    v <- tolower(as.character(v))
+    if (v %in% c("left", "bottom")) return(0)
+    if (v %in% c("right", "top")) return(1)
+    if (v == "inward") return(if (low_side) 0 else 1)
+    if (v == "outward") return(if (low_side) 1 else 0)
+    num(v, 0.5)
+  }
+  describe <- function(obs) paste(vapply(keys, function(k) as.character(plot_data[[k]][obs]), ""), collapse = " / ")
+  for (i in seq_along(plot$layers)) {
     if (!is_text(plot$layers[[i]])) next
     d <- b$data[[i]]
     for (r in seq_len(nrow(d))) {
       text <- as.character(d$label[r])
-      if (is.na(text) || !nzchar(text)) next
-      hit <- rects[rects$PANEL == d$PANEL[r] & d$x[r] >= rects$xmin & d$x[r] <= rects$xmax &
-                   d$y[r] >= pmin(rects$ymin, rects$ymax) & d$y[r] <= pmax(rects$ymin, rects$ymax), ]
-      if (nrow(hit) != 1) next
-      # Text on a mark reads against the mark's fill, not the page.
-      out$on_mark[[length(out$on_mark) + 1]] <- list(text = text, ink = as_hex(d$colour[r]), fill = hit$fill_hex)
-      if (grepl("[KMBT]\\b", text)) next
-      token <- regmatches(text, regexpr("-?[0-9][0-9,]*\\.?[0-9]*", text))
-      if (!length(token)) next
-      shown <- as.numeric(gsub(",", "", token))
-      decimals <- if (grepl("\\.", token)) nchar(sub(".*\\.", "", token)) else 0
-      value <- abs(hit$ymax - hit$ymin)
-      if (abs(value - shown) > 0.5 * 10^-decimals + 1e-9 && abs(value - shown) > 0.02 * abs(value))
-        out$label_mismatch[[length(out$label_mismatch) + 1]] <- sprintf("'%s' sits on a bar of %s", text, format(signif(value, 4)))
+      f <- to_px[[as.character(d$PANEL[r])]]
+      if (is.na(text) || !nzchar(text) || is.null(f)) next
+      at <- f(d$x[r], d$y[r])
+      if (!all(is.finite(c(at$x, at$y)))) next
+      face <- if ("fontface" %in% names(d)) d$fontface[r] else 1
+      gp <- gpar(fontsize = num(d$size[r], 3.87) * .pt,
+                 lineheight = num(if ("lineheight" %in% names(d)) d$lineheight[r] else NA, 1.2),
+                 fontface = if (is.numeric(face)) face else as.character(face))
+      family <- if ("family" %in% names(d)) as.character(d$family[r]) else ""
+      if (length(family) && !is.na(family) && nzchar(family)) gp$fontfamily <- family
+      tg <- tryCatch(textGrob(text, gp = gp), error = function(e) textGrob(text, gp = gpar(fontsize = gp$fontsize)))
+      w <- convertWidth(grobWidth(tg), "in", valueOnly = TRUE) * dpi
+      h <- convertHeight(grobHeight(tg), "in", valueOnly = TRUE) * dpi
+      if (abs((num(d$angle[r], 0) %% 180) - 90) < 45) { tmp <- w; w <- h; h <- tmp }
+      ink <- as_hex(d$colour[r])
+      if (inherits(plot$layers[[i]]$geom, "GeomBarValue")) {
+        # bar_values decides inside/outside when drawn; replay that rule at the delivery size.
+        stack <- bar_value_stack(d)
+        bar <- f(c(d$xmin[r], d$xmax[r]), c(d$ymin[r], d$ymax[r]))
+        along_px <- if (flip) bar$x else -bar$y
+        cross_px <- if (flip) bar$y else bar$x
+        place <- bar_value_place(min(along_px), max(along_px), diff(range(cross_px)),
+          if (flip) w else h, if (flip) h else w, stack$dir[r], stack$stacked[r], stack$inner[r],
+          0.3 * gp$fontsize / 72 * dpi)
+        centre <- place$at + (0.5 - place$just) * (if (flip) w else h)
+        cx <- if (flip) centre else mean(cross_px)
+        cy <- if (flip) mean(cross_px) else -centre
+        if (place$inside) ink <- as_hex(bar_value_ink(d$fill[r]))
+      } else {
+        box <- panel_box[[as.character(d$PANEL[r])]]
+        hj <- just_value(d$hjust[r], at$x < box[1] + box[3] / 2)
+        vj <- just_value(d$vjust[r], at$y > box[2] + box[4] / 2)
+        cx <- at$x + (0.5 - hj) * w
+        cy <- at$y - (0.5 - vj) * h
+      }
+      # The surface behind the text: the page, painted over by every fill under its centre.
+      surface <- background
+      top <- NULL
+      for (m in rects) {
+        if (m$panel != as.character(d$PANEL[r]) || cx < m$x0 || cx > m$x1 || cy < m$y0 || cy > m$y1) next
+        surface <- mix(m$fill, m$alpha, surface)
+        if (m$alpha >= 0.5) top <- m
+      }
+      out$surfaces[[length(out$surfaces) + 1]] <- list(text = text, ink = ink, surface = surface,
+        on_mark = !is.null(top), font_pt = gp$fontsize,
+        bar_values = inherits(plot$layers[[i]]$geom, "GeomBarValue"))
+      # A value label sitting on a value mark must be on its own observation's mark.
+      own <- if ("dvzobs" %in% names(d)) d$dvzobs[r] else NA
+      # A label drawn for an observation stays within reach of that observation's own mark:
+      # a label moved lines away along the value axis (a stack applied to line labels, a
+      # hand offset) reads as belonging to something else.
+      reach <- own_marks[[paste(d$PANEL[r], own)]]
+      if (!is.na(own) && length(reach)) {
+        gap <- max(0, min(reach) - value_px(at), value_px(at) - max(reach))
+        if (gap > 2.5 * h) out$detached[[length(out$detached) + 1]] <- list(text = text, own = describe(own),
+          gap_px = round(gap), position = position_name(plot$layers[[i]]))
+      }
+      if (is.null(top) || !isTRUE(top$value_mark) || is.na(own) || identical(top$obs, own)) next
+      has_own <- any(vapply(rects, function(m) isTRUE(m$value_mark) && identical(m$obs, own), TRUE))
+      if (!has_own) next
+      out$wrong_mark[[length(out$wrong_mark) + 1]] <- list(text = text, own = describe(own),
+        on = describe(top$obs), position = position_name(plot$layers[[top$layer]]))
     }
   }
   # Stacked segments read in series order outward from the baseline.
@@ -815,16 +1197,22 @@ jsonlite::write_json(out, args[[2]], auto_unbox = TRUE, null = "null")
 '''
 
 
-def _check_ggplot(source: Path) -> dict[str, Any]:
+def _check_ggplot(source: Path, record: dict[str, Any]) -> dict[str, Any]:
     rscript = shutil.which("Rscript")
     if rscript is None:
         return {"error": "Rscript is not available; the slot could not be built"}
+    # Geometry is measured at the delivery size; a sidecar written before it was recorded
+    # falls back to the chat profile.
+    dims = record.get("dimensions") or {k: PROFILES["chat"][k] for k in ("width_px", "height_px", "dpi")}
+    setup = {**dims, "background": record.get("background") or "#FFFFFF"}
     with tempfile.TemporaryDirectory() as tmp:
         script = Path(tmp) / "check.R"
         result = Path(tmp) / "check.json"
+        setup_path = Path(tmp) / "setup.json"
         script.write_text(_R_CHECK, encoding="utf-8")
+        setup_path.write_text(json.dumps(setup), encoding="utf-8")
         completed = subprocess.run(
-            [rscript, str(script), str(source), str(result)],
+            [rscript, str(script), str(source), str(result), str(setup_path)],
             capture_output=True, text=True, timeout=120, cwd=tmp,
         )
         if not result.exists():
@@ -879,20 +1267,26 @@ def _check_matplotlib(source: Path, record: dict[str, Any]) -> dict[str, Any]:
                     continue
                 out["mark_colours"] += [mcolors.to_hex(c) for c in colours if c is not None and len(c)]
             out["stack_order"] = out.get("stack_order") or _mpl_stack_out_of_order(ax, record, Rectangle, mcolors)
-            # Text on a bar reads against the bar's fill, not the page.
+            # Text reads against the surface behind its drawn box: the page, painted over by
+            # every bar under the box's centre, in draw order.
+            renderer = figure.canvas.get_renderer()
             bars = [p for p in ax.patches if isinstance(p, Rectangle)]
             for text in ax.texts:
-                x, y = text.get_position()
+                box = text.get_window_extent(renderer)
+                cx, cy = (box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2
+                surface, on_mark = mcolors.to_rgb(record.get("background") or "#FFFFFF"), False
                 for bar in bars:
-                    x0, x1 = sorted((bar.get_x(), bar.get_x() + bar.get_width()))
-                    y0, y1 = sorted((bar.get_y(), bar.get_y() + bar.get_height()))
-                    if x0 <= float(x) <= x1 and y0 <= float(y) <= y1:
-                        out.setdefault("on_mark", []).append({
-                            "text": text.get_text(),
-                            "ink": mcolors.to_hex(text.get_color()),
-                            "fill": mcolors.to_hex(bar.get_facecolor()),
-                        })
-                        break
+                    extent = bar.get_window_extent(renderer)
+                    if extent.x0 <= cx <= extent.x1 and extent.y0 <= cy <= extent.y1:
+                        *rgb, alpha = mcolors.to_rgba(bar.get_facecolor())
+                        surface = tuple(alpha * c + (1 - alpha) * u for c, u in zip(rgb, surface))
+                        on_mark = on_mark or alpha >= 0.5
+                out.setdefault("surfaces", []).append({
+                    "text": text.get_text(),
+                    "ink": mcolors.to_hex(text.get_color()),
+                    "surface": mcolors.to_hex(surface),
+                    "on_mark": on_mark,
+                })
     finally:
         plt.close(figure)
     return out
@@ -978,7 +1372,7 @@ def check_chart(source_path: str) -> dict[str, Any]:
         source.write_text(f"{record['head']}{MARKS_BEGIN}{body}{MARKS_END}{record['tail']}", encoding="utf-8")
         restored = True
 
-    found = _check_ggplot(source) if record["renderer"] == "ggplot2" else _check_matplotlib(source, record)
+    found = _check_ggplot(source, record) if record["renderer"] == "ggplot2" else _check_matplotlib(source, record)
     if found.get("error"):
         message = " ".join(line.strip() for line in found["error"].splitlines() if line.strip()) or "build failed"
         hint = ""
@@ -1014,16 +1408,34 @@ def check_chart(source_path: str) -> dict[str, Any]:
             f"colour/fill = {expression} maps values the palette does not name, so they draw in the scale's "
             "NA grey. Map colour to series, or split the rows into layers with a fixed colour each.",
         )
-    faint = sorted({
-        f"'{pair['text']}' ({pair['ink']} on {pair['fill']})"
-        for pair in found.get("on_mark") or []
-        if (_contrast_ratio(pair.get("ink"), pair.get("fill")) or 99.0) < _MIN_ON_MARK_CONTRAST
-    })
-    if faint:
+    # Text is judged against the surface actually behind it: a fill it sits on, or the page.
+    palette_inks = {c.lower() for c in record.get("palette") or []}
+    on_mark, on_page, from_bar_values = set(), set(), False
+    for text in found.get("surfaces") or []:
+        ratio = _contrast_ratio(text.get("ink"), text.get("surface")) or 99.0
+        described = f"'{text['text']}' ({text['ink']} on {text['surface']})"
+        # The inspection's rule: large text reads at 3:1, normal text needs 4.5:1.
+        target = _MIN_ON_PAGE_CONTRAST if float(text.get("font_pt") or 0) >= _LARGE_TEXT_PT else _MIN_ON_MARK_CONTRAST
+        if text.get("on_mark") and ratio < target:
+            on_mark.add(described)
+            from_bar_values = from_bar_values or bool(text.get("bar_values"))
+        # On the page, only ink the slot chose (not a palette colour) is its to fix.
+        elif not text.get("on_mark") and ratio < _MIN_ON_PAGE_CONTRAST and str(text.get("ink")).lower() not in palette_inks:
+            on_page.add(described)
+    if on_mark:
         deviate(
             "LOW_CONTRAST_ON_MARK",
-            f"Text on a mark does not read on its fill: {', '.join(faint)}. Colour it with "
-            "colour = on_fill_ink(series) (Matplotlib: ON_INK[series]).",
+            f"Text on a mark does not read on its fill: {', '.join(sorted(on_mark))}. Colour it with "
+            "colour = on_fill_ink(series), or on_fill_ink() for a single-colour mark "
+            "(Matplotlib: ON_INK[series]); a label too long for its mark goes past the mark's end instead."
+            + (" bar_values takes its ink from its own fill: give it the bars' own fill mapping, or no fill "
+               "for the single ink." if from_bar_values else ""),
+        )
+    if on_page:
+        deviate(
+            "LOW_CONTRAST_ON_PAGE",
+            f"Text off any mark does not read on the page: {', '.join(sorted(on_page))}. On-fill ink only "
+            "reads on its fill; colour text that sits on the page with ink or its series colour.",
         )
     if found.get("stack_order"):
         deviate(
@@ -1031,12 +1443,33 @@ def check_chart(source_path: str) -> dict[str, Any]:
             "Stacked segments do not run in series order from the baseline. Stack bars with "
             "position = stack and their labels with position = stack_mid (Matplotlib: stack(ax, rows)).",
         )
-    for mismatch in found.get("label_mismatch") or []:
+    for wrong in found.get("wrong_mark") or []:
+        # Name the bars' own position adjustment, so the fix matches the drawn form (dodged
+        # bars get dodged labels), never a stack the plan did not choose.
+        position = wrong.get("position") or "no position adjustment"
+        used = position if position == "no position adjustment" else f"position = {position}"
+        same = "position = stack_mid" if position == "stack" else used
         deviate(
             "LABEL_ON_WRONG_MARK",
-            f"Label {mismatch}. Compute label positions with the same stacking as the bars "
-            "(position_stack(vjust = 0.5) on the same data and grouping), never a separate cumsum.",
+            f"Label '{wrong['text']}' belongs to {wrong['own']} but sits on the {wrong['on']} mark. "
+            f"Its bars use {used}; give the labels the same data, group and {same}.",
             "fatal",
+        )
+    for label in found.get("detached") or []:
+        moved = "" if label.get("position") == "no position adjustment" else (
+            f" Its position = {label['position']} moves it; drop that adjustment.")
+        deviate(
+            "LABEL_OFF_ITS_MARK",
+            f"Label '{label['text']}' is drawn {label['gap_px']}px along the value axis from its own mark "
+            f"({label['own']}).{moved} Anchor a label at its own observation's value.",
+        )
+    for layer in found.get("stretch") or []:
+        deviate(
+            "DECORATION_STRETCHES_AXIS",
+            f"A {layer['geom']} layer that is not a data mark reaches {layer['reach']} on the value axis while "
+            f"the data marks span {layer['lo']} to {layer['hi']}, so it stretches the axis and flattens the "
+            "data. Give a band or backdrop ymin = -Inf, ymax = Inf (geom_rect, annotate('rect')): it fills "
+            "the panel without setting the range.",
         )
     needed, reached = found.get("value_span"), found.get("mark_span")
     if (
@@ -1064,6 +1497,21 @@ def check_chart(source_path: str) -> dict[str, Any]:
         "deviations": deviations,
         "fix_list": _fix_list(deviations),
     }
+
+
+def _strip_wrap_chars(names: list[str], plot_w: float, ncol: int, font_pt: float, dpi: float) -> int:
+    """Characters per line that keep the longest panel heading inside its panel; 0 when it fits.
+
+    Measured in the heading's bold face against the panel width the grid leaves (ggplot's
+    panel spacing and strip padding are half a line each), so a heading wraps rather than clips.
+    """
+    longest = max(names, key=len)
+    gap = pt_to_px(font_pt / 2, dpi)
+    panel_w = (plot_w - (ncol - 1) * gap) / max(1, ncol) - 2 * gap
+    width = TextMeasurer(dpi, weight="bold").width(longest, font_pt)
+    if width <= panel_w or not longest:
+        return 0
+    return max(8, int(len(longest) * panel_w / width))
 
 
 def _fix_list(deviations: list[dict[str, str]]) -> str:

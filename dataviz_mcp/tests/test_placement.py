@@ -861,3 +861,19 @@ def test_ggplot_segments_export_as_paths_so_interval_ends_are_known(tmp_path):
     for path in paths:
         (x0, y0), (x1, y1) = path["points"]
         assert abs(y0 - y1) < 0.5 and x1 > x0  # horizontal, drawn low to high
+
+
+def test_bar_value_label_extent_follows_the_bar_orientation():
+    # A wide number fits a short fat column (its line height runs up the column, its width across
+    # the bar) but not the same length of horizontal bar, where its width runs along the value.
+    from dataviz_mcp.text_fit import place_bar_value_labels
+
+    bar = {"id": "b", "value_text": "77,264", "fill": "#106010", "bar_length_px": 50, "bar_thickness_px": 120}
+    column = place_bar_value_labels([bar], dpi=144, font_pt=12, orientation="vertical")["placements"][0]
+    row = place_bar_value_labels([bar], dpi=144, font_pt=12, orientation="horizontal")["placements"][0]
+    assert column["placement"] == "inside" and row["placement"] == "outside"
+    # The width is the face's measured advance, so a bold face needs more room than the regular.
+    regular = place_bar_value_labels([bar], dpi=144, font_pt=12, orientation="horizontal")["placements"][0]
+    bold = place_bar_value_labels([bar], dpi=144, font_pt=12, orientation="horizontal",
+                                  font_weight="bold")["placements"][0]
+    assert bold["label_px"] > regular["label_px"]

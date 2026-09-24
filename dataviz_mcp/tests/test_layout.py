@@ -6,6 +6,7 @@ from dataviz_mcp.layout import (
     MAX_PANEL_ASPECT,
     MIN_PANEL_H,
     boxes_overlap,
+    pt_to_px,
     recommend_layout,
     suggest_dims_for_overflow,
 )
@@ -407,7 +408,9 @@ def test_grid_makes_the_whole_image_square_ish():
     ]:
         result = recommend_layout(**kw)
         aspect = result["width_px"] / result["height_px"]
-        assert 0.45 <= aspect <= 2.2, (kw, aspect)
+        # The target is the delivery aspect (16:9); a grid lands within a third of it either way
+        # (16 panels x 8 rows: 8x2 at 2.3 and 6x3 at 1.3 sit equally far from it).
+        assert 0.45 <= aspect <= 2.4, (kw, aspect)
 
 
 def test_grid_finds_the_exact_fit_shape_a_round_sqrt_misses():
@@ -941,3 +944,27 @@ def test_panel_deficit_clears_in_one_growth(tmp_path, monkeypatch, panel_share, 
     assert result["resolved"] is True
     assert result["passes"] == 2
     assert result["history"][-1]["min_panel_height_px"] >= MIN_PANEL_H
+
+
+def test_facet_rows_reserve_their_heading_strips_and_the_edge_margin():
+    # Seven panels at the canvas the layout returns must keep the panel floor after every row's
+    # heading strip and reserve_frame's edge margin are drawn; a long heading takes more lines.
+    base = dict(n_panels=7, title_lines=2, subtitle_lines=1, x_labels=True, longest_x_label_chars=4,
+                target_aspect=1.36)
+    for chars in (0, 47):
+        result = recommend_layout(**base, longest_facet_label_chars=chars)
+        rows = result["facet_nrow"]
+        strip = pt_to_px(11, 144) * 1.25 + pt_to_px(11 * 0.8, 144)
+        chrome = result["reserved_band_px"] + 2 * round(0.03 * result["width_px"]) + rows * strip
+        assert (result["height_px"] - chrome) / rows >= 150, (chars, result)
+
+
+def test_a_detail_group_reserves_a_heading_strip_per_row():
+    # The overview/detail stack gave the detail grid panel height only, so its facet strips came
+    # out of the panels: every row of a multi-panel group now carries its strip in the band.
+    groups = [{"role": "overview", "n_panels": 1}, {"role": "detail", "n_panels": 6}]
+    plain = recommend_layout(panel_groups=groups)
+    long = recommend_layout(panel_groups=groups, longest_facet_label_chars=60)
+    detail = next(r for r in long["regions"] if r["role"] == "detail")
+    assert detail["height"] >= detail["facet_nrow"] * (MIN_PANEL_H + pt_to_px(11, 144) * 1.25)
+    assert long["height_px"] > plain["height_px"]

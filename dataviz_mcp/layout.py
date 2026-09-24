@@ -302,6 +302,13 @@ def _group_natural_width(
     return ncol * (panel_plot_w + left_band) + (ncol - 1) * PANEL_GUTTER
 
 
+def _facet_strip_px(longest_label_chars: int, panel_w: float, dpi: float) -> float:
+    """One facet row's heading strip: its wrapped lines plus the strip's own padding."""
+    # Headings are set bold, a fifth wider than the average advance.
+    lines = max(1, math.ceil(longest_label_chars * char_px(FONT_PT["axis"], dpi) * 1.2 / max(1.0, panel_w)))
+    return lines * line_px(FONT_PT["axis"], dpi) + pt_to_px(FONT_PT["axis"] * 0.8, dpi)
+
+
 def _size_panel_groups(
     groups: list[dict[str, Any]],
     *,
@@ -324,6 +331,7 @@ def _size_panel_groups(
     title_lines: int,
     subtitle_lines: int,
     footer_lines: int,
+    longest_facet_label_chars: int = 0,
 ) -> tuple[float, float, list[dict[str, Any]], float, list[str], dict[str, Any], dict[str, float], int]:
     """Size a stack of heterogeneous panel groups into one canvas.
 
@@ -396,14 +404,16 @@ def _size_panel_groups(
                 # height on the base canvas - a wide stack must not turn one line into a poster.
                 ph = max(min(pw / 1.6, base_plot_h), MIN_PANEL_H if s["n"] > 1 else 0.0)
             s["panel_w_final"], s["panel_h"] = pw, ph * s["emphasis"]
+            # A multi-panel group draws a heading strip over every row of panels.
+            s["strip"] = _facet_strip_px(longest_facet_label_chars, pw, dpi) if s["n"] > 1 else 0.0
         room = base_h - bands - axis_band - breaks - sum(
-            (s["nrow"] - 1) * PANEL_GUTTER for s in sized)
+            (s["nrow"] - 1) * PANEL_GUTTER + s["nrow"] * s["strip"] for s in sized)
         content = sum(s["nrow"] * s["panel_h"] for s in sized)
         if 0 < content < room:
             for s in sized:
                 s["panel_h"] *= room / content
         for s in sized:
-            s["band_h"] = s["nrow"] * s["panel_h"] + (s["nrow"] - 1) * PANEL_GUTTER
+            s["band_h"] = s["nrow"] * (s["panel_h"] + s["strip"]) + (s["nrow"] - 1) * PANEL_GUTTER
         height = sum(s["band_h"] for s in sized) + breaks + bands + axis_band
         return width, height, sized
 
@@ -507,6 +517,7 @@ def recommend_layout(
     delivery_profile: str = "chat",
     panel_groups: Optional[list[dict[str, Any]]] = None,
     target_aspect: Optional[float] = None,
+    longest_facet_label_chars: int = 0,
 ) -> dict[str, Any]:
     """Recommend ``width_px x height_px x dpi``, a facet grid, and x-label rotation.
 
@@ -542,6 +553,9 @@ def recommend_layout(
             per-band structure is returned as ``regions``.
         target_aspect: width:height the whole image should land near - the source image's
             aspect when repairing a chart. Default: the delivery profile's own aspect.
+        longest_facet_label_chars: longest panel heading. Every facet row carries a heading
+            strip above its panels; a heading wider than its panel wraps to more lines, so the
+            strip is reserved per row at the lines it will take (one line when 0).
 
     Returns width/height/dpi, facet grid, a rotate flag, reserved bands, warnings, rationale,
     and a structured ``fit`` verdict. Nothing is ever squashed below its floor to fit a ceiling:
@@ -604,6 +618,7 @@ def recommend_layout(
             y_scales_free=y_scales_free, y_labels=y_labels,
             longest_y_label_chars=longest_y_label_chars,
             title_lines=title_lines, subtitle_lines=subtitle_lines, footer_lines=footer_lines,
+            longest_facet_label_chars=longest_facet_label_chars,
         )
         warnings.extend(group_warnings)
         width_i, height_i = int(round(width)), int(round(height))
@@ -655,23 +670,28 @@ def recommend_layout(
 
         Neither dimension is clamped to a ceiling: the width grows to seat ``nc`` panels at
         their width floor and the height grows to seat the rows at their height floor, so the
-        image is resized up rather than any slot or panel squashed.
+        image is resized up rather than any slot or panel squashed. Each row's heading strip
+        is reserved on top of its panel height, once per row.
         """
         nr = math.ceil(n_panels / nc)
         w = max(base_w, nc * (panel_plot_w + left_band) + (nc - 1) * PANEL_GUTTER)
         pw = max(1.0, (w - nc * left_band - (nc - 1) * PANEL_GUTTER) / nc)
+        strip = _facet_strip_px(longest_facet_label_chars, pw, dpi) if n_panels > 1 else 0.0
+        # reserve_frame's outer edge margin (3% of the width, top and bottom) is drawn on every
+        # chart; the panels share what is left.
+        edge = 2 * round(0.03 * w)
         if y_slots > 0:
             ph = max(MIN_PANEL_H if n_panels > 1 else 0.0, y_slots * max(slot_px, row_floor))
         else:
             ph = pw / 1.6  # continuous y: a pleasant aspect off the panel width
         # Floor to the profile's own per-row plotting height, so a sparse chart uses the base
         # height instead of collapsing to a wide strip; and never letterbox past the aspect cap.
-        base_panel_h = max(0.0, base_h - bands - axis_band - (nr - 1) * PANEL_GUTTER) / nr
+        base_panel_h = max(0.0, base_h - bands - axis_band - edge - (nr - 1) * PANEL_GUTTER - nr * strip) / nr
         ph = max(ph, base_panel_h)
         ph = max(ph, pw / MAX_PANEL_ASPECT)
-        h = nr * ph + (nr - 1) * PANEL_GUTTER + bands + axis_band
+        h = nr * (ph + strip) + (nr - 1) * PANEL_GUTTER + bands + axis_band + edge
         return {"ncol": nc, "nrow": nr, "width": w,
-                "panel_w": pw, "panel_h": ph, "height": h}
+                "panel_w": pw, "panel_h": ph, "height": h, "strip": strip, "edge": edge}
 
     # Choose the grid so the *whole image* comes out near the target aspect,
     # given each panel's own floored shape. We iterate the candidate row counts and, for each,
@@ -729,8 +749,8 @@ def recommend_layout(
     if over_width and x_slots > 0:
         directives.append({"action": "reduce_slots"})
     if over_height and n_panels > 1:
-        row_stride = panel_plot_h + PANEL_GUTTER
-        rows_fit = max(1, int((max_h - bands - axis_band + PANEL_GUTTER) // max(1.0, row_stride)))
+        row_stride = panel_plot_h + dims["strip"] + PANEL_GUTTER
+        rows_fit = max(1, int((max_h - bands - axis_band - dims["edge"] + PANEL_GUTTER) // max(1.0, row_stride)))
         panels_fit = rows_fit * ncol
         directives.append({"action": "reduce_panels", "to": panels_fit})
         directives.append({"action": "split_pages", "pages": math.ceil(n_panels / max(1, panels_fit))})
@@ -752,7 +772,8 @@ def recommend_layout(
     # label band or reserved text bands can starve the panel (the 29%-panel heatmap failure);
     # report the fraction so the caller sees it, and warn when the labels dominate.
     panel_w_after = max(0.0, (width - ncol * left_band - (ncol - 1) * PANEL_GUTTER) / ncol)
-    panel_h_after = max(0.0, (height - bands - axis_band - (nrow - 1) * PANEL_GUTTER) / nrow)
+    panel_h_after = max(0.0, (height - bands - axis_band - dims["edge"] - (nrow - 1) * PANEL_GUTTER
+                              - nrow * dims["strip"]) / nrow)
     data_panel_area = panel_w_after * panel_h_after * ncol * nrow
     data_panel_fraction = round(data_panel_area / (width * height), 3) if width and height else 0.0
     if data_panel_fraction < 0.4:

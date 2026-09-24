@@ -279,6 +279,8 @@ def test_long_series_labels_endpoints_and_extremes_within_budget():
     assert 0 in entry["label_indices"]  # start endpoint
     assert 9 in entry["label_indices"]  # end endpoint
     assert 2 in entry["label_indices"]  # maximum (40)
+    # The series is named once, at its line end; the other chosen points print values alone.
+    assert entry["name_index"] == 9
 
 
 def test_skips_non_numeric_but_preserves_positions():

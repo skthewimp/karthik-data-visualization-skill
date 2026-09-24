@@ -4,6 +4,8 @@ import math
 from pathlib import Path
 from typing import Any, Iterable
 
+from PIL import ImageColor
+
 from .artifacts import raster_info, read_json, sha256_file, write_json
 from .color_math import _contrast_ratio
 from .layout import MIN_PANEL_H, suggest_dims_for_overflow
@@ -297,6 +299,22 @@ _VALUE_LABEL_ROLES = {"label", "data_label"}
 _REDUNDANT_AXIS_MIN_LABELS = 2
 
 
+# Frame text the renderer stacks itself: checked against its band, not an estimated anchor.
+_FRAME_TEXT_ROLES = {"title", "subtitle", "caption", "footer"}
+
+
+def _paint(fill: str, under: Any) -> tuple[Any, float]:
+    """``fill`` (with any alpha) painted over ``under``: the resulting hex and the fill's alpha."""
+    try:
+        *top, alpha = ImageColor.getcolor(str(fill), "RGBA")
+        below = ImageColor.getcolor(str(under or "#FFFFFF"), "RGB")
+    except (ValueError, TypeError):
+        return fill, 1.0
+    share = alpha / 255
+    mixed = (round(share * t + (1 - share) * b) for t, b in zip(top, below))
+    return "#{:02X}{:02X}{:02X}".format(*mixed), share
+
+
 def _defect(
     code: str,
     severity: str,
@@ -336,11 +354,24 @@ def _planned_geometry_defects(metadata: dict[str, Any]) -> list[dict[str, Any]]:
         if not panels:
             defects.append(_defect("FRAME_PLAN_MISMATCH", "high", [],
                                    "No panel geometry is available to verify the reserved frame"))
+        # The plot area is an estimate: a renderer that measures its own axes lays panels out a
+        # little differently, which is not a defect. What the frame guarantees is the outer
+        # margin and that the panels stay clear of the header and footer text.
+        margin = frame.get("plot_margin_px") or {}
+        inner = {"x": float(margin.get("left", 0)), "y": float(margin.get("top", 0)),
+                 "width": float(canvas["width"]) - float(margin.get("left", 0)) - float(margin.get("right", 0)),
+                 "height": float(canvas["height"]) - float(margin.get("top", 0)) - float(margin.get("bottom", 0))}
+        chrome = [e for e in metadata.get("elements", []) if e.get("role") in _FRAME_TEXT_ROLES]
         for panel in panels:
-            if not _contains(frame["plot_area"], panel["bbox"]):
+            if not _contains(inner, panel["bbox"], tolerance=2.0):
                 defects.append(_defect("FRAME_PLAN_MISMATCH", "high", [panel["id"]],
-                                       "Panel extends outside the reserved plot area",
-                                       {"bbox": panel["bbox"], "plot_area": frame["plot_area"]}))
+                                       "Panel extends into the canvas margin the frame reserved",
+                                       {"bbox": panel["bbox"], "inside": inner}))
+            for text in chrome:
+                if _meaningful_box_overlap(panel["bbox"], text["bbox"]):
+                    defects.append(_defect("FRAME_PLAN_MISMATCH", "high", [panel["id"], text["id"]],
+                                           f"Panel runs into the {text['role']}",
+                                           {"bbox": panel["bbox"], "text_bbox": text["bbox"]}))
         # place_on_marks also returns fixed frame blocks; do not require those twice.
         expected.extend(b for b in frame["frame_blocks"] if not any(
             b["wrapped_text"] == p["wrapped_text"] and b["bbox"] == p["bbox"] for p in placements
@@ -369,9 +400,19 @@ def _planned_geometry_defects(metadata: dict[str, Any]) -> list[dict[str, Any]]:
     for block in expected:
         box = block["bbox"]
         text = block["wrapped_text"]
-        matches = [e for e in available if e.get("text") == text
-                   and abs(e["bbox"]["x"] - box["x"]) <= 2
-                   and abs(e["bbox"]["y"] - box["y"]) <= 2]
+        if block.get("role") in _FRAME_TEXT_ROLES and frame is not None:
+            # Header and footer text is stacked by the renderer from the margin, not pinned at the
+            # estimated anchor: it must be drawn as wrapped, inside its reserved band.
+            area = frame["plot_area"]
+            band = ({"x": 0.0, "y": 0.0, "width": float(metadata["canvas"]["width"]), "height": float(area["y"])}
+                    if block["role"] in ("title", "subtitle") else
+                    {"x": 0.0, "y": float(area["y"]) + float(area["height"]), "width": float(metadata["canvas"]["width"]),
+                     "height": float(metadata["canvas"]["height"]) - float(area["y"]) - float(area["height"])})
+            matches = [e for e in available if e.get("text") == text and _contains(band, e["bbox"], tolerance=2.0)]
+        else:
+            matches = [e for e in available if e.get("text") == text
+                       and abs(e["bbox"]["x"] - box["x"]) <= 2
+                       and abs(e["bbox"]["y"] - box["y"]) <= 2]
         leader = block.get("leader_line")
         if leader is not None:
             start, end = leader["from"], leader["to"]
@@ -525,9 +566,10 @@ def inspect_rendered_chart(
                 )
             cell_box = element.get("cell_bbox")
             if cell_box and not _contains(cell_box, bbox):
+                message = ("Panel heading is wider than its strip and is cut at the panel edge"
+                           if element.get("role") == "panel_heading" else "Table text extends beyond its cell")
                 defects.append(_defect(
-                    "CELL_OVERFLOW", "high", [element["id"]],
-                    "Table text extends beyond its cell", {"bbox": bbox, "cell_bbox": cell_box},
+                    "CELL_OVERFLOW", "high", [element["id"]], message, {"bbox": bbox, "cell_bbox": cell_box},
                 ))
             font_size = element.get("font_size_pt")
             displayed_px = round(font_size * dpi / 72 * display_scale, 2) if isinstance(font_size, (int, float)) and dpi else None
@@ -557,13 +599,14 @@ def inspect_rendered_chart(
             surface_is_fill = False
             if element.get("role") in _VALUE_LABEL_ROLES:
                 center = _bbox_center(bbox)
+                # Every fill under the text paints over the page in draw order; a faint tint
+                # (a shaded band behind the data) leaves the page showing through.
                 for mark in marks:
                     if element.get("axes_id") and mark.get("axes_id") != element.get("axes_id"):
                         continue
                     if mark.get("fill") and _point_in_bbox(center, mark.get("bbox")):
-                        surface = mark["fill"]
-                        surface_is_fill = True
-                        break
+                        surface, alpha = _paint(mark["fill"], surface)
+                        surface_is_fill = surface_is_fill or alpha >= 0.5
             ratio = _contrast_ratio(element.get("colour"), surface)
             if ratio is not None:
                 target = 3.0 if isinstance(font_size, (int, float)) and font_size >= 14 else 4.5
@@ -670,12 +713,25 @@ def inspect_rendered_chart(
 
         hierarchy_roles = {"title", "subtitle", "panel_heading", "footer"}
         ignored_text_roles = {"legend_text"}
+
+        def visible(element: dict[str, Any]) -> dict[str, Any]:
+            # A panel heading is cut at its strip; the cut (CELL_OVERFLOW) is the defect, not
+            # the ink past the cut, which never reaches its neighbour.
+            cell = element.get("cell_bbox") if element.get("role") == "panel_heading" else None
+            if not cell:
+                return element["bbox"]
+            left = max(element["bbox"]["x"], cell["x"])
+            top = max(element["bbox"]["y"], cell["y"])
+            right = min(element["bbox"]["x"] + element["bbox"]["width"], cell["x"] + cell["width"])
+            bottom = min(element["bbox"]["y"] + element["bbox"]["height"], cell["y"] + cell["height"])
+            return {"x": left, "y": top, "width": max(0.0, right - left), "height": max(0.0, bottom - top)}
+
         for index, first in enumerate(elements):
             for second in elements[index + 1 :]:
                 if first.get("role") in ignored_text_roles and second.get("role") in ignored_text_roles:
                     continue
-                area = _intersection_area(first["bbox"], second["bbox"])
-                if not _meaningful_box_overlap(first["bbox"], second["bbox"]):
+                area = _intersection_area(visible(first), visible(second))
+                if not _meaningful_box_overlap(visible(first), visible(second)):
                     continue
                 if first.get("role") == "annotation" and second.get("role") == "annotation":
                     continue
