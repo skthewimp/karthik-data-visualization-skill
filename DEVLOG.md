@@ -4082,3 +4082,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:8575556a-15f9-44d1-9a45-a770c5210992:end -->
 
+<!-- claude-session:3b7571ad-e1bb-45b2-aed1-14762b4dab4c:start -->
+## 2026-09-24 09:12 IST | Claude session `3b7571ad-e1b`
+
+### User prompts
+> We are still having too many issues in the harness with initial graphs not being rendered properly and a lot of them have to do with the tools defined here <pasted_content id="dea3"> Work in /home/karthik/apps/karthik...
+
+### Work done
+- Now judge by pixels.
+- Fix is committed and pushed as `7b26b05` on `origin/main`. The server checkout at `/home/karthik/apps/karthik-data-visualization-skill` is fast-forwarded to it, but I didn't restart the website, so it picks the change...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:3b7571ad-e1bb-45b2-aed1-14762b4dab4c:end -->
