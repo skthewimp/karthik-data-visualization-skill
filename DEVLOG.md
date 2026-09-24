@@ -4163,3 +4163,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:3375ba29-e112-4832-8750-e3373580befa:end -->
+
+<!-- claude-session:fbe85917-8725-4065-b551-556ddd00cf89:start -->
+## 2026-09-24 12:03 IST | Claude session `fbe85917-872`
+
+### User prompts
+> device storage is full. help with sapce
+> remove the claude desktop vm bundle. i don't use claude desktop any more.
+> yeah i only use claude via claude code or web or chrome now
+
+### Work done
+- I deleted `~/Library/Application Support/Claude/vm_bundles`, which freed 10 GB. Free space is now **33 GB**. Before deleting, I checked that the VM wasn't running. The only Claude desktop process still active is the C...
+- Then keep `/Applications/Claude.app`. The Chrome extension's helper (`chrome-native-host`) runs from inside it, so deleting the app would break Claude in Chrome. The leftover files in `~/Library/Application Support/Cl...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:fbe85917-8725-4065-b551-556ddd00cf89:end -->
