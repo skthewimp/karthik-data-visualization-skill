@@ -4178,3 +4178,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:fbe85917-8725-4065-b551-556ddd00cf89:end -->
+
+<!-- claude-session:f00e4da3-e6d8-41bb-af47-23d9a3eb0ab4:start -->
+## 2026-09-24 12:34 IST | Claude session `f00e4da3-e6d`
+
+### User prompts
+> what about memory? why are we using 6GB of swap now? what are the memory heavy stuff?
+> how do i clean up old processes from positron?
+> [Image #1]
+
+### Work done
+- I got something wrong last time: there's only **one** R kernel running, not 4. My earlier count also matched the search command itself. The single kernel is the big one: PID 68122, a **notebook** kernel (`r-notebook-....
+- The 2.3GB notebook kernel (PID 68122) is gone, but swap only fell from 6.8GB to 6.56GB. Swap takes a while to shrink, because pages already written to disk stay there until something reads them back or the process exi...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:f00e4da3-e6d8-41bb-af47-23d9a3eb0ab4:end -->
