@@ -143,3 +143,23 @@ def better_ink(surface: str, ink_light: str = "#ffffff", ink_dark: str = "#1a1a1
     if light_c is None or dark_c is None:
         return ink_dark, 0.0
     return (ink_light, light_c) if light_c >= dark_c else (ink_dark, dark_c)
+
+
+def text_ink(colour: str, background: str = "#ffffff", target: float = 4.5) -> str:
+    """The colour as text on ``background``: same hue and saturation, lightness moved away from the
+    background until it reads at ``target``. A series colour light enough for a bar is often too
+    light for the words that name it; the words keep the hue so the key still matches the marks.
+    """
+    rgb, back = to_rgb(colour), _relative_luminance(background)
+    if rgb is None or back is None or (_contrast_ratio(colour, background) or 0) >= target:
+        return colour
+    import colorsys
+
+    h, l, s = colorsys.rgb_to_hls(*(c / 255.0 for c in rgb))
+    step = -0.01 if back > 0.18 else 0.01
+    candidate = colour
+    while 0.0 <= l <= 1.0 and (_contrast_ratio(candidate, background) or 0) < target:
+        l += step
+        r, g, b = colorsys.hls_to_rgb(h, min(1.0, max(0.0, l)), s)
+        candidate = "#{:02x}{:02x}{:02x}".format(round(r * 255), round(g * 255), round(b * 255))
+    return candidate

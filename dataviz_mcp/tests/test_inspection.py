@@ -925,3 +925,17 @@ def test_a_panel_heading_wider_than_its_strip_is_cut_not_colliding(tmp_path: Pat
     codes = _codes(report)
     # The heading is cut at its strip edge; its ink past the cut never reaches the neighbour.
     assert "CELL_OVERFLOW" in codes and "HIERARCHY_TEXT_COLLISION" not in codes
+
+
+def test_runs_of_one_subtitle_line_are_not_a_collision():
+    from dataviz_mcp.inspection import _same_line_fragments
+
+    roles = {"title", "subtitle", "panel_heading", "footer"}
+    word = {"id": "gg-20/1/1/text-1", "role": "subtitle", "bbox": {"x": 36, "y": 76, "width": 124, "height": 18}}
+    comma = {"id": "gg-20/1/2/text-1", "role": "subtitle", "bbox": {"x": 157, "y": 76, "width": 7, "height": 18}}
+    assert _same_line_fragments(word, comma, roles)
+    # Text drawn over other text, or a title over its subtitle, is still a collision.
+    on_top = {**comma, "bbox": {"x": 60, "y": 76, "width": 60, "height": 18}}
+    assert not _same_line_fragments(word, on_top, roles)
+    title = {**comma, "id": "gg-19/1/1/text-1", "role": "title"}
+    assert not _same_line_fragments(word, title, roles)

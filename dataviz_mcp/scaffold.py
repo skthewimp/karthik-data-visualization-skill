@@ -40,7 +40,7 @@ from pathlib import Path
 from typing import Any
 
 from . import handoff
-from .color_math import _contrast_ratio, better_ink, to_rgb
+from .color_math import _contrast_ratio, better_ink, text_ink, to_rgb
 from .frame import reserve_frame
 from .inspection import _REDUNDANT_AXIS_MIN_LABELS
 from .layout import FONT_PT, GROUP_BREAK, PROFILES, char_px, house_font_pt, pt_to_px
@@ -271,14 +271,15 @@ def _pt(px: float, dpi: float) -> float:
     return round(float(px) * 72.0 / float(dpi), 2)
 
 
-def _subtitle_key(subtitle: str, palette: dict[str, str]) -> str:
-    """Colour each series name in the subtitle with its resolved hex (longest names first)."""
+def _subtitle_key(subtitle: str, palette: dict[str, str], background: str) -> str:
+    """Colour each series name in the subtitle with its series hue (longest names first), darkened
+    where needed so the words read as text on the page - a light bar colour is not a text colour."""
     marked = subtitle
     for name in sorted(palette, key=len, reverse=True):
         if name:
             marked = re.sub(
                 rf"(?<![\w>]){re.escape(name)}(?![\w<])",
-                f"<span style='color:{palette[name]}'>{name}</span>",
+                f"<span style='color:{text_ink(palette[name], background)}'>{name}</span>",
                 marked,
                 count=1,
             )
@@ -955,7 +956,7 @@ def scaffold_chart(
     caption = str(wrapped.get("caption") or public_copy.get("caption") or "")
     subtitle = str(wrapped.get("subtitle") or public_copy.get("subtitle") or "")
     if identification == "subtitle_key" and renderer == "ggplot2":
-        subtitle = _subtitle_key(subtitle, palette).replace("\n", "<br>")
+        subtitle = _subtitle_key(subtitle, palette, background).replace("\n", "<br>")
     elif identification == "subtitle_key":
         warnings.append("subtitle_key colours are drawn on ggplot2 only; matplotlib draws the subtitle plain")
 

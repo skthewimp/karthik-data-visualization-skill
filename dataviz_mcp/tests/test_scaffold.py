@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from dataviz_mcp import handoff
+from dataviz_mcp.color_math import _contrast_ratio, hue_delta
 from dataviz_mcp.layout import recommend_layout
 from dataviz_mcp.plot_data import prepare_plot_data
 from dataviz_mcp.rendering import probe_renderers, render_and_inspect_chart
@@ -167,8 +168,12 @@ def test_subtitle_key_colours_series_names(tmp_path: Path) -> None:
         public_copy={"title": "t", "subtitle": "Reads fell while Writes rose"},
     )
     source = Path(result["source_path"]).read_text(encoding="utf-8")
+    # A series colour that already reads as text is used as is; one too light for words is
+    # darkened to text contrast in its own hue, so the key still matches the marks.
     assert "<span style='color:#0072B2'>Reads</span>" in source
-    assert "<span style='color:#D55E00'>Writes</span>" in source
+    writes = re.search(r"<span style='color:(#[0-9a-fA-F]{6})'>Writes</span>", source)[1]
+    assert writes.lower() != "#d55e00" and _contrast_ratio(writes, "#FFFFFF") >= 4.5
+    assert abs(hue_delta(writes, "#D55E00")) < 3
     assert "ggtext::element_markdown" in source
 
 

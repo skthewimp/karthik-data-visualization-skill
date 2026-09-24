@@ -33,6 +33,21 @@ def _point_in_bbox(point: tuple[float, float], box: Any) -> bool:
     return left <= x <= right and top <= y <= bottom
 
 
+def _same_line_fragments(first: dict[str, Any], second: dict[str, Any], roles: set[str]) -> bool:
+    """Two runs of one line of frame text - a subtitle whose words are coloured separately is drawn
+    as abutting fragments of one text grob. They are set by the renderer's own advances, so a
+    sliver of overlap between our glyph estimates is measurement, not a collision."""
+    if first.get("role") != second.get("role") or first.get("role") not in roles:
+        return False
+    if str(first.get("id", "")).split("/")[0] != str(second.get("id", "")).split("/")[0]:
+        return False
+    a, b = first.get("bbox") or {}, second.get("bbox") or {}
+    if not a or not b:
+        return False
+    same_line = abs(a["y"] - b["y"]) < 0.5 * min(a["height"], b["height"])
+    return same_line and _separation_needed(a, b) <= 0.1 * min(a["height"], b["height"]) + 4
+
+
 def _intersection_area(first: dict[str, Any], second: dict[str, Any]) -> float:
     a_left, a_top, a_right, a_bottom = _edges(first)
     b_left, b_top, b_right, b_bottom = _edges(second)
@@ -734,6 +749,8 @@ def inspect_rendered_chart(
                 if not _meaningful_box_overlap(visible(first), visible(second)):
                     continue
                 if first.get("role") == "annotation" and second.get("role") == "annotation":
+                    continue
+                if _same_line_fragments(first, second, hierarchy_roles):
                     continue
                 roles = {first.get("role"), second.get("role")}
                 code = (

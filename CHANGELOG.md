@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Coloured subtitle keys read as text and stop tripping the inspector
+
+- **Key words are darkened to text contrast in their own hue.** `scaffold_chart`'s subtitle key
+  coloured each series name with its bar colour; a light bar colour (a pale blue, an orange) is
+  2.7:1 as words on white. New `color_math.text_ink()` keeps the hue and moves the lightness
+  until the words read at 4.5:1; colours that already read are unchanged.
+- **Runs of one subtitle line are not a collision.** ggtext draws a coloured key as abutting
+  fragments of one text grob, and our glyph estimates overlapped them by a few pixels, so every
+  subtitle-key chart reported `HIERARCHY_TEXT_COLLISION` (high). Fragments of the same frame
+  text item on the same line, overlapping by no more than a sliver, are now skipped; text drawn
+  over other text, or a title over its subtitle, is still caught.
+
 ### The scaffold covers the shapes that sent charts off it
 
 In the 24 September canonical run, cases 02 and 06 were never scaffolded: select wrote prose
