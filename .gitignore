@@ -31,3 +31,8 @@ __pycache__/
 *.egg-info/
 .dataviz-tester/
 tester-outputs/
+
+# Local canonical-run notes and transcripts
+canonical-examples-analysis.md
+canonical-fix-plan.md
+integrated-transcript.json
