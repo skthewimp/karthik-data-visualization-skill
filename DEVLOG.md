@@ -4206,3 +4206,18 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
 
 <!-- claude-session:149cb412-00a6-45b5-9257-df3c12ba613d:end -->
+
+<!-- claude-session:8a800fc8-8595-4704-86f2-c25eef3d5b0c:start -->
+## 2026-09-25 09:39 IST | Claude session `8a800fc8-859`
+
+### User prompts
+> looks like we have some issues with the lable placement algo thaet we made yesterday. running out of CPU capaciyt. look at the latest @integrated-transcript.json . message from the harness: <pasted_content id="aab9">...
+> looks like we have some issues with the lable placement algo thaet we made yesterday. running out of CPU capaciyt. look at the latest @integrated-transcript.json . especially look at case 3
+> thing is this - the objective is to produce an output. if there are too many labels, in the wrost case we can overlap. don't fail or take too long.
+
+### Work done
+- Now update docs and skill text to match.
+- `place_on_marks` no longer raises on anything in the label input. Pushed to `origin/main`, and the local skills are reinstalled. The one thing to check first: `compose_regions` in the site harness has to read the new...
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:8a800fc8-8595-4704-86f2-c25eef3d5b0c:end -->
