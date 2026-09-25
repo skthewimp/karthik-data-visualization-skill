@@ -4194,3 +4194,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:f00e4da3-e6d8-41bb-af47-23d9a3eb0ab4:end -->
 
+<!-- claude-session:149cb412-00a6-45b5-9257-df3c12ba613d:start -->
+## 2026-09-25 09:31 IST | Claude session `149cb412-00a`
+
+### User prompts
+> looks like recent changes in label placement have made it very computationally intensive, and results in failures. check the latest @integrated-transcript.json from the harness: <pasted_content id="df9d"> I have updat...
+> [Request interrupted by user for tool use]
+
+### Work done
+- Pull results.csv, conversation-audit, and case 03/06 automated-review + build conversations.
+- Touched files: `canonical-examples-analysis.md`, `canonical-fix-plan.md`, `integrated-transcript.json`
+
+<!-- claude-session:149cb412-00a6-45b5-9257-df3c12ba613d:end -->
