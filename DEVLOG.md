@@ -4302,3 +4302,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - I added all three files to `.gitignore`, then committed and pushed it as `1a0e574`. `main` matches `origin/main`, and git no longer lists anything as uncommitted. - `canonical-examples-analysis.md` - `canonical-fix-pl...
 
 <!-- claude-session:5481f70c-9667-4fcb-a2e5-ccd91bd56ebf:end -->
+
+<!-- claude-session:32334789-7853-4805-847a-d58153696dc3:start -->
+## 2026-09-25 13:08 IST | Claude session `32334789-785`
+
+### User prompts
+> look at case 4 in @canonical-examples.pdf and @integrated-transcripts.json . 2 issues. 1. X axis labels don't mat ch data. there is no data for 1980 and 1990 but the points are marked on the axis thus crowdxcing it. t...
+> wasn't the end label wrap already done?
+> yeah fix all thigns that can be fixed here - label wrapping and the axis
+
+### Work done
+- The sonnet check also passed, so the devlog line saying haiku and sonnet were both checked is accurate and needs no correction. Sonnet read the same case 04 source image under the new extract rule and kept only 1970,...
+- That notice is the sonnet check finishing, and I've already reported its result. It passed: sonnet kept only 1970, 2000, 2030 and 2050 as periods, so nothing changes. The fixes are all pushed. The one open item is out...
+
+<!-- claude-session:32334789-7853-4805-847a-d58153696dc3:end -->
