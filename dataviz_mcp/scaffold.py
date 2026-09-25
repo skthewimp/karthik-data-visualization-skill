@@ -460,6 +460,108 @@ end_labels <- function(mapping = NULL, data = NULL, ..., size = label_size) {
 '''.strip("\n")
 
 
+_GGPLOT_POINT_LABELS = r'''
+# Point values: point_labels(aes(x = category, y = value, label = <text or NA>, colour = series,
+# group = <the line's group>), data = <the line's rows>) prints each label beside its point, inside
+# the panel, clear of the drawn lines. Give it every row of the line it labels, grouped as the line
+# is; rows whose label is NA are not printed but still count as the path to keep clear of. Each
+# label goes to the first clear spot: toward the panel's middle, then above, below, the diagonals,
+# the outer side, stepping further out when all are blocked.
+# One rule for the render and the check, in any unit with y up: ax/ay the anchors, w/h the label
+# boxes, gap the space from a point, segs the drawn segments (x0, y0, x1, y1), pts the drawn points,
+# bounds the panel (x0, y0, x1, y1), inward the side toward the panel's middle (+1 right, -1 left).
+point_label_hits <- function(segs, x0, y0, x1, y1) {
+  if (!nrow(segs)) return(0)
+  dx <- segs[, 3] - segs[, 1]; dy <- segs[, 4] - segs[, 2]
+  p <- cbind(-dx, dx, -dy, dy)
+  q <- cbind(segs[, 1] - x0, x1 - segs[, 1], segs[, 2] - y0, y1 - segs[, 2])
+  t0 <- rep(0, nrow(segs)); t1 <- rep(1, nrow(segs)); out <- rep(FALSE, nrow(segs))
+  for (k in 1:4) {
+    flat <- p[, k] == 0
+    out <- out | (flat & q[, k] < 0)
+    r <- ifelse(flat, NA, q[, k] / p[, k])
+    t0 <- ifelse(!flat & p[, k] < 0, pmax(t0, r), t0)
+    t1 <- ifelse(!flat & p[, k] > 0, pmin(t1, r), t1)
+  }
+  sum(!out & t0 <= t1)
+}
+point_label_place <- function(ax, ay, w, h, gap, segs, pts, bounds, inward) {
+  dirs <- function(s) list(c(s, 0), c(0, 1), c(0, -1), c(s, 1), c(s, -1), c(-s, 0), c(-s, 1), c(-s, -1))
+  cx <- ax; cy <- ay; placed <- NULL
+  for (r in seq_along(ax)) {
+    best <- NULL
+    for (step in 1:4) {
+      for (d in dirs(inward[r])) {
+        x <- ax[r] + d[1] * (w[r] / 2 + step * gap[r]); y <- ay[r] + d[2] * (h[r] / 2 + step * gap[r])
+        # Grazing a box edge is not a crossing: test a box a hair smaller than the glyphs.
+        e <- 0.05 * h[r]
+        x0 <- x - w[r] / 2 + e; x1 <- x + w[r] / 2 - e; y0 <- y - h[r] / 2 + e; y1 <- y + h[r] / 2 - e
+        cost <- point_label_hits(segs, x0, y0, x1, y1) +
+          sum(abs(pts[, 1] - x) < w[r] / 2 + 0.8 * gap[r] & abs(pts[, 2] - y) < h[r] / 2 + 0.8 * gap[r]) +
+          (if (is.null(placed)) 0 else sum(abs(placed[, 1] - x) < (placed[, 3] + w[r]) / 2 &
+                                           abs(placed[, 2] - y) < (placed[, 4] + h[r]) / 2)) +
+          100 * (x0 < bounds[1] || x1 > bounds[3] || y0 < bounds[2] || y1 > bounds[4])
+        if (is.null(best) || cost < best$cost) best <- list(cost = cost, x = x, y = y)
+        if (cost == 0) break
+      }
+      if (best$cost == 0) break
+    }
+    cx[r] <- best$x; cy[r] <- best$y
+    placed <- rbind(placed, c(best$x, best$y, w[r], h[r]))
+  }
+  list(x = cx, y = cy)
+}
+# The drawn path of each group, point to point along the category axis, broken where a value is missing.
+point_label_path <- function(x, y, group) {
+  segs <- NULL
+  for (g in unique(group)) {
+    i <- which(group == g)
+    i <- i[order(x[i])]
+    if (length(i) < 2) next
+    a <- head(i, -1); b <- tail(i, -1)
+    keep <- is.finite(x[a]) & is.finite(y[a]) & is.finite(x[b]) & is.finite(y[b])
+    segs <- rbind(segs, cbind(x[a], y[a], x[b], y[b])[keep, , drop = FALSE])
+  }
+  if (is.null(segs)) matrix(numeric(0), ncol = 4) else segs
+}
+GeomPointLabel <- ggproto("GeomPointLabel", GeomText,
+  # Unlabelled rows are the path, not missing data: keep them.
+  handle_na = function(self, data, params) data,
+  draw_panel = function(data, panel_params, coord, na.rm = FALSE) {
+    flip <- inherits(coord, "CoordFlip")
+    coords <- coord$transform(data, panel_params)
+    grid::gTree(coords = coords, flip = flip, cl = "dvz_point_labels")
+  }
+)
+makeContent.dvz_point_labels <- function(x) {
+  d <- x$coords
+  # Inches both ways, so a step up is as long as a step across.
+  W <- grid::convertWidth(grid::unit(1, "npc"), "in", TRUE); H <- grid::convertHeight(grid::unit(1, "npc"), "in", TRUE)
+  X <- d$x * W; Y <- d$y * H
+  # Under coord_flip the category axis runs up the screen, so the path follows y.
+  segs <- point_label_path(if (x$flip) Y else X, if (x$flip) X else Y, d$group)
+  if (x$flip) segs <- segs[, c(2, 1, 4, 3), drop = FALSE]
+  shown <- which(!is.na(d$label) & nzchar(as.character(d$label)) & is.finite(X) & is.finite(Y))
+  pts <- cbind(X, Y)[is.finite(X) & is.finite(Y), , drop = FALSE]
+  gp <- lapply(shown, function(r) grid::gpar(col = page_ink(d$colour[r]), fontsize = d$size[r] * .pt,
+    fontfamily = d$family[r], fontface = d$fontface[r], lineheight = d$lineheight[r]))
+  lab <- as.character(d$label[shown])
+  w <- vapply(seq_along(shown), function(k) grid::convertWidth(grid::grobWidth(grid::textGrob(lab[k], gp = gp[[k]])), "in", TRUE), 0)
+  h <- vapply(seq_along(shown), function(k) grid::convertHeight(grid::grobHeight(grid::textGrob(lab[k], gp = gp[[k]])), "in", TRUE), 0)
+  # Half the type size from the point: clear of a marker drawn at the usual point sizes.
+  gap <- 0.5 * d$size[shown] * .pt / 72
+  place <- point_label_place(X[shown], Y[shown], w, h, gap, segs, pts, c(0, 0, W, H), ifelse(X[shown] < W / 2, 1, -1))
+  kids <- lapply(seq_along(shown), function(k) grid::textGrob(lab[k], x = grid::unit(place$x[k] / W, "npc"),
+    y = grid::unit(place$y[k] / H, "npc"), hjust = 0.5, vjust = 0.5, gp = gp[[k]]))
+  grid::setChildren(x, do.call(grid::gList, kids))
+}
+point_labels <- function(mapping = NULL, data = NULL, ..., size = label_size) {
+  layer(geom = GeomPointLabel, stat = "identity", data = data, mapping = mapping,
+        position = "identity", params = list(size = size, ...), show.legend = FALSE)
+}
+'''.strip("\n")
+
+
 def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
     """Return (head, marks body, tail) for the ggplot2 source."""
     fonts = spec["font_pt"]
@@ -512,7 +614,7 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "stack_mid <- position_stack(reverse = TRUE, vjust = 0.5)",
         "# Text on a mark: aes(colour = on_fill_ink(series)) - the ink that reads on that fill;",
         "# on_fill_ink() for the single-colour ink. Text on the page takes ink or page_ink(<its series colour>),",
-        "# the same hue darkened where needed to read as text (end_labels() applies it itself).",
+        "# the same hue darkened where needed to read as text (end_labels() and point_labels() apply it themselves).",
         f"on_ink <- {_r_vec(list(spec['on_ink'].values()), list(spec['on_ink'].keys())) if spec['on_ink'] else 'c()'}",
         "on_fill_ink <- function(series = NULL) I(if (is.null(series)) "
         + f"{_r_str(better_ink(spec['ordered'][0] if spec['ordered'] else '#1a1a1a')[0])} "
@@ -522,6 +624,7 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "ifelse(key %in% names(page_text), unname(page_text[key]), as.character(colour)) }",
         _GGPLOT_BAR_VALUES,
         _GGPLOT_END_LABELS,
+        _GGPLOT_POINT_LABELS,
         "",
     ]
     marks = [
@@ -1125,7 +1228,8 @@ if (requireNamespace("ragg", quietly = TRUE)) {
 }
 out <- list(error = NULL, non_layers = list(), geom_label = 0L, text_rows = 0L,
             mark_colours = list(), text_sizes = list(), unmapped = list(), wrong_mark = list(),
-            stack_order = FALSE, surfaces = list(), detached = list(), stretch = list(), spans = list())
+            stack_order = FALSE, surfaces = list(), detached = list(), stretch = list(), spans = list(),
+            on_line = list())
 as_hex <- function(x) tryCatch(grDevices::rgb(t(grDevices::col2rgb(x)), maxColorValue = 255), error = function(e) as.character(x))
 flat <- function(x) if (is.list(x) && !inherits(x, "gg")) do.call(c, lapply(x, flat)) else list(x)
 is_text <- function(layer) inherits(layer$geom, "GeomText") || inherits(layer$geom, "GeomLabel") ||
@@ -1291,6 +1395,32 @@ check_plot <- function(out, plot, width_px, height_px) {
       }
     }
   }
+  # Drawn lines and segments per panel, in device px, for text that must not sit on them.
+  line_segs <- list()
+  for (i in seq_along(plot$layers)) {
+    geom <- plot$layers[[i]]$geom
+    d <- b$data[[i]]
+    if (is_text(plot$layers[[i]]) || !nrow(d)) next
+    for (panel in unique(as.character(d$PANEL))) {
+      f <- to_px[[panel]]
+      if (is.null(f)) next
+      p <- d[as.character(d$PANEL) == panel, , drop = FALSE]
+      segs <- if (inherits(geom, "GeomSegment") && all(c("xend", "yend") %in% names(p))) {
+        a <- f(p$x, p$y); z <- f(p$xend, p$yend)
+        cbind(a$x, a$y, z$x, z$y)
+      } else if (inherits(geom, "GeomPath")) {
+        # geom_line draws each group in x order, geom_path in row order.
+        # The path is found on row numbers, then drawn from the rows' pixels.
+        a <- f(p$x, p$y)
+        rows <- point_label_path(if (inherits(geom, "GeomLine")) p$x else seq_len(nrow(p)), seq_len(nrow(p)), p$group)
+        cbind(a$x[rows[, 2]], a$y[rows[, 2]], a$x[rows[, 4]], a$y[rows[, 4]])
+      } else NULL
+      if (length(segs)) {
+        segs <- segs[stats::complete.cases(segs) & apply(is.finite(segs), 1, all), , drop = FALSE]
+        line_segs[[panel]] <- rbind(line_segs[[panel]], segs)
+      }
+    }
+  }
   position_name <- function(layer) {
     p <- layer$position
     cls <- class(p)[1]
@@ -1348,6 +1478,13 @@ check_plot <- function(out, plot, width_px, height_px) {
         vj <- just_value(d$vjust[r], at$y > box[2] + box[4] / 2)
         cx <- at$x + (0.5 - hj) * w
         cy <- at$y - (0.5 - vj) * h
+        # Text set by hand beside a point must not sit on a drawn line; the helpers place their own.
+        segs <- line_segs[[as.character(d$PANEL[r])]]
+        placed_by_helper <- inherits(plot$layers[[i]]$geom, "GeomEndLabel") || inherits(plot$layers[[i]]$geom, "GeomPointLabel")
+        e <- 0.05 * h
+        if (!placed_by_helper && length(segs) &&
+            point_label_hits(segs, cx - w / 2 + e, cy - h / 2 + e, cx + w / 2 - e, cy + h / 2 - e) > 0)
+          out$on_line[[length(out$on_line) + 1]] <- text
       }
       # The surface behind the text: the page, painted over by every fill under its centre.
       surface <- background
@@ -1717,6 +1854,15 @@ def check_chart(source_path: str) -> dict[str, Any]:
             f"Label '{label['text']}' is drawn {label['gap_px']}px along the value axis from its own mark "
             f"({label['own']}).{moved} Anchor a label at its own observation's value.",
         )
+    on_line = sorted(set(found.get("on_line") or []))
+    if on_line:
+        deviate(
+            "TEXT_ON_MARK",
+            f"Text sits on a drawn line: {', '.join(repr(t) for t in on_line)}. Print values at points with "
+            "point_labels(aes(x = category, y = value, label = <text, NA where unlabelled>, colour = series, "
+            "group = <the line's group>), data = <the line's rows>) - it keeps each label inside the panel and off "
+            "the lines. Name a line past its last point with end_labels().",
+        )
     for layer in found.get("stretch") or []:
         deviate(
             "DECORATION_STRETCHES_AXIS",
@@ -1779,7 +1925,11 @@ def _marks_brief(name: str, renderer: str, interval: bool, label_fmts: dict[str,
             "y = value, label = fmt_value(value), fill = <the bars' fill>), position = <the bars' own position>): it "
             "puts each value inside its bar or past the end, in ink that reads there. Name lines at their ends with "
             "end_labels(aes(x = category, y = value, label = series, colour = series), data = <each line's last row>): "
-            "it spreads crowded names apart with leaders. Other text keeps the position of the marks it labels."
+            "it spreads crowded names apart with leaders. Print values at points (a line's first point, a peak, "
+            "a dumbbell's ends) with point_labels(aes(x = category, y = value, label = <text, NA where unlabelled>, "
+            "colour = series, group = <the line's group>), data = <the line's rows>): it keeps each label inside the "
+            "panel and off the drawn lines - never a geom_text nudged beside a point with hjust or nudge. "
+            "Other text keeps the position of the marks it labels."
         )
     for label in label_fmts:
         parts.append(

@@ -1,5 +1,37 @@
 # Devlog
 
+## 2026-09-25 - Values at the left end of a line sat on the line
+
+### User report
+
+- "new issues in label placement. look at canonical-examples.pdf and integrated-transcript.json.
+  basically - we said - when at left edge, label should be on the right, and in 2 places it's put
+  it overlapping with the line etc. and not moved. how do we fix this?"
+- On my first proposal (labels outward, past each end): "no i wanted to keep the label inside only.
+  i thought the label renderer was changed for this". Then: "run 1-3."
+
+### What I did
+
+- Traced cases 02 and 04 in the transcript. The helper log for both shows `recommend_precision`,
+  `reserve_frame`, `scaffold_chart`, `refit_chart` and no `place_on_marks`, so this morning's
+  segment-aware placement never ran. The marks slot had `geom_text(hjust = -0.15 / -0.25)`, and
+  `check_chart` returned no deviations.
+- Added a `point_labels()` layer to the ggplot scaffold that places values at draw time, the same
+  pattern as `bar_values()` and `end_labels()`, plus a `TEXT_ON_MARK` check for hand-set text on
+  drawn lines or segments. Named the layer in the build brief.
+- Tests: line-start and dumbbell shapes, the hand-nudged version flagged, the `point_labels()`
+  version checked clean and its rendered label boxes tested against the lines projected through
+  the render's own transform, the markers and the panel.
+
+### Notes / decisions
+
+- The layer sees only its own data, so it takes the line's rows and group and rebuilds the path
+  from them; unlabelled rows carry `NA` labels (its `handle_na` keeps them).
+- The first gap (0.3 of the type size) put labels on a size-3 marker; half the type size clears it.
+- The inspector's `text_mark_collisions` also missed both failures - lines are not in the layout
+  metadata's marks. Left for now; the check catches it before the render.
+- Interval frames (`start`/`end`) still have no point-label route; case 02 was a value frame.
+
 ## 2026-09-24 - Why two canonical cases never reached the scaffold
 
 ### User report

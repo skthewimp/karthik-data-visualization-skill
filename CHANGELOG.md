@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Point values placed off the lines, inside the panel
+
+In the 25 September canonical run, case 02 (a horizontal dumbbell) and case 04 (seven lines with
+their 1970 values printed) had values sitting on their own lines. `place_on_marks` already keeps
+labels off drawn segments, but the scaffold path never calls it: the build model wrote
+`geom_text(hjust = -0.15)` in the marks slot, which stamps every value to the right of its point,
+onto the line leaving it. `check_chart` passed both.
+
+- **`point_labels()` scaffold layer.** Prints values at points (a line's first point, a peak, a
+  dumbbell's ends) and decides each one's spot when drawn: toward the panel's middle, then above,
+  below, the diagonals, the outer side, stepping further out when all are blocked - the first spot
+  inside the panel clear of the drawn path, the markers and the labels already placed. It takes the
+  line's own rows and group; rows whose label is `NA` are not printed but still count as the path.
+  Works under `coord_flip`, in the series hue at text contrast like `end_labels()`.
+- **`TEXT_ON_MARK` in `check_chart`.** Hand-set text whose box crosses a drawn line, path or segment
+  is flagged, with `point_labels()` as the fix. The scaffold's own helpers are not judged by it.
+- The build brief names `point_labels()` for values at points and rules out a `geom_text` nudged
+  beside a point.
+
 ### Label placement no longer walls itself in on line charts
 
 In the 24 September canonical run, case 03 (ten model lines, direct labels) failed all four build

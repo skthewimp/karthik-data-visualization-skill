@@ -45,7 +45,7 @@ def _fill(source: str, body: str) -> None:
 GOOD_MARKS = """chart_marks <- function(d) {
   list(
     geom_line(aes(x = category, y = value, group = series, colour = series)),
-    geom_text(aes(x = category, y = value, label = fmt_value(value), colour = series), size = label_size)
+    point_labels(aes(x = category, y = value, label = fmt_value(value), colour = series, group = series))
   )
 }"""
 
@@ -223,7 +223,7 @@ def test_check_names_each_slot_deviation(tmp_path: Path) -> None:
 }""",
     )
     codes = {d["code"] for d in check_chart(result["source_path"])["deviations"]}
-    assert codes == {"MARKS_NON_LAYER", "GEOM_LABEL", "COLOUR_NOT_IN_PALETTE", "TEXT_TOO_SMALL"}
+    assert codes == {"MARKS_NON_LAYER", "GEOM_LABEL", "COLOUR_NOT_IN_PALETTE", "TEXT_TOO_SMALL", "TEXT_ON_MARK"}
 
 
 @pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
@@ -253,7 +253,8 @@ def test_value_left_off_the_value_axis_is_caught(tmp_path: Path) -> None:
 }""",
     )
     codes = [d["code"] for d in check_chart(result["source_path"])["deviations"]]
-    assert codes == ["VALUE_NOT_ON_POSITION"]
+    # The labels also sit centred on their flat lines.
+    assert codes == ["TEXT_ON_MARK", "VALUE_NOT_ON_POSITION"]
 
 
 def test_matplotlib_value_left_off_the_value_axis_is_caught(tmp_path: Path) -> None:
@@ -615,6 +616,96 @@ def test_end_labels_spread_crowded_line_names_apart(tmp_path: Path) -> None:
     assert all(_contrast_ratio(ink, "#FFFFFF") >= 4.5 for ink in inks.values())
     assert abs(hue_delta(inks["Model E"], "#56B4E9")) < 3 and inks["Model A"].lower() == "#0072b2"
     assert not any(d["code"] == "LOW_TEXT_CONTRAST" for d in report["defects"])
+
+
+def _crosses(seg: tuple, box: dict) -> bool:
+    """Liang-Barsky: does the segment pass through the box's interior (1px inset)?"""
+    x0, y0, x1, y1 = seg
+    bx0, by0 = box["x"] + 1, box["y"] + 1
+    bx1, by1 = box["x"] + box["width"] - 1, box["y"] + box["height"] - 1
+    dx, dy = x1 - x0, y1 - y0
+    t0, t1 = 0.0, 1.0
+    for p, q in ((-dx, x0 - bx0), (dx, bx1 - x0), (-dy, y0 - by0), (dy, by1 - y0)):
+        if p == 0:
+            if q < 0:
+                return False
+        elif p < 0:
+            t0 = max(t0, q / p)
+        else:
+            t1 = min(t1, q / p)
+    return t0 <= t1
+
+
+LINE_START = {
+    "names": ["Cereals", "Roots", "Sugar", "Pulses", "Oils", "Meat", "Milk"],
+    "rows": [["1970", 40, 23, 7, 2, 3, 12, 21], ["2000", 42, 18, 6, 2, 3, 10, 20],
+             ["2030", 39, 18, 6, 1, 4, 11, 21], ["2050", 37, 17, 6, 1, 4, 12, 23]],
+    "orientation": "vertical",
+    "base": "geom_line(aes(x = category, y = value, colour = series, group = series)), "
+            "geom_point(aes(x = category, y = value, colour = series), size = 2.2)",
+    "bad": "geom_text(data = d[d$category == levels(d$category)[1], ], aes(x = category, y = value, "
+           "label = fmt_value(value), colour = series), hjust = -0.25, size = label_size)",
+    "good": "point_labels(aes(x = category, y = value, label = ifelse(category == levels(category)[1], "
+            "fmt_value(value), NA), colour = series, group = series))",
+    "group": "series",
+}
+DUMBBELL = {
+    "names": ["tokens", "dollars"],
+    "rows": [["cached", 95.0, 50.2], ["outdated", 3.0, 30.2], ["input", 2.0, 18.8]],
+    "orientation": "horizontal",
+    "base": "geom_line(aes(x = category, y = value, group = category), colour = '#999999'), "
+            "geom_point(aes(x = category, y = value, colour = series), size = 3)",
+    "bad": "geom_text(aes(x = category, y = value, label = fmt_value(value), colour = series), hjust = -0.15, "
+           "size = label_size)",
+    "good": "point_labels(aes(x = category, y = value, label = fmt_value(value), colour = series, group = category))",
+    "group": "category",
+}
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.parametrize("case", [LINE_START, DUMBBELL], ids=["line-start", "dumbbell"])
+def test_point_values_stay_inside_and_off_the_lines(tmp_path: Path, case: dict) -> None:
+    # A value nudged beside a point with hjust lands on the line leaving that point (a line's
+    # first value, a dumbbell's left end): the check names it, and point_labels places each value
+    # inside the panel clear of every drawn line and marker.
+    names = case["names"]
+    path = prepare_plot_data(str(tmp_path), "Key", names, columns=["Key", *names], rows=case["rows"])["plot_data_path"]
+    result = scaffold_chart(str(tmp_path), path, {"title": "t"}, layout={"width_px": 1200, "height_px": 800, "dpi": 144},
+                            colours={"ordered_palette": ["#000000", "#0072B2", "#D55E00", "#009E73", "#CC79A7",
+                                                         "#E69F00", "#56B4E9"][: len(names)]},
+                            orientation=case["orientation"])
+    _fill(result["source_path"], f"chart_marks <- function(d) list({case['base']}, {case['bad']})")
+    report = check_chart(result["source_path"])
+    assert {d["code"] for d in report["deviations"]} == {"TEXT_ON_MARK"}
+    assert "point_labels(" in report["fix_list"]
+
+    _fill(result["source_path"], f"chart_marks <- function(d) list({case['base']}, {case['good']})")
+    assert check_chart(result["source_path"])["ok"]
+    bundle = render_and_inspect_chart(result["source_path"], str(tmp_path / "render"), renderer="ggplot2",
+                                      dimensions=result["dimensions"])
+    metadata = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    labels = [e["bbox"] for e in metadata["elements"] if e["role"] == "data_label"]
+    assert labels
+    # The drawn lines, projected from the data through the render's own transform.
+    (a, b, c), (d, e, f), _ = metadata["transforms"][0]["data_to_pixel_top_left"]
+    rows = case["rows"]
+    # A flipped axis reads top-down, so its first category sits at the far end of the scale.
+    keys = [r[0] for r in rows][:: -1 if case["orientation"] == "horizontal" else 1]
+    points = [(keys.index(r[0]) + 1, s, float(v)) for r in rows for s, v in zip(names, r[1:])]
+    to_px = lambda x, y: (a * x + b * y + c, d * x + e * y + f)
+    segments = []
+    for group in {p[0] if case["group"] == "category" else p[1] for p in points}:
+        path_points = sorted(p for p in points if (p[0] if case["group"] == "category" else p[1]) == group)
+        segments += [(*to_px(p[0], p[2]), *to_px(q[0], q[2])) for p, q in zip(path_points, path_points[1:])]
+    assert not [(s, box) for s in segments for box in labels if _crosses(s, box)]
+    markers = [m["bbox"] for m in metadata["marks"] if m["kind"] == "point"]
+    overlap = lambda p, q: (p["x"] < q["x"] + q["width"] and q["x"] < p["x"] + p["width"]
+                            and p["y"] < q["y"] + q["height"] and q["y"] < p["y"] + p["height"])
+    assert not [box for box in labels for m in markers if overlap(box, m)]
+    panel = metadata["plot_areas"][0]["bbox"]
+    assert all(panel["x"] <= box["x"] and box["x"] + box["width"] <= panel["x"] + panel["width"]
+               and panel["y"] <= box["y"] and box["y"] + box["height"] <= panel["y"] + panel["height"]
+               for box in labels)
 
 
 # ---- lenient routing, interval frames, label measures, regions ----
