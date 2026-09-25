@@ -44,22 +44,25 @@ def test_attachment_uses_explicit_target_not_text_role(role):
     assert place_on_marks(**args)["unverified_attachments"] == []
     # The independently computed stack anchor landed neatly inside the wrong segment.
     args["labels"][0]["data_y"] = 150
-    with pytest.raises(ValueError, match="anchor misses target mark"):
-        place_on_marks(**args)
+    result = place_on_marks(**args)
+    assert result["unverified_attachments"] == ["value"]
+    assert any("anchor misses target mark" in w for w in result["placements"][0]["warnings"])
     args["labels"][0]["mark_id"] = "missing"
-    with pytest.raises(ValueError, match="must identify one mark"):
-        place_on_marks(**args)
+    result = place_on_marks(**args)
+    assert result["unverified_attachments"] == ["value"]
+    assert any("does not identify one mark" in w for w in result["placements"][0]["warnings"])
     del args["labels"][0]["mark_id"]
     assert place_on_marks(**args)["unverified_attachments"] == ["value"]
 
 
 def test_series_anchor_must_touch_path_not_just_bounding_box():
-    with pytest.raises(ValueError, match="anchor misses target mark"):
-        place_on_marks(800, 600, 144, [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-                       [{"id": "value", "text": "20", "role": "label", "mark_id": "line",
-                         "data_x": 100, "data_y": 200}],
-                       [{"id": "line", "points": [[100, 100], [200, 200]],
-                         "bbox": {"x": 100, "y": 100, "width": 100, "height": 100}}])
+    result = place_on_marks(800, 600, 144, [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+                            [{"id": "value", "text": "20", "role": "label", "mark_id": "line",
+                              "data_x": 100, "data_y": 200}],
+                            [{"id": "line", "points": [[100, 100], [200, 200]],
+                              "bbox": {"x": 100, "y": 100, "width": 100, "height": 100}}])
+    assert result["unverified_attachments"] == ["value"]
+    assert any("anchor misses target mark" in w for w in result["placements"][0]["warnings"])
 
 
 def test_repeated_text_cannot_satisfy_two_planned_labels():

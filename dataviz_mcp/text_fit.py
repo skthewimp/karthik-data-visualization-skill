@@ -594,7 +594,8 @@ def recommend_text_placement(
             those physical limits; it does not invent a universal character count. Set
             ``allow_curtail: true`` only when an ellipsis is acceptable and the intact name will
             be supplied in a key or footnote. Otherwise an over-budget label stays intact and is
-            reported for redesign.
+            reported for redesign. A label missing either (or with a non-positive one) is not
+            refused: it wraps to the annotation width and two lines, with a warning.
         edge_margin_px: canvas margin; defaults to 3% of width.
         min_font_pt: legibility floor a movable block may shrink to when no clear spot is found
             at full size; never smaller, so a shrink can never create an undersized-text defect.
@@ -715,14 +716,20 @@ def recommend_text_placement(
         label_width: float | None = None
         allow_curtail = False
         if is_compact_label:
-            if "max_width_px" not in block or "max_lines" not in block:
-                raise ValueError(
-                    f"{role} block {block.get('id')!r} must declare max_width_px and max_lines"
+            # The builder owns the line budget. One missing or unusable is not worth losing the
+            # chart over: fall back to the annotation width and two lines, and say so.
+            try:
+                label_width = float(block["max_width_px"])
+                max_lines = int(block["max_lines"])
+            except (KeyError, TypeError, ValueError):
+                label_width, max_lines = 0.0, 0
+            if not (label_width > 0 and max_lines >= 1):
+                label_width = max_annotation_width_frac * width_px
+                max_lines = 2
+                warnings.append(
+                    "no usable max_width_px/max_lines declared; wrapped to the annotation width "
+                    "and two lines - declare the label's budget"
                 )
-            label_width = float(block["max_width_px"])
-            max_lines = int(block["max_lines"])
-            if label_width <= 0 or max_lines < 1:
-                raise ValueError("label max_width_px and max_lines must be greater than zero")
             allow_curtail = bool(block.get("allow_curtail", False))
 
         if not movable:
@@ -1062,6 +1069,16 @@ def _project_inverse(
     return round(x, 6), round(y, 6)
 
 
+def _safe_inverse(
+    transform: list[list[float]], px: float, py: float, x_trans: str, y_trans: str
+) -> Optional[tuple[float, float]]:
+    """``_project_inverse`` that returns ``None`` instead of raising (overflow, odd transform)."""
+    try:
+        return _project_inverse(transform, px, py, x_trans, y_trans)
+    except (TypeError, ValueError, OverflowError, IndexError, KeyError):
+        return None
+
+
 def _plot_boundary_correction(
     bbox: dict[str, float],
     plot_area: dict[str, float],
@@ -1206,9 +1223,10 @@ def place_on_marks(
             font_weight / font_style (the face this label is drawn in - the matplotlib artist's
             FontProperties or the ggplot theme's text$family) pass through to the measurer so box
             widths come from the real font; omit them for the default face. A supplied ``mark_id``
-            must uniquely identify a mark
-            whose geometry contains every candidate anchor; no label-role inference is used.
-            Labels without a target ID are returned in ``unverified_attachments``.
+            should uniquely identify a mark whose geometry contains every candidate anchor; no
+            label-role inference is used. A label without a target ID, or whose ``mark_id`` is
+            ambiguous or missed by its anchor, is still placed and is listed in
+            ``unverified_attachments`` (the miss also as a warning on its placement).
             ``anchors_data`` is an optional list of ``{data_x, data_y}``
             candidate marks for a category ``label`` (it may sit beside any of them). Roles
             follow ``recommend_text_placement``: ``label`` / ``annotation`` move, ``data_label``
@@ -1230,6 +1248,11 @@ def place_on_marks(
             ``reserve_frame``). When given, a movable label left straddling the plot boundary is
             nudged wholly inside and its exact move is reported - a clip that canvas growth cannot fix.
 
+    Never raises on bad input - the job is a chart. With no usable transform (a non-Cartesian
+    coord, an unreproducible scale), or for a label whose data position cannot be projected, the
+    label is returned in ``unplaced`` (``{id, text, role, anchor_data, reason}``) for the builder
+    to draw at its mark with the renderer's own repel; everything else is placed as usual.
+
     Returns everything ``recommend_text_placement`` returns, plus ``projected_anchors``
     (``{label_id: {x, y}}``) so the caller can see where each mark landed. Every data-anchored label
     also carries **native data coordinates** the builder draws from directly, so no data-space
@@ -1242,35 +1265,66 @@ def place_on_marks(
     leader terminates exactly at the label's bounding-box edge and at the mark. A singular affine
     yields no data coordinates (they are omitted) rather than a fabricated one.
     """
-    if not transform or len(transform) < 2 or len(transform[0]) < 3 or len(transform[1]) < 3:
-        raise ValueError(
-            "place_on_marks needs a data->pixel transform (the render's "
-            "transforms[i].data_to_pixel_top_left). Every CoordCartesian ggplot emits one - "
-            "coord_flip, log/sqrt/reverse scales, and facets (one transform per panel, keyed "
-            "by axes_id) included. The render emits none only for a non-Cartesian coord "
-            "(coord_trans/polar/sf) or an unreproducible scale transform (date/logit/custom); "
-            "place those labels with the renderer's own repel (e.g. ggrepel) and verify with "
-            "inspect_rendered_chart instead."
-        )
+    # Nothing here fails outright: the job is a chart. What cannot be placed is returned in
+    # ``unplaced`` with its data position so the builder draws it at its mark (overlap at worst),
+    # and what cannot be verified is flagged, not refused.
+    unplaced: list[dict[str, Any]] = []
+    usable_transform = bool(
+        transform and len(transform) >= 2 and len(transform[0]) >= 3 and len(transform[1]) >= 3
+    )
+
+    def project(x: Any, y: Any) -> Optional[tuple[float, float]]:
+        if not usable_transform:
+            return None
+        try:
+            px, py = _project(transform, x, y, x_trans, y_trans)
+        except (TypeError, ValueError, OverflowError, IndexError, KeyError):
+            return None
+        return (px, py) if math.isfinite(px) and math.isfinite(py) else None
+
     blocks: list[dict[str, Any]] = list(fixed_blocks or [])
     projected: dict[str, dict[str, float]] = {}
     unverified: list[str] = []
+    notes: dict[str, list[str]] = {}
+    labels = [
+        label if label.get("id") is not None else {**label, "id": f"label-{i + 1}"}
+        for i, label in enumerate(labels)
+    ]
     for label in labels:
-        px, py = _project(transform, label["data_x"], label["data_y"], x_trans, y_trans)
+        point = project(label.get("data_x"), label.get("data_y"))
+        if point is None:
+            reason = (
+                "no usable data->pixel transform (a non-Cartesian coord or an unreproducible "
+                "scale); draw it at its mark with the renderer's own repel (e.g. ggrepel)"
+                if not usable_transform else
+                "its data position cannot be projected (missing, non-numeric, or outside the "
+                "scale's domain); draw it at its mark"
+            )
+            unplaced.append({
+                "id": label["id"], "text": label.get("text", ""), "role": label.get("role"),
+                "anchor_data": {"x": label.get("data_x"), "y": label.get("data_y")},
+                "reason": reason,
+            })
+            continue
+        px, py = point
+        anchor_points = [project(a.get("data_x"), a.get("data_y")) for a in label.get("anchors_data") or []]
+        anchor_points = [a for a in anchor_points if a is not None]
         target_id = label.get("mark_id")
         if target_id is None:
             unverified.append(label["id"])
         else:
             targets = [m for m in (marks or []) if m.get("id") == target_id]
             if len(targets) != 1:
-                raise ValueError(f"Label {label['id']}: mark_id {target_id!r} must identify one mark")
-            anchors = [(px, py)] + [
-                _project(transform, a["data_x"], a["data_y"], x_trans, y_trans)
-                for a in label.get("anchors_data", [])
-            ]
-            if not all(_anchor_hits_mark(x, y, targets[0]) for x, y in anchors):
-                raise ValueError(f"Label {label['id']}: anchor misses target mark {target_id!r}; "
-                                 "derive the anchor from the mark's transformed data")
+                unverified.append(label["id"])
+                notes.setdefault(label["id"], []).append(
+                    f"mark_id {target_id!r} does not identify one mark; attachment unverified"
+                )
+            elif not all(_anchor_hits_mark(x, y, targets[0]) for x, y in [(px, py)] + anchor_points):
+                unverified.append(label["id"])
+                notes.setdefault(label["id"], []).append(
+                    f"anchor misses target mark {target_id!r}; derive the anchor from the mark's "
+                    "transformed data - attachment unverified"
+                )
         projected[label["id"]] = {"x": px, "y": py}
         block = {
             key: value
@@ -1285,13 +1339,8 @@ def place_on_marks(
             if end is not None:
                 block["placement"] = end[0]
                 block["anchor"] = {"x": end[1][0], "y": end[1][1]}
-        anchors_data = label.get("anchors_data")
-        if anchors_data:
-            block["anchors"] = [
-                dict(zip(("x", "y"),
-                         _project(transform, m["data_x"], m["data_y"], x_trans, y_trans)))
-                for m in anchors_data
-            ]
+        if anchor_points:
+            block["anchors"] = [{"x": x, "y": y} for x, y in anchor_points]
         blocks.append(block)
 
     obstacles = _mark_obstacles(marks or [])
@@ -1308,23 +1357,27 @@ def place_on_marks(
     )
     result["projected_anchors"] = projected
     result["unverified_attachments"] = unverified
+    result["unplaced"] = unplaced
+    for placement in result["placements"]:
+        placement["warnings"].extend(notes.get(placement["id"], []))
 
     # Hand the builder exact native coordinates for every data-anchored label, so leaders and label
     # positions are drawn from the inverse of the projection - never improvised in data space.
-    mark_data = {label["id"]: {"x": label["data_x"], "y": label["data_y"]} for label in labels}
+    mark_data = {label["id"]: {"x": label["data_x"], "y": label["data_y"]}
+                 for label in labels if label["id"] in projected}
     for placement in result.get("placements", []):
         if placement["role"] in FIXED_ROLES:
             continue
         bbox = placement["bbox"]
-        placed_data = _project_inverse(transform, bbox["x"], bbox["y"], x_trans, y_trans)
+        placed_data = _safe_inverse(transform, bbox["x"], bbox["y"], x_trans, y_trans)
         if placed_data is not None:
             placement["placed_data"] = {"x": placed_data[0], "y": placed_data[1]}
         if placement["id"] in mark_data:
             placement["anchor_data"] = mark_data[placement["id"]]
         leader = placement.get("leader_line")
         if leader is not None:
-            src = _project_inverse(transform, leader["from"]["x"], leader["from"]["y"], x_trans, y_trans)
-            dst = _project_inverse(transform, leader["to"]["x"], leader["to"]["y"], x_trans, y_trans)
+            src = _safe_inverse(transform, leader["from"]["x"], leader["from"]["y"], x_trans, y_trans)
+            dst = _safe_inverse(transform, leader["to"]["x"], leader["to"]["y"], x_trans, y_trans)
             if src is not None and dst is not None:
                 placement["leader_line_data"] = {
                     "from": {"x": src[0], "y": src[1]},

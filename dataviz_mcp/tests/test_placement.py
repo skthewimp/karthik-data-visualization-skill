@@ -317,14 +317,14 @@ def test_axis_label_uses_the_builder_supplied_measure_and_line_budget():
     assert placement["curtailed"] is False
 
 
-def test_label_budget_is_required_instead_of_invented_by_the_tool():
-    import pytest
-
-    with pytest.raises(ValueError, match="must declare max_width_px and max_lines"):
-        _recommend_text_placement(
-            1200, 700, 144,
-            blocks=[{"id": "s", "role": "label", "text": "Cereals", "anchor": {"x": 1, "y": 1}}],
-        )
+def test_missing_label_budget_wraps_to_a_default_and_warns():
+    result = _recommend_text_placement(
+        1200, 700, 144,
+        blocks=[{"id": "s", "role": "label", "text": "Cereals", "anchor": {"x": 1, "y": 1}}],
+    )
+    placement = result["placements"][0]
+    assert placement["wrapped_text"] == "Cereals"
+    assert any("declare the label's budget" in w for w in placement["warnings"])
 
 
 def test_blocked_side_parks_on_another_side_still_without_a_leader():
@@ -692,23 +692,42 @@ def test_an_on_mark_data_label_stays_at_its_projected_anchor():
     assert placement["leader_line"] is None
 
 
-def test_place_on_marks_refuses_without_a_transform():
-    # A ggplot render with no emitted transform (a non-Cartesian coord_trans/polar/sf, or an
-    # unreproducible date/logit/custom scale) must make this fail loudly so the driver falls
-    # back to ggrepel, not project through a missing map.
-    with pytest.raises(ValueError, match="data->pixel transform") as excinfo:
-        place_on_marks(
-            800, 600, 144, [],
-            labels=[{"id": "l", "text": "x", "role": "label",
-                     "data_x": 0, "data_y": 0, "max_width_px": 80, "max_lines": 1}],
-            marks=[],
-        )
-    message = str(excinfo.value)
-    # The guidance must name the truly-unsupported cases and must NOT claim the supported
-    # ones (coord_flip, log/sqrt/reverse scales, facets) emit no transform.
-    assert "coord_trans" in message and "polar" in message
-    assert "included" in message  # coord_flip / scales / facets named as SUPPORTED
-    assert "coord_flip/polar" not in message  # the old lie grouped coord_flip with unsupported
+def test_place_on_marks_without_a_transform_returns_labels_unplaced():
+    # A render with no emitted transform (a non-Cartesian coord, an unreproducible scale) cannot
+    # project data to pixels. That is not a reason to lose the chart: every label comes back in
+    # `unplaced` with its data position, for the builder to draw with the renderer's own repel.
+    result = place_on_marks(
+        800, 600, 144, [],
+        labels=[{"id": "l", "text": "x", "role": "label",
+                 "data_x": 0, "data_y": 0, "max_width_px": 80, "max_lines": 1}],
+        marks=[],
+    )
+    assert result["placements"] == []
+    assert result["unplaced"][0]["id"] == "l"
+    assert result["unplaced"][0]["anchor_data"] == {"x": 0, "y": 0}
+    assert "ggrepel" in result["unplaced"][0]["reason"]
+
+
+def test_place_on_marks_places_what_it_can_around_a_bad_label():
+    result = place_on_marks(
+        800, 600, 144, [[1, 0, 0], [0, 1, 0]],
+        labels=[
+            {"text": "no id", "role": "label", "data_x": 100, "data_y": 100},
+            {"id": "bad", "text": "x", "role": "label", "data_x": "n/a", "data_y": None},
+            {"id": "logneg", "text": "y", "role": "annotation", "data_x": 200, "data_y": -1},
+        ],
+        marks=[{"id": "m", "bbox": {"x": 90, "y": 90, "width": 20, "height": 20}}],
+        y_trans="log-10",
+    )
+    assert [u["id"] for u in result["unplaced"]] == ["bad", "logneg"]
+    assert [p["id"] for p in result["placements"]] == ["label-1"]
+    result = place_on_marks(
+        800, 600, 144, [[1, 0, 0], [0, 1, 0]],
+        labels=[{"text": "no id", "role": "label", "data_x": 100, "data_y": 100,
+                 "anchors_data": [{"data_x": "?"}]}],
+        marks=[],
+    )
+    assert result["placements"][0]["id"] == "label-1"
 
 
 def _overlap(a, b, tol=0.5):

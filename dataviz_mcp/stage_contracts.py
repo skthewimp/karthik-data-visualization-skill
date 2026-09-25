@@ -1496,7 +1496,7 @@ setting you change there is lost. In the slot, in order:
 For charts, pass the scaffold's ``frame`` as ``inspection_contract.frame`` and the label
 placements as ``inspection_contract.placements`` to ``render_and_inspect_chart`` and
 ``refit_chart``. For a known target, pass its exported ``mark_id`` in the label to
-``place_on_marks``; wrong anchors are rejected; report ``unverified_attachments`` as a limitation
+``place_on_marks``; a wrong anchor is flagged in ``unverified_attachments``; report them as a limitation
 rather than inventing a target.
 
 Build the
