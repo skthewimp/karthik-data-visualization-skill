@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Label placement no longer walls itself in on line charts
+
+In the 24 September canonical run, case 03 (ten model lines, direct labels) failed all four build
+attempts with an empty `RenderSandboxError` - the sandbox killed the render for CPU. Reproduced
+locally, one `place_on_marks` call on that chart took 21.5 s, 97% of it in the repel solve.
+
+- **Lines block labels where they are drawn.** `place_on_marks` passed each line's bounding box
+  as an obstacle. Ten lines' boxes cover the whole panel, so no label could sit beside its line,
+  every label went to the repel solve, and the solve could never settle, running its full 400
+  iterations every time. Path marks now block one thin box per drawn segment; other marks keep
+  their bbox.
+- **The repel solve and the clear-spot search only look at nearby marks.** Both scanned every
+  mark on every step. A uniform-grid index now returns just the marks around the label. Case 03
+  goes from 21.5 s to 0.8 s with the same placement rules.
+
 ### Coloured subtitle keys read as text and stop tripping the inspector
 
 - **Key words are darkened to text contrast in their own hue.** `scaffold_chart`'s subtitle key

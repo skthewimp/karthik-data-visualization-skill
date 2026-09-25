@@ -291,6 +291,7 @@ def _search_clear(
     ]
     fine = max(2.0, step / 4)
     rings = int(step * 12 / fine) + 1
+    grid = _BoxGrid(blockers)
     for ring in range(1, rings + 1):
         clear: list[tuple[float, float]] = []
         for dx, dy in directions:
@@ -300,7 +301,7 @@ def _search_clear(
             }
             cx, cy = _nudge_into_canvas(candidate, width, height, margin)
             candidate["x"], candidate["y"] = cx, cy
-            if not _hits_any(candidate, blockers):
+            if not _hits_any(candidate, grid.near(candidate, 0.0)):
                 clear.append((cx, cy))
         if clear:
             return min(clear, key=lambda c: _distance(c, (ox, oy)))
@@ -365,6 +366,7 @@ def _repel(
     if not movers:
         return
     ties = [2 * math.pi * (i + 1) / (len(movers) + 1) for i in range(len(movers))]
+    near_fixed = _BoxGrid(fixed)
 
     def clamp(box: dict[str, float]) -> None:
         box["x"], box["y"] = _nudge_into_canvas(box, width, height, margin)
@@ -378,7 +380,8 @@ def _repel(
             box["x"] += (ax - cx) * pull * cool
             box["y"] += (ay - cy) * pull * cool
             clamp(box)
-        # 2. Separation: push each box out of every other box and mark, smallest move first.
+        # 2. Separation: push each box out of every other box and mark, smallest move first. Only
+        # fixed boxes the mover (plus its pad) touches can push it, so they come from a grid.
         for _ in range(sep_iters):
             for i, mover in enumerate(movers):
                 box = mover["box"]
@@ -386,21 +389,54 @@ def _repel(
                     if i == j:
                         continue
                     dx, dy = _min_translation(box, other["box"], ties[i], pad)
-                    box["x"] += dx * relax
-                    box["y"] += dy * relax
-                    clamp(box)
-                for fb in fixed:
+                    if dx or dy:
+                        box["x"] += dx * relax
+                        box["y"] += dy * relax
+                        clamp(box)
+                for fb in near_fixed.near(box, pad):
                     dx, dy = _min_translation(box, fb, ties[i], pad)
-                    box["x"] += dx
-                    box["y"] += dy
-                    clamp(box)
+                    if dx or dy:
+                        box["x"] += dx
+                        box["y"] += dy
+                        clamp(box)
         # 3. Done when nothing overlaps any mark, pinned block, or other label.
-        blockers = fixed + [m["box"] for m in movers]
         if it > 8 and not any(
             boxes_overlap(m["box"], o)
-            for m in movers for o in blockers if o is not m["box"]
+            for m in movers
+            for o in near_fixed.near(m["box"], 0.0) + [n["box"] for n in movers if n is not m]
         ):
             break
+
+
+class _BoxGrid:
+    """Uniform-grid index over fixed boxes, so a query returns only the boxes near a region.
+
+    A chart's marks run to hundreds of points and segments; the repel solve asks "what touches this
+    label" thousands of times, and scanning every mark each time is what made it slow."""
+
+    def __init__(self, boxes: list[dict[str, float]], cell: float = 64.0) -> None:
+        self.cell = cell
+        self.boxes = boxes
+        self.cells: dict[tuple[int, int], list[int]] = {}
+        for idx, box in enumerate(boxes):
+            for key in self._keys(box, 0.0):
+                self.cells.setdefault(key, []).append(idx)
+
+    def _keys(self, box: dict[str, float], pad: float):
+        c = self.cell
+        x0, y0 = int(math.floor((box["x"] - pad) / c)), int(math.floor((box["y"] - pad) / c))
+        x1 = int(math.floor((box["x"] + box["width"] + pad) / c))
+        y1 = int(math.floor((box["y"] + box["height"] + pad) / c))
+        for gx in range(x0, x1 + 1):
+            for gy in range(y0, y1 + 1):
+                yield gx, gy
+
+    def near(self, box: dict[str, float], pad: float) -> list[dict[str, float]]:
+        """Fixed boxes sharing a grid cell with ``box`` grown by ``pad``, in input order."""
+        found: set[int] = set()
+        for key in self._keys(box, pad):
+            found.update(self.cells.get(key, ()))
+        return [self.boxes[idx] for idx in sorted(found)]
 
 
 def _shrink_to_fit(
@@ -1043,6 +1079,28 @@ def _path_end_side(
     return None
 
 
+def _mark_obstacles(marks: list[dict[str, Any]], stroke_px: float = 2.0) -> list[dict[str, float]]:
+    """The boxes a label must clear, from each mark's drawn geometry.
+
+    A path mark (a line, an interval) blocks only where it is drawn: one thin box per segment, not
+    the path's bounding box. A line's bbox is mostly empty panel, and ten lines' bboxes wall off
+    the whole panel - every label then fails adjacency and the repel solve can never settle."""
+    boxes: list[dict[str, float]] = []
+    for mark in marks:
+        paths = mark.get("segments") or ([mark["points"]] if mark.get("points") else [])
+        if not paths:
+            if "bbox" in mark:
+                boxes.append(mark["bbox"])
+            continue
+        for points in paths:
+            for (x0, y0), (x1, y1) in zip(points, points[1:]):
+                boxes.append({
+                    "x": min(x0, x1) - stroke_px / 2, "y": min(y0, y1) - stroke_px / 2,
+                    "width": abs(x1 - x0) + stroke_px, "height": abs(y1 - y0) + stroke_px,
+                })
+    return boxes
+
+
 def place_on_marks(
     width_px: int,
     height_px: int,
@@ -1088,8 +1146,8 @@ def place_on_marks(
             whose point is the first or last vertex of a path mark (a dumbbell or range bar, a
             line's start or end) parks outward along the run: left of the start and right of the
             end of a horizontal run, below/above for a vertical one, clear of the dot drawn there.
-        marks: the render's mark boxes (``layout['marks']`` and/or ``['series']``); their
-            ``bbox`` values become the obstacles movable labels dodge.
+        marks: the render's mark boxes (``layout['marks']`` and/or ``['series']``); they become
+            the obstacles movable labels dodge - a path's drawn segments, any other mark's ``bbox``.
         fixed_blocks: frame blocks from ``reserve_frame`` (already in px), passed through so
             data labels also clear the title/subtitle/caption.
         x_trans / y_trans: the axes' scale-transform names from the same layout-metadata
@@ -1166,7 +1224,7 @@ def place_on_marks(
             ]
         blocks.append(block)
 
-    obstacles = [m["bbox"] for m in (marks or []) if "bbox" in m]
+    obstacles = _mark_obstacles(marks or [])
     result = recommend_text_placement(
         width_px,
         height_px,

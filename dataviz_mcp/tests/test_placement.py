@@ -877,3 +877,27 @@ def test_bar_value_label_extent_follows_the_bar_orientation():
     bold = place_bar_value_labels([bar], dpi=144, font_pt=12, orientation="horizontal",
                                   font_weight="bold")["placements"][0]
     assert bold["label_px"] > regular["label_px"]
+
+
+def test_place_on_marks_dodges_a_line_where_drawn_not_its_bbox():
+    # Many lines' bounding boxes cover the whole panel; a label beside its line's end sits in
+    # empty panel inside every one of them. Only the drawn segments block it, so it parks home.
+    from dataviz_mcp.text_fit import place_on_marks
+
+    lines = [{"id": "s0", "role": "series", "bbox": {"x": 100, "y": 300, "width": 600, "height": 200},
+              "segments": [[[100, 500], [700, 300]]]}] + [
+        {"id": f"s{k}", "role": "series", "bbox": {"x": 100, "y": 100, "width": 800, "height": 400},
+         "segments": [[[100, 500 - 10 * k], [300, 200], [900, 120 + 10 * k]]]}
+        for k in range(1, 5)
+    ]
+    result = place_on_marks(
+        1000, 700, 144, [[1, 0, 0], [0, 1, 0]],
+        [{"id": "s0", "text": "Series zero", "role": "label", "data_x": 700, "data_y": 300,
+          "font_pt": 10, "max_width_px": 200, "max_lines": 1, "placement": "right",
+          "mark_id": "s0"}],
+        marks=lines,
+    )
+    placement = result["placements"][0]
+    assert placement["leader_line"] is None
+    assert placement["suggested_anchor"] is None
+    assert placement["bbox"]["x"] > 700
