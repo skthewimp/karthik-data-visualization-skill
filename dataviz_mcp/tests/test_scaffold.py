@@ -143,10 +143,26 @@ def test_zero_baseline_and_date_axis(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, plot_data_path=_frame(tmp_path, rows=months), x_kind="date", zero_baseline=True)
     source = Path(result["source_path"]).read_text(encoding="utf-8")
     assert "as.Date(plot_data$category)" in source
-    assert "scale_x_date(labels = scales::label_date_short())" in source
+    # Three months fit a label each, so the axis ticks at the data's own dates.
+    assert ('scale_x_date(breaks = as.Date(c("2020-01-01", "2020-02-01", "2020-03-01")), '
+            "labels = scales::label_date_short())") in source
     assert "limits = c(0, NA)" in source
     data = Path(result["chart_data_path"]).read_text(encoding="utf-8")
     assert "2020-02-01" in data
+
+
+def test_sparse_dates_tick_only_where_the_data_is(tmp_path: Path) -> None:
+    # Observed in 1970, 2000, 2030 and 2050: no tick at a decade the data skips.
+    years = [["1970", 40, 23], ["2000", 42, 18], ["2030", 39, 18], ["2050", 37, 17]]
+    source = Path(_scaffold(tmp_path, plot_data_path=_frame(tmp_path, rows=years), x_kind="date")["source_path"]).read_text()
+    assert 'breaks = as.Date(c("1970-01-01", "2000-01-01", "2030-01-01", "2050-01-01"))' in source
+
+
+def test_dense_dates_keep_the_renderer_breaks(tmp_path: Path) -> None:
+    # Five years of months can't take a label per month; the renderer thins the ticks.
+    months = [[f"{2020 + i // 12}-{i % 12 + 1:02d}", i, i + 1] for i in range(60)]
+    source = Path(_scaffold(tmp_path, plot_data_path=_frame(tmp_path, rows=months), x_kind="date")["source_path"]).read_text()
+    assert "scale_x_date(labels = scales::label_date_short())" in source
 
 
 def test_unparseable_dates_fall_back_to_discrete_with_a_warning(tmp_path: Path) -> None:
@@ -616,6 +632,36 @@ def test_end_labels_spread_crowded_line_names_apart(tmp_path: Path) -> None:
     assert all(_contrast_ratio(ink, "#FFFFFF") >= 4.5 for ink in inks.values())
     assert abs(hue_delta(inks["Model E"], "#56B4E9")) < 3 and inks["Model A"].lower() == "#0072b2"
     assert not any(d["code"] == "LOW_TEXT_CONTRAST" for d in report["defects"])
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_long_end_labels_wrap_into_a_capped_band(tmp_path: Path) -> None:
+    # Long line names stack on whole words in a band a fraction of the plot wide, instead of
+    # reserving their full one-line width; a value joined by " - " stays on its name's last line.
+    names = ["Cereals, food", "Vegetable oils, oilseeds and products (oil eq.)",
+             "Milk and dairy, excl. butter (fresh milk eq.)"]
+    rows = [["1970", 40, 3, 21], ["2000", 42, 3, 20], ["2050", 37, 4, 23]]
+    path = prepare_plot_data(str(tmp_path), "Year", names, columns=["Year", *names], rows=rows)["plot_data_path"]
+    layout = {"width_px": 1200, "height_px": 900, "dpi": 144}
+    result = scaffold_chart(str(tmp_path), path, {"title": "t"}, layout=layout, x_kind="date", value_labels=6,
+                            colours={"ordered_palette": ["#000000", "#0072B2", "#D55E00"]})
+    source = Path(result["source_path"]).read_text()
+    chars = int(re.search(r"end_label_chars <- (\d+)", source).group(1))
+    assert 0 < chars < len(names[1])
+    assert result["frame"]["plot_margin_px"]["right"] < 1200 / 3
+    _fill(result["source_path"], """chart_marks <- function(d) list(
+  geom_line(aes(x = category, y = value, colour = series, group = series)),
+  end_labels(aes(x = category, y = value, label = paste0(series, " - ", fmt_value(value), "%"), colour = series),
+             data = d[d$category == max(d$category), ])
+)""")
+    bundle = render_and_inspect_chart(result["source_path"], str(tmp_path / "render"), renderer="ggplot2",
+                                      dimensions=result["dimensions"])
+    report = json.loads(Path(bundle["inspection_path"]).read_text())
+    assert not report["text_text_collisions"]
+    texts = [e["text"] for e in json.loads(Path(bundle["layout_metadata_path"]).read_text())["elements"] if e["text"]]
+    wrapped = [t for t in texts if "\n" in t]
+    assert wrapped and all(len(line) <= chars for t in wrapped for line in t.split("\n"))
+    assert all(not re.fullmatch(r"[-\s\d%.]+", t.split("\n")[-1]) for t in wrapped)
 
 
 def _crosses(seg: tuple, box: dict) -> bool:

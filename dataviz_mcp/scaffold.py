@@ -35,6 +35,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import textwrap
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -43,7 +44,9 @@ from . import handoff
 from .color_math import _contrast_ratio, better_ink, text_ink, to_rgb
 from .frame import reserve_frame
 from .inspection import _REDUNDANT_AXIS_MIN_LABELS
-from .layout import FONT_PT, GROUP_BREAK, PROFILES, char_px, house_font_pt, pt_to_px
+from .layout import (
+    FONT_PT, GROUP_BREAK, MIN_Y_WRAP_CHARS, PROFILES, Y_LABEL_BAND_MAX_FRAC, char_px, house_font_pt, line_px, pt_to_px,
+)
 from .precision import recommend_precision
 from .text_metrics import TextMeasurer
 
@@ -437,11 +440,17 @@ GeomEndLabel <- ggproto("GeomEndLabel", GeomText,
 )
 makeContent.dvz_end_labels <- function(x) {
   d <- x$coords
+  # A long name stacks on whole words within the band the margin reserved, rather than running wide.
+  # A token with no letters (the " - 37%" joining a value to its name) never breaks from its neighbour.
+  if (end_label_chars > 0) d$label <- vapply(as.character(d$label), function(s) gsub("\u00a0", " ", paste(
+    strwrap(gsub("\\s+(?=[^[:alpha:][:space:]]+(\\s|$))", "\u00a0", s, perl = TRUE), end_label_chars + 1),
+    collapse = "\n")), "")
   # The names are words on the page: their series hue at text contrast, the leaders in the line's own colour.
   gp <- lapply(seq_len(nrow(d)), function(r) grid::gpar(col = page_ink(d$colour[r]), fontsize = d$size[r] * .pt,
     fontfamily = d$family[r], fontface = d$fontface[r], lineheight = d$lineheight[r]))
+  # Each name's block plus a gap that sets one block apart from the next, wider than the lines inside it.
   h <- vapply(seq_len(nrow(d)), function(r) grid::convertHeight(grid::grobHeight(
-    grid::textGrob(d$label[r], gp = gp[[r]])), "npc", TRUE), 0) * 1.15
+    grid::textGrob(d$label[r], gp = gp[[r]])) + grid::unit(d$size[r] * .pt, "points"), "npc", TRUE), 0)
   y <- end_label_spread(d$y, h, 0, 1)
   gap <- grid::convertWidth(grid::unit(0.3 * d$size * .pt, "points"), "npc", TRUE)
   # Once any label has moved, every label in the column takes a leader, so they align.
@@ -623,6 +632,8 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "page_ink <- function(colour) { key <- toupper(as.character(colour)); "
         "ifelse(key %in% names(page_text), unname(page_text[key]), as.character(colour)) }",
         _GGPLOT_BAR_VALUES,
+        "# Line-end names wrap to this many characters a line (0: one line) - end_labels() applies it.",
+        f"end_label_chars <- {spec['end_label_chars']}",
         _GGPLOT_END_LABELS,
         _GGPLOT_POINT_LABELS,
         "",
@@ -688,7 +699,8 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
                 value_args.append("expand = expansion(mult = c(0, 0.05))")
             layers.append(f"scale_y_continuous({', '.join(value_args)})")
         if spec["x_kind"] == "date":
-            layers.append("scale_x_date(labels = scales::label_date_short())")
+            breaks = f"breaks = as.Date({_r_vec(spec['date_breaks'])}), " if spec["date_breaks"] else ""
+            layers.append(f"scale_x_date({breaks}labels = scales::label_date_short())")
         elif spec["x_kind"] == "discrete":
             # The axis runs in the planned category order whatever order the layers train it in (a
             # layer drawn from a subset would otherwise put its categories first), over the categories
@@ -795,7 +807,7 @@ def _matplotlib_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         'matplotlib.use("Agg")',
         "import matplotlib.dates as mdates",
         "import matplotlib.pyplot as plt",
-        "from matplotlib.ticker import FuncFormatter",
+        "from matplotlib.ticker import FixedLocator, FuncFormatter",
         "",
         f"CATEGORIES = {spec['category_order']!r}",
         "# Colours: PALETTE[\"<series>\"] by name, INK for a single-colour mark.",
@@ -882,7 +894,9 @@ def _matplotlib_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         ]
     elif spec["x_kind"] == "date":
         finish += [
-            "    locator = mdates.AutoDateLocator()",
+            "    locator = "
+            + (f"FixedLocator(mdates.date2num([date.fromisoformat(d) for d in {spec['date_breaks']!r}]))"
+               if spec["date_breaks"] else "mdates.AutoDateLocator()"),
             f"    ax.{cat_axis}.set_major_locator(locator)",
             f"    ax.{cat_axis}.set_major_formatter(mdates.ConciseDateFormatter(locator))",
         ]
@@ -1011,8 +1025,9 @@ def scaffold_chart(
         for row in rows:
             row["region"] = region_of[row["category"]]
 
-    # Type the x column. A time axis parsed to real dates gets the renderer's own breaks,
-    # so a monthly series never draws one tick per month.
+    # Type the x column. A time axis parsed to real dates ticks at the data's own dates when each
+    # clears its neighbour, and takes the renderer's breaks otherwise, so a monthly series never
+    # draws one tick per month and a sparse one never ticks at dates it has no data for.
     if x_kind == "date":
         parsed = {row["category"]: _parse_date(row["category"]) for row in rows}
         unparsed = [label for label, value in parsed.items() if value is None]
@@ -1080,19 +1095,23 @@ def scaffold_chart(
     shown = [_format_number(float(r[k]), fmt) for r in rows for k in geometry if r.get(k) not in ("", None)]
     label_fmts = _label_formats(rows, label_units, label_formats or {})
     value_chars = max((len(v) for v in shown), default=0)
-    end_chars = 0
-    if identification == "direct_labels" and series_order and not horizontal:
-        end_chars = max(len(s) for s in series_order) + (2 + value_chars if value_labels else 0)
-    elif horizontal and value_labels:
-        end_chars = value_chars
     margin_px = dict(frame["plot_margin_px"])
     reserved_px = dict(frame.get("reserved_px") or margin_px)
+    plot_w = width - float(reserved_px["left"]) - float(margin_px["right"])
+    plot_h = height - float(reserved_px["top"]) - float(reserved_px["bottom"])
+    end_px = 0.0
+    end_wrap = 0
+    if identification == "direct_labels" and series_order and not horizontal:
+        # A line's name (and its value, when printed) as it will stand past the last point.
+        ends = [s + (" - " + "0" * value_chars if value_labels else "") for s in series_order]
+        end_wrap, end_px = _end_label_wrap(ends, plot_w, plot_h, fonts["label"], dpi)
+    elif horizontal and value_labels:
+        end_px = value_chars * char_px(fonts["label"], dpi)
     extra = 0.0
-    if end_chars:
-        need = end_chars * char_px(fonts["label"], dpi) + pt_to_px(fonts["label"], dpi) * 0.6
-        panel_w = width - float((frame.get("reserved_px") or margin_px)["left"]) - float(margin_px["right"])
+    if end_px:
+        need = end_px + pt_to_px(fonts["label"], dpi) * 0.6
         n_slots = len(_first_seen(rows, "category"))
-        expansion = (0.6 * panel_w / max(1.2, n_slots + 0.2)) if x_kind == "discrete" and not horizontal else 0.05 * panel_w
+        expansion = (0.6 * plot_w / max(1.2, n_slots + 0.2)) if x_kind == "discrete" and not horizontal else 0.05 * plot_w
         extra = max(0.0, need - expansion)
         margin_px["right"] = round(float(margin_px["right"]) + extra, 1)
         reserved_px["right"] = round(float(reserved_px["right"]) + extra, 1)
@@ -1122,6 +1141,7 @@ def scaffold_chart(
         "hide_value_axis": hide_value_axis,
         "rotate_x_labels": bool(layout.get("rotate_x_labels")),
         "wrap_label_chars": int(layout.get("wrap_y_labels_chars") or 0),
+        "end_label_chars": end_wrap,
         "facet_ncol": int(layout.get("facet_ncol") or 1),
         "facet_nrow": int(layout.get("facet_nrow") or max(1, len(facet_order))),
         "facet_scales": str(layout.get("facet_scales") or "fixed"),
@@ -1140,6 +1160,9 @@ def scaffold_chart(
     spec["strip_wrap_chars"] = _strip_wrap_chars(
         facet_order, float(frame["plot_area"]["width"]) - extra, spec["facet_ncol"], fonts["axis"], dpi,
     ) if facet_order and frame.get("plot_area") else 0
+    spec["date_breaks"] = _observed_date_breaks(
+        spec["category_order"], (plot_w - extra) / spec["facet_ncol"], fonts["axis"], dpi,
+    ) if x_kind == "date" else []
 
     if region_of:
         spec["regions"] = _region_boxes(regions, frame, margin_px, width, height, facet_order, rows)
@@ -1957,6 +1980,50 @@ def _strip_wrap_chars(names: list[str], plot_w: float, ncol: int, font_pt: float
     if width <= panel_w or not longest:
         return 0
     return max(8, int(len(longest) * panel_w / width))
+
+
+# The space before a token with no letters - the " - 37%" joining a value to its name - is kept
+# unbroken, so a wrapped name never strands its value on a line of its own.
+_GLUE = re.compile(r"\s+(?=(?:(?![^\W\d_])\S)+(?:\s|$))")
+
+
+def _end_label_wrap(labels: list[str], plot_w: float, plot_h: float, font_pt: float, dpi: float) -> tuple[int, float]:
+    """Wrap width (characters, 0 = one line) and band width (px) for the names at the line ends.
+
+    The band is capped like a horizontal bar's category band, so long names stack on whole words
+    instead of taking the plot's width. It widens again only as far as the stacked names need to
+    fit the panel's height, since a column of names taller than the panel collides instead.
+    """
+    measure = TextMeasurer(dpi)
+    def band(width: int) -> tuple[list[str], float]:
+        lines = [line.replace("\u00a0", " ") for label in labels
+                 for line in textwrap.wrap(_GLUE.sub("\u00a0", label), width, break_long_words=False)]
+        return lines, max(measure.width(line, font_pt) for line in lines)
+    longest = max(len(label) for label in labels)
+    cap = max(MIN_Y_WRAP_CHARS, int(Y_LABEL_BAND_MAX_FRAC * plot_w / char_px(font_pt, dpi)))
+    # As end_labels() stacks them: each line, plus a font size's gap between one name and the next (grobHeight leaves out the descent).
+    gap = pt_to_px(font_pt, dpi) * len(labels)
+    for width in range(cap, longest):
+        lines, px = band(width)
+        if len(lines) * line_px(font_pt, dpi) + gap <= plot_h:
+            return width, px
+    return 0, band(longest)[1]
+
+
+def _observed_date_breaks(dates: list[str], panel_w: float, font_pt: float, dpi: float) -> list[str]:
+    """The data's own dates as the axis ticks when each clears its neighbour; [] leaves the renderer's.
+
+    Ticks at dates with no data - decade breaks on a series observed in 1970, 2000 and 2050 - read
+    as observations that are not there, so a sparse axis ticks where the data is. A dense one (a
+    monthly series) can't fit a label per date, and the renderer's own breaks thin it.
+    """
+    days = sorted({date.fromisoformat(d) for d in dates})
+    if len(days) < 2:
+        return [d.isoformat() for d in days]
+    span = (days[-1] - days[0]).days * 1.1  # the scale's 5% expansion each side
+    gap = min((b - a).days for a, b in zip(days, days[1:])) * panel_w / span
+    # A short date label (a year, or a month over its year) plus a character's clearance each side.
+    return [d.isoformat() for d in days] if gap >= 6 * char_px(font_pt, dpi) else []
 
 
 def _fix_list(deviations: list[dict[str, str]]) -> str:

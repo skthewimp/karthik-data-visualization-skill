@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Line-end names wrap; sparse date axes tick only where the data is
+
+In the 25 September canonical run, case 04 (seven food groups, 1970-2050) spent half its 1200px
+canvas on a right margin sized for "Vegetable oils, oilseeds and products (oil eq.) - 4%" on one
+line, and its x axis ticked 1980 and 1990 - years the source names in its title but withholds
+values for - so the labels ran together.
+
+- **`end_labels()` wraps.** The scaffold caps the line-end band at the same fraction of the plot a
+  horizontal bar's category band gets, and wraps longer names on whole words (`end_label_chars`),
+  widening only as far as the stacked names need to fit the panel's height. The right margin is
+  sized from the measured widest wrapped line. A letterless token (the " - 37%" joining a value to
+  its name) never breaks from its neighbour, and stacked names are a font size apart so one block
+  reads apart from the next.
+- **Date axes tick at the data's own dates** when each date clears its neighbour by a label's
+  width (ggplot `scale_x_date(breaks = ...)`, matplotlib `FixedLocator`); a dense series keeps the
+  renderer's breaks.
+- **`dataviz-extract`:** a period named only in a title, legend or note, with no marks drawn for
+  it, is caption context - never a row, a gap, or an axis tick.
+
 ### Point values placed off the lines, inside the panel
 
 In the 25 September canonical run, case 02 (a horizontal dumbbell) and case 04 (seven lines with

@@ -1,5 +1,40 @@
 # Devlog
 
+## 2026-09-25 - Case 04: unwrapped end labels and ticks at years with no data
+
+### User report
+
+- "X axis labels don't match data. there is no data for 1980 and 1990 but the points are marked on
+  the axis thus crowding it. the axis label for Y (share %) is too close to the axis ticks - which
+  are unnecessary in the first place. third, the series labels are NOT wrapped... how much of it is
+  due to our skills?" Then: "wasn't the end label wrap already done?" and "fix all things that can
+  be fixed here - label wrapping and the axis".
+
+### What I did
+
+- Traced case 04. The y axis and its "Share (%)" title were ours to drop and we did (the scaffold
+  hid the value axis for 14 value labels); the website's axis override appended them back. Not
+  fixable in this repo.
+- 1980/1990 came from the extract rule to carry printed axis anchors: the model read the years in
+  the source title as periods and every later stage kept them as "unresolved positions". Added a
+  line to `dataviz-extract`: periods with no drawn marks are caption context, not positions.
+- The scaffold's own date axis used renderer breaks, which also don't track sparse data. It now
+  ticks at the observed dates when each clears its neighbour by about a label's width.
+- End-label wrap existed in the text engine, bar category bands and facet strips, but the
+  draw-time `end_labels()` from 24 September bypassed it and the margin was sized unwrapped.
+  Wrapped there, capped with the bar-band fraction, margin from the measured widest line.
+- Rebuilt case 04 locally with the run's marks: margin 610px -> 215px, ticks 1970/2000/2030/2050,
+  no collisions.
+
+### Notes / decisions
+
+- First render stranded values ("Cereals, food -" / "37%"): letterless tokens now glue to their
+  neighbour (NBSP before wrap, restored after), mirrored in the Python width estimate.
+- Stacked multi-line names read as one block because `grobHeight` omits descent; the block gap is
+  now a font size, not 15% of the block.
+- Matplotlib has no end-label helper, so only its date locator changed.
+- Checked the extract change with haiku and sonnet on the case 04 source image.
+
 ## 2026-09-25 - Values at the left end of a line sat on the line
 
 ### User report
