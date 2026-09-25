@@ -225,7 +225,7 @@ def _uncross_leaders(results: list[dict[str, Any]], obstacles: list[dict[str, An
     B's spot and B takes A's. Each label keeps the mark it names, so the swap sends each back toward
     its own point and uncrosses the pair - accepted only if both boxes stay clear of the obstacles
     and every other placed box. Greedy, repeated to a fixed point; a swap that cannot be made clean
-    is left as-is."""
+    is left as-is. Capped at three passes, so crowded charts do not pay for a fixed point."""
     movers = [
         r for r in results
         if r.get("leader_line") and r["role"] not in (FIXED_ROLES | ON_MARK_ROLES)
@@ -233,12 +233,13 @@ def _uncross_leaders(results: list[dict[str, Any]], obstacles: list[dict[str, An
     if len(movers) < 2:
         return
 
+    grid = _BoxGrid(obstacles)
+
     def clear_at(box: dict[str, float], ignore: tuple[dict, dict]) -> bool:
-        others = [r["bbox"] for r in results if r not in ignore] + obstacles
-        return not _hits_any(box, others)
+        return not grid.hits(box, [r["bbox"] for r in results if r not in ignore])
 
     changed = True
-    guard = len(movers) ** 2 + 1
+    guard = 3  # a few greedy passes; each is all pairs, so more would be quadratic again
     while changed and guard > 0:
         changed = False
         guard -= 1
@@ -272,18 +273,22 @@ def _uncross_leaders(results: list[dict[str, Any]], obstacles: list[dict[str, An
 
 def _search_clear(
     bbox: dict[str, float],
-    blockers: list[dict[str, Any]],
+    blockers: "list[dict[str, Any]] | _BoxGrid",
     width: float,
     height: float,
     margin: float,
     step: float,
+    extra: list[dict[str, Any]] = (),
+    budget: Optional[dict[str, int]] = None,
 ) -> Optional[tuple[float, float]]:
     """Ring-search outward from the anchor for the nearest position clear of every blocker.
 
     Steps in fine (quarter-``step``) increments and, at the first ring that has any clear spot,
     returns the candidate closest to the anchor - so a label moves the least distance that clears
     instead of jumping a whole line-height in the first compass direction that happens to be free.
-    Reach is unchanged (finer steps, proportionally more rings)."""
+    Reach is unchanged (finer steps, proportionally more rings). ``budget`` (``{"checks": n}``) is
+    shared across calls and spent per box compared; once it runs out the search gives up, so a
+    crowded chart falls back to overlap instead of searching without end."""
     ox, oy = bbox["x"], bbox["y"]
     directions = [
         (0, -1), (1, 0), (0, 1), (-1, 0),
@@ -291,8 +296,10 @@ def _search_clear(
     ]
     fine = max(2.0, step / 4)
     rings = int(step * 12 / fine) + 1
-    grid = _BoxGrid(blockers)
+    grid = blockers if isinstance(blockers, _BoxGrid) else _BoxGrid(blockers)
     for ring in range(1, rings + 1):
+        if budget is not None and budget["checks"] <= 0:
+            return None
         clear: list[tuple[float, float]] = []
         for dx, dy in directions:
             candidate = {
@@ -301,7 +308,7 @@ def _search_clear(
             }
             cx, cy = _nudge_into_canvas(candidate, width, height, margin)
             candidate["x"], candidate["y"] = cx, cy
-            if not _hits_any(candidate, grid.near(candidate, 0.0)):
+            if not grid.hits(candidate, extra, budget):
                 clear.append((cx, cy))
         if clear:
             return min(clear, key=lambda c: _distance(c, (ox, oy)))
@@ -337,9 +344,16 @@ def _min_translation(
     return 0.0, sign * oy
 
 
+# Deterministic work caps, so placement always returns - overlapping in the worst case - instead
+# of running a crowded chart out of CPU. Counted in operations, not seconds, so the same input
+# gives the same output on any machine.
+_REPEL_OP_BUDGET = 600_000
+_SEARCH_CHECK_BUDGET = 600_000
+
+
 def _repel(
     movers: list[dict[str, Any]],
-    fixed: list[dict[str, Any]],
+    fixed: "list[dict[str, Any]] | _BoxGrid",
     width: float,
     height: float,
     margin: float,
@@ -362,17 +376,23 @@ def _repel(
     as naming the right series without any hand-tuned "ambiguity" term. Overlaps are resolved last
     each iteration, so when the loop exits clear, the boxes are genuinely clear. Boxes that cannot
     be separated (the canvas is walled) simply stay overlapping at ``max_iter`` for the caller to
-    shrink or flag. ``movers`` boxes are mutated in place."""
+    shrink or flag. ``movers`` boxes are mutated in place.
+
+    The work is bounded whatever the label count or mark density: the loop stops once it has made
+    ``_REPEL_OP_BUDGET`` box-pair pushes, or once no box moves, so a walled chart returns its best
+    overlap quickly instead of running out the clock."""
     if not movers:
         return
     ties = [2 * math.pi * (i + 1) / (len(movers) + 1) for i in range(len(movers))]
-    near_fixed = _BoxGrid(fixed)
+    near_fixed = fixed if isinstance(fixed, _BoxGrid) else _BoxGrid(fixed)
+    ops = 0
 
     def clamp(box: dict[str, float]) -> None:
         box["x"], box["y"] = _nudge_into_canvas(box, width, height, margin)
 
     for it in range(max_iter):
         cool = 1.0 - it / max_iter
+        before = [(m["box"]["x"], m["box"]["y"]) for m in movers]
         # 1. Spring: ease each box toward the mark it names (its box centre toward the anchor).
         for mover in movers:
             box, (ax, ay) = mover["box"], mover["anchor"]
@@ -393,7 +413,9 @@ def _repel(
                         box["x"] += dx * relax
                         box["y"] += dy * relax
                         clamp(box)
-                for fb in near_fixed.near(box, pad):
+                nearby = near_fixed.near(box, pad)
+                ops += len(movers) + len(nearby)
+                for fb in nearby:
                     dx, dy = _min_translation(box, fb, ties[i], pad)
                     if dx or dy:
                         box["x"] += dx
@@ -403,7 +425,13 @@ def _repel(
         if it > 8 and not any(
             boxes_overlap(m["box"], o)
             for m in movers
-            for o in near_fixed.near(m["box"], 0.0) + [n["box"] for n in movers if n is not m]
+            for o in near_fixed.near(m["box"], 0.0) + [k["box"] for k in movers if k is not m]
+        ):
+            break
+        # 4. Out of budget, or settled but still overlapping (walled): more will not free it.
+        if ops >= _REPEL_OP_BUDGET or it > 8 and all(
+            abs(m["box"]["x"] - bx) + abs(m["box"]["y"] - by) < 0.05
+            for m, (bx, by) in zip(movers, before)
         ):
             break
 
@@ -416,11 +444,16 @@ class _BoxGrid:
 
     def __init__(self, boxes: list[dict[str, float]], cell: float = 64.0) -> None:
         self.cell = cell
-        self.boxes = boxes
+        self.boxes: list[dict[str, float]] = []
         self.cells: dict[tuple[int, int], list[int]] = {}
-        for idx, box in enumerate(boxes):
-            for key in self._keys(box, 0.0):
-                self.cells.setdefault(key, []).append(idx)
+        for box in boxes:
+            self.add(box)
+
+    def add(self, box: dict[str, float]) -> None:
+        idx = len(self.boxes)
+        self.boxes.append(box)
+        for key in self._keys(box, 0.0):
+            self.cells.setdefault(key, []).append(idx)
 
     def _keys(self, box: dict[str, float], pad: float):
         c = self.cell
@@ -438,6 +471,33 @@ class _BoxGrid:
             found.update(self.cells.get(key, ()))
         return [self.boxes[idx] for idx in sorted(found)]
 
+    def hits(
+        self, box: dict[str, float], extra: list[dict[str, Any]] = (),
+        budget: Optional[dict[str, int]] = None,
+    ) -> bool:
+        """True when ``box`` overlaps an indexed box or any box in ``extra``. Stops at the first
+        overlap; the boxes compared are charged to ``budget["checks"]`` when one is given."""
+        seen: set[int] = set()
+        checked = 0
+        hit = False
+        for key in self._keys(box, 0.0):
+            for idx in self.cells.get(key, ()):
+                if idx in seen:
+                    continue
+                seen.add(idx)
+                checked += 1
+                if boxes_overlap(box, self.boxes[idx]):
+                    hit = True
+                    break
+            if hit:
+                break
+        if not hit:
+            checked += len(extra)
+            hit = _hits_any(box, extra)
+        if budget is not None:
+            budget["checks"] -= checked
+        return hit
+
 
 def _shrink_to_fit(
     text: str,
@@ -453,21 +513,26 @@ def _shrink_to_fit(
     max_lines: int | None = None,
     allow_curtail: bool = False,
     measurer: "TextMeasurer | None" = None,
+    extra: list[dict[str, Any]] = (),
+    budget: Optional[dict[str, int]] = None,
 ) -> Optional[tuple[float, tuple[float, float], str, float, float, bool, bool]]:
     """Step the font down toward ``min_font_pt`` (largest first) until the block finds a clear
     spot - at its anchor if the smaller box now fits, else at the nearest clear position. Returns
     ``(font_pt, (x, y), wrapped, box_w, box_h, curtailed, over_budget)`` for the least
     shrink that fits, or ``None``."""
     ax, ay = anchor
+    grid = blockers if isinstance(blockers, _BoxGrid) else _BoxGrid(blockers)
     candidate = font_pt - 1.0
     while candidate >= min_font_pt:
         wrapped, box_w, box_h, curtailed, over_budget = _wrap_to_line_budget(
             text, candidate, dpi, avail, max_lines, allow_curtail, measurer
         )
         bbox = {"x": ax, "y": ay, "width": box_w, "height": box_h}
-        if not _hits_any(bbox, blockers):
+        if not grid.hits(bbox, extra):
             return candidate, (ax, ay), wrapped, box_w, box_h, curtailed, over_budget
-        found = _search_clear(bbox, blockers, width, height, margin, step=line_px(candidate, dpi))
+        found = _search_clear(
+            bbox, grid, width, height, margin, step=line_px(candidate, dpi), extra=extra, budget=budget
+        )
         if found is not None:
             return candidate, found, wrapped, box_w, box_h, curtailed, over_budget
         candidate -= 1.0
@@ -564,6 +629,9 @@ def recommend_text_placement(
     results: list[dict[str, Any]] = []
     deferred: list[dict[str, Any]] = []
     unresolved = 0
+    # Marks and every placed box, indexed; placement asks "is this spot clear" many times.
+    blocking = _BoxGrid(obstacles)
+    search_budget = {"checks": _SEARCH_CHECK_BUDGET}
 
     pinned = FIXED_ROLES | ON_MARK_ROLES
 
@@ -597,6 +665,7 @@ def recommend_text_placement(
                     leader_line = _leader_line(bbox, primary)
                 warnings.append("crossed the plot boundary; moved wholly inside the plot area")
         placed.append(dict(bbox))
+        blocking.add(placed[-1])
         results.append(
             {
                 "id": block.get("id"),
@@ -704,6 +773,7 @@ def recommend_text_placement(
                         "move the movable label, stack the two, or cut one"
                     )
             placed.append(dict(bbox))
+            blocking.add(placed[-1])
             results.append(
                 {
                     "id": block.get("id"),
@@ -751,7 +821,6 @@ def recommend_text_placement(
         primary = marks[0]
         directions = _direction_order(block.get("placement"))
         gap = max(4.0, round(0.3 * line_px(font_pt, dpi)))
-        blockers = obstacles + placed
 
         # 1. Adjacency: try each mark x each direction; the first clear spot wins, no leader.
         chosen: Optional[tuple[float, float, bool]] = None
@@ -761,7 +830,7 @@ def recommend_text_placement(
                 cand = {"x": px, "y": py, "width": box_w, "height": box_h}
                 cx, cy = _nudge_into_canvas(cand, width_px, height_px, margin)
                 cand["x"], cand["y"] = cx, cy
-                if not _hits_any(cand, blockers):
+                if not blocking.hits(cand):
                     chosen = (cx, cy, mi == 0 and di == 0)
                     break
             if chosen is not None:
@@ -799,7 +868,7 @@ def recommend_text_placement(
     # to its point. A label the solve cannot free (the canvas is walled) falls to a shrink, then a
     # tightened wrap flagged for review - the same fallbacks the greedy search used.
     if deferred:
-        fixed = obstacles + placed
+        fixed = _BoxGrid(obstacles + placed)
         movers: list[dict[str, Any]] = []
         for item in deferred:
             start = _park(item["primary"], item["directions"][0], item["gap"], item["box_w"], item["box_h"])
@@ -813,8 +882,8 @@ def recommend_text_placement(
             font_pt, wrapped = item["font_pt"], item["wrapped"]
             curtailed, over_budget = item["curtailed"], item["over_budget"]
             suggested_anchor = suggested_font_pt = suggested_wrap = leader_line = None
-            others = fixed + [m["box"] for m in movers if m is not mover]
-            if not _hits_any(box, others):
+            others = [m["box"] for m in movers if m is not mover]
+            if not fixed.hits(box, others):
                 bbox = {"x": box["x"], "y": box["y"], "width": item["box_w"], "height": item["box_h"]}
                 suggested_anchor = {"x": round(box["x"]), "y": round(box["y"])}
                 warnings.append("no adjacent spot; repelled to the nearest clear area")
@@ -823,8 +892,9 @@ def recommend_text_placement(
             else:
                 shrunk = _shrink_to_fit(
                     item["text"], font_pt, dpi, item["avail"], min_font_pt,
-                    others, primary, width_px, height_px, margin,
+                    fixed, primary, width_px, height_px, margin,
                     item["max_lines"], item["allow_curtail"], item["measurer"],
+                    extra=others, budget=search_budget,
                 )
                 if shrunk is not None:
                     font_pt, (cx, cy), wrapped, bw, bh, curtailed, over_budget = shrunk

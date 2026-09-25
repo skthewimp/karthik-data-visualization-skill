@@ -901,3 +901,20 @@ def test_place_on_marks_dodges_a_line_where_drawn_not_its_bbox():
     assert placement["leader_line"] is None
     assert placement["suggested_anchor"] is None
     assert placement["bbox"]["x"] > 700
+
+
+def test_crowded_labels_return_quickly_overlapping_in_the_worst_case():
+    # Far more labels than the panel can hold, all naming one spot among dense marks. Placement
+    # must still return every label promptly - overlapping if it must - never run without end.
+    import time
+
+    marks = [{"x": 100 + 4 * i, "y": 100 + (i * 37) % 400, "width": 6, "height": 6} for i in range(2000)]
+    blocks = [
+        {"id": f"l{k}", "text": f"Series number {k}", "role": "label", "anchor": {"x": 500, "y": 300},
+         "max_width_px": 180, "max_lines": 2}
+        for k in range(80)
+    ]
+    start = time.perf_counter()
+    result = _recommend_text_placement(1000, 600, 144, blocks=blocks, obstacles=marks)
+    assert time.perf_counter() - start < 15
+    assert len(result["placements"]) == 80

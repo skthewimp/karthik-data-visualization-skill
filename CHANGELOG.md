@@ -16,6 +16,13 @@ locally, one `place_on_marks` call on that chart took 21.5 s, 97% of it in the r
 - **The repel solve and the clear-spot search only look at nearby marks.** Both scanned every
   mark on every step. A uniform-grid index now returns just the marks around the label. Case 03
   goes from 21.5 s to 0.8 s with the same placement rules.
+- **Placement always returns, overlapping in the worst case.** The job is to produce a chart, so
+  a crowded one now gets its best overlap instead of a CPU kill. The repel solve stops at a fixed
+  operation budget or as soon as nothing moves; the shrink-and-search fallback shares one budget
+  of box checks across all labels, and a label that runs out keeps its spot on the mark with a
+  "review placement" warning; the leader-uncrossing pass is capped at three passes. Budgets count
+  operations, not seconds, so output stays deterministic. 100 lines x 200 points with a label
+  each: 314 s before, 1.3 s now; case 03: 0.1 s.
 
 ### Coloured subtitle keys read as text and stop tripping the inspector
 
