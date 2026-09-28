@@ -19,7 +19,7 @@ import math
 import re
 from typing import Any, Optional
 
-from .layout import FONT_PT, boxes_overlap, char_px, line_px
+from .layout import FONT_PT, END_LABEL_BAND_MAX_FRAC, END_LABEL_MAX_CHARS, boxes_overlap, char_px, line_px
 from .text_metrics import TextMeasurer
 
 
@@ -591,7 +591,9 @@ def recommend_text_placement(
         max_annotation_width_frac: widest a free annotation box may wrap to, as a fraction of width.
         For each category/series, on-mark data, or axis label, the block must also carry the
             builder's readability judgment: ``max_width_px`` and ``max_lines``. The tool enforces
-            those physical limits; it does not invent a universal character count. Set
+            those physical limits. Series/category names (role `label`) additionally use a compact
+            band: at most 15% of panel width and about 18 characters per line. Whole words
+            stay intact; an overfull column needs relayout rather than a wider gutter. Set
             ``allow_curtail: true`` only when an ellipsis is acceptable and the intact name will
             be supplied in a key or footnote. Otherwise an over-budget label stays intact and is
             reported for redesign. A label missing either (or with a non-positive one) is not
@@ -731,6 +733,12 @@ def recommend_text_placement(
                     "and two lines - declare the label's budget"
                 )
             allow_curtail = bool(block.get("allow_curtail", False))
+            if role == "label":
+                # Names use a compact band even when the builder supplies a wide box.
+                # Preserve all words; exceeding the line budget is reported for relayout.
+                panel_width = float((plot_area or {}).get("width", width_px))
+                label_width = min(label_width, END_LABEL_BAND_MAX_FRAC * panel_width,
+                                  END_LABEL_MAX_CHARS * char_px(font_pt, dpi))
 
         if not movable:
             # Fixed bands and on-mark data labels: box origin at the anchor, wrapped, nudged in,
@@ -1227,6 +1235,10 @@ def place_on_marks(
             label-role inference is used. A label without a target ID, or whose ``mark_id`` is
             ambiguous or missed by its anchor, is still placed and is listed in
             ``unverified_attachments`` (the miss also as a warning on its placement).
+            For a bar, supply `value_axis` (`y`, also for coord_flip; `x` for native horizontal
+            bars) and its unique rectangular `mark_id` to anchor to the rendered value end,
+            including dodge/stack displacement. `anchor_data` reflects that rendered position.
+            Other rectangles (e.g. heatmap cells) retain the supplied data anchor.
             ``anchors_data`` is an optional list of ``{data_x, data_y}``
             candidate marks for a category ``label`` (it may sit beside any of them). Roles
             follow ``recommend_text_placement``: ``label`` / ``annotation`` move, ``data_label``
@@ -1292,6 +1304,32 @@ def place_on_marks(
     ]
     for label in labels:
         point = project(label.get("data_x"), label.get("data_y"))
+        target_id = label.get("mark_id")
+        targets = [m for m in (marks or []) if target_id is not None and m.get("id") == target_id]
+        if (label.get("value_axis") in ("x", "y") and len(targets) == 1
+                and targets[0].get("kind") in ("rect", "Rectangle")):
+            # A scale transform cannot know a position adjustment (dodge/stack).
+            # Use the identified bar's rendered centre across its width and its value end.
+            axis = 0 if label.get("value_axis", "y") == "x" else 1
+            value = label.get("data_x" if axis == 0 else "data_y")
+            # Probe positive values to recover screen direction, including reverse scales.
+            # A stacked component's raw value is not its cumulative endpoint coordinate.
+            start = project(1, 1)
+            end = project(2, 1) if axis == 0 else project(1, 2)
+            try:
+                positive = float(value) >= 0
+                valid_value = math.isfinite(float(value))
+            except (TypeError, ValueError):
+                valid_value = False
+            if start is not None and end is not None and valid_value:
+                box = targets[0]["bbox"]
+                x, y, w, h = (float(box[k]) for k in ("x", "y", "width", "height"))
+                horizontal = abs(transform[0][axis]) > abs(transform[1][axis])
+                ends = ((x, y + h / 2), (x + w, y + h / 2)) if horizontal else (
+                    (x + w / 2, y), (x + w / 2, y + h))
+                dimension = 0 if horizontal else 1
+                toward_high = (end[dimension] > start[dimension]) == positive
+                point = ends[1 if toward_high else 0]
         if point is None:
             reason = (
                 "no usable data->pixel transform (a non-Cartesian coord or an unreproducible "
@@ -1309,11 +1347,9 @@ def place_on_marks(
         px, py = point
         anchor_points = [project(a.get("data_x"), a.get("data_y")) for a in label.get("anchors_data") or []]
         anchor_points = [a for a in anchor_points if a is not None]
-        target_id = label.get("mark_id")
         if target_id is None:
             unverified.append(label["id"])
         else:
-            targets = [m for m in (marks or []) if m.get("id") == target_id]
             if len(targets) != 1:
                 unverified.append(label["id"])
                 notes.setdefault(label["id"], []).append(
@@ -1363,8 +1399,13 @@ def place_on_marks(
 
     # Hand the builder exact native coordinates for every data-anchored label, so leaders and label
     # positions are drawn from the inverse of the projection - never improvised in data space.
-    mark_data = {label["id"]: {"x": label["data_x"], "y": label["data_y"]}
-                 for label in labels if label["id"] in projected}
+    mark_data = {}
+    for label in labels:
+        anchor = projected.get(label["id"])
+        if anchor is not None:
+            native = _safe_inverse(transform, anchor["x"], anchor["y"], x_trans, y_trans)
+            if native is not None:
+                mark_data[label["id"]] = {"x": native[0], "y": native[1]}
     for placement in result.get("placements", []):
         if placement["role"] in FIXED_ROLES:
             continue

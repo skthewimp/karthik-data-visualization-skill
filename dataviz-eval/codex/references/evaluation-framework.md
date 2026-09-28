@@ -67,6 +67,8 @@ Evidence, Visual reasoning, Information fit, and Delivery are always required fo
 
 Carry unresolved required actions forward between iterations. Treat every active, non-superseded user acceptance check the same way: one stable id, one explicit result, and direct evidence from the current artifact. Reveal them only after the next blind read, then require the reviewer to reinspect each named target. A prior action or user check closes only with an explicit `Pass`; silence or a better overall gate does not clear it. Do not carry forward a preference-level observation as though it were a blocker.
 
+Internal execution scopes and creator preservation decisions are not a user change contract. Keep them out of the reviewer's instructions; consume measured findings as evidence only.
+
 The change contract outranks reviewer preference. An explicit user “only change X”, “remove Y”, or “preserve the rest” instruction is a release condition. A required action cannot contradict it. Nothing the creator chose becomes a preservation constraint by having been chosen: canvas, aspect, form, legend, axis titles, subtitle and notes stay open to required actions. When later user feedback replaces an evaluator action, record that action as superseded instead of carrying two incompatible gates.
 
 For narrow repairs the user scoped, evaluate changed or targeted regions against the full standard. Evaluate untouched regions for preservation and regression against the source or latest accepted candidate. Keep unchanged pre-existing defects outside the authorized scope as explicit baseline concerns; they do not become minimum-pass actions unless they block the requested change or leave the artifact materially misleading. New regressions always fail.
@@ -103,6 +105,8 @@ The presence of a caveat is never evidence of a Pass, and its absence is never a
 For exploration, an honest "no defensible pattern" is a valid intended outcome. Do not manufacture a stronger story to make the artifact score better.
 
 ### Visual reasoning
+
+Separate naming difficulty from comparison difficulty: if individually labelled trajectories would still be hard to trace, reconsider the affected panel's form rather than widening its label gutter.
 
 - **Pass:** chart form, scale, ordering, geometry, and visual channels make the intended comparison direct under the selection principles owned by `dataviz-selector`.
 - **Concern:** the comparison is possible but requires avoidable lookup or decoding.
@@ -268,6 +272,8 @@ Prefer:
 - `Send / Revise / Redesign / Not evaluable` distribution
 - gate failures and failure codes by case slice
 - paired regressions and improvements against the previous version
+- finding precision and recall against the adjudicated issues, including false revision requests
+- forbidden recommendations made (such as reinstating redundant furniture or freezing a creator-chosen form)
 - reviewer agreement before adjudication
 - median and tail latency and cost
 
@@ -328,3 +334,14 @@ An independent reviewer ran on eight repaired charts and found about one in six 
 ## Provenance
 
 This framework combines Karthik Shashidhar's chart principles and observed repair failures with ideas from Vikram Nayak's Fifth Elephant 2026 talk, *Measuring “good” when your agent's output is subjective*. The talk supplied the creator/expert/audience separation, blind-read method, failure-mode synthesis, and benchmark discipline. The wording and rubric here are adapted for this skill rather than copied from the slides.
+
+### Reader-task calibration
+
+Use these general contrasts when constructing a private golden set; keep its artifacts and transcripts outside published skill packages.
+
+- A trend with endpoint and focal-value labels can pass without a value axis. Restoring an axis requires a necessary comparison those labels cannot support.
+- A unit and population recoverable from the combined title, subtitle and labels need not be repeated in every element.
+- A dense trajectory comparison may need small multiples even after all names are separated. Keep a working aggregate overview.
+- Quantities being compared use spread precision even if the source prints exact digits; a genuine exact-lookup table preserves the required digits.
+- Forecast styling changes at the observed/projected boundary without severing the series. Genuine missing observations still break the path.
+- A compact totals comparison should not dominate a detailed panel simply because both are assigned equal space.

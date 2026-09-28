@@ -1612,6 +1612,7 @@ def render_and_inspect_chart(
         destination,
         "review",
         Path(bundle["layout_metadata_path"]),
+        display_width_px=delivery_dimensions.get("display_width_px"),
     )
     inspection["review_views"] = [
         {"path": str(path), "sha256": sha256_file(path)} for path in view_paths

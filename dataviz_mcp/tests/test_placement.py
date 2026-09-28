@@ -250,7 +250,7 @@ def test_label_parks_beside_its_mark_without_a_leader():
     assert placement["bbox"]["x"] > mark["x"]  # parked to the right of the mark, not on it
 
 
-def test_series_label_wraps_to_a_short_measure_not_a_canvas_fraction():
+def test_compact_series_label_reports_insufficient_line_budget():
     result = recommend_text_placement(
         1200, 700, 144,
         blocks=[{
@@ -264,9 +264,10 @@ def test_series_label_wraps_to_a_short_measure_not_a_canvas_fraction():
     )
     placement = _by_id(result, "s")
     lines = placement["wrapped_text"].split("\n")
-    assert 1 < len(lines) <= 3
+    assert len(lines) > 3
+    assert max(map(len, lines)) <= 18
     assert placement["curtailed"] is False
-    assert placement["over_line_budget"] is False
+    assert placement["over_line_budget"] is True
 
 
 def test_overlong_series_label_is_curtailed_and_preserved_for_a_key():
@@ -937,3 +938,77 @@ def test_crowded_labels_return_quickly_overlapping_in_the_worst_case():
     result = _recommend_text_placement(1000, 600, 144, blocks=blocks, obstacles=marks)
     assert time.perf_counter() - start < 15
     assert len(result["placements"]) == 80
+
+
+@pytest.mark.parametrize('flipped', [False, True])
+@pytest.mark.parametrize('value', [-20, 20])
+def test_bar_identity_anchors_labels_after_dodge(flipped, value):
+    # Raw category=1 is the group centre. The two rendered bars sit either side.
+    transform = [[0, 4, 200], [50, 0, 100]] if flipped else [[50, 0, 100], [0, -4, 200]]
+    boxes = []
+    for offset in (-12, 12):
+        if flipped:
+            box = {'x': min(200, 200 + 4 * value), 'y': 150 + offset - 5,
+                   'width': abs(4 * value), 'height': 10}
+        else:
+            box = {'x': 150 + offset - 5, 'y': min(200, 200 - 4 * value),
+                   'width': 10, 'height': abs(4 * value)}
+        boxes.append(box)
+    result = place_on_marks(
+        600, 400, 144, transform,
+        labels=[{'id': f'label-{i}', 'text': str(value), 'role': 'data_label',
+                 'data_x': 1, 'data_y': value, 'mark_id': f'bar-{i}', 'value_axis': 'y',
+                 'max_width_px': 80, 'max_lines': 1} for i in range(2)],
+        marks=[{'id': f'bar-{i}', 'kind': 'rect', 'bbox': box} for i, box in enumerate(boxes)],
+    )
+    assert not result['unverified_attachments']
+    anchors = result['projected_anchors']
+    for i, offset in enumerate((-12, 12)):
+        expected = {'x': 200 + 4 * value, 'y': 150 + offset} if flipped else {
+            'x': 150 + offset, 'y': 200 - 4 * value}
+        assert anchors[f'label-{i}'] == expected
+    assert anchors['label-0'] != anchors['label-1']
+    assert {p['anchor_data']['x'] for p in result['placements']} == {0.76, 1.24}
+
+
+def test_series_label_width_is_compact_even_with_a_wide_builder_budget():
+    result = recommend_text_placement(
+        1200, 900, 144,
+        blocks=[{'id': 'series', 'role': 'label',
+                 'text': 'A long name with several useful words',
+                 'anchor': {'x': 600, 'y': 400}, 'font_pt': 12,
+                 'max_width_px': 400, 'max_lines': 8}],
+        plot_area={'x': 100, 'y': 100, 'width': 800, 'height': 700},
+    )
+    placed = result['placements'][0]
+    assert placed['bbox']['width'] <= 120
+    assert placed['wrapped_text'].replace('\n', ' ') == 'A long name with several useful words'
+
+
+@pytest.mark.parametrize('reverse', [False, True])
+def test_stacked_bar_uses_rendered_end_not_component_value(reverse):
+    # A component of 10 is stacked from 100 to 110; the raw value is nowhere near it.
+    transform = [[1, 0, 200], [0, -1, 200]]
+    result = place_on_marks(
+        600, 600, 144, transform,
+        labels=[{'id': 'value', 'role': 'data_label', 'text': '10', 'data_x': 1,
+                 'data_y': 10, 'mark_id': 'bar', 'value_axis': 'y',
+                 'max_width_px': 60, 'max_lines': 1}],
+        marks=[{'id': 'bar', 'kind': 'rect', 'bbox': {
+            'x': 195, 'y': 300 if reverse else 90, 'width': 12, 'height': 10}}],
+        y_trans='reverse' if reverse else 'identity',
+    )
+    assert result['projected_anchors']['value'] == {'x': 201, 'y': 310 if reverse else 90}
+    assert result['placements'][0]['anchor_data']['y'] == 110
+
+
+def test_rectangle_without_bar_semantics_keeps_its_anchor():
+    result = place_on_marks(
+        600, 400, 144, [[1, 0, 0], [0, 1, 0]],
+        labels=[{'id': 'cell-value', 'role': 'data_label', 'text': '10',
+                 'data_x': 150, 'data_y': 150, 'mark_id': 'cell',
+                 'max_width_px': 60, 'max_lines': 1}],
+        marks=[{'id': 'cell', 'kind': 'rect',
+                'bbox': {'x': 100, 'y': 100, 'width': 100, 'height': 100}}],
+    )
+    assert result['projected_anchors']['cell-value'] == {'x': 150, 'y': 150}

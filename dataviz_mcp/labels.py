@@ -38,6 +38,11 @@ def _pick_one_series(values: Sequence[Any], budget: int) -> dict[str, Any]:
     if total == 0:
         return {"label_indices": [], "reasons": {}, "labelled": 0, "total": 0}
 
+    if budget == 1:
+        last = pairs[-1][0]
+        return {"label_indices": [last], "reasons": {last: "endpoint (end)"},
+                "labelled": 1, "total": total}
+
     # A short series is read whole; label every point rather than hide any.
     if total <= budget:
         for index, _ in pairs:
@@ -68,7 +73,8 @@ def _pick_one_series(values: Sequence[Any], budget: int) -> dict[str, Any]:
             break
         claim(index, "focal change")
 
-    chosen = sorted(reasons)[:budget]
+    # Spend the budget in priority order; sort only the retained points for drawing.
+    chosen = sorted(list(reasons)[:budget])
     reasons = {index: reasons[index] for index in chosen}
     return {"label_indices": chosen, "reasons": reasons, "labelled": len(chosen), "total": total}
 

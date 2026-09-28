@@ -35,8 +35,10 @@ An evaluation may recommend `Revise` or `Redesign` but must never silently rebui
 
 - **Send** - no Fatal or Major finding remains. Minor findings may stay as optional polish. A clean chart passes: say so and stop. Do not manufacture a finding to justify another round.
 - **Revise** - the form works but at least one Fatal or Major finding needs a bounded change. Execution, copy, layout and legibility defects - however many, however bad - are `Revise`.
-- **Redesign** - reserved for the **idea**: the question is wrong, the form cannot carry the claim, or the evidence-to-claim relationship is broken. Say whether the form is implicated so `dataviz-critique` and `dataviz-selector` rerun.
+- **Redesign** - includes a panel whose trajectories remain hard to compare even after its labels are separated; reconsider that panel's form (often small multiples) while retaining any working overview. Reserved for the **idea**: the question is wrong, the form cannot carry the claim, or the evidence-to-claim relationship is broken. Say whether the form is implicated so `dataviz-critique` and `dataviz-selector` rerun.
 - **Not evaluable** - the artifact can't be inspected, or a required decision depends on evidence you don't have.
+
+Every required change must name a reader consequence: what becomes misleading, unreadable, or unnecessarily difficult to compare. Interpret the title, subtitle, labels and marks together; do not demand that each repeat the same unit or denominator. A missing element is not itself a defect.
 
 The verdict is decided by the worst finding. The report still lists **every** Fatal and Major finding, and the Minor ones, ranked. Returning one finding and calling the rest "otherwise fine" is the main way this gate fails: the next revision fixes that one thing and ships the rest.
 
@@ -46,7 +48,7 @@ The verdict is decided by the worst finding. The report still lists **every** Fa
 
 Collect when available: the exported artifact; the source data or source chart; intended question and insight; audience; delivery medium and **display width**; and any user-stated constraints.
 
-**Only the user's stated constraints bind.** "Keep the bars", "only change the title", "remove the legend" are release conditions. The creator's own choices - canvas size and shape, form, panel layout, legend, axis titles, subtitle, caveats, notes - are not constraints. They are what you are evaluating. Never write "preserve the canvas", "preserve the caveats" or "keep the axis title" unless the user asked for it.
+**Only the user's stated constraints bind.** "Keep the bars", "only change the title", "remove the legend" are release conditions. The creator's own choices - canvas size and shape, form, panel layout, legend, axis titles, subtitle, caveats, notes - are what you evaluate, not constraints. Internal execution reports and repair scopes are evidence, not user instructions; require an actual user request to justify a preservation constraint. Never write "preserve the canvas", "preserve the caveats" or "keep the axis title" unless the user asked for it.
 
 Missing intent stays `Unknown`; do not infer it.
 
@@ -79,7 +81,7 @@ Copy problems are the easiest to spot, and a reviewer that stops at them misses 
 4. **Each axis** - quote its title text literally and say what it adds beyond the tick labels and the chart title; then say whether the axis itself is needed once direct labels are counted.
 5. **Legend or key** - whether direct labels or coloured words could replace it.
 6. **Smallest text** - estimate its size in native pixels and at display width, and name the element.
-7. **Canvas and panels** - state the canvas aspect and the source's aspect; for a grid, the columns used and whether a wider canvas with more columns would give each panel more room. Estimate each panel's share of the height against how many rows or marks it carries. Name empty or reserved regions. "Tall by necessity" is not a finding of clean: the canvas shape is the creator's choice and can change.
+7. **Canvas and panels** - check whether each panel's comparisons remain recoverable after mentally separating its labels; if not, revisit the form instead of prescribing more label repulsion. Compare the space allocated to overview, detail and totals with their reading tasks; a sparse totals panel need not occupy the same area as a detailed comparison. State the canvas aspect and the source's aspect; for a grid, the columns used and whether a wider canvas with more columns would give each panel more room. Estimate each panel's share of the height against how many rows or marks it carries. Name empty or reserved regions. "Tall by necessity" is not a finding of clean: the canvas shape is the creator's choice and can change.
 8. **Series separation** - name the two most similar series colours. Two series from the same hue family are a finding even when their lines sit apart: lines cross, labels sit near other lines, and the reader matches colours, not positions.
 9. **Label placement** - every label on or beside its own mark, where the eye expects it.
 10. **Data against source** - every value the source draws is present, including unprinted ones readable from geometry.
@@ -87,12 +89,12 @@ Copy problems are the easiest to spot, and a reviewer that stops at them misses 
 **Copy on the chart speaks about the data, never about the chart's making.**
 - Any text that hedges, reports provenance, or explains what the source lacks - approximate, reconstructed, estimated, extracted, "the source does not state", "not shown", "not causation", or a note restating what the marks already show - is a Major finding (`F4`), wherever it sits: subtitle, caption, note, annotation, axis title. Those limitations belong in the run report. The only notes that survive are qualifications about the data's world that change how it reads (projected, excludes X, fiscal year) and a source line the publication would print. Anything about what the source showed, covered, labelled or omitted ("only men are shown", "these years were not shown in the source") is provenance, however it is phrased.
 - **The title keeps its subject and scope.** A title that drops who, where or what the source was about (the population, the market, the product) is Major.
-- **Numbers in copy use the precision the spread supports** (`dataviz-precision`). The test is the digits needed to see the difference, not the digits the source printed: two values five-digit long that differ by a tenth need three significant figures, not five. Excess digits are Major in a title, Minor elsewhere.
+- **Numbers in copy use the precision the spread supports** (`dataviz-precision`). The test is the digits needed to see the difference, not the digits the source printed: two values five-digit long that differ by a tenth need three significant figures, not five. Inspect every numeric display group, including mark labels and totals. Excess digits are Major when they obscure the intended comparison or cause crowding, otherwise Minor; judge titles by the same reader-consequence test. Printed source digits alone never establish an exact-lookup requirement.
 - **A subtitle must add a fact the title does not carry.** A subtitle that restates the title, describes the chart, or hedges is Major.
 
 **Every non-data element earns its place (the eraser test).** For each axis title, value axis, legend, gridline set, per-panel axis, caption and key, ask: can the reader get this from the title, tick labels, direct labels, panel titles, or plain context? If yes, it is ink, and it is a finding.
 - An axis title naming what the ticks already show (years, categories, "share") is Minor; one that says nothing ("value", "unknown quantity", a raw field name, a placeholder admitting the unit is unknown) is Major. An honest placeholder is still a placeholder: if the chart cannot name the quantity, the axis title goes.
-- A value axis beside marks that are directly labelled is Major. Two labelled values per series (its start and end, say) fix the scale, so "only the endpoints are labelled" does not make the axis needed.
+- Assess a value axis by the reading task. When direct values on endpoints and focal marks already support the comparison, keep the axis absent; do not restore it merely to estimate every intermediate observation. A required axis restoration must name the necessary comparison or scale ambiguity that existing labels cannot resolve. Equally, remove an existing axis when it adds no useful information.
 - A legend where the series could be labelled on the marks, or keyed by coloured words in the subtitle, is Major: the reader looks back and forth.
 - In small multiples, a full axis on every panel is noise when the panels do not share a scale. Label start and end values instead.
 - Removing an element is a defect (`F3`) only when its information is lost from the chart entirely.

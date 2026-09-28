@@ -42,6 +42,8 @@ Each preview row also carries a `compact` form: the same place, written in the l
 
 By default, `recommend_precision` governs every displayed number. Source digits override it in exactly one case: **identifiers or a genuine exact-lookup requirement** - an account number, a code, a reference value the reader must read off verbatim. Call `recommend_precision(values, role, exact=True)` for those; it preserves every source digit and returns `exact_override: true`.
 
+Printed source labels, integer measurements and the existence of a data label are not exact-lookup requirements. Identify the reader's task that needs verbatim digits; a magnitude/change comparison uses spread precision even when the source prints every digit. Keep underlying data exact and round only its display.
+
 An exact override is never silent: whenever you leave the spread rule behind, **record the reason** - why this column is an identifier or exact lookup rather than a quantity to compare. If you can't name why, the spread rule stands. If an upstream decision already marked a column as identifier/exact-lookup, obey that mark and carry its reason forward - don't silently re-decide at build. Carrying the decision as an explicit flag with its reason (not re-inferred from prose) is what lets a weaker downstream model apply it reliably.
 
 ## Labels are not measurements: temporal and ordinal axes

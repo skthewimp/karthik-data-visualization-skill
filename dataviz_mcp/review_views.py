@@ -11,8 +11,9 @@ def build_review_views(
     output_dir: Path,
     prefix: str,
     layout_metadata: Path | None = None,
+    display_width_px: int | None = None,
 ) -> list[Path]:
-    """Build artifact-bound full, delivery, panel, hierarchy, and dense-region views."""
+    """Build display-size and native diagnostic views; assume a 640px content column if unstated."""
     try:
         with Image.open(artifact) as opened:
             exact = opened.convert("RGB")
@@ -20,8 +21,13 @@ def build_review_views(
         full_path = output_dir / f"{prefix}-full.png"
         exact.save(full_path)
 
-        preview = exact.copy()
-        preview.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+        display_width = int(display_width_px) if display_width_px is not None else 640
+        if display_width <= 0:
+            raise ValueError("display_width_px must be positive")
+        preview = exact.resize(
+            (display_width, max(1, round(exact.height * display_width / exact.width))),
+            Image.Resampling.LANCZOS,
+        )
         preview_path = output_dir / f"{prefix}-delivery.png"
         preview.save(preview_path)
 

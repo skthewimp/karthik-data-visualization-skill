@@ -45,7 +45,7 @@ from .color_math import _contrast_ratio, better_ink, text_ink, to_rgb
 from .frame import reserve_frame
 from .inspection import _REDUNDANT_AXIS_MIN_LABELS
 from .layout import (
-    FONT_PT, GROUP_BREAK, MIN_Y_WRAP_CHARS, PROFILES, Y_LABEL_BAND_MAX_FRAC, char_px, house_font_pt, line_px, pt_to_px,
+    FONT_PT, GROUP_BREAK, PROFILES, END_LABEL_BAND_MAX_FRAC, END_LABEL_MAX_CHARS, char_px, house_font_pt, line_px, pt_to_px,
 )
 from .precision import recommend_precision
 from .text_metrics import TextMeasurer
@@ -292,6 +292,45 @@ def _subtitle_key(subtitle: str, palette: dict[str, str], background: str) -> st
 # --------------------------------------------------------------------------- #
 # ggplot2 scaffold
 # --------------------------------------------------------------------------- #
+
+
+_GGPLOT_LINE_SEGMENTS = r'''
+# Adjacent segments retain the destination's status, including the forecast boundary.
+# Keep missing rows until after pairing: they break paths rather than being bridged.
+# Use geom_segment(aes(x = .x, y = .y, xend = .xend, yend = .yend,
+#                     linetype = .status, colour = series), data = line_segments(d, "status")).
+line_segments <- function(
+  d,
+  status,
+  x = "category",
+  y = "value",
+  group = intersect(c("facet", "series"), names(d))
+) {
+  do.call(
+    order,
+    d[c(group, x)]
+  ) ->
+    ordering
+  d <- d[ordering, , drop = FALSE]
+  from <- seq_len(max(0L, nrow(d) - 1L))
+  to <- from + 1L
+  keep <- complete.cases(d[from, c(x, y), drop = FALSE]) &
+    complete.cases(d[to, c(x, y), drop = FALSE])
+  for (key in group) {
+    keep <- keep & !is.na(d[[key]][from]) & !is.na(d[[key]][to]) &
+      d[[key]][from] == d[[key]][to]
+  }
+  from <- from[keep]
+  to <- to[keep]
+  segments <- d[to, , drop = FALSE]
+  segments$.x <- d[[x]][from]
+  segments$.y <- d[[y]][from]
+  segments$.xend <- d[[x]][to]
+  segments$.yend <- d[[y]][to]
+  segments$.status <- d[[status]][to]
+  segments
+}
+'''
 
 
 _GGPLOT_BAR_VALUES = r'''
@@ -632,6 +671,7 @@ def _ggplot_scaffold(spec: dict[str, Any]) -> tuple[str, str, str]:
         "page_ink <- function(colour) { key <- toupper(as.character(colour)); "
         "ifelse(key %in% names(page_text), unname(page_text[key]), as.character(colour)) }",
         _GGPLOT_BAR_VALUES,
+        _GGPLOT_LINE_SEGMENTS,
         "# Line-end names wrap to this many characters a line (0: one line) - end_labels() applies it.",
         f"end_label_chars <- {spec['end_label_chars']}",
         _GGPLOT_END_LABELS,
@@ -1105,6 +1145,11 @@ def scaffold_chart(
         # A line's name (and its value, when printed) as it will stand past the last point.
         ends = [s + (" - " + "0" * value_chars if value_labels else "") for s in series_order]
         end_wrap, end_px = _end_label_wrap(ends, plot_w, plot_h, fonts["label"], dpi)
+        end_lines = sum(len(textwrap.wrap(_GLUE.sub("\u00a0", name), end_wrap or len(name),
+                                         break_long_words=False)) for name in ends)
+        if end_lines * line_px(fonts["label"], dpi) + len(ends) * pt_to_px(fonts["label"], dpi) > plot_h:
+            warnings.append("wrapped series names exceed the panel height; use more panel space "
+                            "or small multiples, not a wider label gutter or smaller text")
     elif horizontal and value_labels:
         end_px = value_chars * char_px(fonts["label"], dpi)
     extra = 0.0
@@ -1990,9 +2035,8 @@ _GLUE = re.compile(r"\s+(?=(?:(?![^\W\d_])\S)+(?:\s|$))")
 def _end_label_wrap(labels: list[str], plot_w: float, plot_h: float, font_pt: float, dpi: float) -> tuple[int, float]:
     """Wrap width (characters, 0 = one line) and band width (px) for the names at the line ends.
 
-    The band is capped like a horizontal bar's category band, so long names stack on whole words
-    instead of taking the plot's width. It widens again only as far as the stacked names need to
-    fit the panel's height, since a column of names taller than the panel collides instead.
+    A dense label column must be relaid out, not silently widened until it takes the plot's width.
+    Height is checked by the caller; it never changes the per-line budget.
     """
     measure = TextMeasurer(dpi)
     def band(width: int) -> tuple[list[str], float]:
@@ -2000,14 +2044,8 @@ def _end_label_wrap(labels: list[str], plot_w: float, plot_h: float, font_pt: fl
                  for line in textwrap.wrap(_GLUE.sub("\u00a0", label), width, break_long_words=False)]
         return lines, max(measure.width(line, font_pt) for line in lines)
     longest = max(len(label) for label in labels)
-    cap = max(MIN_Y_WRAP_CHARS, int(Y_LABEL_BAND_MAX_FRAC * plot_w / char_px(font_pt, dpi)))
-    # As end_labels() stacks them: each line, plus a font size's gap between one name and the next (grobHeight leaves out the descent).
-    gap = pt_to_px(font_pt, dpi) * len(labels)
-    for width in range(cap, longest):
-        lines, px = band(width)
-        if len(lines) * line_px(font_pt, dpi) + gap <= plot_h:
-            return width, px
-    return 0, band(longest)[1]
+    cap = max(1, min(END_LABEL_MAX_CHARS, int(END_LABEL_BAND_MAX_FRAC * plot_w / char_px(font_pt, dpi))))
+    return (cap if longest > cap else 0), band(min(cap, longest))[1]
 
 
 def _observed_date_breaks(dates: list[str], panel_w: float, font_pt: float, dpi: float) -> list[str]:

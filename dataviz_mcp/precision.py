@@ -112,6 +112,7 @@ def recommend_precision(
             identifiers or a genuine exact-lookup requirement (account numbers, precise
             reference values a reader must read off verbatim). The result is flagged
             ``exact_override`` so the caller must record why it left the default behind.
+            Merely being printed in the source is not an exact-lookup requirement.
         unit_multiplier: base units per source unit when the column is already scaled
             (1e6 for "$MM" or "in millions", 1e3 for "'000"). Only the compact form uses it.
 

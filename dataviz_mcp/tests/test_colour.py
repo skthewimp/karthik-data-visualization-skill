@@ -348,3 +348,14 @@ def test_brand_pool_is_spent_as_supplied_and_first():
 
 def test_default_pool_is_not_replaced():
     assert recommend_colours(None, 6)["generated_additions"] == []
+
+
+def test_categorical_hues_are_distinct_even_when_lightness_separates_them():
+    colours = ['#4D9221', '#106030']
+    result = validate_palette(colours)
+    assert any(f['rule'] == 'categorical_hue_separation' and f['colours'] == colours
+               for f in result['findings'])
+    neutral = validate_palette(['#222222', '#AAAAAA'])
+    assert not any(f['rule'] == 'categorical_hue_separation' for f in neutral['findings'])
+    chosen = recommend_colours(colours, n_series=2, available_source='proposed')['chosen']
+    assert chosen != colours and set(chosen) != set(colours)

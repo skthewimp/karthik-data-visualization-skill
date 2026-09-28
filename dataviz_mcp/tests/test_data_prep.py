@@ -353,3 +353,12 @@ def test_default_map_keeps_numbers_off_the_series():
 def test_default_map_reads_a_quarter_label_as_text():
     mapping = default_plot_data_map(["period", "revenue"], [["Q1'24", "$70,398"], ["Q1'25", "$77,264"]])
     assert mapping == {"x": "period", "value": "revenue"}
+
+
+def test_tight_label_budget_preserves_endpoints_before_interior_extremes():
+    values = [5, 100, 2, 8, 6]
+    entry = recommend_labels([{'id': 'a', 'values': values}], max_labels_per_series=2)['per_series'][0]
+    assert entry['label_indices'] == [0, 4]
+    assert entry['name_index'] == 4
+    single = recommend_labels([{'id': 'a', 'values': values}], max_labels_per_series=1)['per_series'][0]
+    assert single['label_indices'] == [4]

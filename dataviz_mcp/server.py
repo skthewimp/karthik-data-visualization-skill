@@ -740,7 +740,10 @@ def create_server() -> Any:
         straight from the render's layout metadata, and ``fixed_blocks`` from ``reserve_frame``
         so labels also clear the title. Supply each label's mark_id from that metadata to
         verify its projected anchor touches the intended mark before placement; mismatches and
-        missing IDs are reported as unverified, never refused. This does not infer text roles.
+        missing IDs are reported as unverified, never refused. For dodged/stacked bars, also
+        supply value_axis="y" (including coord_flip) or "x" (native horizontal bars):
+        the unique rectangular mark supplies the rendered bar end and adjusted category centre.
+        Other rectangles retain the supplied data anchor. This does not infer text roles.
         It never raises on label input: a label it cannot project (no transform, bad data
         position) comes back in ``unplaced`` with its data position, to draw at its mark.
         When the transform entry carries ``x_trans`` / ``y_trans``

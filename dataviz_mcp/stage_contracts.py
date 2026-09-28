@@ -641,7 +641,9 @@ _NUMBER_DISPLAY_GROUPS = {
                     "true only for identifiers or a genuine exact-lookup requirement "
                     "(account numbers, codes, reference values read off verbatim). false "
                     "means the spread rule governs - the default. Reason is required either "
-                    "way so the decision is auditable."
+                    "way so the decision is auditable. Printed source digits alone do not "
+                    "establish exact lookup: name the reader task requiring verbatim values. "
+                    "Magnitude/change comparisons round display values while retaining exact data."
                 ),
             },
             "reason": {"type": "string", "minLength": 1},
@@ -1403,7 +1405,9 @@ Set ``needs_precision_plan`` true whenever numeric values are shown (axis ticks,
 table cells). When it is true, enumerate ``number_display_groups`` - one entry per axis,
 numeric column, or labelled numeric series - and decide ``exact_lookup_required`` for each
 HERE: true only for identifiers or a genuine exact-lookup requirement, false (the spread rule)
-otherwise, with a reason either way. This flag is the whole precision *decision*; the actual
+otherwise, with a reason either way. Source-printed digits are not an exact-lookup task;
+name why the reader needs verbatim values instead of comparing magnitudes or changes.
+This flag is the whole precision *decision*; the actual
 format (how many digits) is then resolved deterministically downstream by ``recommend_precision``
 from the group's values and this flag, and the build stage only applies it - so decide the flag
 carefully here. Write ``public_copy`` as the
@@ -1539,8 +1543,9 @@ stacking the two, or cutting one; do not leave them overlapping. Both front door
 it directly only when you already hold a block's canvas-pixel anchor and neither door fits; the
 presence of such blocks is the trigger, not a separately declared routing flag. For every
 series/category, on-mark data, and axis label, decide and pass ``max_width_px`` and ``max_lines``
-from the delivery condition, density, and available region; the tool enforces that judgment and
-must not invent a universal character count. Set ``allow_curtail: true`` only when the intact
+from the delivery condition, density, and available region. Series names use a compact band
+(15% of panel width, with an 18-character target per line); allow more lines or change the
+layout rather than widening the gutter. Whole words stay intact. Set ``allow_curtail: true`` only when the intact
 ``full_text`` will also appear in a compact key or footnote. Otherwise keep an over-budget label
 intact and revise the layout, wording, or form. Treat directly labelled point values as fixed
 ``data_label`` blocks, using one consistent small offset from their marks, and series/category

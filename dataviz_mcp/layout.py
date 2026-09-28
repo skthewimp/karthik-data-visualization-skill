@@ -57,6 +57,8 @@ FREE_AXIS_BAND = 42.0       # extra per-panel left width when scales are free
 Y_LABEL_BAND_MAX_FRAC = 0.2   # a horizontal-bar category-label band may not eat more than this
                               #   fraction of the panel width; longer names wrap into stacked rows
 MIN_Y_WRAP_CHARS = 12         # never wrap a category label narrower than this (unreadable slivers)
+END_LABEL_BAND_MAX_FRAC = 0.15
+END_LABEL_MAX_CHARS = 18      # whole words may exceed this target; never truncate an identity
 
 
 def pt_to_px(pt: float, dpi: float) -> float:
@@ -367,9 +369,10 @@ def _size_panel_groups(
         panel_plot_w = max(MIN_PANEL_W if n > 1 else base_w * 0.6, gx * slot)
         grp_row_floor = row_floor
         y_extra = 0.0
-        if y_labels and longest_y_label_chars > 0:
+        group_label_chars = int(g.get("longest_y_label_chars", longest_y_label_chars))
+        if bool(g.get("y_labels", y_labels)) and group_label_chars > 0:
             y_extra, grp_wrap, grp_lines = _y_label_band_and_wrap(
-                longest_y_label_chars, panel_plot_w, dpi
+                group_label_chars, panel_plot_w, dpi
             )
             if grp_wrap:
                 wrap_y_labels_chars = max(wrap_y_labels_chars, grp_wrap)
@@ -545,7 +548,8 @@ def recommend_layout(
         longest_x_label_chars: longest x tick label, for the rotate check.
         delivery_profile: chat / slide / document - base size, dpi, and the growth ceiling.
         panel_groups: optional heterogeneous layout. A list of groups, each
-            ``{role, n_panels, categories?, emphasis?, filled_marks?, x_slots?, y_slots?}``, sized as its
+            ``{role, n_panels, categories?, emphasis?, filled_marks?, x_slots?, y_slots?,
+            y_labels?, longest_y_label_chars?}``, sized as its
             own sub-grid and stacked as a full-width band. A band's height follows what it
             has to show (its rows, or its panel aspect), so an overview with one bar does not
             get the same height as a detail panel with many; ``emphasis`` (>1) scales a band

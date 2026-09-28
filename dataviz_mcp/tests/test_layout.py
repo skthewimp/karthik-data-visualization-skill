@@ -968,3 +968,19 @@ def test_a_detail_group_reserves_a_heading_strip_per_row():
     detail = next(r for r in long["regions"] if r["role"] == "detail")
     assert detail["height"] >= detail["facet_nrow"] * (MIN_PANEL_H + pt_to_px(11, 144) * 1.25)
     assert long["height_px"] > plain["height_px"]
+
+
+def test_sparse_panel_does_not_inherit_detail_label_height():
+    groups = [
+        {'role': 'detail', 'n_panels': 1, 'y_slots': 6, 'filled_marks': True,
+         'longest_y_label_chars': 70},
+        {'role': 'total', 'n_panels': 1, 'y_slots': 1, 'filled_marks': True,
+         'longest_y_label_chars': 5},
+    ]
+    result = recommend_layout(panel_groups=groups, y_labels=True, longest_y_label_chars=70)
+    detail, total = result['regions']
+    assert total['height'] < detail['height'] / 3
+    inherited = recommend_layout(panel_groups=[groups[0], {k: v for k, v in groups[1].items()
+                                  if k != 'longest_y_label_chars'}],
+                                  y_labels=True, longest_y_label_chars=70)
+    assert total['height'] < inherited['regions'][1]['height']

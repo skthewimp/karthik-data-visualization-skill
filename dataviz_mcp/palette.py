@@ -42,6 +42,16 @@ HUE_FAMILIES = {
 }
 _GREY_FAMILIES = {"grey", "gray", "neutral", "slate"}
 _GREY_MAX_SATURATION = 0.15
+MIN_CATEGORICAL_HUE_GAP = 60.0
+
+
+def _near_hues(first: str, second: str) -> bool:
+    """Categorical identity needs a hue family of its own; neutral ink has no hue."""
+    return (
+        (_saturation(first) or 0.0) > _GREY_MAX_SATURATION
+        and (_saturation(second) or 0.0) > _GREY_MAX_SATURATION
+        and (hue_delta(first, second) or 0.0) < MIN_CATEGORICAL_HUE_GAP
+    )
 
 # Colour-blind-safe fallback when no brand or context colours are supplied (Okabe-Ito).
 OKABE_ITO = [
@@ -247,6 +257,8 @@ def _confusable(colour: str, placed: Sequence[str], min_separation: float) -> bo
     against any placed series - the pair tests that decide whether two series can be told apart.
     (Grayscale is left out: it is a print fallback that even Okabe-Ito fails at three series.)"""
     for other in placed:
+        if _near_hues(colour, other):
+            return True
         if _separation(colour, other) < min_separation:
             return True
         for kind in _CVD_KINDS:
@@ -510,6 +522,17 @@ def validate_palette(
         for j in range(i + 1, len(colours)):
             report = _pair_report(colours[i], colours[j])
             report.pop("_hl", None)
+            if _near_hues(colours[i], colours[j]):
+                findings.append(
+                    {
+                        "rule": "categorical_hue_separation",
+                        "colours": [colours[i], colours[j]],
+                        "hue_delta_deg": report["hue_delta_deg"],
+                        "target": MIN_CATEGORICAL_HUE_GAP,
+                        "nudge": "use a different hue family for independent series; if hues are "
+                                 "constrained, separate by panels or another identity encoding",
+                    }
+                )
             if report["separation"] < min_separation:
                 findings.append(
                     {

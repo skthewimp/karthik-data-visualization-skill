@@ -880,3 +880,55 @@ def test_regions_without_categories_stay_one_grid(tmp_path: Path) -> None:
     layout = recommend_layout(y_slots=2, panel_groups=[{"role": "a", "n_panels": 1}, {"role": "b", "n_panels": 1}])
     result = scaffold_chart(str(tmp_path), frame["plot_data_path"], {"title": "t"}, layout=layout, colours=PALETTE)
     assert result["regions"] == [] and any("categories" in w for w in result["warnings"])
+
+
+def test_endpoint_wrap_stays_compact_when_height_is_tight():
+    from dataviz_mcp.scaffold import _end_label_wrap
+    names = ['Long category name with several words', 'Another long category with several words']
+    narrow, width = _end_label_wrap(names, 1000, 900, 12, 144)
+    crowded, crowded_width = _end_label_wrap(names, 1000, 100, 12, 144)
+    assert 0 < narrow <= 18
+    assert crowded == narrow
+    assert crowded_width == width
+    assert width < 200
+
+
+def test_status_segments_connect_boundaries_but_not_missing_observations(tmp_path):
+    import shutil
+    import subprocess
+    from dataviz_mcp.scaffold import _GGPLOT_LINE_SEGMENTS
+
+    rscript = shutil.which('Rscript')
+    if not rscript:
+        pytest.skip('R unavailable')
+    source = tmp_path / 'segments.R'
+    output = tmp_path / 'segments.csv'
+    source.write_text(_GGPLOT_LINE_SEGMENTS + '''
+# A changes status at 3, has a missing observation at 4, and starts again at 5.
+# B is a separate panel/series with the same coordinates.
+data.frame(
+  category = rep(1:6, 2),
+  value = rep(c(10, 12, 14, NA, 18, 20), 2),
+  series = rep("same name", 12),
+  facet = rep(c("A", "B"), each = 6),
+  status = rep(c("observed", "observed", rep("projected", 4)), 2)
+) ->
+  d
+line_segments(
+  d[nrow(d):1, ],
+  "status"
+) ->
+  segments
+write.csv(
+  segments,
+  commandArgs(trailingOnly = TRUE)[1],
+  row.names = FALSE
+)
+''')
+    subprocess.run([rscript, str(source), str(output)], check=True, capture_output=True, text=True)
+    import csv
+    rows = list(csv.DictReader(output.open()))
+    for panel in ('A', 'B'):
+        found = [r for r in rows if r['facet'] == panel]
+        assert [(r['.x'], r['.xend'], r['.status']) for r in found] == [
+            ('1', '2', 'observed'), ('2', '3', 'projected'), ('5', '6', 'projected')]
