@@ -457,14 +457,28 @@ def _size_panel_groups(
         arrangements = [len(base)]
     else:
         arrangements = list(range(1, len(base) + 1))
-    best = None
-    for per_row in arrangements:
-        for cap in range(1, most + 1):
-            w, h, cand = _arrange(cap, per_row)
-            dev = _score(w, h, cand)
-            if best is None or dev < best[0] - 1e-9:
-                best = (dev, w, h, cand)
-    _, width, height, page = best
+    def _best(options: list[int]) -> tuple[float, float, float, list[list[dict[str, Any]]]]:
+        best = None
+        for per_row in options:
+            for cap in range(1, most + 1):
+                w, h, cand = _arrange(cap, per_row)
+                dev = _score(w, h, cand)
+                if best is None or dev < best[0] - 1e-9:
+                    best = (dev, w, h, cand)
+        return best
+
+    asked, width, height, page = _best(arrangements)
+    # An asked-for alignment is a preference, not a licence to outgrow the page: when it only fits
+    # past the ceiling, and another arrangement fits inside it and lands nearer the target shape,
+    # that one is used.
+    if (width > max_w + 0.5 or height > max_h + 0.5) and len(arrangements) < len(base):
+        other, w, h, cand = _best([n for n in range(1, len(base) + 1) if n not in arrangements])
+        if w <= max_w + 0.5 and h <= max_h + 0.5 and other < asked:
+            warnings.append(
+                f"group_align {group_align!r} needs a {width:.0f}x{height:.0f}px image, past the "
+                f"{max_w:.0f}x{max_h:.0f}px ceiling; the groups are arranged to fit instead."
+            )
+            width, height, page = w, h, cand
     sized = [s for row in page for s in row]
     total_panel_area = sum(s["ncol"] * s["nrow"] * s["panel_w_final"] * s["panel_h"] for s in sized)
 

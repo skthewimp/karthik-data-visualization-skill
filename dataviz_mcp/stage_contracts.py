@@ -1460,6 +1460,13 @@ Set ``value_encoding`` to ``colour`` only when the value is a fill (heatmap). Le
 ``public_copy.axis_titles`` empty unless the reader cannot tell what an axis measures from the
 title, subtitle or labels - "Month", "Period", "Category" or a unit already in the title is
 duplicate ink.
+Routing words are a closed menu - ``identification_strategy`` is one of ``direct_labels``,
+``subtitle_key``, ``axis``, ``legend`` - and a description in its place ("period colours and
+endpoint labels") is read as the nearest word, not as what you meant. When your input carries a
+SCAFFOLD VIOLATIONS section, the scaffold measured your previous plan and it did not fit the page:
+each violation names what was measured and the options. Pick one of its options and change the
+plan to it; do not resubmit the plan unchanged, and never answer with smaller text or a wider
+gutter. A plan that still violates is drawn with the violation's fallback.
 Set ``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels, or
 table cells). When it is true, enumerate ``number_display_groups`` - one entry per axis,
 numeric column, or labelled numeric series - and decide ``exact_lookup_required`` for each

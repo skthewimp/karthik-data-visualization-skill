@@ -474,13 +474,16 @@ point_label_hits <- function(segs, x0, y0, x1, y1) {
   }
   sum(!out & t0 <= t1)
 }
-point_label_place <- function(ax, ay, w, h, gap, segs, pts, bounds, inward) {
+point_label_place <- function(ax, ay, w, h, gap, segs, pts, bounds, inward, lead = NULL) {
   dirs <- function(s) list(c(s, 0), c(0, 1), c(0, -1), c(s, 1), c(s, -1), c(-s, 0), c(-s, 1), c(-s, -1))
   cx <- ax; cy <- ay; placed <- NULL
   for (r in seq_along(ax)) {
     best <- NULL
+    ways <- dirs(inward[r])
+    # A preferred way out goes first; ties keep it, and the edge cost still turns it back inside.
+    if (!is.null(lead) && all(is.finite(lead[r, ])) && any(lead[r, ] != 0)) ways <- c(list(lead[r, ]), ways)
     for (step in 1:4) {
-      for (d in dirs(inward[r])) {
+      for (d in ways) {
         x <- ax[r] + d[1] * (w[r] / 2 + step * gap[r]); y <- ay[r] + d[2] * (h[r] / 2 + step * gap[r])
         # Grazing a box edge is not a crossing: test a box a hair smaller than the glyphs.
         e <- 0.05 * h[r]
@@ -539,7 +542,19 @@ makeContent.dvz_point_labels <- function(x) {
   h <- vapply(seq_along(shown), function(k) grid::convertHeight(grid::grobHeight(grid::textGrob(lab[k], gp = gp[[k]])), "in", TRUE), 0)
   # Half the type size from the point: clear of a marker drawn at the usual point sizes.
   gap <- 0.5 * d$size[shown] * .pt / 72
-  place <- point_label_place(X[shown], Y[shown], w, h, gap, segs, pts, c(0, 0, W, H), ifelse(X[shown] < W / 2, 1, -1))
+  # The ends of one category's pair (a dumbbell, a range across series) read outward along the
+  # value axis - the lower end's value before it, the higher end's after it - so the two labels
+  # never meet over a short connector. A line's points span categories and keep the inward rule.
+  lead <- t(vapply(shown, function(r) {
+    m <- which(d$group == d$group[r] & is.finite(X) & is.finite(Y))
+    across <- if (x$flip) Y else X
+    along <- if (x$flip) X else Y
+    if (length(m) < 2 || diff(range(across[m])) > 1e-6 || !diff(range(along[m]))) return(c(NA_real_, NA_real_))
+    s <- sign(along[r] - mean(along[m]))
+    if (x$flip) c(s, 0) else c(0, s)
+  }, numeric(2)))
+  place <- point_label_place(X[shown], Y[shown], w, h, gap, segs, pts, c(0, 0, W, H), ifelse(X[shown] < W / 2, 1, -1),
+                             lead = if (length(shown)) lead else NULL)
   kids <- lapply(seq_along(shown), function(k) grid::textGrob(lab[k], x = grid::unit(place$x[k] / W, "npc"),
     y = grid::unit(place$y[k] / H, "npc"), hjust = 0.5, vjust = 0.5, gp = gp[[k]]))
   grid::setChildren(x, do.call(grid::gList, kids))
@@ -1202,6 +1217,10 @@ def _read_settings(raw: dict[str, Any], where: str, warnings: list[str]) -> dict
             read[key] = dict(value or {})
         elif key == "heading":
             read[key] = str(value)
+        elif key == "facet_ncol":
+            read[key] = max(1, int(value))
+        elif key == "facet_scales":
+            read[key] = str(value)
         else:
             warnings.append(f"{where}setting {key!r} is not one the scaffold reads; ignored")
     return read
@@ -1226,6 +1245,28 @@ def _type_x(panel: dict[str, Any], warnings: list[str], where: str) -> None:
         except ValueError:
             warnings.append(f"{where}x_kind continuous: category is not numeric; drawn as a discrete axis")
             panel["x_kind"] = "discrete"
+
+
+def _public(violation: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in violation.items() if not k.startswith("_")}
+
+
+def _series_grid(rows: list[dict[str, str]], plot_w: float, plot_h: float) -> dict[str, Any]:
+    """The grid for one panel per series in the space one panel had.
+
+    Columns are the count whose panels come nearest a line's pleasant 1.6:1 shape. The series
+    share a value scale while each still spreads over half the pooled range - the floor panels are
+    held to elsewhere - so a large series never flattens the small ones into a strip.
+    """
+    series = [s for s in _first_seen(rows, "series") if s]
+    n = max(1, len(series))
+    ncol = min(range(1, n + 1), key=lambda c: abs(math.log((plot_w / c) / (plot_h / -(-n // c)) / 1.6)))
+    values = {s: [float(r["value"]) for r in rows if r.get("series") == s and r.get("value") not in ("", None)]
+              for s in series}
+    spans = [max(v) - min(v) for v in values.values() if v]
+    pooled = [x for v in values.values() for x in v]
+    shared = not spans or not pooled or min(spans) >= 0.5 * (max(pooled) - min(pooled))
+    return {"facet_ncol": ncol, "facet_scales": "fixed" if shared else "free_y"}
 
 
 def _slug(role: str, taken: set[str]) -> str:
@@ -1305,17 +1346,32 @@ def scaffold_chart(
     source_name: str | None = None,
     label_formats: dict[str, Any] | None = None,
     panels: list[dict[str, Any]] | None = None,
+    resolve: bool = False,
 ) -> dict[str, Any]:
-    """Write the chart source with every planned setting applied and one slot for the marks."""
+    """Write the chart source with every planned setting applied and one slot for the marks.
+
+    The scaffold is where a plan meets the page, so it is also where a plan that cannot be drawn
+    is caught - before any build or render. What it finds comes back in two lists:
+
+    * ``resolutions`` - a setting with one right answer that the plan got wrong or left unsaid
+      (an unknown word read as the nearest one it knows, a setting it does not read). Applied here;
+      listed so a rescue is never silent.
+    * ``violations`` - the plan asks for something the page cannot hold and fixing it is a design
+      choice (series names that do not fit the panel's height). Each names what was measured, the
+      options, and the fallback. The driver sends them back to select once; with ``resolve`` the
+      scaffold applies each fallback itself, so a second failing plan still builds.
+    """
     if renderer not in ("ggplot2", "matplotlib"):
         raise ValueError("renderer must be ggplot2 or matplotlib")
     warnings: list[str] = []
+    resolutions: list[str] = []
+    violations: list[dict[str, Any]] = []
     layout = layout or {}
     top = {"identification": "direct_labels", "x_kind": "discrete", "value_encoding": "position",
            "value_labels": 0, "zero_baseline": False}
     top.update(_read_settings(
         {"identification": identification, "x_kind": x_kind, "value_encoding": value_encoding,
-         "value_labels": value_labels, "zero_baseline": zero_baseline}, "", warnings))
+         "value_labels": value_labels, "zero_baseline": zero_baseline}, "", resolutions))
     top["orientation"] = "horizontal" if (orientation or layout.get("bar_orientation") or "vertical") == "horizontal" else "vertical"
     public_copy = dict(public_copy or {})
     if not public_copy.get("title"):
@@ -1345,14 +1401,15 @@ def scaffold_chart(
     plan: list[dict[str, Any]] = []
     for name in names:
         where = f"panel {name}: " if multi else ""
-        own = _read_settings(given.get(name.casefold(), {}), where, warnings)
+        own = _read_settings(given.get(name.casefold(), {}), where, resolutions)
         panel_rows = [r for r in rows if r.get("region", "") == name] if multi else rows
         present = [c for c in columns if c not in ("order", "region") and any(r.get(c, "") != "" for r in panel_rows)]
         interval = (geometry.get(name) == "interval") if name in geometry else {"start", "end"} <= set(present) and "value" not in present
         plan.append({**top, "value_scale": "auto", "number_format": number_format, "axis_titles": None,
                      "heading": "", **own, "role": name, "slug": _slug(name, taken) if multi else "",
                      "rows": panel_rows, "columns": ["order", "category", *[c for c in present if c != "category"]],
-                     "interval": interval, "own_value_labels": "value_labels" in own})
+                     "interval": interval, "own_value_labels": "value_labels" in own,
+                     "own_facet_ncol": "facet_ncol" in own})
     for panel in plan:
         _type_x(panel, warnings, f"panel {panel['role']}: " if multi else "")
     data_path = destination / "chart-data.csv"
@@ -1431,9 +1488,23 @@ def scaffold_chart(
             end_wrap, end_px = _end_label_wrap(ends, plot_w, plot_h, fonts["label"], dpi)
             end_lines = sum(len(textwrap.wrap(_GLUE.sub(" ", name), end_wrap or len(name),
                                              break_long_words=False)) for name in ends)
-            if end_lines * line_px(fonts["label"], dpi) + len(ends) * pt_to_px(fonts["label"], dpi) > plot_h:
-                warnings.append(f"{where}wrapped series names exceed the panel height; use more panel space "
-                                "or small multiples, not a wider label gutter or smaller text")
+            need_h = end_lines * line_px(fonts["label"], dpi) + len(ends) * pt_to_px(fonts["label"], dpi)
+            if need_h > plot_h:
+                violations.append({
+                    "code": "END_LABELS_DONT_FIT",
+                    "panel": panel["role"],
+                    "measured": f"{len(ends)} series names at the line ends need {need_h:.0f}px of height; "
+                                f"the panel has {plot_h:.0f}px",
+                    "options": [
+                        "small multiples - one panel per series, each named by its heading",
+                        "name fewer series - keep the focal ones in colour and fold the rest into grey context",
+                        "more panel height for this panel",
+                    ],
+                    "fallback": "small multiples, one panel per series" if not facet_order else
+                                "none - the panel is already faceted; the names are spread with leaders and may overlap",
+                    "_split": not facet_order,
+                    "_plot": (plot_w, plot_h),
+                })
         elif horizontal and promised:
             end_px = value_chars * char_px(fonts["label"], dpi)
         extra = 0.0
@@ -1448,7 +1519,8 @@ def scaffold_chart(
             else:
                 margin_px["right"] = round(float(margin_px["right"]) + extra, 1)
                 reserved_px["right"] = round(float(reserved_px["right"]) + extra, 1)
-        facet_ncol = (box or {}).get("facet_ncol") or (int(layout.get("facet_ncol") or 0) if not multi else 0)
+        facet_ncol = panel.get("facet_ncol") or (box or {}).get("facet_ncol") or (
+            int(layout.get("facet_ncol") or 0) if not multi else 0)
         if facet_order and not facet_ncol:
             facet_ncol = max(1, round(len(facet_order) ** 0.5))
         facet_ncol = max(1, facet_ncol or 1)
@@ -1457,9 +1529,11 @@ def scaffold_chart(
             "series_order": panel_series,
             "has_series": bool(panel_series),
             "facet_order": facet_order,
+            "facet_by_series": bool(facet_order and panel_series) and all(
+                r.get("facet") == r.get("series") for r in prow if r.get("series")),
             "facet_ncol": facet_ncol,
             "facet_nrow": -(-len(facet_order) // facet_ncol) if facet_order else int(layout.get("facet_nrow") or 1),
-            "facet_scales": str(layout.get("facet_scales") or "fixed"),
+            "facet_scales": str(panel.get("facet_scales") or layout.get("facet_scales") or "fixed"),
             "hide_value_axis": hide,
             "axis_titles": axis_titles,
             "number_format": fmt,
@@ -1469,7 +1543,7 @@ def scaffold_chart(
         })
         if not multi:
             panel["facet_nrow"] = int(layout.get("facet_nrow") or max(1, len(facet_order)))
-            if facet_order and not layout.get("facet_ncol"):
+            if facet_order and (panel.get("own_facet_ncol") or not layout.get("facet_ncol")):
                 panel["facet_nrow"] = -(-len(facet_order) // facet_ncol)
         strip_w = (float(frame["plot_area"]["width"]) - extra if not multi and frame.get("plot_area") else plot_w - extra)
         panel["strip_wrap_chars"] = _strip_wrap_chars(
@@ -1481,6 +1555,40 @@ def scaffold_chart(
         panel["date_breaks"] = _observed_date_breaks(
             panel["category_order"], (plot_w - extra) / facet_ncol, fonts["axis"], dpi,
         ) if panel["x_kind"] == "date" else []
+
+    # A violation's fallback is applied only when asked (the driver's second pass): the plan is
+    # redrawn with the fallback in place and scaffolded again, so the fallback goes through every
+    # rule a planned chart does.
+    split = [v for v in violations if v.get("_split")]
+    if resolve and split:
+        roles_split = {v["panel"] for v in split}
+        split_rows = [dict(r, facet=r.get("series", "")) if r.get("region", "") in roles_split else
+                      dict(r, facet=r.get("facet", "")) for r in rows]
+        split_columns = columns if "facet" in columns else [*columns, "facet"]
+        split_path = destination / f"{data_source.stem}-by-series.csv"
+        with split_path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=split_columns)
+            writer.writeheader()
+            writer.writerows(split_rows)
+        split_path.with_suffix(".json").write_text(json.dumps(roles), encoding="utf-8")
+        settings = {str(p.get("role") or "").strip().casefold(): dict(p) for p in panels or []}
+        for v in split:
+            prow = [r for r in split_rows if r.get("region", "") == v["panel"]]
+            settings[v["panel"].casefold()] = {**settings.get(v["panel"].casefold(), {}), "role": v["panel"],
+                                               "identification": "axis", **_series_grid(prow, *v["_plot"])}
+        inner = scaffold_chart(
+            output_dir, str(split_path), public_copy, layout, frame, colours, number_format,
+            "axis" if not multi else identification, value_labels, x_kind, orientation, zero_baseline,
+            value_encoding, background, renderer, source_name, label_formats, list(settings.values()),
+            resolve=False,
+        )
+        inner["resolutions"] = resolutions + [
+            f"{'panel ' + v['panel'] + ': ' if multi else ''}{v['measured']}; drawn as small multiples, one panel "
+            "per series, each named by its heading" for v in split
+        ] + inner["resolutions"]
+        inner["warnings"] = warnings + inner["warnings"]
+        inner["violations"] = [_public(v) for v in violations if not v.get("_split")] + inner["violations"]
+        return inner
 
     # Panels of one measure are read against each other, so they share the value range unless the
     # layout freed the value scale or a panel keeps its own: an overview bar is never drawn to its
@@ -1567,6 +1675,10 @@ def scaffold_chart(
                 "orientation": plan[0]["orientation"],
                 "value_encoding": plan[0]["value_encoding"],
                 "label_pt": fonts["label"],
+                # What names the series, so the check can tell a chart that never says which is which.
+                "series": series_order,
+                "series_named_in_marks": any(p["has_series"] and p["identification"] == "direct_labels"
+                                             and not p["facet_by_series"] for p in plan),
                 "dimensions": {"width_px": width, "height_px": height, "dpi": dpi},
                 "background": background,
                 "regions": [{"role": p["role"], "width_px": p["box"]["width"], "height_px": p["box"]["height"],
@@ -1620,6 +1732,8 @@ def scaffold_chart(
         "decided": decided,
         "marks_brief": _marks_brief(source.name, renderer, plan, label_fmts, promised),
         "warnings": warnings,
+        "resolutions": resolutions,
+        "violations": [_public(v) for v in violations],
     }
 
 
@@ -1638,7 +1752,7 @@ if (requireNamespace("ragg", quietly = TRUE)) {
 out <- list(error = NULL, non_layers = list(), geom_label = 0L, text_rows = 0L,
             mark_colours = list(), text_sizes = list(), unmapped = list(), wrong_mark = list(),
             stack_order = FALSE, surfaces = list(), detached = list(), stretch = list(), spans = list(),
-            on_line = list())
+            on_line = list(), labels = list())
 as_hex <- function(x) tryCatch(grDevices::rgb(t(grDevices::col2rgb(x)), maxColorValue = 255), error = function(e) as.character(x))
 flat <- function(x) if (is.list(x) && !inherits(x, "gg")) do.call(c, lapply(x, flat)) else list(x)
 is_text <- function(layer) inherits(layer$geom, "GeomText") || inherits(layer$geom, "GeomLabel") ||
@@ -1656,7 +1770,11 @@ check_plot <- function(out, plot, width_px, height_px) {
   }
   b <- ggplot_build(plot)
   gt <- ggplotGrob(plot)
-  for (i in seq_along(plot$layers)) if (is_text(plot$layers[[i]])) out$text_rows <- out$text_rows + nrow(b$data[[i]])
+  for (i in seq_along(plot$layers)) if (is_text(plot$layers[[i]])) {
+    out$text_rows <- out$text_rows + nrow(b$data[[i]])
+    shown <- as.character(b$data[[i]]$label)
+    out$labels <- c(out$labels, as.list(unique(shown[!is.na(shown) & nzchar(shown)])))
+  }
   # How far the marks travel along the value axis (y before any coord_flip), against the data's
   # range, both in the value scale's own space (a log axis compares logs with logs).
   span <- list(value = NULL, mark = NULL)
@@ -2314,6 +2432,18 @@ def check_chart(source_path: str) -> dict[str, Any]:
             "values it plots. Map y = value on the marks (the scaffold flips a horizontal chart itself; "
             "Matplotlib: the value coordinate is row['value']).",
         )
+    series = [str(s) for s in record.get("series") or []]
+    drawn = " ".join(str(t) for t in found.get("labels") or []).casefold()
+    if (record.get("series_named_in_marks") and len(series) > 1 and not found.get("error")
+            and not any(s.casefold() in drawn for s in series)):
+        deviate(
+            "SERIES_UNNAMED",
+            f"Nothing on the chart says which mark is {' and which is '.join(repr(s) for s in series[:2])}"
+            f"{' (and the rest)' if len(series) > 2 else ''}: the plan names series directly, and no text names "
+            "them. Name each series once, where it first appears - a line past its last point with end_labels(); "
+            "grouped bars or dots in the first group's labels only, e.g. label = ifelse(category == <first category>, "
+            "paste(series, fmt_value(value)), fmt_value(value)). Not on every mark.",
+        )
     promised = int(record.get("value_labels") or 0)
     if promised and not found.get("error") and int(found.get("text_rows") or 0) < promised:
         deviate(
@@ -2370,7 +2500,19 @@ def _marks_brief(name: str, renderer: str, plan: list[dict[str, Any]], label_fmt
             "a dumbbell's ends) with point_labels(aes(x = category, y = value, label = <text, NA where unlabelled>, "
             "colour = series, group = <the line's group>), data = <the line's rows>): it keeps each label inside the "
             "panel and off the drawn lines - never a geom_text nudged beside a point with hjust or nudge. "
-            "Other text keeps the position of the marks it labels."
+            "One label per point: a second number for the same point (a growth rate beside its value) goes in the "
+            "same label, paste(fmt_value(value), <the other>), never a second point_labels layer that lands on the "
+            "first. Other text keeps the position of the marks it labels."
+        )
+    if any(p["facet_by_series"] for p in plan):
+        parts.append(
+            "Each series has its own panel, named by its heading: do not name the lines again. Print each line's "
+            "first and last values with point_labels, so every panel reads without a value axis."
+        )
+    if any(p["has_series"] and p["identification"] == "direct_labels" and not p["facet_by_series"] for p in plan):
+        parts.append(
+            "No legend: name each series once on the chart, where it first appears - lines past their last point "
+            "with end_labels(); grouped bars or dots in the first group's labels only. Never on every mark."
         )
     if any("status" in p["columns"] for p in plan) and renderer == "ggplot2":
         parts.append(

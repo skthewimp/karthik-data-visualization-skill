@@ -672,6 +672,7 @@ def create_server() -> Any:
         source_name: str | None = None,
         label_formats: dict[str, Any] | None = None,
         panels: list[dict[str, Any]] | None = None,
+        resolve: bool = False,
     ) -> dict[str, Any]:
         """Write the chart source from the plan, leaving one slot for the model's marks.
 
@@ -695,9 +696,18 @@ def create_server() -> Any:
         ``marks_brief`` for the build model and ``warnings``. Run ``check_chart`` after the
         model writes the slot.
 
+        The scaffold is also where a plan that cannot be drawn is caught, before any build or
+        render. ``resolutions`` lists what it fixed itself because there was one right answer (an
+        unknown routing word read as the nearest one it knows, a setting it does not read).
+        ``violations`` lists what the page cannot hold where the fix is a design choice - each
+        ``{code, panel, measured, options, fallback}``, e.g. ``END_LABELS_DONT_FIT`` when the
+        series names cannot stack in the panel's height. The driver sends violations back to
+        select once, with the measurements; if the next plan still violates, it scaffolds with
+        ``resolve`` and the scaffold draws each fallback itself (one panel per series), so the run
+        always builds and every rescue is listed.
+
         Routing scalars are read leniently, as the routing block is: a near-miss spelling resolves
-        and an unknown word takes the default with a warning, so a stray word never stops the
-        scaffold. An interval frame (``start``/``end``) is drawn mark by mark between its ends.
+        and an unknown word takes the default, so a stray word never stops the scaffold. An interval frame (``start``/``end``) is drawn mark by mark between its ends.
         Each label measure in the frame gets its own formatter, ``fmt_<name>()``, from
         ``label_formats`` ({name: number format}) or from its own values by the spread rule, in
         the units prepare_plot_data recorded.
@@ -707,7 +717,7 @@ def create_server() -> Any:
         gave it, under one page frame and one palette. Each panel takes the chart's settings and
         any of its own from ``panels``: ``{role, x_kind?, orientation?, value_labels?,
         zero_baseline?, value_encoding?, identification?, number_format?, axis_titles?, heading?,
-        value_scale?}`` - so a bar panel sits beside a line panel, a date axis beside a discrete
+        value_scale?, facet_ncol?, facet_scales?}`` - so a bar panel sits beside a line panel, a date axis beside a discrete
         one, dollars beside percent. The model writes one ``chart_marks_<panel>(d, fmt_value)``
         per panel, and ``fmt_value`` arrives in that panel's format. Panels of one measure (one
         number format) share the value range unless the facet scales are free, a panel sets
@@ -718,7 +728,7 @@ def create_server() -> Any:
         return scaffold_chart_core(
             output_dir, plot_data_path, public_copy, layout, frame, colours, number_format,
             identification, value_labels, x_kind, orientation, zero_baseline, value_encoding,
-            background, renderer, source_name, label_formats, panels,
+            background, renderer, source_name, label_formats, panels, resolve,
         )
 
     @server.tool()

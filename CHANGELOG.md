@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### Plans compile before build
+
+In the 2026-09-29 canonical run nearly every first-build defect that forced a revision was known
+before the first render - a tool had warned, or had quietly defaulted - and nothing acted on it
+until the reviewer. The scaffold is now the plan's compile step.
+
+- **`scaffold_chart` returns `violations` and `resolutions`.** A plan the page cannot hold, where
+  the fix is a design choice, is a violation with what was measured, the options and a fallback -
+  first `END_LABELS_DONT_FIT` (series names that cannot stack in the panel height), which used to
+  be a warning the build ignored. A setting with one right answer (an unknown routing word) is
+  fixed and listed as a resolution. With `resolve`, the scaffold applies each fallback itself:
+  one panel per series, the grid chosen toward a line's pleasant shape, the scale shared unless a
+  series would flatten below half the pooled range. The driver routes violations to select once
+  and scaffolds the second plan with `resolve`, so a run never fails on it.
+- **An asked-for `group_align` yields when it outgrows the page.** When the requested arrangement
+  only fits past the ceiling and another arrangement fits and lands nearer the target aspect,
+  `recommend_layout` uses that one and says so (a two-panel total and detail went 1906px wide at
+  a square target; text then shrank to 42% at delivery).
+- **`SERIES_UNNAMED`.** `check_chart` flags a chart whose plan names series directly when no
+  drawn text names them (grouped bars coloured by series with values only). The marks brief says
+  to name each series once, where it first appears, not on every mark.
+- **Dumbbell ends read outward.** `point_labels()` places the lower end's value before it and the
+  higher's after it for a pair on one category, so the two never meet over a short connector;
+  lines keep the inward rule. The brief asks for one label per point (a growth rate joins its
+  value), not a second label layer placed blind to the first.
+- The select stage is told the routing words are a closed menu and how to answer a SCAFFOLD
+  VIOLATIONS section.
+
 ### Review flags are evidence, not orders
 
 A downstream review integration reported false positives from the inspector and overcorrection

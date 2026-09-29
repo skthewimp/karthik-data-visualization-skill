@@ -28,6 +28,9 @@ def _frame(tmp_path: Path, **kwargs) -> str:
 
 def _scaffold(tmp_path: Path, **kwargs) -> dict:
     copy = kwargs.pop("public_copy", {"title": "Reads are most tokens but half the cost"})
+    # These fixtures are about the slot's mechanics, not what names the series; the series-naming
+    # check has its own tests.
+    kwargs.setdefault("identification", "axis")
     return scaffold_chart(
         str(tmp_path), kwargs.pop("plot_data_path", None) or _frame(tmp_path), copy,
         layout=kwargs.pop("layout", recommend_layout(x_slots=2)), colours=kwargs.pop("colours", PALETTE),
@@ -719,7 +722,7 @@ def test_point_values_stay_inside_and_off_the_lines(tmp_path: Path, case: dict) 
     result = scaffold_chart(str(tmp_path), path, {"title": "t"}, layout={"width_px": 1200, "height_px": 800, "dpi": 144},
                             colours={"ordered_palette": ["#000000", "#0072B2", "#D55E00", "#009E73", "#CC79A7",
                                                          "#E69F00", "#56B4E9"][: len(names)]},
-                            orientation=case["orientation"])
+                            orientation=case["orientation"], identification="axis")
     _fill(result["source_path"], f"chart_marks <- function(d) list({case['base']}, {case['bad']})")
     report = check_chart(result["source_path"])
     assert {d["code"] for d in report["deviations"]} == {"TEXT_ON_MARK"}
@@ -763,10 +766,10 @@ def test_routing_words_are_read_leniently_not_refused(tmp_path: Path) -> None:
     source = Path(result["source_path"]).read_text(encoding="utf-8")
     assert "limits = c(0, NA)" in source
     assert result["value_axis_hidden"]
-    # Only the word it could not read, and the missing title, are reported.
-    assert any("value_encoding 'length'" in w for w in result["warnings"])
+    # Only the word it could not read is resolved (and listed), and the missing title warned.
+    assert any("value_encoding 'length'" in w for w in result["resolutions"])
     assert any("no title" in w for w in result["warnings"])
-    assert not any("zero_baseline" in w or "identification" in w for w in result["warnings"])
+    assert not any("zero_baseline" in w or "identification" in w for w in result["resolutions"] + result["warnings"])
 
 
 def test_check_reports_a_hand_written_chart(tmp_path: Path) -> None:
@@ -789,7 +792,7 @@ def _segments(tmp_path: Path, **kwargs) -> dict:
     return scaffold_chart(
         str(tmp_path), frame["plot_data_path"], {"title": "Reads are most tokens but half the cost"},
         layout={"width_px": 1200, "height_px": 600, "dpi": 144}, colours=PALETTE,
-        orientation="horizontal", zero_baseline=True, **kwargs,
+        orientation="horizontal", zero_baseline=True, **{"identification": "axis", **kwargs},
     )
 
 
@@ -837,7 +840,7 @@ def _regions(tmp_path: Path, **layout_kwargs) -> dict:
     ], **layout_kwargs)
     return scaffold_chart(
         str(tmp_path), frame["plot_data_path"], {"title": "Revenue grew 10%"}, layout=layout,
-        colours=PALETTE, orientation="horizontal", zero_baseline=True, value_labels=6,
+        colours=PALETTE, orientation="horizontal", zero_baseline=True, value_labels=6, identification="axis",
     )
 
 
@@ -1096,3 +1099,84 @@ def test_end_labels_handed_every_row_print_each_name_once_at_its_end(tmp_path: P
     layout = json.loads(Path(rendered["layout_metadata_path"]).read_text(encoding="utf-8"))
     texts = [e.get("text") for e in layout["elements"] if e.get("text") in ("Reads", "Writes")]
     assert sorted(texts) == ["Reads", "Writes"]
+
+
+# ---- plans the page cannot hold, and series nothing names ----
+
+
+MODELS = [f"Model {chr(65 + i)} long name" for i in range(10)]
+
+
+def _many_lines(tmp_path: Path, **kwargs) -> dict:
+    rows = [[f"W{w:02d}", *[round(1 + i * 0.3 + w * 0.05 * (i + 1), 2) for i in range(len(MODELS))]] for w in range(12)]
+    path = prepare_plot_data(str(tmp_path / "data"), "Week", MODELS, columns=["Week", *MODELS], rows=rows)["plot_data_path"]
+    return scaffold_chart(str(tmp_path), path, {"title": "Every model grew"},
+                          layout={"width_px": 1200, "height_px": 500, "dpi": 144}, **kwargs)
+
+
+def test_series_names_that_cannot_fit_are_a_violation_not_a_warning(tmp_path: Path) -> None:
+    result = _many_lines(tmp_path)
+    [violation] = result["violations"]
+    assert violation["code"] == "END_LABELS_DONT_FIT"
+    assert "10 series names" in violation["measured"] and "small multiples" in violation["fallback"]
+    assert len(violation["options"]) > 1
+    assert not any("exceed the panel height" in w for w in result["warnings"])
+
+
+def test_resolve_draws_the_fallback_as_one_panel_per_series(tmp_path: Path) -> None:
+    result = _many_lines(tmp_path, resolve=True)
+    assert result["violations"] == []
+    assert any("small multiples" in r for r in result["resolutions"])
+    source = Path(result["source_path"]).read_text(encoding="utf-8")
+    ncol = int(re.search(r"facet_wrap\(~facet, ncol = (\d+)", source).group(1))
+    # A wide short panel takes several columns, not ten stacked strips.
+    assert 2 <= ncol <= 5
+    assert "do not name the lines again" in result["marks_brief"]
+    # The model's first and last values carry the reading; nothing asks for end labels.
+    assert "name each series once" not in result["marks_brief"]
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_series_nothing_names_are_caught_and_one_naming_passes(tmp_path: Path) -> None:
+    rows = [["cacheRead", 95.0, 50.2], ["cacheWrite", 3.5, 30.2], ["output", 1.0, 18.8]]
+    path = prepare_plot_data(str(tmp_path / "data"), "Kind", ["tokens", "dollars"],
+                             columns=["Kind", "tokens", "dollars"], rows=rows)["plot_data_path"]
+    result = scaffold_chart(str(tmp_path), path, {"title": "t"}, layout={"width_px": 1200, "height_px": 800, "dpi": 144},
+                            colours=PALETTE, orientation="horizontal", zero_baseline=True, value_labels=6)
+    assert "name each series once" in result["marks_brief"]
+    bars = "geom_col(aes(x = category, y = value, fill = series), position = position_dodge(width = 0.8), width = 0.8)"
+    values = ("bar_values(aes(x = category, y = value, label = {label}, fill = series, group = series), "
+              "position = position_dodge(width = 0.8))")
+    _fill(result["source_path"], f"chart_marks <- function(d) list({bars}, {values.format(label='fmt_value(value)')})")
+    assert "SERIES_UNNAMED" in _codes(result["source_path"])
+    named = "ifelse(category == 'cacheRead', paste(series, fmt_value(value)), fmt_value(value))"
+    _fill(result["source_path"], f"chart_marks <- function(d) list({bars}, {values.format(label=named)})")
+    assert "SERIES_UNNAMED" not in _codes(result["source_path"])
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_a_pair_on_one_category_labels_its_ends_outward(tmp_path: Path) -> None:
+    # A small change on a wide scale: the two values sit close, so labels placed toward the middle
+    # would meet over the connector. The lower end's value goes before it, the higher's after it.
+    rows = [["Search", 46.2, 50.7], ["YouTube", 8.1, 8.9], ["Network", 7.4, 7.3]]
+    path = prepare_plot_data(str(tmp_path / "data"), "Kind", ["Q1 24", "Q1 25"],
+                             columns=["Kind", "Q1 24", "Q1 25"], rows=rows)["plot_data_path"]
+    result = scaffold_chart(str(tmp_path), path, {"title": "t"}, layout={"width_px": 1200, "height_px": 600, "dpi": 144},
+                            colours=PALETTE, orientation="horizontal", identification="axis")
+    _fill(result["source_path"], "chart_marks <- function(d) list("
+          "geom_line(aes(x = category, y = value, group = category), colour = '#999999'), "
+          "geom_point(aes(x = category, y = value, colour = series), size = 3), "
+          "point_labels(aes(x = category, y = value, label = fmt_value(value), colour = series, group = category)))")
+    assert check_chart(result["source_path"])["ok"]
+    bundle = render_and_inspect_chart(result["source_path"], str(tmp_path / "render"), renderer="ggplot2",
+                                      dimensions=result["dimensions"])
+    metadata = json.loads(Path(bundle["layout_metadata_path"]).read_text())
+    (a, b, c), _, _ = metadata["transforms"][0]["data_to_pixel_top_left"]
+    boxes = {e["text"]: e["bbox"] for e in metadata["elements"] if e["role"] == "data_label"}
+    keys = [r[0] for r in rows][::-1]
+    for key, low, high in rows[1:]:
+        lo, hi = sorted((low, high))
+        y = keys.index(key) + 1
+        lo_x, hi_x = a * y + b * lo + c, a * y + b * hi + c
+        assert boxes[f"{lo:.1f}"]["x"] + boxes[f"{lo:.1f}"]["width"] <= lo_x
+        assert boxes[f"{hi:.1f}"]["x"] >= hi_x

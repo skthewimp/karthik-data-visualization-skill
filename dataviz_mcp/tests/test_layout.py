@@ -280,11 +280,23 @@ def test_panel_groups_aligned_on_x_stack_as_disjoint_full_width_bands():
 def test_panel_groups_aligned_on_y_sit_side_by_side_in_one_row():
     groups = [{"role": "parts", "n_panels": 1, "y_slots": 4, "filled_marks": True},
               {"role": "trend", "n_panels": 1, "x_slots": 0}]
-    result = recommend_layout(panel_groups=groups, group_align="y")
+    result = recommend_layout(panel_groups=groups, group_align="y", target_aspect=2.5)
     parts, trend = result["regions"]
     assert parts["y"] == trend["y"]
     assert trend["x"] >= parts["x"] + parts["width"]
     assert trend["x"] + trend["width"] <= result["width_px"]
+
+
+def test_asked_alignment_yields_when_it_outgrows_the_page_and_the_shape():
+    # Side by side, a total beside its category detail needs a canvas past the ceiling and far
+    # wider than the square the source asks for; stacked, it fits and lands nearer that shape.
+    groups = [{"role": "total", "n_panels": 1, "x_slots": 2, "filled_marks": True},
+              {"role": "category", "n_panels": 1, "y_slots": 4, "y_labels": True, "longest_y_label_chars": 34}]
+    result = recommend_layout(panel_groups=groups, group_align="y", target_aspect=1.0)
+    total, category = result["regions"]
+    assert category["y"] >= total["y"] + total["height"]
+    assert result["fit"]["status"] == "ok"
+    assert any("group_align 'y'" in w for w in result["warnings"])
 
 
 def test_auto_arrangement_never_overlaps_and_prefers_no_holes():
