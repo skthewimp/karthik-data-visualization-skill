@@ -4324,3 +4324,11 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Session captured, but there was not enough structured activity to summarize.
 
 <!-- claude-session:7e1f52d6-685e-48fc-9f0d-c0d327b713ec:end -->
+
+<!-- claude-session:987a5a93-c811-40ab-ad6d-ebf72e56e2ee:start -->
+## 2026-09-29 09:42 IST | Claude session `987a5a93-c81`
+
+### User prompts
+> we have an issue wiht graph construction scaffolding. a lot of caes don't go through this because there are multiple panels, for example (not just facets when we need two separate graphs etc. how do we fix this? or is...
+
+<!-- claude-session:987a5a93-c811-40ab-ad6d-ebf72e56e2ee:end -->
