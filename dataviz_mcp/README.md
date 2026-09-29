@@ -45,15 +45,14 @@ when the select artifact's routing block asks for them (parsed via
 ## Requirements and installation
 
 - Python 3.10 or newer
-- a Python virtual environment
+- an existing Python environment
 - Codex, Claude Code, or another MCP-compatible client
 
 From the repository root, install the package and retain the absolute interpreter path:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -e .
-MCP_PYTHON="$(pwd)/.venv/bin/python"
+MCP_PYTHON="${MCP_PYTHON:-$(command -v python3)}"
+uv pip install --python "$MCP_PYTHON" -e .
 ```
 
 On Karthik's machine, the configured interpreter is:
