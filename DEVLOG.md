@@ -4422,3 +4422,15 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:987a5a93-c811-40ab-ad6d-ebf72e56e2ee:end -->
 
+<!-- claude-session:36909efc-9df7-458d-9ebc-71e1b0fdbc1e:start -->
+## 2026-09-29 10:39 IST | Claude session `36909efc-9df`
+
+### User prompts
+> our chart review tools / skills are broken. there are a lot of false positives etc. from downstream: <pasted_content id="77f1"> Multi-panel charts now go through the scaffold, and each panel can be its own chart: a ba...
+> our chart review tools / skills are broken. there are a lot of false positives etc. from downstream: <pasted_content id="77f1"> Fix each problem at its owner; most reusable review fixes belong upstream. Problem Primar...
+
+### Work done
+- Update docs/mcp.md rows, then CHANGELOG.
+- I fixed every upstream row in the table and pushed it as `0e3d686` on `main`. The website rows are still yours to fix. All tests pass (472 core + 52 `dataviz-fix`), sync validated, local Codex and Claude copies instal...
+
+<!-- claude-session:36909efc-9df7-458d-9ebc-71e1b0fdbc1e:end -->
