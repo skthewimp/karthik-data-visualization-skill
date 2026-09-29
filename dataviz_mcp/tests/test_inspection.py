@@ -53,6 +53,7 @@ def test_render_emits_versioned_bundle_with_matching_hashes(tmp_path: Path) -> N
     assert report["minimum_text_margin_px"] > 0
     assert all(not group["defects"] for group in report["correction_plan"].values())
     assert report["correction_plan"]["canvas"]["growth_vector"] is None
+    assert report["redundant_value_axis"] == []
 
 
 @pytest.mark.parametrize(
@@ -97,6 +98,8 @@ def test_text_wholly_inside_its_bar_is_not_a_collision(tmp_path: Path) -> None:
     _, report = render(tmp_path, "undeclared_inside_labels")
     assert "TEXT_MARK_COLLISION" not in _codes(report)
     assert report["passes_geometry_checks"] is True
+    assert "REDUNDANT_VALUE_AXIS" not in _codes(report)
+    assert report["redundant_value_axis"] == []
 
 
 def test_missing_line_segment_does_not_create_a_false_collision(tmp_path: Path) -> None:
@@ -498,12 +501,8 @@ def test_redundant_value_axis_flagged(tmp_path: Path, function: str) -> None:
     (
         # one of five bars labelled: a single label cannot fix the scale, flag stays silent
         "bars_few_labelled",
-        # no direct labels at all
-        "clean_chart",
         # labelled points over a year axis with the value axis hidden: years are not the value axis
         "labelled_points_on_year_axis",
-        # hidden axis: its tick texts are never drawn, so there is nothing to drop
-        "undeclared_inside_labels",
     ),
 )
 def test_no_redundant_axis(tmp_path: Path, function: str) -> None:

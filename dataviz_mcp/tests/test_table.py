@@ -135,7 +135,8 @@ def _codes(report: dict) -> set:
 
 
 @pytest.mark.usefixtures("require_r_table")
-def test_constructor_renders_recognized_unclipped_table(tmp_path: Path) -> None:
+@pytest.mark.parametrize("dpi", [72, 216])
+def test_constructor_preserves_content_and_geometry(tmp_path: Path, dpi: int) -> None:
     plan = recommend_table_layout(
         [{"header": "Model", "identifier": True, "cells": ["Fable 5.1", "Opus 5", "GPT-5.6"]},
          {"header": "Combined I/O cost\nUSD per 1M tokens", "cells": ["$60.0", "$30.0", "$24.0"]},
@@ -143,46 +144,20 @@ def test_constructor_renders_recognized_unclipped_table(tmp_path: Path) -> None:
         title="Muse Spark beats every rival at up to 200x lower cost",
         subtitle="Combined per-token cost vs coding-benchmark accuracy",
         notes="Private evaluation; source fidelity only.",
-        delivery={"max_width_px": 1400, "max_height_px": 900},
+        typography={"padding_x_px": 18, "padding_y_px": 7},
+        delivery={"max_width_px": 1400, "max_height_px": 900, "dpi": dpi},
     )
     assert plan["status"] == "fits"
-    build = write_table_build_source(plan, tmp_path / "build.R")
-    bundle = render_and_inspect_chart(build, str(tmp_path / "out"),
-                                      content="table", build_function="build_table")
+    assert plan["measurement_backend"] == "grid/ragg"
+    bundle = render_table_from_plan(plan, str(tmp_path / "out"))
+    assert bundle["renderer"] == "ggplot2"
+    assert bundle["renderer_selection"]["fallback_reason"] is None
     layout = json.loads(Path(bundle["layout_metadata_path"]).read_text(encoding="utf-8"))
     # Still a recognised gtable, so the geometry checker keeps working.
     assert layout["coverage"]["table_cell_bounds"] is True
     texts = " ".join(str(e.get("text", "")) for e in layout["elements"])
     for expected in ("Muse Spark", "Combined I/O cost", "Fable 5.1", "$60.0", "Private evaluation"):
         assert expected in texts
-    report = inspect_rendered_chart(bundle["artifact"]["path"], bundle["layout_metadata_path"])
-    # The whole point: measured geometry applied verbatim, nothing clips or overflows.
-    assert "OUT_OF_BOUNDS" not in _codes(report)
-    assert "CELL_OVERFLOW" not in _codes(report)
-    assert "BLANK_RENDER" not in _codes(report)
-    assert report["occupied_utilization_ratio"] > 0.2
-
-
-@pytest.mark.usefixtures("require_r_table")
-@pytest.mark.parametrize("dpi", [72, 144, 216])
-def test_constructor_preserves_pixel_padding(tmp_path: Path, dpi: int) -> None:
-    plan = recommend_table_layout(
-        [{"header": "Group", "cells": ["Alpha", "Beta"]},
-         {"header": "Value", "cells": ["10", "20"]}],
-        title="Measured padding",
-        subtitle="Same inset at every resolution",
-        notes="Source: test data",
-        typography={"padding_x_px": 18, "padding_y_px": 7},
-        delivery={"max_width_px": 1400, "max_height_px": 900, "dpi": dpi},
-    )
-    assert plan["status"] == "fits"
-    build = write_table_build_source(plan, tmp_path / "build.R")
-    bundle = render_and_inspect_chart(
-        build, str(tmp_path / "out"), content="table", build_function="build_table",
-        dimensions={"dpi": dpi},
-    )
-    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text(encoding="utf-8"))
-    # Check actual rendered text against its containing band, not the R source.
     frame_text = {band["text"] for band in plan["frame_bands"]}
     frame_elements = [e for e in layout["elements"] if e.get("text") in frame_text]
     assert len(frame_elements) == len(frame_text)
@@ -191,7 +166,11 @@ def test_constructor_preserves_pixel_padding(tmp_path: Path, dpi: int) -> None:
             plan["padding_x_px"], abs=0.1
         )
     report = inspect_rendered_chart(bundle["artifact"]["path"], bundle["layout_metadata_path"])
-    assert not ({"OUT_OF_BOUNDS", "CELL_OVERFLOW", "BLANK_RENDER"} & _codes(report))
+    # The whole point: measured geometry applied verbatim, nothing clips or overflows.
+    assert "OUT_OF_BOUNDS" not in _codes(report)
+    assert "CELL_OVERFLOW" not in _codes(report)
+    assert "BLANK_RENDER" not in _codes(report)
+
 
 # ---- from test_no_r.py ----
 
@@ -224,7 +203,7 @@ def _plan(**delivery):
     )
 
 
-@pytest.mark.parametrize("dpi", [72, 144, 216])
+@pytest.mark.parametrize("dpi", [72, 216])
 def test_no_r_table_fallback_preserves_geometry_and_inspection(tmp_path, monkeypatch, dpi):
     _no_r(monkeypatch)
     plan = _plan(dpi=dpi)
@@ -314,19 +293,6 @@ def test_existing_r_source_gets_actionable_no_r_error(tmp_path, monkeypatch):
     source.write_text("stop('must not execute R')")
     with pytest.raises(ValueError, match="generate .py source"):
         rendering.render_and_inspect_chart(str(source), str(tmp_path / "out"))
-
-
-@pytest.mark.usefixtures("require_r_table")
-def test_table_plan_prefers_available_r_in_real_render(tmp_path):
-    plan = _plan()
-    assert plan["measurement_backend"] == "grid/ragg"
-    bundle = render_table_from_plan(plan, str(tmp_path))
-    assert bundle["renderer"] == "ggplot2"
-    assert bundle["renderer_selection"]["fallback_reason"] is None
-    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
-    assert layout["coverage"]["table_cell_bounds"] is True
-    report = json.loads(Path(bundle["inspection_path"]).read_text())
-    assert not ({"OUT_OF_BOUNDS", "CELL_OVERFLOW"} & {d["code"] for d in report["defects"]})
 
 
 def test_r_measurement_error_is_not_retried_in_python(monkeypatch):

@@ -261,14 +261,6 @@ def test_expected_sections_lists_top_level_properties():
     assert handoff.expected_sections(None) == ()
 
 
-def test_render_handoff_spec_includes_sections_and_routing_keys():
-    spec = handoff.render_handoff_spec(("key_messages", "diagnosis"), ("builder",))
-    assert "`## KEY MESSAGES`" in spec
-    assert "`## DIAGNOSIS`" in spec
-    assert "```routing" in spec
-    assert "builder: <value>" in spec
-
-
 def test_render_handoff_spec_without_routing_has_no_block():
     spec = handoff.render_handoff_spec(("row_grain",))
     assert "```routing" not in spec

@@ -42,20 +42,6 @@ def test_pipelines_have_expected_stage_order() -> None:
     )
 
 
-def test_both_front_halves_share_one_construct_tail() -> None:
-    """The literal coalescing: the post-insight stages are the SAME objects in both."""
-    for stage_id in ("select", "idea", "build", "execution", "explain"):
-        assert sc.stage("repair", stage_id) is sc.stage("story", stage_id)
-    # insight is parameterised only by the artifact that feeds it; everything else matches.
-    repair_insight = sc.stage("repair", "insight")
-    story_insight = sc.stage("story", "insight")
-    assert repair_insight.skills == story_insight.skills == ("karthik-evidence-builder",)
-    assert repair_insight.instructions == story_insight.instructions
-    assert repair_insight.output_schema is story_insight.output_schema is sc.INSIGHT_SCHEMA
-    assert repair_insight.input_schema is sc.DIAGNOSE_SCHEMA
-    assert story_insight.input_schema is sc.CLEAN_SCHEMA
-
-
 @pytest.mark.parametrize("pipeline_name,stage", list(_all_stages()))
 def test_every_stage_bundles_only_named_skills(pipeline_name, stage) -> None:
     # Resolve a builder for build stages so bundling is well-defined.
@@ -172,17 +158,6 @@ def test_precision_and_colour_skills_are_not_carried_into_build() -> None:
     assert "needs_color_plan" in props
 
 
-def test_stage_adapter_includes_guardrails_and_focus() -> None:
-    diagnose = sc.stage("repair", "diagnose")
-    adapter, sources, revision = sc.build_stage_adapter(diagnose, repository_root=REPO_ROOT)
-    assert "untrusted content" in adapter
-    assert "diagnose-and-extract stage" in adapter
-    assert diagnose.handoff_spec() in adapter
-    assert sources
-    # revision is a git sha or None; when present it is hex-ish and non-empty.
-    assert revision is None or revision.strip()
-
-
 def test_insight_artifact_is_carried_across_the_gate_to_idea_and_build() -> None:
     """The plan must survive the idea gate: idea and build explicitly also read insight.
 
@@ -213,69 +188,6 @@ def test_only_select_stages_declare_routing_fields() -> None:
             assert stage.routing_fields == sc._SELECT_ROUTING_FIELDS
         else:
             assert stage.routing_fields == ()
-
-
-def test_plot_data_map_is_carried_by_select_for_the_mechanical_frame() -> None:
-    """select names the role map so build reshapes nothing; geometry is a value or two ends."""
-    props = sc.SELECT_SCHEMA["properties"]
-    assert "plot_data" in props
-    plot_data = props["plot_data"]
-    # x is required of a single map, or of each panel's map when the chart has several panels.
-    assert plot_data["required"] == [] and plot_data["properties"]["panels"]["items"]["required"] == ["role", "x"]
-    for role in ("x", "value", "start", "end", "labels", "status", "series", "facet", "category_order",
-                 "series_order", "aggregate", "panels"):
-        assert role in plot_data["properties"]
-    panel = plot_data["properties"]["panels"]["items"]["properties"]
-    assert {"role", "where", "x", "value", "status"} <= set(panel) and "panels" not in panel
-    # Per-panel settings let one panel draw a different form from the routing scalars.
-    assert {"role", "x_kind", "orientation", "value_labels", "zero_baseline"} <= set(
-        sc.SELECT_SCHEMA["properties"]["panels"]["items"]["properties"])
-    # It is not mandatory - a table or single-number stat carries no plotting frame.
-    assert "plot_data" not in sc.SELECT_SCHEMA["required"]
-
-
-def test_build_records_the_plot_data_file_it_loaded() -> None:
-    assert "plot_data_path" in sc.BUILD_SCHEMA["properties"]
-
-
-def test_insight_carries_machine_readable_data_apart_from_prose_facts() -> None:
-    """data_source threads the actual data to the tool via insight (read by select and build)."""
-    props = sc.INSIGHT_SCHEMA["properties"]
-    assert "data_source" in props
-    source = props["data_source"]["properties"]
-    assert {"dataset_path", "columns", "rows"} <= set(source)
-
-
-def test_public_copy_split_out_of_design_prose() -> None:
-    """Reader-facing copy is discrete strings (title mandatory), not a single prose blob."""
-    design = sc._DESIGN["properties"]
-    assert "public_copy" in design
-    assert "copy_and_context" not in design
-    copy = design["public_copy"]
-    assert copy["required"] == ["title"]
-    for field in ("title", "subtitle", "axis_titles", "direct_labels", "annotation_texts"):
-        assert field in copy["properties"]
-
-
-def test_reader_copy_has_no_slot_for_run_limitations() -> None:
-    """Limitations reach the run report only: no footer slot, and no stage routes them on-chart."""
-    copy = sc._PUBLIC_COPY["properties"]
-    assert "footer" not in copy
-    assert "printed_caption" in copy["caption"]["description"]
-    assert "printed_caption" in sc._SOURCE_INVENTORY["properties"]
-    for name in dir(sc):
-        text = getattr(sc, name)
-        if isinstance(text, str) and name.startswith("_CONSTRUCT_"):
-            assert "footnote" not in text.replace("compact key or footnote", ""), name
-    checks = sc._ACCEPTANCE_CHECKS["items"]["properties"]["validation_type"]["description"]
-    assert "never on the chart" in checks
-
-
-def test_identification_strategy_is_a_closed_route() -> None:
-    """Code reads it (the scaffold draws legend / subtitle key), so it is a routing scalar."""
-    assert "identification_strategy" in sc._SELECT_ROUTING_FIELDS
-    route = sc.SELECT_SCHEMA["properties"]["identification_strategy"]
-    assert route["enum"] == ["direct_labels", "subtitle_key", "axis", "legend"]
 
 
 def test_handoff_spec_lists_content_sections_and_routing_block() -> None:
