@@ -4413,5 +4413,12 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 ### User prompts
 > we have an issue wiht graph construction scaffolding. a lot of caes don't go through this because there are multiple panels, for example (not just facets when we need two separate graphs etc. how do we fix this? or is...
+> look at the latest @integrated-transcript.json (or something; this is gitignored and so doens't autocomplteet) for the recent cases that didn't go through scaffolds
+> no you are overfitting - one lhine and one bar is a real use case
+
+### Work done
+- Devlog drafted. Waiting on the two haiku reruns before the final test pass and commit.
+- Multi-panel charts now go through the scaffold, and each panel can be its own chart: a bar next to a line, a date axis next to a discrete one, dollars next to percent. It's committed and pushed to `main` (55243e5). Al...
 
 <!-- claude-session:987a5a93-c811-40ab-ad6d-ebf72e56e2ee:end -->
+
