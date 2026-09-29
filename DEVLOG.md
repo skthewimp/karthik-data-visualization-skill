@@ -4463,3 +4463,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Session captured, but there was not enough structured activity to summarize.
 
 <!-- claude-session:f537539d-4272-42be-b14a-1ccea71e7bc6:end -->
+
+<!-- claude-session:ef1dd849-170a-4a53-8e35-dcea3503ba14:start -->
+## 2026-09-29 12:51 IST | Claude session `ef1dd849-170`
+
+### User prompts
+> look at teh latest canonical run at @canonical-examples.pdf and its transcript at integrated-transcript.json . look at what we didn't get right in the first builds of all the graphs, and what needs to be fixed in each...
+> forgetthe value reads etc. i don't worry about that so much - what i'm really concerned about is that despite several revisions, our plots keep going into r evisions. they never get things right the first time. what d...
+> all of these need to b e fixed downst ream in the harness right?
+
+### Work done
+- That test asserted the old behaviour; update it to the new rule.
+- The house defaults are in the scaffold and pushed; `main` is in sync with origin. This time I ran only the three tests the change touches, not the full suite. **Dumbbell labels:** no change needed. The labels try the...
+
+<!-- claude-session:ef1dd849-170a-4a53-8e35-dcea3503ba14:end -->
