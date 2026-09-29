@@ -126,9 +126,45 @@ def label_over_bar():
     fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
     bars = ax.bar([1, 2, 3], [2, 4, 3], color="#245b78")
     bars[1].set_gid("mark:middle-bar")
-    label = ax.text(2, 2, "Accidental overlap", ha="center", va="center")
+    # Straddles the bar's top edge: half on the bar, half off it - an accidental overlap.
+    label = ax.text(2, 4, "Accidental overlap", ha="center", va="center")
     label.set_gid("label:bar-label")
     return fig, {"fixture": "label_over_bar"}
+
+
+def undeclared_inside_labels():
+    # Values drawn inside their bars in a contrasting colour, with no gid declaring the intent:
+    # wholly inside one mark is placement, not collision.
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    heights = [22, 30, 45]
+    bars = ax.barh(["Gamma", "Beta", "Alpha"], heights, color="#1f4e79")
+    for bar, value in zip(bars, heights):
+        ax.text(value - 1, bar.get_y() + bar.get_height() / 2, f"{value}%",
+                ha="right", va="center", color="white")
+    ax.xaxis.set_visible(False)
+    return fig, {"fixture": "undeclared_inside_labels"}
+
+
+def labelled_points_on_year_axis():
+    # Labelled points over a year axis, value axis hidden: the years print numbers but no value
+    # label sits on their scale, so they are not a redundant value axis.
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=100)
+    years = list(range(2015, 2023))
+    values = [12, 14, 13, 17, 21, 19, 24, 27]
+    ax.plot(years, values, color="#245b78")
+    ax.scatter(years, values, color="#245b78")
+    for year, value in zip(years, values):
+        label = ax.text(year, value + 0.6, str(value), ha="center")
+        label.set_gid(f"data_label:v{year}")
+    ax.yaxis.set_visible(False)
+    return fig, {"fixture": "labelled_points_on_year_axis"}
+
+
+def labelled_points_with_value_axis():
+    # Same chart with the value axis showing: only its ticks are redundant, never the years.
+    fig, _ = labelled_points_on_year_axis()
+    fig.axes[0].yaxis.set_visible(True)
+    return fig, {"fixture": "labelled_points_with_value_axis"}
 
 
 def data_label_on_bar():

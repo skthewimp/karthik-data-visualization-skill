@@ -200,15 +200,16 @@ def _series_hits_bbox(series: dict[str, Any], bbox: dict[str, Any], padding: flo
     )
 
 
-def _looks_numeric(text: str) -> bool:
-    """True when a tick label reads as a number (so it duplicates a direct value label).
+def _parse_number(text: str) -> float | None:
+    """The number a tick or value label prints, or None when it is not a number.
 
     Category tick labels (names) are never redundant; only the numeric value axis is. Strips
-    the usual money/percent/thousands decoration before testing.
+    the usual money/percent/thousands decoration and applies a k/M/B multiplier, so "45.2k"
+    and a "50k" tick sit on the same scale.
     """
     stripped = text.strip()
     if not stripped:
-        return False
+        return None
     # Leading approximation glyphs/words don't stop a label duplicating the axis - "≈610" is
     # still the value 610. Strip them so a stray approximate label can't defeat the eraser check
     # (the label tools should not emit these in the first place; this is belt-and-suspenders).
@@ -218,16 +219,147 @@ def _looks_numeric(text: str) -> bool:
     for word in ("approx.", "approx", "about", "~"):
         if stripped.lower().startswith(word):
             stripped = stripped[len(word):].strip()
-    for token in ("$", "€", "£", "%", ",", " ", "+", "−"):
+    for token in ("$", "€", "£", "%", ",", " ", "+"):
         stripped = stripped.replace(token, "")
-    stripped = stripped.lstrip("-")
+    stripped = stripped.replace("−", "-")
+    multiplier = 1.0
     if stripped.endswith(("k", "K", "m", "M", "b", "B")):
+        multiplier = {"k": 1e3, "m": 1e6, "b": 1e9}[stripped[-1].lower()]
         stripped = stripped[:-1]
     try:
-        float(stripped)
-        return True
+        value = float(stripped) * multiplier
     except ValueError:
-        return False
+        return None
+    return value if math.isfinite(value) else None
+
+
+def _looks_numeric(text: str) -> bool:
+    """True when a tick label reads as a number (so it could duplicate a direct value label)."""
+    return _parse_number(text) is not None
+
+
+def _tick_axis(tick: dict[str, Any], ticks: list[dict[str, Any]]) -> str:
+    """The pixel direction a tick label's axis runs along.
+
+    The renderer records it; for metadata that predates that, a tick sharing its row with another
+    tick belongs to a horizontal axis, and otherwise to a vertical one.
+    """
+    if tick.get("axis") in ("x", "y"):
+        return tick["axis"]
+    _, cy = _bbox_center(tick["bbox"])
+    half = tick["bbox"]["height"] / 2
+    same_row = [
+        other for other in ticks
+        if other is not tick and abs(_bbox_center(other["bbox"])[1] - cy) <= half
+        and abs(_bbox_center(other["bbox"])[0] - _bbox_center(tick["bbox"])[0]) > tick["bbox"]["width"] / 2
+    ]
+    return "x" if same_row else "y"
+
+
+def _tick_panel(tick: dict[str, Any], axis: str, plot_areas: dict[str, dict[str, Any]]) -> str | None:
+    """The panel a tick labels: the nearest plot area spanning the tick along its axis."""
+    cx, cy = _bbox_center(tick["bbox"])
+    best: tuple[float, str] | None = None
+    for panel_id, box in plot_areas.items():
+        left, top, right, bottom = _edges(box)
+        if axis == "x" and left - 2 <= cx <= right + 2:
+            gap = min(abs(cy - top), abs(cy - bottom))
+        elif axis == "y" and top - 2 <= cy <= bottom + 2:
+            gap = min(abs(cx - left), abs(cx - right))
+        else:
+            continue
+        if best is None or gap < best[0]:
+            best = (gap, panel_id)
+    return best[1] if best else None
+
+
+def _fit_scale(ticks: list[dict[str, Any]], axis: str) -> Any:
+    """Value -> pixel along ``axis`` from the ticks' own printed values, or None when unfittable.
+
+    A linear fit first, then a log fit; a tick set neither describes (irregular, or one value)
+    cannot position anything, so it is not treated as a value scale.
+    """
+    index = 0 if axis == "x" else 1
+    pairs = [(_parse_number(t["text"]), _bbox_center(t["bbox"])[index]) for t in ticks]
+    pairs = [(v, p) for v, p in pairs if v is not None]
+    if len({v for v, _ in pairs}) < 2:
+        return None
+    span = max(p for _, p in pairs) - min(p for _, p in pairs)
+    transforms = [lambda v: v]
+    if all(v > 0 for v, _ in pairs):
+        transforms.append(math.log10)
+    for transform in transforms:
+        xs = [transform(v) for v, _ in pairs]
+        ys = [p for _, p in pairs]
+        mean_x, mean_y = sum(xs) / len(xs), sum(ys) / len(ys)
+        var = sum((x - mean_x) ** 2 for x in xs)
+        if var == 0:
+            continue
+        slope = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys)) / var
+        if slope == 0:
+            continue
+        intercept = mean_y - slope * mean_x
+        worst = max(abs(intercept + slope * x - y) for x, y in zip(xs, ys))
+        if worst <= max(3.0, 0.02 * span):
+            return lambda value, t=transform, a=intercept, b=slope: (
+                a + b * t(value) if t is not math.log10 or value > 0 else None
+            )
+    return None
+
+
+def _value_axis_ticks(metadata: dict[str, Any]) -> list[dict[str, Any]]:
+    """The numeric tick labels of an axis that actually positions the chart's direct values.
+
+    Numeric-looking text is not enough: a year axis prints numbers too. An axis is the value
+    axis only when the numbers the direct labels print, read through that axis's own tick
+    scale, land where those labels sit - within a label's extent plus a small offset. Ticks
+    no value label lands on (years under a line of labelled points) are never returned.
+    """
+    elements = metadata.get("elements", [])
+    ticks = [
+        e for e in elements
+        if e.get("role") == "tick_label" and e.get("bbox") and _looks_numeric(e.get("text", ""))
+    ]
+    labels = [
+        e for e in elements
+        if e.get("role") in _VALUE_LABEL_ROLES and e.get("bbox") and _looks_numeric(e.get("text", ""))
+    ]
+    if not ticks or not labels:
+        return []
+    plot_areas = {item["id"]: item["bbox"] for item in metadata.get("plot_areas", []) if item.get("bbox")}
+    groups: dict[tuple[str, str | None], list[dict[str, Any]]] = {}
+    for tick in ticks:
+        axis = _tick_axis(tick, ticks)
+        groups.setdefault((axis, _tick_panel(tick, axis, plot_areas)), []).append(tick)
+    value_ticks: list[dict[str, Any]] = []
+    for (axis, panel_id), group in groups.items():
+        scale = _fit_scale(group, axis)
+        if scale is None:
+            continue
+        index = 0 if axis == "x" else 1
+        panel = plot_areas.get(panel_id)
+        if panel is not None:
+            span = panel["width"] if axis == "x" else panel["height"]
+        else:
+            positions = [_bbox_center(t["bbox"])[index] for t in group]
+            span = max(positions) - min(positions)
+        in_panel = [
+            label for label in labels
+            if panel_id is None
+            or label.get("axes_id") == panel_id
+            or (label.get("axes_id") is None and panel is not None and _point_in_bbox(_bbox_center(label["bbox"]), panel))
+        ]
+        if not in_panel:
+            continue
+        matched = 0
+        for label in in_panel:
+            predicted = scale(_parse_number(label["text"]))
+            extent = label["bbox"]["width"] if axis == "x" else label["bbox"]["height"]
+            if predicted is not None and abs(predicted - _bbox_center(label["bbox"])[index]) <= extent + 0.05 * span + 4:
+                matched += 1
+        if matched >= min(_REDUNDANT_AXIS_MIN_LABELS, len(in_panel)) and matched * 2 >= len(in_panel):
+            value_ticks.extend(group)
+    return value_ticks
 
 
 def _underfill_defect(
@@ -612,7 +744,7 @@ def inspect_rendered_chart(
             # sits on, else white-on-a-mid-tone-fill (3.5:1) sails through a background-only check.
             surface = metadata.get("background")
             surface_is_fill = False
-            if element.get("role") in _VALUE_LABEL_ROLES:
+            if element.get("role") in _VALUE_LABEL_ROLES | {"annotation", "figure_text"}:
                 center = _bbox_center(bbox)
                 # Every fill under the text paints over the page in draw order; a faint tint
                 # (a shaded band behind the data) leaves the page showing through.
@@ -785,6 +917,11 @@ def inspect_rendered_chart(
                 area = _intersection_area(element["bbox"], mark["bbox"])
                 if not _meaningful_box_overlap(element["bbox"], mark["bbox"]):
                     continue
+                # Text wholly inside one filled mark is placed there - an inside-bar value or name -
+                # not colliding with it. Its legibility is the contrast-against-fill check above;
+                # only text straddling a mark's edge is an accidental overlap.
+                if mark.get("fill") and _contains(mark["bbox"], element["bbox"], tolerance=1.0):
+                    continue
                 record = {
                     "text": element["id"],
                     "mark": mark["id"],
@@ -796,7 +933,7 @@ def inspect_rendered_chart(
                         "TEXT_MARK_COLLISION",
                         "high",
                         [element["id"], mark["id"]],
-                        f"Text {element['id']} overlaps mark {mark['id']} without an inside-label declaration",
+                        f"Text {element['id']} straddles the edge of mark {mark['id']}",
                         {"intersection_area_px2": round(area, 3)},
                     )
                 )
@@ -867,22 +1004,18 @@ def inspect_rendered_chart(
             for item in direct_label_coverage
         )
         if labels_sufficient:
-            numeric_ticks = [
-                element
-                for element in metadata.get("elements", [])
-                if element.get("role") == "tick_label" and _looks_numeric(element.get("text", ""))
-            ]
+            numeric_ticks = _value_axis_ticks(metadata)
             if numeric_ticks:
                 ids = [element["id"] for element in numeric_ticks]
                 redundant_value_axis.append({"element_ids": ids, "tick_count": len(ids)})
                 defects.append(
                     _defect(
                         "REDUNDANT_VALUE_AXIS",
-                        "medium",
+                        "low",
                         ids,
-                        "The key reading-carrying marks are directly labelled; on a zero-baseline encoding the "
-                        "labelled anchors fix the scale, so the numeric value axis duplicates them - drop its "
-                        "ticks and gridlines (eraser test). Not every mark need be labelled for this to hold.",
+                        "The key reading-carrying marks are directly labelled and those labels sit on this "
+                        "axis's scale, so its numeric ticks likely duplicate them - drop the ticks and "
+                        "gridlines unless the axis supports a comparison the labels cannot (eraser test).",
                     )
                 )
 
@@ -919,23 +1052,19 @@ def inspect_rendered_chart(
                 )
             )
             if geometry_complete:
-                numeric_ticks = [
-                    element
-                    for element in elements
-                    if element.get("role") == "tick_label"
-                    and _looks_numeric(element.get("text", ""))
-                ]
+                numeric_ticks = _value_axis_ticks(metadata)
                 if numeric_ticks:
                     ids = [element["id"] for element in numeric_ticks]
                     redundant_value_axis.append({"element_ids": ids, "tick_count": len(ids)})
                     defects.append(
                         _defect(
                             "REDUNDANT_VALUE_AXIS",
-                            "medium",
+                            "low",
                             ids,
-                            "At least two marks per panel carry their value; two labels fix the "
-                            "linear scale, so the numeric value axis duplicates them - drop its "
-                            "ticks and gridlines (eraser test).",
+                            "At least two marks per panel carry their value on this axis's scale; two "
+                            "labels fix a linear scale, so its numeric ticks likely duplicate them - drop "
+                            "the ticks and gridlines unless the axis supports a comparison the labels "
+                            "cannot (eraser test).",
                         )
                     )
 

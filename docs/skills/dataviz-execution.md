@@ -6,10 +6,14 @@ The **post-render gate** of the construct process. It receives the built candida
 
 - **Geometry** - clipping, elements off the canvas, misalignment, overlapping marks or text, label collisions. A clipping title/subtitle wraps to the frame; crowded axis tick labels are thinned/rotated/reformatted (equal-spaced on an ordered axis), not left overlapping; a category-label band eating an outsized share of the plot width (long horizontal-bar y-axis names pushing the marks into a thin strip) is wrapped to a capped band (`str_wrap` to `wrap_y_labels_chars`, overflow stacking into taller rows) so the panel keeps the width - all build fixes, not canvas growth. An inverted value/ordered axis (marks reading opposite to the data) is a graphical-integrity defect: route back, don't polish.
 - **Association** - every label, value, and annotation tied to the mark it belongs to; no legend round-trips where a direct label would read.
-- **Hierarchy and scaffolding** - title/subtitle/emphasis read in order; no duplicated axes or leftover default furniture. A subtitle earns its place only by adding a fact the title doesn't carry. Any hedge or provenance note ("approximate", "reconstructed", "not specified / not shown") is removed from every reader-facing text block; limitations go in `residual_limitations`, the run report.
-- **Colour** - contrast against the background, series distinguishable, palette surviving grayscale and common colour-vision deficiencies.
+- **Hierarchy and scaffolding** - title/subtitle/emphasis read in order; no duplicated axes or leftover default furniture. A subtitle earns its place only by adding a fact the title doesn't carry. Any note about the chart's making ("approximate", "reconstructed", "not shown in the source") is removed from every reader-facing text block; limitations go in `residual_limitations`, the run report. Qualifications about the data's world (projected, provisional, excludes X, the source's own caveat) are content and stay.
+- **Colour** - contrast against the background, series distinguishable, palette surviving grayscale and common colour-vision deficiencies. Judged by what the reader must read and tell apart at delivery size, not by preferred styling.
 - **Precision as displayed** - digits shown match the decided plan; no fabricated or ragged precision.
 - **Eraser test** - remove any ink that carries no data, label, or necessary context.
+
+## Flags are evidence
+
+Inspector flags are confirmed on the export before they become findings; one the pixels don't bear out (a value wholly inside its bar, a tick strip nobody sees) is dismissed with a one-line reason. A finding is fatal or major only when it names the reading it breaks - a misread, text unreadable at delivery size, a comparison made needlessly hard. A preferred colour, a contrast that already passes or an uncontested emphasis is minor polish and stays out of the correction. A clean tool pass doesn't skip the review: the tools can't see form fit, emphasis, or whether the digits suit the comparison.
 
 ## One review, one correction, one verification
 

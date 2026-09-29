@@ -27,7 +27,7 @@ Source fidelity still matters, but only as one check: are the values, categories
 - `dataviz-critique` diagnoses broadly and proposes alternative forms; `dataviz-fix` executes revisions.
 - **`dataviz-eval` sits above these** and issues the release verdict.
 
-Execution and aesthetic findings, when supplied, are **evidence for the sweep, not a discharge of it**. Carry their real findings in; do not assume a clean gate pass means the chart is publishable, because those gates run inside the creator's loop and share its blind spots. When no gate output is supplied, run the sweep yourself.
+Execution and aesthetic findings, when supplied, are **evidence for the sweep, not a discharge of it**. Carry their real findings in; do not assume a clean gate pass means the chart is publishable, because those gates run inside the creator's loop and share its blind spots. When no gate output is supplied, run the sweep yourself. Inspector flags are evidence in the same way: a flag becomes a finding only once you see its reading problem in the image, and a flag the image doesn't bear out is noted and dropped.
 
 An evaluation may recommend `Revise` or `Redesign` but must never silently rebuild the chart.
 
@@ -50,7 +50,7 @@ Collect when available: the exported artifact; the source data or source chart; 
 
 **Only the user's stated constraints bind.** "Keep the bars", "only change the title", "remove the legend" are release conditions. The creator's own choices - canvas size and shape, form, panel layout, legend, axis titles, subtitle, caveats, notes - are what you evaluate, not constraints. Internal execution reports and repair scopes are evidence, not user instructions; require an actual user request to justify a preservation constraint. Never write "preserve the canvas", "preserve the caveats" or "keep the axis title" unless the user asked for it.
 
-Missing intent stays `Unknown`; do not infer it.
+Missing intent stays `Unknown`; do not infer it. The same holds for missing context: when the unit, population, denominator, source or period is not in the evidence, it stays unknown. Its absence from the chart is not a finding, and no required change may ask for content the evidence cannot supply - that only invites the next revision to invent it. Record the gap in the report.
 
 ### 2. Two blind reads
 
@@ -75,19 +75,23 @@ Walk the whole artifact against the principles below. Each is a general test, no
 
 Copy problems are the easiest to spot, and a reviewer that stops at them misses the rest. So the sweep is an **element walk**: write one line for each item below, either `clean - <what you checked>` or one or more findings with severity. A clean line needs no invented defect; a missing line is an incomplete review.
 
-1. **Title** - put it beside the source's title and list the source's subject and scope nouns (who, where, what); each missing one is a finding. Then rewrite every number in the title at spread precision and compare: if your rewrite is shorter, the title is a finding.
-2. **Subtitle** - adds a fact the title does not carry.
-3. **Notes, captions, annotations** - about the data, never the chart's making.
-4. **Each axis** - quote its title text literally and say what it adds beyond the tick labels and the chart title; then say whether the axis itself is needed once direct labels are counted.
-5. **Legend or key** - whether direct labels or coloured words could replace it.
-6. **Smallest text** - estimate its size in native pixels and at display width, and name the element.
-7. **Canvas and panels** - check whether each panel's comparisons remain recoverable after mentally separating its labels; if not, revisit the form instead of prescribing more label repulsion. Compare the space allocated to overview, detail and totals with their reading tasks; a sparse totals panel need not occupy the same area as a detailed comparison. State the canvas aspect and the source's aspect; for a grid, the columns used and whether a wider canvas with more columns would give each panel more room. Estimate each panel's share of the height against how many rows or marks it carries. Name empty or reserved regions. "Tall by necessity" is not a finding of clean: the canvas shape is the creator's choice and can change.
-8. **Series separation** - name the two most similar series colours. Two series from the same hue family are a finding even when their lines sit apart: lines cross, labels sit near other lines, and the reader matches colours, not positions.
-9. **Label placement** - every label on or beside its own mark, where the eye expects it.
-10. **Data against source** - every value the source draws is present, including unprinted ones readable from geometry.
+1. **Form** - name the comparison the chart is meant to carry and say whether this form makes it directly (positions on a common scale, one sorted dimension, trajectories traceable) or whether the reader has to work around the form. A form that can't carry its comparison is `V1`, and it is found here or nowhere - no later item asks.
+2. **First read and emphasis** - where the eye lands first at display size, whether that is the finding, and what competes with it.
+3. **Title** - put it beside the source's title and list the source's subject and scope nouns (who, where, what); each missing one is a finding.
+4. **Subtitle** - adds a fact the title does not carry.
+5. **Notes, captions, annotations** - about the data, never the chart's making; substantive qualifications kept.
+6. **Each axis** - quote its title text literally and say what it adds beyond the tick labels and the chart title; then say whether the axis itself is needed once direct labels are counted.
+7. **Legend or key** - whether direct labels or coloured words could replace it.
+8. **Numbers** - for each numeric display group (title, mark labels, totals, ticks), the digits shown against the digits the spread needs to see the difference; rewrite one at spread precision and compare.
+9. **Smallest text** - estimate its size in native pixels and at display width, and name the element.
+10. **Canvas and panels** - check whether each panel's comparisons remain recoverable after mentally separating its labels; if not, revisit the form instead of prescribing more label repulsion. Compare the space allocated to overview, detail and totals with their reading tasks; a sparse totals panel need not occupy the same area as a detailed comparison. State the canvas aspect and the source's aspect; for a grid, the columns used and whether a wider canvas with more columns would give each panel more room. Estimate each panel's share of the height against how many rows or marks it carries. Name empty or reserved regions. "Tall by necessity" is not a finding of clean: the canvas shape is the creator's choice and can change.
+11. **Series separation** - name the two most similar series colours and say whether the reader ever has to tell them apart by colour alone (lines that cross or run close, a label near the other line, a legend). If so, near-hues are a finding; if position and direct labels carry identity throughout, it is clean.
+12. **Label placement** - every label on or beside its own mark, where the eye expects it.
+13. **Data against source** - every value the source draws is present, including unprinted ones readable from geometry.
 
 **Copy on the chart speaks about the data, never about the chart's making.**
-- Any text that hedges, reports provenance, or explains what the source lacks - approximate, reconstructed, estimated, extracted, "the source does not state", "not shown", "not causation", or a note restating what the marks already show - is a Major finding (`F4`), wherever it sits: subtitle, caption, note, annotation, axis title. Those limitations belong in the run report. The only notes that survive are qualifications about the data's world that change how it reads (projected, excludes X, fiscal year) and a source line the publication would print. Anything about what the source showed, covered, labelled or omitted ("only men are shown", "these years were not shown in the source") is provenance, however it is phrased.
+- Any text about the chart's making - approximate, reconstructed, extracted, "values read from the source", "the source does not state", "not shown", or a note restating what the marks already show - is a Major finding (`F4`), wherever it sits: subtitle, caption, note, annotation, axis title. Those limitations belong in the run report. Anything about what the source showed, covered, labelled or omitted ("only men are shown", "these years were not shown in the source") is provenance, however it is phrased.
+- **Qualifications about the data's world are content, not hedges.** Projected, provisional, estimated by the publisher, excludes X, fiscal year, a survey's population, an association the source itself says is not causal: each changes what the numbers mean. Keep them, in whatever element carries them best. Removing or weakening one is `I2` (a caveat lost), not a clean-up; the test is who the text is about - our reconstruction, or the world the data describes.
 - **The title keeps its subject and scope.** A title that drops who, where or what the source was about (the population, the market, the product) is Major.
 - **Numbers in copy use the precision the spread supports** (`dataviz-precision`). The test is the digits needed to see the difference, not the digits the source printed: two values five-digit long that differ by a tenth need three significant figures, not five. Inspect every numeric display group, including mark labels and totals. Excess digits are Major when they obscure the intended comparison or cause crowding, otherwise Minor; judge titles by the same reader-consequence test. Printed source digits alone never establish an exact-lookup requirement.
 - **A subtitle must add a fact the title does not carry.** A subtitle that restates the title, describes the chart, or hedges is Major.
@@ -104,7 +108,7 @@ Copy problems are the easiest to spot, and a reviewer that stops at them misses 
 **The canvas fits the content.** Canvas shape follows content shape. A grid of panels crammed into a tall narrow canvas, data occupying a small fraction of the image, big bars with tiny labels, equal space for a panel with little to show and one with a lot, margins reserved for text that could sit inside the plot - each is `R3`, Major when it drives the type below the floor or wastes most of the width.
 
 **Encodings are easy to decode.**
-- Series in one panel must separate by lightness, and by line type when there are several lines, not by hue alone. Two near-hues among a few series is Major.
+- Series the reader must tell apart by colour separate by lightness, and by line type when there are several lines, not by hue alone. Two near-hues the reader has to match by colour is Major; near-hues whose identity position and direct labels already carry are not a finding.
 - Labels sit where the eye expects them. Labels on the ends of an interval go outside those ends. A value label sits on its own mark.
 - A time axis uses natural calendar breaks and only as many ticks as the reader needs. Ticks that collide or run into a band are Major.
 
@@ -132,6 +136,8 @@ To: <required state>
 Why: <reader consequence>
 Codes: <failure codes>
 ```
+
+A finding with no reader consequence is not a required change, however it would have been styled: a contrast that already reads, a palette that already separates, an emphasis nothing competes with. Asking for those is overcorrection and each edit risks a regression.
 
 Also list Minor findings whose fix is a deletion (a redundant axis title, a restating note): removing ink costs the next revision nothing, so it rides along with the required changes. A chart whose only findings are deletions can still be `Send` with them listed.
 
@@ -166,10 +172,10 @@ Expert: question ...; point ...; effort ...
 Audience: question ...; point ...; uncertainty ...; look-back points ...
 
 ## Publishability sweep
-1. Title: clean - ... | [Fatal/Major/Minor] <finding> - <reader consequence>
-2. Subtitle: ...
+1. Form: clean - ... | [Fatal/Major/Minor] <finding> - <reader consequence>
+2. First read and emphasis: ...
 ...
-10. Data against source: ...
+13. Data against source: ...
 
 ## Gate results
 | Gate | Required? | Result | Evidence |

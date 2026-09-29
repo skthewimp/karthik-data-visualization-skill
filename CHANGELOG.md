@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+### Review flags are evidence, not orders
+
+A downstream review integration reported false positives from the inspector and overcorrection
+from the review skills. Four were reproduced here.
+
+- **Year ticks read as a value axis.** `REDUNDANT_VALUE_AXIS` took any numeric-looking tick as the
+  value axis, so labelled points over a year axis with the value axis hidden asked for the years
+  to be dropped. Tick labels now carry their pixel direction (`axis: x|y`, from matplotlib's
+  axis and ggplot's `axis-b/l/t/r` strip), and the check fits each axis's own tick scale per
+  panel and flags it only when the direct labels' printed values land where those labels sit.
+  Matplotlib no longer records tick texts it never draws (hidden axes, ticks past the view
+  limits), which had also leaked into the check. The flag is now `low`: an eraser suggestion for
+  the reviewer to confirm, not a geometry failure.
+- **Inside-bar labels flagged as collisions.** `TEXT_MARK_COLLISION` fired on any undeclared text
+  over a mark. Text wholly inside one filled mark is now placement; its legibility is the
+  against-fill contrast check, which now also covers annotations. Only text straddling a mark's
+  edge collides.
+- **Mechanical flags treated as mandatory.** `dataviz-execution` said `REDUNDANT_VALUE_AXIS` and
+  series-faceted colour "require revision"; both now read as evidence to confirm on the export. `dataviz-fix`'s case manager refused `Send` while any high or medium flag
+  stood, even a false one; the reviewer can now dismiss a flag in `dismissed_inspection_flags`
+  with its code and the observed reason.
+- **Overcorrection for contrast, colour and emphasis.** Execution, aesthetic, critique and eval
+  now separate necessary correction (names the reading it breaks) from optional polish, which
+  stays out of the correction. Eval's series-separation item asks whether the reader ever has to
+  tell two near-hues apart by colour, not whether they exist.
+- **Missed form, composition and precision problems.** The cause was structural, not missing
+  wording: eval's element walk is what reviewers execute, and form fit, first read and numeric
+  label precision sat in prose outside it. They are now walk items. Execution's "no deviations and
+  no inspection defect: skip the correction" line let a clean tool pass skip the review; it now
+  requires the model's own review to be clean too (skill and `_CONSTRUCT_EXECUTION`).
+- **Substantive qualifications removed.** Eval and execution listed "estimated" and "not causation"
+  as hedges to strip. The test is now who the text is about: notes on the chart's making go;
+  qualifications about the data's world stay. Missing context (unit, population, source) stays
+  unknown and is never a required change.
+
 ### Multi-panel charts stay on the scaffold
 
 In the 28 September canonical run, three of seven cases skipped the scaffold (`no_usable_plot_map`),

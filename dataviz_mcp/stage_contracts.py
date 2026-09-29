@@ -1687,8 +1687,17 @@ palette, scales and legend from the plan: a defect in one of those is a plan fix
 edit - route it to select (the routing scalar or ``public_copy`` string that caused it) and
 re-scaffold. ``REDUNDANT_VALUE_AXIS`` on a scaffolded chart means ``value_labels`` was set below
 the labels actually drawn. Run ``check_chart`` on the source first and put each deviation it
-returns in ``proposed_fixes``; when it returns none and the inspection carries no fatal or major
-defect, skip the correction pass and deliver. A connector on an adjacent direct label is also redundant
+returns in ``proposed_fixes``; when it returns none, the inspection carries no confirmed fatal or
+major defect, and your own review found none either, skip the correction pass and deliver - a
+clean tool pass is not a clean review, since the tools cannot see form fit, emphasis or whether
+the digits suit the comparison. Inspector flags are evidence, not verdicts: confirm each on the
+export and dismiss one the pixels do not bear out with a one-line reason (a value wholly inside
+its bar in a contrasting colour is placed, not colliding). A finding is fatal or major only when
+it names the reading it breaks - a misread, text unreadable at delivery size, a comparison made
+needlessly hard; a preferred colour, a contrast that already passes or an uncontested emphasis is
+minor and stays out of ``proposed_fixes``. Keep qualifications about the data's world
+(projected, provisional, excludes X, the source's own caveat) - only text about the chart's
+making is a copy defect. A connector on an adjacent direct label is also redundant
 ink; require the builder to reproduce ``leader_line`` only when the placement result contains one.
 For tables, replace chart refitting and mark-placement with the table layout path.
 Inspect every delivered page at its supplied font/display minimums, including nested

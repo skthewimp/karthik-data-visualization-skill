@@ -337,6 +337,7 @@ class CaseManagerTest(unittest.TestCase):
         omit_presentation_section=False,
         tamper_blind_semantics=False,
         action_override=None,
+        dismissed_flags=None,
         ok=True,
     ):
         self.ensure_inspection()
@@ -470,6 +471,8 @@ class CaseManagerTest(unittest.TestCase):
             report["presentation_checks"] = presentation_checks
         if tamper_blind_semantics:
             report["blind_semantics"]["measure"]["reading"] = "Rewritten after reveal"
+        if dismissed_flags is not None:
+            report["dismissed_inspection_flags"] = dismissed_flags
         response_path = Path(reveal["response_path"])
         response_path.write_text(json.dumps(report), encoding="utf-8")
         output = self.run_cli(
@@ -633,6 +636,45 @@ class CaseManagerTest(unittest.TestCase):
         )
         rejected = self.review("Send", ok=False)
         self.assertIn("cannot override deterministic inspection defects", rejected.stderr)
+
+    def inspected_bad_candidate(self):
+        self.start()
+        bundle = render_chart(
+            str(FIXTURES),
+            str(self.root / "coffee-bad"),
+            build_function="coffee_bad",
+        )
+        self.run_cli(
+            "iterate", "--session", "test-session",
+            "--output", bundle["artifact"]["path"],
+            "--bundle-manifest", bundle["manifest_path"],
+        )
+        inspection = inspect_rendered_chart(
+            bundle["artifact"]["path"], bundle["layout_metadata_path"]
+        )
+        self.run_cli(
+            "inspect", "--session", "test-session",
+            "--report", inspection["inspection_path"],
+        )
+        return sorted({
+            d["code"] for d in inspection["defects"] if d["severity"] in ("high", "medium")
+        })
+
+    def test_send_needs_a_reason_for_every_blocking_flag(self):
+        blocking = self.inspected_bad_candidate()
+        self.assertGreater(len(blocking), 1)
+        partial = [{"code": blocking[0], "reason": "Not visible at delivery size"}]
+        rejected = self.review("Send", dismissed_flags=partial, ok=False)
+        self.assertIn(blocking[1], rejected.stderr)
+
+    def test_send_accepts_flags_dismissed_with_observed_reasons(self):
+        blocking = self.inspected_bad_candidate()
+        every = [
+            {"code": code, "reason": "Checked in the artifact; no reading problem"}
+            for code in blocking
+        ]
+        accepted = self.review("Send", dismissed_flags=every)
+        self.assertEqual(accepted["verdict"], "Send")
 
     def test_coffee_mcp_repair_crosses_state_machine_pass_line(self):
         self.start()

@@ -97,9 +97,9 @@ When used, the `dataviz-fix` state machine owns original, current, best, and his
 - a `Revise` build that omits an open evaluator action or user correction;
 - a `Redesign` build without a fresh critique and chart-selection decision when form is implicated;
 - an unexplained Matplotlib render when auto could use ggplot2;
-- a `Send` verdict while a known high- or medium-severity deterministic defect remains.
+- a `Send` verdict while a known high- or medium-severity deterministic defect remains undismissed (a dismissal names the code and what the artifact shows instead).
 
-The independent evaluator receives named defects and element IDs rather than a clean-looking overview alone. A failed check becomes part of the minimum pass set. The repairer fixes those mechanical failures before reopening broader design choices, preserves elements that already pass, and stops when the pass line is met.
+The independent evaluator receives named defects and element IDs rather than a clean-looking overview alone. A flag is evidence: once confirmed in the artifact it becomes part of the minimum pass set through the reader consequence it causes; one the artifact does not bear out is dismissed with its reason. The repairer fixes those mechanical failures before reopening broader design choices, preserves elements that already pass, and stops when the pass line is met.
 
 ## Mechanical checks
 
@@ -114,11 +114,11 @@ Inspection reports the original five codes plus hierarchy, mark, delivery, contr
 | `LONG_UNWRAPPED_ANNOTATION` | Annotation text exceeds the configured character limit without a line break | Medium |
 | `HIERARCHY_TEXT_COLLISION` | Title, subtitle, panel heading, or footer text overlaps another text zone | High |
 | `LEGEND_TEXT_COLLISION` | Legend geometry overlaps neighbouring text | High |
-| `TEXT_MARK_COLLISION` | Text intersects a bar, point, patch, or common collection without inside-label intent | High |
+| `TEXT_MARK_COLLISION` | Text straddles the edge of a bar, point, patch, or common collection. Text wholly inside one filled mark is placed there, not colliding; its legibility is the against-fill contrast check | High |
 | `DELIVERY_TEXT_TOO_SMALL` | Text is below the configured delivery-scale size | Medium |
 | `LOW_TEXT_CONTRAST` | Text contrast misses the practical delivery target | Medium |
 | `DIRECT_LABELS_INCOMPLETE` | A declared repeated-panel/direct-label count is incomplete | High |
-| `REDUNDANT_VALUE_AXIS` | The declared reading-carrying marks are directly labelled (contract path), or - with no contract - every mark-bearing panel labels at least two of its marks (two labels fix the linear scale), yet the numeric value axis still renders ticks - duplicate ink | Medium |
+| `REDUNDANT_VALUE_AXIS` | The declared reading-carrying marks are directly labelled (contract path), or - with no contract - every mark-bearing panel labels at least two of its marks (two labels fix the linear scale), yet the value axis still renders ticks - likely duplicate ink. Only an axis whose own tick scale places the labelled values (read per panel and pixel direction) is flagged; year or rank ticks and undrawn ticks never are. A suggestion for the reviewer to confirm against the reading task | Low |
 | `REDUNDANT_COLOUR` | Colour only restates a grouping the facet, category axis, or direct labels already show (one series per facet, one fill per named bar, or labelled series) - focal-plus-grey stays silent | Low |
 | `EXTERNAL_LEGEND` | A legend round-trips series the plot already names via direct labels, facet titles, or category ticks | Low |
 | `UNIDENTIFIED_SERIES` | Two or more series are distinguished only by colour with no legend, direct labels, or facet titles - the reader cannot tell which is which; direct labels are the preferred fix | High |

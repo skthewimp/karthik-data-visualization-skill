@@ -71,6 +71,13 @@ second series to grey", "drop the plot border and the gridlines", "move the clai
 mark", "pull the subtitle up under the title" - the same way the execution gate routes defects.
 This gate does not re-plot; it names what a re-plot must change to look premium.
 
+A composition fix is required only when it changes what the reader sees first or removes
+something actually competing with the subject: name the element the eye lands on instead, or
+the two things fighting. A restyle that leaves the first read unchanged - a different accent
+hue, a slightly bolder focal line, more contrast on text that already reads - is optional
+polish; list it as minor or leave it out, and never recolour a palette that already separates
+its series.
+
 If the composition is already clean - one clear subject, nothing competing, no unearned
 decoration, whitespace working, looks composed - say so and pass. A restrained chart that reads
 in one glance is the target, not a busier one.

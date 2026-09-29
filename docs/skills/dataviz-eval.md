@@ -49,11 +49,14 @@ Every chart is for production, so the question is whether it could go out today 
 
 The previous version framed the evidence gate as fidelity to the source's qualifications and provenance, told the reviewer not to remove legends, axes or context, and limited the render check to blockers. On the canonical repair run that made the reviewer defend exactly what a publisher would cut: it praised extraction caveats as honest, asked for a legend back, kept empty axis titles, froze the creator's canvas as a constraint, read text at native pixels, and named one issue per chart. So the reviewer now runs a **publishability sweep** on every artifact:
 
-- **Copy speaks about the data, never the chart's making.** Hedges, provenance, method and extraction notes are Major findings wherever they sit. The title keeps its subject and scope, its numbers carry the precision the spread supports, and a subtitle must add a fact.
+- **Copy speaks about the data, never the chart's making.** Provenance, method and extraction notes are Major findings wherever they sit. Qualifications about the data's world - projected, provisional, excludes X, a caveat the source printed - are content, and dropping one loses meaning. The title keeps its subject and scope, and a subtitle must add a fact.
+- **Only what the evidence supplies.** An unknown unit, population, denominator or source stays unknown; its absence is not a finding, and no required change asks the creator to invent it.
+- **Form, first read and numbers are walked items.** The sweep opens with whether the form carries its comparison and where the eye lands first, and checks every numeric display group against spread precision. Earlier versions left these to prose outside the walk, and reviewers that executed the walk skipped them.
 - **The eraser test.** Each axis title, value axis, legend, per-panel axis, caption and key must carry something the reader can't get from the title, ticks, direct labels or context. Deleting an element is only a defect when its information is gone from the chart.
 - **Type at display width.** Effective size is rendered size scaled to the display width, not native pixels.
 - **Canvas fits content.** Aspect, panel allocation and reserved margins are judged against what each part has to show.
-- **Encodings decode easily.** Series separate by lightness and line type, not hue alone; labels sit where the eye expects them; time axes use natural breaks.
+- **Encodings decode easily.** Series the reader must tell apart by colour separate by lightness and line type, not hue alone; labels sit where the eye expects them; time axes use natural breaks.
+- **Consequence or polish.** A required change names a reader consequence. A contrast that already reads, a palette that already separates, or an emphasis nothing competes with is not a finding.
 
 Execution and aesthetic findings are evidence for the sweep, not a discharge of it. Only the user's stated constraints bind; canvas, form, legend and notes the creator chose stay open to required changes.
 

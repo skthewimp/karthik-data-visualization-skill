@@ -88,7 +88,7 @@ A chart can be attractive and still fail if any side of the triangle is weak.
 - **Major:** materially slows or misleads interpretation. Fix strongly recommended.
 - **Minor:** polish/readability; fix if time allows.
 
-Don't over-focus on minor style while fatal data/question problems remain.
+Don't over-focus on minor style while fatal data/question problems remain. Contrast, colour and emphasis rank by the reading they break: text that reads at delivery size, series the reader can tell apart, and one uncontested focal are not findings, however you would have styled them.
 
 ## Improvement workflow
 

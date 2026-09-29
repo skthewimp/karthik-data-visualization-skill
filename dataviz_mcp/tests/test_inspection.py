@@ -92,6 +92,13 @@ def test_data_label_on_its_mark_is_not_a_collision(tmp_path: Path) -> None:
     assert "TEXT_MARK_COLLISION" not in {item["code"] for item in report["defects"]}
 
 
+def test_text_wholly_inside_its_bar_is_not_a_collision(tmp_path: Path) -> None:
+    # No gid declares these inside-bar values; containment in one filled mark is placement.
+    _, report = render(tmp_path, "undeclared_inside_labels")
+    assert "TEXT_MARK_COLLISION" not in _codes(report)
+    assert report["passes_geometry_checks"] is True
+
+
 def test_missing_line_segment_does_not_create_a_false_collision(tmp_path: Path) -> None:
     _, report = render(tmp_path, "line_with_gap")
     assert report["annotation_overlaps"] == []
@@ -518,8 +525,8 @@ def test_redundant_value_axis_flagged(tmp_path: Path, function: str) -> None:
     assert "REDUNDANT_VALUE_AXIS" in _codes(report)
     assert report["redundant_value_axis"]
     defect = next(item for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
-    assert defect["severity"] == "medium"
-    assert report["passes_geometry_checks"] is False
+    # An eraser-test suggestion, not a geometry failure: the reviewer decides against the reading task.
+    assert defect["severity"] == "low"
 
 
 @pytest.mark.parametrize(
@@ -529,12 +536,24 @@ def test_redundant_value_axis_flagged(tmp_path: Path, function: str) -> None:
         "bars_few_labelled",
         # no direct labels at all
         "clean_chart",
+        # labelled points over a year axis with the value axis hidden: years are not the value axis
+        "labelled_points_on_year_axis",
+        # hidden axis: its tick texts are never drawn, so there is nothing to drop
+        "undeclared_inside_labels",
     ),
 )
 def test_no_redundant_axis(tmp_path: Path, function: str) -> None:
     _, report = render(tmp_path, function)
     assert "REDUNDANT_VALUE_AXIS" not in _codes(report)
     assert report["redundant_value_axis"] == []
+
+
+def test_redundant_value_axis_names_only_the_value_axis(tmp_path: Path) -> None:
+    bundle, report = render(tmp_path, "labelled_points_with_value_axis")
+    defect = next(item for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
+    elements = json.loads(Path(bundle["layout_metadata_path"]).read_text())["elements"]
+    axis_of = {element["id"]: element.get("axis") for element in elements}
+    assert defect["element_ids"] and {axis_of[i] for i in defect["element_ids"]} == {"y"}
 
 
 def test_one_series_per_facet_flags_colour_and_legend(tmp_path: Path) -> None:

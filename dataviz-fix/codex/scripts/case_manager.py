@@ -926,6 +926,24 @@ def validate_review_report(
     ):
         raise SystemExit("Review report baseline_concerns must be a list of non-empty strings")
     baseline_concerns = [item.strip() for item in raw_baseline_concerns]
+    # A deterministic flag is evidence, not a verdict: the reviewer may dismiss one the artifact
+    # does not bear out (an inside-bar value flagged as a collision), but only by code and with
+    # the observed reason, so a dismissal is as checkable as a finding.
+    raw_dismissed = report.get("dismissed_inspection_flags", [])
+    if not isinstance(raw_dismissed, list) or any(
+        not isinstance(item, dict)
+        or not isinstance(item.get("code"), str)
+        or not item["code"].strip()
+        or not isinstance(item.get("reason"), str)
+        or not item["reason"].strip()
+        for item in raw_dismissed
+    ):
+        raise SystemExit(
+            "Review report dismissed_inspection_flags must be a list of {code, reason} with non-empty values"
+        )
+    dismissed_flags = [
+        {"code": item["code"].strip(), "reason": item["reason"].strip()} for item in raw_dismissed
+    ]
 
     required_results = [item["result"] for item in gates.values() if item["required"]] + [
         item["result"] for item in release_checks.values()
@@ -948,12 +966,14 @@ def validate_review_report(
             if inspection
             else []
         )
-        if blocking_defects:
+        dismissed_codes = {item["code"] for item in dismissed_flags}
+        undismissed = [code for code in blocking_defects if code not in dismissed_codes]
+        if undismissed:
             raise SystemExit(
-                "Send cannot override deterministic inspection defects: "
-                + ", ".join(blocking_defects)
+                "Send cannot override deterministic inspection defects without a dismissal "
+                "reason: " + ", ".join(undismissed)
             )
-        if inspection and inspection.get("checks_complete") and not inspection.get(
+        if not blocking_defects and inspection and inspection.get("checks_complete") and not inspection.get(
             "passes_geometry_checks"
         ):
             raise SystemExit("Send requires complete deterministic geometry checks to pass")
@@ -996,6 +1016,7 @@ def validate_review_report(
         "codes": codes,
         "required_actions": required_actions,
         "baseline_concerns": baseline_concerns,
+        "dismissed_inspection_flags": dismissed_flags,
     }
 
 
@@ -2577,6 +2598,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         "codes": report["codes"],
         "required_actions": report["required_actions"],
         "baseline_concerns": report["baseline_concerns"],
+        "dismissed_inspection_flags": report["dismissed_inspection_flags"],
         "report": {"path": str(stored_report), "sha256": sha256(stored_report)},
         "context_version": report["context_version"],
     }
@@ -2813,6 +2835,7 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
             "Inspect every fatal and major critique finding against its observable condition; none can be silently dropped.",
             "Inspect all panels, every repeated structure, every required_review_view, and the neighbouring layout zones around each proposed pass.",
             "Use revision_comparison to identify introduced, persistent, and resolved defects; an introduced blocking defect prevents Send.",
+            "Deterministic flags are evidence, not verdicts. Confirm each blocking flag in the artifact; one the pixels do not bear out goes in dismissed_inspection_flags with its code and the observed reason. A confirmed flag becomes a required action only through the reader consequence it causes.",
             "Record one acceptance_check result per id; user checks are release gates, not prose context.",
             "Send is invalid unless every active, non-superseded user acceptance check passes.",
             "Treat active user checks as the change contract. A required action must not conflict with a change or preservation check.",
@@ -2882,6 +2905,9 @@ def cmd_blind_submit(args: argparse.Namespace) -> None:
                 }
             ],
             "baseline_concerns": ["<unchanged pre-existing issue outside authorised scope; empty when none>"],
+            "dismissed_inspection_flags": [
+                {"code": "<deterministic defect code>", "reason": "<what the artifact shows instead; empty list when none>"}
+            ],
         },
     }
     write_json(reveal_path, reveal)

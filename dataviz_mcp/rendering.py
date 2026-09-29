@@ -188,6 +188,32 @@ def _infer_text_role(text: Text, figure: Figure) -> str:
     return "label"
 
 
+def _tick_label_axes(figure: Figure) -> tuple[dict[Any, str], set[Any]]:
+    """Tick-label texts matplotlib actually draws, keyed to their axis, plus every tick text.
+
+    An Axis holds more tick texts than it draws: ticks past the view limits, and every tick of a
+    hidden axis, keep their text and report themselves visible. Only the drawn ones are chrome;
+    the rest must not reach the inspector as tick labels (or as free labels).
+    """
+    drawn: dict[Any, str] = {}
+    every: set[Any] = set()
+    for axes in figure.axes:
+        for name, axis in (("x", axes.xaxis), ("y", axes.yaxis)):
+            # Settle the tick lists first: asking for tick labels later creates tick texts.
+            update = getattr(axis, "_update_ticks", None)
+            ticks = update() if callable(update) else axis.get_major_ticks() + axis.get_minor_ticks()
+            axis.get_majorticklabels()
+            axis.get_minorticklabels()
+            for tick in list(axis.majorTicks) + list(axis.minorTicks):
+                every.update((tick.label1, tick.label2))
+            if not (axes.get_visible() and axis.get_visible()):
+                continue
+            for tick in ticks:
+                if tick.get_visible():
+                    drawn.update({text: name for text in (tick.label1, tick.label2) if text.get_visible()})
+    return drawn, every
+
+
 def _axes_id(artist: Any, axes_ids: dict[Any, str]) -> str | None:
     axes = getattr(artist, "axes", None)
     return axes_ids.get(axes)
@@ -227,11 +253,16 @@ def _collect_layout(figure: Figure, artifact: dict[str, Any], render_kind: str =
 
     elements: list[dict[str, Any]] = []
     role_counts: dict[str, int] = {}
+    drawn_ticks, tick_texts = _tick_label_axes(figure)
     for text in figure.findobj(match=Text):
         content = text.get_text()
         if not text.get_visible() or not isinstance(content, str) or not content.strip():
             continue
-        inferred_role = _infer_text_role(text, figure)
+        if text in tick_texts and text not in drawn_ticks:
+            continue
+        if text.axes is not None and not text.axes.get_visible():
+            continue
+        inferred_role = "tick_label" if text in drawn_ticks else _infer_text_role(text, figure)
         role_counts[inferred_role] = role_counts.get(inferred_role, 0) + 1
         role, element_id = _artist_identity(
             text,
@@ -253,6 +284,7 @@ def _collect_layout(figure: Figure, artifact: dict[str, Any], render_kind: str =
                    if hasattr(text, "_dataviz_cell") else {}),
                 "horizontal_alignment": text.get_horizontalalignment(),
                 "vertical_alignment": text.get_verticalalignment(),
+                **({"axis": drawn_ticks[text]} if text in drawn_ticks else {}),
             }
         )
 
@@ -1220,6 +1252,12 @@ def _ggplot_role(name: str) -> str:
     return "layout_zone"
 
 
+def _ggplot_tick_axis(name: str) -> dict[str, str]:
+    """The pixel direction a ggplot tick strip runs along: bottom/top ticks are ``x``, left/right ``y``."""
+    side = name.lower()[5:6] if name.lower().startswith(("axis-", "axis.")) else ""
+    return {"axis": "x"} if side in ("b", "t") else {"axis": "y"} if side in ("l", "r") else {}
+
+
 def _render_ggplot2(
     source: Path,
     destination: Path,
@@ -1414,6 +1452,7 @@ def _render_ggplot2(
                         "font_size_pt": float(row["font_size"]) if row.get("font_size") else None,
                         "colour": row.get("colour") or None,
                         **(_cell_bbox_field(row, "table") if role == "panel_heading" else {}),
+                        **(_ggplot_tick_axis(name) if role == "tick_label" else {}),
                     }
                 )
             continue
