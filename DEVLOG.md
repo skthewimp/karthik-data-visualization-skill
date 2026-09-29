@@ -4442,3 +4442,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Session captured, but there was not enough structured activity to summarize.
 
 <!-- claude-session:63fee968-ff6f-43b1-9099-51a8ff3ebe03:end -->
+
+<!-- claude-session:7243fc8f-4f52-4038-a9f1-1081db4e1242:start -->
+## 2026-09-29 11:08 IST | Claude session `7243fc8f-4f5`
+
+### User prompts
+> what's our philosophy here on boxplots?
+> no as long as directly labelled boxplots are in, i'm good.
+
+### Work done
+- The repo doesn't have a boxplot philosophy of its own. Boxplots are an accepted option for showing a distribution, and two general rules decide how you draw one. 1. **When to use one.** `dataviz-selector/claude/SKILL....
+- Yes, they're in. Directly labelled boxplots are covered in `chart-annotations/claude/SKILL.md:52` and the matching `codex` copy, with the ggplot pattern in `ggplot2-repair-patterns.md`. I didn't change anything.
+
+<!-- claude-session:7243fc8f-4f52-4038-a9f1-1081db4e1242:end -->
