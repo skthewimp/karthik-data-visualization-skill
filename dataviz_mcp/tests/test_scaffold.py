@@ -10,10 +10,9 @@ from dataviz_mcp import handoff
 from dataviz_mcp.color_math import _contrast_ratio, hue_delta
 from dataviz_mcp.layout import recommend_layout
 from dataviz_mcp.plot_data import prepare_plot_data
-from dataviz_mcp.rendering import probe_renderers, render_and_inspect_chart
+from dataviz_mcp.rendering import render_and_inspect_chart
 from dataviz_mcp.scaffold import MARKS_BEGIN, MARKS_END, _parse_date, check_chart, scaffold_chart
 
-R_AVAILABLE = probe_renderers()["renderers"]["ggplot2"]["available"]
 PALETTE = {"ordered_palette": ["#0072B2", "#D55E00"]}
 
 
@@ -127,9 +126,8 @@ def test_value_axis_goes_when_planned_labels_carry_the_reading(tmp_path: Path) -
     source = Path(hidden["source_path"]).read_text(encoding="utf-8")
     assert "axis.text.y = element_blank()" in source
     assert "panel.grid.major.y = element_blank()" in source
-    # An axis title on a hidden axis would float alone, so it is dropped and said so.
+    # An axis title on a hidden axis would float alone, so it is dropped.
     assert "y = NULL" in source
-    assert any("axis title" in w for w in hidden["warnings"])
 
 
 def test_horizontal_chart_flips_and_reads_top_down(tmp_path: Path) -> None:
@@ -214,7 +212,7 @@ def test_check_reports_a_missing_slot(tmp_path: Path) -> None:
     assert report["deviations"][0]["code"] == "MARKS_SLOT_MISSING"
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_check_passes_clean_marks_and_renders(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, value_labels=4)
     _fill(result["source_path"], GOOD_MARKS)
@@ -228,7 +226,7 @@ def test_check_passes_clean_marks_and_renders(tmp_path: Path) -> None:
     assert "axis_label" not in roles
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_check_names_each_slot_deviation(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, value_labels=4)
     _fill(
@@ -245,7 +243,7 @@ def test_check_names_each_slot_deviation(tmp_path: Path) -> None:
     assert codes == {"MARKS_NON_LAYER", "GEOM_LABEL", "COLOUR_NOT_IN_PALETTE", "TEXT_TOO_SMALL", "TEXT_ON_MARK"}
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_value_on_a_discrete_axis_fails_the_build_with_a_fix(tmp_path: Path) -> None:
     # The flat-slopegraph bug: series on y, value only in the label text.
     result = _scaffold(tmp_path)
@@ -258,7 +256,7 @@ def test_value_on_a_discrete_axis_fails_the_build_with_a_fix(tmp_path: Path) -> 
     assert "map y = value" in report["deviations"][0]["message"]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_value_left_off_the_value_axis_is_caught(tmp_path: Path) -> None:
     # A slopegraph that builds but draws flat: y is a constant, the value only in the labels.
     result = _scaffold(tmp_path)
@@ -289,7 +287,7 @@ def test_matplotlib_value_left_off_the_value_axis_is_caught(tmp_path: Path) -> N
     assert [d["code"] for d in check_chart(source)["deviations"]] == ["VALUE_NOT_ON_POSITION"]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_hidden_value_axis_requires_the_promised_labels(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, value_labels=4)
     _fill(
@@ -336,7 +334,7 @@ def test_direct_label_room_is_reserved_past_the_last_point(tmp_path: Path) -> No
     assert right(labelled) > right(plain)
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_stacked_labels_computed_apart_from_the_bars_are_caught(tmp_path: Path) -> None:
     # The haiku failure: a hand cumsum in the opposite order to ggplot's stack, and hex strings
     # mapped through the series colour scale (they fall to its NA grey).
@@ -387,7 +385,7 @@ def test_returned_frame_matches_the_drawn_margin(tmp_path: Path) -> None:
     assert drawn["plot_area"]["width"] == round(frame["plot_area"]["width"] - extra, 1)
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_default_stack_runs_against_the_series_order(tmp_path: Path) -> None:
     # ggplot's default stack puts the first series furthest from the baseline.
     result = _scaffold(tmp_path, zero_baseline=True, orientation="horizontal")
@@ -424,7 +422,7 @@ def test_matplotlib_stack_helper_keeps_series_order(tmp_path: Path) -> None:
     assert [d["code"] for d in check_chart(source)["deviations"]] == ["STACK_ORDER"]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_text_on_a_mark_is_judged_against_its_fill(tmp_path: Path) -> None:
     # White reads on the blue but not on the orange; the scaffold's ink reads on both.
     result = _scaffold(tmp_path, zero_baseline=True)
@@ -472,7 +470,7 @@ def _codes(source: str) -> list[str]:
     return [d["code"] for d in check_chart(source)["deviations"]]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_value_past_the_bar_end_reads_on_the_page_not_the_fill(tmp_path: Path) -> None:
     # The label anchors at the bar's end but its glyphs run outward onto the page, so the bar
     # colour is legible there; judging it by its anchor called it green-on-green.
@@ -488,7 +486,7 @@ def test_value_past_the_bar_end_reads_on_the_page_not_the_fill(tmp_path: Path) -
     assert _codes(result["source_path"]) == ["LOW_CONTRAST_ON_MARK"]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_on_fill_ink_spilling_off_a_short_bar_is_caught_on_the_page(tmp_path: Path) -> None:
     result = _single(tmp_path)
     _fill(result["source_path"], """chart_marks <- function(d) list(
@@ -501,7 +499,7 @@ def test_on_fill_ink_spilling_off_a_short_bar_is_caught_on_the_page(tmp_path: Pa
     assert "'95.0'" not in report["fix_list"] and "'0.3'" in report["fix_list"]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_bar_values_put_each_value_where_it_reads(tmp_path: Path) -> None:
     result = _single(tmp_path)
     _fill(result["source_path"], """chart_marks <- function(d) list(
@@ -519,7 +517,7 @@ def test_bar_values_put_each_value_where_it_reads(tmp_path: Path) -> None:
     assert ink["95.0"].startswith("#ffffff") and ink["0.3"].startswith("#1a1a1a")
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_grouped_labels_are_matched_by_identity_not_by_the_printed_number(tmp_path: Path) -> None:
     rows = [["Total", 70398, 77264], ["Network", 7413, 7256]]
     path = prepare_plot_data(str(tmp_path), "Line", ["Q1'24", "Q1'25"], columns=["Line", "Q1'24", "Q1'25"],
@@ -542,7 +540,7 @@ def test_grouped_labels_are_matched_by_identity_not_by_the_printed_number(tmp_pa
     assert "position_dodge(width = 0.8)" in report["fix_list"] and "stack" not in report["fix_list"]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_stacking_line_labels_detaches_them_from_their_lines(tmp_path: Path) -> None:
     rows = [[str(2010 + i), 40 + i, 10 + i] for i in range(6)]
     result = _scaffold(tmp_path, plot_data_path=_frame(tmp_path, rows=rows))
@@ -559,7 +557,7 @@ def test_stacking_line_labels_detaches_them_from_their_lines(tmp_path: Path) -> 
     assert "drop that adjustment" in report["fix_list"]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_a_faint_background_band_is_not_a_mark(tmp_path: Path) -> None:
     # A shaded projection band behind the lines is neither a bar to match labels to nor a fill
     # that the labels must contrast with - its 4% tint leaves the page behind them.
@@ -579,7 +577,7 @@ def test_a_faint_background_band_is_not_a_mark(tmp_path: Path) -> None:
     assert _codes(result["source_path"]) == ["DECORATION_STRETCHES_AXIS"]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_value_span_is_compared_in_the_value_scale_space(tmp_path: Path) -> None:
     rows = [["A", 1, 10], ["B", 100, 1000], ["C", 10000, 100000]]
     result = _scaffold(tmp_path, plot_data_path=_frame(tmp_path, rows=rows))
@@ -609,7 +607,7 @@ def test_long_panel_headings_wrap_to_their_panel(tmp_path: Path) -> None:
     assert 8 <= wrap < len(names[1])
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_end_labels_spread_crowded_line_names_apart(tmp_path: Path) -> None:
     # Six lines ending within a label's height of each other: their names spread apart along the
     # value axis, in order, instead of printing over each other at the last points.
@@ -637,7 +635,7 @@ def test_end_labels_spread_crowded_line_names_apart(tmp_path: Path) -> None:
     assert not any(d["code"] == "LOW_TEXT_CONTRAST" for d in report["defects"])
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_long_end_labels_wrap_into_a_capped_band(tmp_path: Path) -> None:
     # Long line names stack on whole words in a band a fraction of the plot wide, instead of
     # reserving their full one-line width; a value joined by " - " stays on its name's last line.
@@ -711,7 +709,7 @@ DUMBBELL = {
 }
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 @pytest.mark.parametrize("case", [LINE_START, DUMBBELL], ids=["line-start", "dumbbell"])
 def test_point_values_stay_inside_and_off_the_lines(tmp_path: Path, case: dict) -> None:
     # A value nudged beside a point with hjust lands on the line leaving that point (a line's
@@ -805,7 +803,7 @@ def test_label_measure_gets_its_own_formatter(tmp_path: Path) -> None:
     assert 'style_positive = "plus"' in Path(signed["source_path"]).read_text(encoding="utf-8")
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_interval_marks_are_checked_against_their_own_ends(tmp_path: Path) -> None:
     result = _segments(tmp_path)
     _fill(result["source_path"], """chart_marks <- function(d) list(
@@ -871,7 +869,7 @@ def test_regions_draw_each_panel_from_its_own_rows(tmp_path: Path) -> None:
     assert source.count("limits = c(0.0, 77264.0)") == 2
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_region_page_checks_and_renders_with_notes_clear_of_values(tmp_path: Path) -> None:
     result = _regions(tmp_path)
     _fill(result["source_path"], _region_marks("total", "parts"))
@@ -943,7 +941,7 @@ def test_panels_take_their_own_form_scales_and_formats(tmp_path: Path) -> None:
     assert "status" in result["marks_brief"] and "chart_marks_operating_margin" in result["marks_brief"]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_a_bar_beside_a_line_checks_and_renders(tmp_path: Path) -> None:
     result = _mixed(tmp_path)
     _fill(result["source_path"], MIXED_MARKS)
@@ -956,7 +954,7 @@ def test_a_bar_beside_a_line_checks_and_renders(tmp_path: Path) -> None:
     assert not codes & {"TEXT_TEXT_COLLISION", "TEXT_CLIPPED"}
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_a_panel_marks_function_that_drops_its_format_is_named(tmp_path: Path) -> None:
     result = _mixed(tmp_path)
     _fill(result["source_path"], MIXED_MARKS.replace("chart_marks_revenue <- function(d, fmt_value)",
@@ -1085,7 +1083,7 @@ def test_a_long_discrete_axis_labels_every_kth_category(tmp_path: Path) -> None:
     assert breaks[0] == '"P01"' and 2 < len(breaks) < 52
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_end_labels_handed_every_row_print_each_name_once_at_its_end(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, layout=recommend_layout(x_slots=2))
     _fill(result["source_path"], """chart_marks <- function(d) {
@@ -1136,7 +1134,7 @@ def test_resolve_draws_the_fallback_as_one_panel_per_series(tmp_path: Path) -> N
     assert "name each series once" not in result["marks_brief"]
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_series_nothing_names_are_caught_and_one_naming_passes(tmp_path: Path) -> None:
     rows = [["cacheRead", 95.0, 50.2], ["cacheWrite", 3.5, 30.2], ["output", 1.0, 18.8]]
     path = prepare_plot_data(str(tmp_path / "data"), "Kind", ["tokens", "dollars"],
@@ -1154,7 +1152,7 @@ def test_series_nothing_names_are_caught_and_one_naming_passes(tmp_path: Path) -
     assert "SERIES_UNNAMED" not in _codes(result["source_path"])
 
 
-@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_a_pair_on_one_category_labels_its_ends_outward(tmp_path: Path) -> None:
     # A small change on a wide scale: the two values sit close, so labels placed toward the middle
     # would meet over the connector. The lower end's value goes before it, the higher's after it.

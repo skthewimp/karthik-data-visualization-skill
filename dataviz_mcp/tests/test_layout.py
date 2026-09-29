@@ -919,13 +919,7 @@ build_chart <- function() {
 '''
 
 
-def _ggplot2_available() -> bool:
-    from dataviz_mcp.rendering import probe_renderers
-
-    return probe_renderers()["renderers"]["ggplot2"]["available"]
-
-
-@pytest.mark.skipif(not _ggplot2_available(), reason="ggplot2 renderer unavailable")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_live_ggplot_grows_squashed_facet_panels(tmp_path):
     source = tmp_path / "squash.R"
     source.write_text(_SQUASH_GG, encoding="utf-8")

@@ -134,10 +134,7 @@ def _codes(report: dict) -> set:
     return {d["code"] for d in report["defects"]}
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["table_rendering"]["r_available"],
-    reason="R table constructor dependencies unavailable",
-)
+@pytest.mark.usefixtures("require_r_table")
 def test_constructor_renders_recognized_unclipped_table(tmp_path: Path) -> None:
     plan = recommend_table_layout(
         [{"header": "Model", "identifier": True, "cells": ["Fable 5.1", "Opus 5", "GPT-5.6"]},
@@ -166,10 +163,7 @@ def test_constructor_renders_recognized_unclipped_table(tmp_path: Path) -> None:
     assert report["occupied_utilization_ratio"] > 0.2
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["table_rendering"]["r_available"],
-    reason="R table constructor dependencies unavailable",
-)
+@pytest.mark.usefixtures("require_r_table")
 @pytest.mark.parametrize("dpi", [72, 144, 216])
 def test_constructor_preserves_pixel_padding(tmp_path: Path, dpi: int) -> None:
     plan = recommend_table_layout(
@@ -322,8 +316,7 @@ def test_existing_r_source_gets_actionable_no_r_error(tmp_path, monkeypatch):
         rendering.render_and_inspect_chart(str(source), str(tmp_path / "out"))
 
 
-@pytest.mark.skipif(not rendering.probe_renderers()["table_rendering"]["r_available"],
-                    reason="R table constructor dependencies unavailable")
+@pytest.mark.usefixtures("require_r_table")
 def test_table_plan_prefers_available_r_in_real_render(tmp_path):
     plan = _plan()
     assert plan["measurement_backend"] == "grid/ragg"

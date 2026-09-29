@@ -11,7 +11,7 @@ import pytest
 from dataviz_mcp.artifacts import sha256_file
 from dataviz_mcp.frame import reserve_frame
 from dataviz_mcp.inspection import _planned_geometry_defects, inspect_rendered_chart
-from dataviz_mcp.rendering import probe_renderers, render_and_inspect_chart
+from dataviz_mcp.rendering import render_and_inspect_chart
 from dataviz_mcp.text_fit import place_on_marks
 
 
@@ -72,7 +72,7 @@ def test_repeated_text_cannot_satisfy_two_planned_labels():
     assert len(_planned_geometry_defects(metadata)) == 1
 
 
-@pytest.mark.skipif(not probe_renderers()["renderers"]["ggplot2"]["available"], reason="ggplot2+ragg not installed")
+@pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_preserved_and_swapped_text_checked_without_classification(tmp_path):
     source = Path(__file__).parent / "fixtures" / "ggplot_value_labels_fixture.R"
     dims = {"width_px": 800, "height_px": 500, "dpi": 144}

@@ -411,7 +411,14 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
 - Source skills live in `<skill>/{codex,claude}/SKILL.md`.
 - `sync-skills.py` discovers every root-level directory containing both surface files.
 - `sync-skills.py --validate-only` checks frontmatter without copying files.
-- `pytest -q` runs the core MCP suite. Run `pytest -q dataviz-fix/tests tester/tests` only when changing the optional audited case manager or tester.
+- For a localized fix, run the affected test files, optionally narrowed with `-k`:
+  `python3 -m pytest -q dataviz_mcp/tests/test_scales.py`. Prose-only edits need metadata
+  validation, not rendering tests. See [AGENTS.md](AGENTS.md) for check selection.
+- `python3 -m pytest -q` runs the full core MCP suite, including live renders; reserve it for
+  cross-cutting changes. Add `--durations=10` to locate slow tests. R availability is checked
+  lazily once per test session for integration-test prerequisites.
+- Run `python3 -m pytest -q dataviz-fix/tests tester/tests` only when changing the optional
+  audited case manager or tester, or their dependencies.
 - No generated `dist/` output is committed.
 - Keep README files in public folders. They are navigation aids for newcomers and should be updated when layout changes.
 

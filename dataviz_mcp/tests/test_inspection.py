@@ -129,10 +129,7 @@ def test_probe_reports_versions_and_supported_outputs() -> None:
         assert ggplot["packages"]["ragg"]
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_auto_renderer_prefers_ggplot2_and_emits_full_contract(tmp_path: Path) -> None:
     source = Path(__file__).parent / "fixtures" / "ggplot_fixture.R"
     bundle = render_and_inspect_chart(
@@ -158,10 +155,7 @@ def test_auto_renderer_prefers_ggplot2_and_emits_full_contract(tmp_path: Path) -
     assert inspection["passes_geometry_checks"] is True
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_emits_per_tick_axis_labels_with_glyph_bounds(tmp_path: Path) -> None:
     # The 7-Sep heatmap failure: axis cells were emitted as a single allocated-box row,
     # so inspection saw no per-tick labels and could not detect overlapping ticks. Each
@@ -187,10 +181,7 @@ def test_ggplot_emits_per_tick_axis_labels_with_glyph_bounds(tmp_path: Path) -> 
     assert "Category" in axis_labels and "Value" in axis_labels, axis_labels
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_title_bbox_is_glyph_ink_not_allocated_cell(tmp_path: Path) -> None:
     # The title bbox once described its allocated gtable cell (full canvas width), so an
     # overflowing title never exceeded the canvas and clipping went undetected. It must be
@@ -210,10 +201,7 @@ def test_ggplot_title_bbox_is_glyph_ink_not_allocated_cell(tmp_path: Path) -> No
     assert "OUT_OF_BOUNDS" in {d["code"] for d in inspection["defects"]}
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_value_labels_on_marks_are_data_labels_not_collisions(tmp_path: Path) -> None:
     # ggplot cannot gid a geom_text value label as data_label, so the adapter tags in-panel data
     # text as data_label by construction. It must be exempt from the text-mark collision check even
@@ -232,10 +220,7 @@ def test_ggplot_value_labels_on_marks_are_data_labels_not_collisions(tmp_path: P
     assert "TEXT_MARK_COLLISION" not in {d["code"] for d in inspection["defects"]}
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_vertical_bars_share_a_baseline_and_are_centred(tmp_path: Path) -> None:
     # Regression: ggplot's GeomRect anchors each bar at (xmin, ymax) with
     # just=c("left","top"). The adapter once treated that anchor as the box centre and
@@ -268,10 +253,7 @@ def test_ggplot_vertical_bars_share_a_baseline_and_are_centred(tmp_path: Path) -
     assert max(gaps) - min(gaps) <= 3, gaps
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_emits_a_data_to_pixel_transform_that_lands_on_a_bar(tmp_path: Path) -> None:
     # place_on_marks on R: a single-panel CoordCartesian plot emits a linear affine, and
     # projecting a bar's data coords through it must land on that bar's captured box.
@@ -297,10 +279,7 @@ def test_ggplot_emits_a_data_to_pixel_transform_that_lands_on_a_bar(tmp_path: Pa
     assert abs(py - tallest["y"]) <= 3
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_coord_flip_transform_is_cross_termed_and_lands_on_a_bar(tmp_path: Path) -> None:
     # Under coord_flip the value aesthetic drives the horizontal axis and the category the
     # vertical, so the affine carries cross terms (px depends on data_y, py on data_x). The
@@ -336,10 +315,7 @@ def test_ggplot_coord_flip_transform_is_cross_termed_and_lands_on_a_bar(tmp_path
     assert best <= 4, best
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_log_scale_carries_its_transform_and_projects_onto_a_point(tmp_path: Path) -> None:
     source = Path(__file__).parent / "fixtures" / "ggplot_log_fixture.R"
     bundle = render_and_inspect_chart(
@@ -365,10 +341,7 @@ def test_ggplot_log_scale_carries_its_transform_and_projects_onto_a_point(tmp_pa
     assert abs(py - (rightmost["y"] + rightmost["height"] / 2)) <= 3
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_facets_emit_one_transform_per_panel_keyed_to_marks(tmp_path: Path) -> None:
     source = Path(__file__).parent / "fixtures" / "ggplot_facet_free_fixture.R"
     bundle = render_and_inspect_chart(
@@ -388,10 +361,7 @@ def test_ggplot_facets_emit_one_transform_per_panel_keyed_to_marks(tmp_path: Pat
     assert len(offsets) == 3
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_adapter_captures_every_panel_and_repeated_mark_structure(
     tmp_path: Path,
 ) -> None:
@@ -412,10 +382,7 @@ def test_ggplot_adapter_captures_every_panel_and_repeated_mark_structure(
     assert sorted(e["text"] for e in layout["elements"] if e["role"] == "panel_heading") == ["North", "South"]
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_guide_none_does_not_emit_phantom_panel_legend(tmp_path: Path) -> None:
     # Regression: ggplot >= 3.5 lays out a guide-box-inside cell spanning the whole
     # panel. With guide="none" it holds a zeroGrob, but the adapter used to emit it as a
@@ -464,10 +431,7 @@ def test_mismatched_metadata_is_rejected(tmp_path: Path) -> None:
         inspect_rendered_chart(clean["artifact"]["path"], bad["layout_metadata_path"])
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_table_content_renders_and_captures_every_cell(tmp_path: Path) -> None:
     source = Path(__file__).parent / "fixtures" / "table_fixture.R"
     bundle = render_and_inspect_chart(
@@ -584,10 +548,7 @@ def test_focal_highlight_keeps_colour_and_stays_silent(tmp_path: Path) -> None:
     assert "EXTERNAL_LEGEND" not in codes
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_nested_table_text_and_incomplete_viewports(tmp_path: Path) -> None:
     source = tmp_path / "nested.R"
     source.write_text('''library(grid)
@@ -624,10 +585,7 @@ build_table <- function() {
     assert not report["checks_complete"]
 
 
-@pytest.mark.skipif(
-    not probe_renderers()["renderers"]["ggplot2"]["available"],
-    reason="ggplot2+ragg not installed",
-)
+@pytest.mark.usefixtures("require_ggplot2")
 def test_planned_multiline_headers_render_within_their_cells(tmp_path: Path) -> None:
     from dataviz_mcp.table_layout import recommend_table_layout
 
