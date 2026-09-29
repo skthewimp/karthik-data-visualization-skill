@@ -27,6 +27,10 @@ until the reviewer. The scaffold is now the plan's compile step.
   higher's after it for a pair on one category, so the two never meet over a short connector;
   lines keep the inward rule. The brief asks for one label per point (a growth rate joins its
   value), not a second label layer placed blind to the first.
+- **House defaults in the scaffold.** A discrete or date axis loses its title (the tick labels
+  name the categories). A hidden value axis hands its unit - `%` or a currency sign from its
+  title - to the value labels. A panel whose categories are series elsewhere on the page is told
+  to colour them by that series. The subtitle guidance says a copied source header is not a fact.
 - The select stage is told the routing words are a closed menu and how to answer a SCAFFOLD
   VIOLATIONS section.
 

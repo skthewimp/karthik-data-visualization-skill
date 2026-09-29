@@ -411,7 +411,9 @@ _PUBLIC_COPY = {
                 "Optional; empty on most charts. Present only when it states a fact the title "
                 "does not carry - a second finding, the unit or base the numbers need, or a "
                 "colour key naming the series (identification_strategy subtitle_key). Never a "
-                "caveat, a hedge, or a note on the data's provenance."
+                "caveat, a hedge, or a note on the data's provenance. A source's header copied "
+                "across ('In millions, except percentages') is not a fact the title lacks: its "
+                "unit goes in the number format."
             ),
         },
         "axis_titles": {

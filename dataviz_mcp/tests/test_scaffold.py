@@ -105,7 +105,7 @@ def test_scaffold_writes_the_planned_settings_and_one_slot(tmp_path: Path) -> No
     assert 'palette <- c("Reads" = "#0072B2", "Writes" = "#D55E00")' in source
     assert "accuracy = 1.0" in source and 'suffix = "%"' in source
     # Only the declared axis title is drawn; no legend without a legend strategy; no value limits.
-    assert 'x = "Period"' in source and "y = NULL" in source
+    assert 'x = "Period"' not in source and "y = NULL" in source  # tick labels name the periods
     assert 'legend.position = "none"' in source
     assert "scale_y_continuous(labels = fmt_value)" in source
     # The category axis keeps the planned order whatever order a layer trains it in.
@@ -1180,3 +1180,11 @@ def test_a_pair_on_one_category_labels_its_ends_outward(tmp_path: Path) -> None:
         lo_x, hi_x = a * y + b * lo + c, a * y + b * hi + c
         assert boxes[f"{lo:.1f}"]["x"] + boxes[f"{lo:.1f}"]["width"] <= lo_x
         assert boxes[f"{hi:.1f}"]["x"] >= hi_x
+
+
+def test_hidden_value_axis_hands_its_unit_to_the_labels(tmp_path: Path) -> None:
+    result = _scaffold(tmp_path, value_labels=4,
+                       public_copy={"title": "t", "axis_titles": {"x": "Measure", "y": "Share (%)"}})
+    source = Path(result["source_path"]).read_text(encoding="utf-8")
+    assert 'suffix = "%"' in source and "Share (%)" not in source and '"Measure"' not in source
+    assert any("unit '%'" in r for r in result["resolutions"])

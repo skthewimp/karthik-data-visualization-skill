@@ -1247,6 +1247,16 @@ def _type_x(panel: dict[str, Any], warnings: list[str], where: str) -> None:
             panel["x_kind"] = "discrete"
 
 
+def _title_unit(title: str) -> str:
+    """The unit an axis title declares in its trailing brackets or symbol: '%' or a currency sign."""
+    bracket = re.search(r"\(([^()]*)\)\s*$", title)
+    token = (bracket.group(1) if bracket else title).strip()
+    if "%" in token:
+        return "%"
+    sign = re.match(r"[$€£¥₹]", token)
+    return sign.group(0) if sign else ""
+
+
 def _public(violation: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in violation.items() if not k.startswith("_")}
 
@@ -1462,8 +1472,22 @@ def scaffold_chart(
         promised = panel["value_labels"]
         hide = promised > 0 and promised >= min(_REDUNDANT_AXIS_MIN_LABELS, max(1, fewest_marks))
         where = f"panel {panel['role']}: " if multi else ""
-        if hide and axis_titles.pop("x" if horizontal else "y", None):
-            warnings.append(f"{where}the value axis is hidden, so its declared axis title is not drawn")
+        dropped = axis_titles.pop("x" if horizontal else "y", None) if hide else None
+        if dropped:
+            # The hidden axis's unit is not lost with it: it moves onto the labels that replace it.
+            unit = _title_unit(dropped)
+            fmt_in = dict(panel["number_format"] or {})
+            if unit and not (fmt_in.get("prefix") or fmt_in.get("suffix")):
+                fmt_in["suffix" if unit == "%" else "prefix"] = unit
+                panel["number_format"] = fmt_in
+                resolutions.append(f"{where}value axis hidden: its unit {unit!r} moves onto the value labels")
+            else:
+                resolutions.append(f"{where}value axis hidden, so its title {dropped!r} is not drawn")
+        # Tick labels already name each category or date; a title over them ("Period", "Month",
+        # "Category") says nothing they do not. A numeric axis keeps its title - it carries a unit.
+        category_key = "y" if horizontal else "x"
+        if panel["x_kind"] in ("discrete", "date") and axis_titles.pop(category_key, None):
+            resolutions.append(f"{where}category axis title dropped: the tick labels name the categories")
         fmt = _number_format(panel["number_format"])
         geometry_keys = ("start", "end") if panel["interval"] else ("value",)
         shown = [_format_number(float(r[k]), fmt) for r in prow for k in geometry_keys if r.get(k) not in ("", None)]
@@ -2504,6 +2528,15 @@ def _marks_brief(name: str, renderer: str, plan: list[dict[str, Any]], label_fmt
             "same label, paste(fmt_value(value), <the other>), never a second point_labels layer that lands on the "
             "first. Other text keeps the position of the marks it labels."
         )
+    page_series = {s for p in plan for s in p["series_order"]}
+    for p in plan:
+        named = [c for c in p["category_order"] if c in page_series]
+        if named and not p["has_series"]:
+            parts.append(
+                f"{'In ' + repr(p['role']) + ', ' if multi else ''}the categories {named} are series elsewhere on "
+                "the page: colour each by its series, fill = palette[category] (never one ink), so a series keeps "
+                "one colour across panels."
+            )
     if any(p["facet_by_series"] for p in plan):
         parts.append(
             "Each series has its own panel, named by its heading: do not name the lines again. Print each line's "
