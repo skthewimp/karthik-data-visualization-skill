@@ -495,6 +495,13 @@ _PLOT_DATA_MAP = {
             "type": ["string", "null"],
             "description": "Source column flagging an estimated observation, if the table has one.",
         },
+        "status": {
+            "type": ["string", "null"],
+            "description": (
+                "Source column giving each observation's printed state (observed / projected, actual "
+                "/ forecast), so a line can change style at the boundary. Never a series or a value."
+            ),
+        },
         "series": {"type": ["string", "null"], "description": "Column that splits series / colour, if any (long-format input only)."},
         "facet": {"type": ["string", "null"], "description": "Column that splits panels, if any."},
         "category_order": {
@@ -513,6 +520,61 @@ _PLOT_DATA_MAP = {
     },
     "required": ["x"],
     "additionalProperties": False,
+}
+
+# A chart of several panels maps each panel's rows on its own: a total above its parts, a bar
+# beside a line, one measure next to another. The tool stacks the panels into one frame whose
+# ``region`` column names each row's panel, so panel membership is decided by construction.
+_PANEL_MAP = {
+    "type": "object",
+    "properties": {
+        "role": {"type": "string", "description": "The panel's name; unique, and the same name its layout group and settings use."},
+        **_PLOT_DATA_MAP["properties"],
+        "where": {
+            "type": "object",
+            "additionalProperties": {"type": "array", "items": {"type": "string"}},
+            "description": "Keep only the rows whose source column holds one of these values: {column: [values]}.",
+        },
+    },
+    "required": ["role", "x"],
+    "additionalProperties": False,
+}
+_PLOT_DATA_MAP["properties"]["panels"] = {
+    "type": "array",
+    "items": _PANEL_MAP,
+    "description": (
+        "For a chart of several panels, one role map per panel instead of the single map above; "
+        "the panels may take different columns, forms and units. Leave the single-map keys empty "
+        "when this is set."
+    ),
+}
+_PLOT_DATA_MAP["required"] = []
+
+# Per-panel settings for the scaffold: a panel overrides any routing scalar it draws differently.
+_PANEL_SETTINGS = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "role": {"type": "string"},
+            "x_kind": {"type": "string", "enum": ["discrete", "date", "continuous"]},
+            "orientation": {"type": "string", "enum": ["vertical", "horizontal"]},
+            "value_labels": {"type": "integer", "minimum": 0},
+            "zero_baseline": {"type": "boolean"},
+            "value_encoding": {"type": "string", "enum": ["position", "colour"]},
+            "heading": {"type": "string", "description": "A short name printed over the panel, when the panels need telling apart."},
+            "value_scale": {
+                "type": "string", "enum": ["auto", "shared", "own"],
+                "description": "Panels of one measure share the value range when none would flatten in it (auto); shared insists, own keeps this panel's range.",
+            },
+        },
+        "required": ["role"],
+        "additionalProperties": False,
+    },
+    "description": (
+        "One entry per panel whose form differs from the routing scalars above - a bar panel beside a "
+        "line panel, a date axis beside a discrete one. Empty for a single panel."
+    ),
 }
 
 _IDENTIFICATION_STRATEGY = {
@@ -568,14 +630,6 @@ _LAYOUT_PLAN = {
                 "properties": {
                     "role": {"type": "string"},
                     "treatment": {"type": "string"},
-                    "categories": {
-                        **_STRING_ARRAY,
-                        "description": (
-                            "For a panel group set apart from the rest (an overview above its "
-                            "detail): the category values it draws, as the table prints them. "
-                            "The scaffold draws each group from its own rows."
-                        ),
-                    },
                 },
                 "required": ["role", "treatment"],
                 "additionalProperties": False,
@@ -968,6 +1022,7 @@ SELECT_SCHEMA: dict[str, object] = {
         "number_display_groups": _NUMBER_DISPLAY_GROUPS,
         "colour_plan": _COLOUR_PLAN,
         "plot_data": _PLOT_DATA_MAP,
+        "panels": _PANEL_SETTINGS,
         "design": _DESIGN,
         "layout_plan": _LAYOUT_PLAN,
         "acceptance_checks": _ACCEPTANCE_CHECKS,
@@ -1387,9 +1442,13 @@ It draws from the frame your ``plot_data`` role map builds, so a chart always ha
 no "not applicable". Map the recovered table as it stands: a mark drawn between two numbers (a
 stacked or floating segment, a range) takes ``start`` and ``end``; a number printed beside a mark
 but not drawn (a growth rate on a revenue bar) goes under ``labels`` with its own units, never as
-a value or a series; a gap stays a gap - never derive a number to fill it. Numbers in different
-units are never one value column. A panel group set apart in ``layout_plan`` (an overview above
-its detail) names the ``categories`` it draws.
+a value or a series; a gap stays a gap - never derive a number to fill it; an observed/projected
+state goes under ``status``. Numbers in different units are never one value column. A chart of
+several panels - an overview set apart from its detail, a bar beside a line, two measures side by
+side - gives ``plot_data.panels``, one role map per panel with its ``role`` (``where`` keeps only
+some rows), and lists in ``panels`` each panel whose form differs from the routing scalars (its
+``x_kind``, ``orientation``, ``value_labels``, ``zero_baseline``). The same ``role`` names the
+panel's ``layout_plan`` region.
 Set ``value_labels`` to how many marks will print their own value (0 when the reader reads values
 off the axis). Label the reading-carrying marks - endpoints, extremes, the focal comparison - and
 once they carry the reading the scaffold drops the value axis and its gridlines; an unlabelled
@@ -1464,7 +1523,7 @@ markers. The driver normally hands you the file; if it did not, call ``scaffold_
 with the ``prepare_plot_data`` frame, ``public_copy``, the ``recommend_layout``,
 ``reserve_frame``, ``recommend_colours`` and ``recommend_precision`` results, and the select
 routing scalars (``identification_strategy``, ``value_labels``, ``x_kind``, ``zero_baseline``,
-``value_encoding``). Never edit outside the slot: ``check_chart`` restores the scaffold, so a
+``value_encoding``) with its per-panel ``panels``. Never edit outside the slot: ``check_chart`` restores the scaffold, so a
 setting you change there is lost. In the slot, in order:
   1. Return geoms and labels only. ggplot: ``list(...)`` of layers mapping ``x = category`` and
      ``y = value`` (the scaffold flips a horizontal chart); no scale, coord, facet, labs, theme or
@@ -1476,7 +1535,8 @@ setting you change there is lost. In the slot, in order:
      annotation at ``annotation_size`` (``ANNOTATION_PT``); plain text, never ``geom_label`` boxes.
      Follow the scaffold's ``marks_brief``: an interval frame draws each mark from ``start`` to
      ``end``; a label measure rides beside its mark (on bars, ``note =`` in ``bar_values``), never
-     on a position; a page of regions calls ``chart_marks(d)`` once per region with its own rows.
+     on a position; a page of panels has one ``chart_marks_<panel>(d, fmt_value)`` per panel -
+     fill each with that panel's own form from its own rows, and keep its arguments as written.
   3. Label only the marks that carry the reading - a series' identity, an endpoint, the focal
      comparison, a genuine exception - never a value on every point of every series. When the
      plan's ``value_labels`` is above 0 the value axis is gone, so those labels must be drawn.

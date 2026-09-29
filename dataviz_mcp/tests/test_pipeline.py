@@ -220,10 +220,16 @@ def test_plot_data_map_is_carried_by_select_for_the_mechanical_frame() -> None:
     props = sc.SELECT_SCHEMA["properties"]
     assert "plot_data" in props
     plot_data = props["plot_data"]
-    assert set(plot_data["required"]) == {"x"}
-    for role in ("x", "value", "start", "end", "labels", "series", "facet", "category_order",
-                 "series_order", "aggregate"):
+    # x is required of a single map, or of each panel's map when the chart has several panels.
+    assert plot_data["required"] == [] and plot_data["properties"]["panels"]["items"]["required"] == ["role", "x"]
+    for role in ("x", "value", "start", "end", "labels", "status", "series", "facet", "category_order",
+                 "series_order", "aggregate", "panels"):
         assert role in plot_data["properties"]
+    panel = plot_data["properties"]["panels"]["items"]["properties"]
+    assert {"role", "where", "x", "value", "status"} <= set(panel) and "panels" not in panel
+    # Per-panel settings let one panel draw a different form from the routing scalars.
+    assert {"role", "x_kind", "orientation", "value_labels", "zero_baseline"} <= set(
+        sc.SELECT_SCHEMA["properties"]["panels"]["items"]["properties"])
     # It is not mandatory - a table or single-number stat carries no plotting frame.
     assert "plot_data" not in sc.SELECT_SCHEMA["required"]
 

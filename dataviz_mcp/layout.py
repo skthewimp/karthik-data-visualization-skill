@@ -334,11 +334,15 @@ def _size_panel_groups(
     subtitle_lines: int,
     footer_lines: int,
     longest_facet_label_chars: int = 0,
+    group_align: str = "auto",
 ) -> tuple[float, float, list[dict[str, Any]], float, list[str], dict[str, Any], dict[str, float], int]:
-    """Size a stack of heterogeneous panel groups into one canvas.
+    """Size heterogeneous panel groups into one canvas.
 
-    Each group is its own facet sub-grid laid out as a full-width horizontal band; bands stack
-    top to bottom with a ``GROUP_BREAK`` between them and one shared axis band at the bottom.
+    Each group is its own facet sub-grid in its own box. Groups fill page rows in order, a
+    ``GROUP_BREAK`` apart: one per row (a stack that reads down a shared x), all in one row (side
+    by side along shared category rows), or - left to the tool - the arrangement whose whole image
+    lands nearest ``target_aspect``. Groups sharing a row share its width in proportion to what
+    each demands, and its height, so their panels line up.
 
     A band's height follows how much it has to show, not an equal share: a group with discrete
     rows (bars, ranked categories) takes its rows plus the renderer's expansion at each end, so a
@@ -351,8 +355,7 @@ def _size_panel_groups(
     column cap, and the cap whose whole image comes out closest to ``target_aspect`` wins.
 
     Returns ``(width, height, regions, data_panel_fraction, warnings, fit, fonts, wrap_chars)``
-    where each region is a full-width ``{role, facet_ncol, facet_nrow, n_panels, x, y, width,
-    height}`` band. Nothing is scaled below its floor to force a ceiling fit; the honest width
+    where each region is a ``{role, facet_ncol, facet_nrow, n_panels, x, y, width, height}`` box. Nothing is scaled below its floor to force a ceiling fit; the honest width
     and height are returned and any overflow is reported in ``fit`` and ``warnings``.
     """
     warnings: list[str] = []
@@ -379,16 +382,16 @@ def _size_panel_groups(
                 grp_row_floor = max(grp_row_floor, line_px(FONT_PT["axis"], dpi) * (grp_lines + 0.6))
         left_band = axis_band + (FREE_AXIS_BAND if (n > 1 and y_scales_free) else 0.0) + y_extra
         base.append({
-            "role": str(g.get("role", "")), "categories": [str(c) for c in g.get("categories") or []],
+            "role": str(g.get("role", "")),
             "n": n, "gy": gy, "slot": slot,
             "emphasis": emphasis, "left_band": left_band, "row_floor": grp_row_floor,
             "panel_plot_w": panel_plot_w,
         })
 
-    breaks = GROUP_BREAK * (len(base) - 1)
     base_plot_h = max(MIN_PANEL_H, base_h - bands - axis_band)
 
-    def _stack(ncol_cap: int) -> tuple[float, float, list[dict[str, Any]]]:
+    def _arrange(ncol_cap: int, per_row: int) -> tuple[float, float, list[list[dict[str, Any]]]]:
+        """Seat the groups ``per_row`` to a page row, each group's facets at most ``ncol_cap`` wide."""
         sized = []
         for b in base:
             ncol = 1 if b["n"] == 1 else min(b["n"], ncol_cap)
@@ -396,39 +399,73 @@ def _size_panel_groups(
             ncol = math.ceil(b["n"] / nrow)  # tightest columns for that row count
             sized.append(dict(b, ncol=ncol, nrow=nrow,
                               group_w=_group_natural_width(ncol, b["panel_plot_w"], b["left_band"])))
-        width = max(base_w, max(s["group_w"] for s in sized))
-        for s in sized:
-            pw = (width - s["ncol"] * s["left_band"] - (s["ncol"] - 1) * PANEL_GUTTER) / s["ncol"]
-            if s["gy"] > 0:
-                ph = (s["gy"] + 2 * DISCRETE_EXPAND_ROWS) * max(s["slot"], s["row_floor"])
-                if s["n"] > 1:
-                    ph = max(MIN_PANEL_H, ph)
-            else:
-                # A pleasant aspect off the width, but no taller than a single chart's plotting
-                # height on the base canvas - a wide stack must not turn one line into a poster.
-                ph = max(min(pw / 1.6, base_plot_h), MIN_PANEL_H if s["n"] > 1 else 0.0)
-            s["panel_w_final"], s["panel_h"] = pw, ph * s["emphasis"]
-            # A multi-panel group draws a heading strip over every row of panels.
-            s["strip"] = _facet_strip_px(longest_facet_label_chars, pw, dpi) if s["n"] > 1 else 0.0
-        room = base_h - bands - axis_band - breaks - sum(
-            (s["nrow"] - 1) * PANEL_GUTTER + s["nrow"] * s["strip"] for s in sized)
-        content = sum(s["nrow"] * s["panel_h"] for s in sized)
+        page = [sized[i:i + per_row] for i in range(0, len(sized), per_row)]
+        width = max(base_w, max(sum(s["group_w"] for s in row) + (len(row) - 1) * GROUP_BREAK for row in page))
+        for row in page:
+            # A row's groups share its width in proportion to what each one demands.
+            room_w = width - (len(row) - 1) * GROUP_BREAK
+            natural = sum(s["group_w"] for s in row)
+            for s in row:
+                s["box_w"] = room_w * s["group_w"] / natural
+                pw = (s["box_w"] - s["ncol"] * s["left_band"] - (s["ncol"] - 1) * PANEL_GUTTER) / s["ncol"]
+                if s["gy"] > 0:
+                    ph = (s["gy"] + 2 * DISCRETE_EXPAND_ROWS) * max(s["slot"], s["row_floor"])
+                    if s["n"] > 1:
+                        ph = max(MIN_PANEL_H, ph)
+                else:
+                    # A pleasant aspect off the width, but no taller than a single chart's plotting
+                    # height on the base canvas - a wide stack must not turn one line into a poster.
+                    ph = max(min(pw / 1.6, base_plot_h), MIN_PANEL_H if s["n"] > 1 else 0.0)
+                s["panel_w_final"], s["panel_h"] = pw, ph * s["emphasis"]
+                # A multi-panel group draws a heading strip over every row of panels.
+                s["strip"] = _facet_strip_px(longest_facet_label_chars, pw, dpi) if s["n"] > 1 else 0.0
+
+        def band(s: dict[str, Any]) -> float:
+            return s["nrow"] * (s["panel_h"] + s["strip"]) + (s["nrow"] - 1) * PANEL_GUTTER
+
+        breaks = GROUP_BREAK * (len(page) - 1)
+        # Content that falls short of the base canvas grows in proportion, row by row.
+        fixed = sum(max((s["nrow"] - 1) * PANEL_GUTTER + s["nrow"] * s["strip"] for s in row) for row in page)
+        room = base_h - bands - axis_band - breaks - fixed
+        content = sum(max(s["nrow"] * s["panel_h"] for s in row) for row in page)
         if 0 < content < room:
-            for s in sized:
-                s["panel_h"] *= room / content
-        for s in sized:
-            s["band_h"] = s["nrow"] * (s["panel_h"] + s["strip"]) + (s["nrow"] - 1) * PANEL_GUTTER
-        height = sum(s["band_h"] for s in sized) + breaks + bands + axis_band
-        return width, height, sized
+            for row in page:
+                for s in row:
+                    s["panel_h"] *= room / content
+        # Each group keeps the height its content earns; a row is as tall as its tallest group.
+        for row in page:
+            for s in row:
+                s["band_h"] = band(s)
+            row_h = max(s["band_h"] for s in row)
+            for s in row:
+                s["row_h"] = row_h
+        height = sum(row[0]["row_h"] for row in page) + breaks + bands + axis_band
+        return width, height, page
+
+    def _score(width: float, height: float, page: list[list[dict[str, Any]]]) -> float:
+        """Distance from the target aspect, plus the canvas a row leaves empty beside a short group."""
+        used = sum(s["box_w"] * s["band_h"] for row in page for s in row)
+        rows_area = sum(width * row[0]["row_h"] for row in page)
+        return abs(math.log((width / height) / target_aspect)) - math.log(max(1e-6, used / rows_area))
 
     most = max(b["n"] for b in base)
-    width, height, sized = _stack(1)
-    best_dev = abs(math.log((width / height) / target_aspect))
-    for cap in range(2, most + 1):
-        w, h, cand = _stack(cap)
-        dev = abs(math.log((w / h) / target_aspect))
-        if dev < best_dev - 1e-9:
-            best_dev, width, height, sized = dev, w, h, cand
+    # How groups share the page: one column when they align on x (it reads down the stack), one row
+    # when they align on y (the category rows read across), else whatever lands nearest the aspect.
+    if group_align == "x":
+        arrangements = [1]
+    elif group_align == "y":
+        arrangements = [len(base)]
+    else:
+        arrangements = list(range(1, len(base) + 1))
+    best = None
+    for per_row in arrangements:
+        for cap in range(1, most + 1):
+            w, h, cand = _arrange(cap, per_row)
+            dev = _score(w, h, cand)
+            if best is None or dev < best[0] - 1e-9:
+                best = (dev, w, h, cand)
+    _, width, height, page = best
+    sized = [s for row in page for s in row]
     total_panel_area = sum(s["ncol"] * s["nrow"] * s["panel_w_final"] * s["panel_h"] for s in sized)
 
     # Resolve the house fonts for the final canvas (identical to what reserve_frame will use)
@@ -475,19 +512,21 @@ def _size_panel_groups(
 
     regions: list[dict[str, Any]] = []
     y = bands
-    for s in sized:
-        regions.append({
-            "role": s["role"],
-            "categories": s["categories"],
-            "n_panels": s["n"],
-            "facet_ncol": s["ncol"],
-            "facet_nrow": s["nrow"],
-            "x": 0,
-            "y": int(round(y)),
-            "width": int(round(width)),
-            "height": int(round(s["band_h"])),
-        })
-        y += s["band_h"] + GROUP_BREAK
+    for row in page:
+        x = 0.0
+        for s in row:
+            regions.append({
+                "role": s["role"],
+                "n_panels": s["n"],
+                "facet_ncol": s["ncol"],
+                "facet_nrow": s["nrow"],
+                "x": int(round(x)),
+                "y": int(round(y)),
+                "width": int(round(s["box_w"])),
+                "height": int(round(s["band_h"])),
+            })
+            x += s["box_w"] + GROUP_BREAK
+        y += row[0]["row_h"] + GROUP_BREAK
 
     data_panel_fraction = round(total_panel_area / (width * height), 3) if width and height else 0.0
     if data_panel_fraction < 0.4:
@@ -523,6 +562,7 @@ def recommend_layout(
     panel_groups: Optional[list[dict[str, Any]]] = None,
     target_aspect: Optional[float] = None,
     longest_facet_label_chars: int = 0,
+    group_align: str = "auto",
 ) -> dict[str, Any]:
     """Recommend ``width_px x height_px x dpi``, a facet grid, and x-label rotation.
 
@@ -547,17 +587,21 @@ def recommend_layout(
         x_labels: whether the x-axis carries text tick labels (drives the rotate check).
         longest_x_label_chars: longest x tick label, for the rotate check.
         delivery_profile: chat / slide / document - base size, dpi, and the growth ceiling.
-        panel_groups: optional heterogeneous layout. A list of groups, each
-            ``{role, n_panels, categories?, emphasis?, filled_marks?, x_slots?, y_slots?,
-            y_labels?, longest_y_label_chars?}``, sized as its
-            own sub-grid and stacked as a full-width band. A band's height follows what it
-            has to show (its rows, or its panel aspect), so an overview with one bar does not
-            get the same height as a detail panel with many; ``emphasis`` (>1) scales a band
-            up to set it apart. ``role`` is a free-text label echoed back per band, never
-            branched on; ``categories`` (the category values the group draws) is echoed back
-            too, so ``scaffold_chart`` draws each band from its own rows. The column count is chosen here, not declared. When given,
-            ``n_panels`` and the top-level facet grid describe the largest group and the
-            per-band structure is returned as ``regions``.
+        panel_groups: optional heterogeneous layout - one group per panel of a multi-panel
+            chart (an overview and its detail, a bar beside a line). A list of groups, each
+            ``{role, n_panels, emphasis?, filled_marks?, x_slots?, y_slots?, y_labels?,
+            longest_y_label_chars?}``, sized as its own sub-grid in its own box. A box's height
+            follows what it has to show (its rows, or its panel aspect), so an overview with one
+            bar does not get the same height as a detail panel with many; ``emphasis`` (>1)
+            scales a group up to set it apart. ``role`` is a free-text label echoed back per
+            box, never branched on; it names the panel in the ``prepare_plot_data`` frame, so
+            ``scaffold_chart`` draws each box from that panel's rows. The column counts are
+            chosen here, not declared. When given, ``n_panels`` and the top-level facet grid
+            describe the largest group and the per-box structure is returned as ``regions``.
+        group_align: how the groups share the page. ``x`` stacks them in one column, for groups
+            read against one x axis (a total above its parts over the same years); ``y`` puts
+            them in one row, for groups read along the same category rows; ``auto`` takes the
+            arrangement whose whole image lands nearest ``target_aspect``.
         target_aspect: width:height the whole image should land near - the source image's
             aspect when repairing a chart. Default: the delivery profile's own aspect.
         longest_facet_label_chars: longest panel heading. Every facet row carries a heading
@@ -626,6 +670,7 @@ def recommend_layout(
             longest_y_label_chars=longest_y_label_chars,
             title_lines=title_lines, subtitle_lines=subtitle_lines, footer_lines=footer_lines,
             longest_facet_label_chars=longest_facet_label_chars,
+            group_align=group_align,
         )
         warnings.extend(group_warnings)
         width_i, height_i = int(round(width)), int(round(height))
@@ -634,7 +679,7 @@ def recommend_layout(
             f"{int(base_w)}px base @ {int(dpi)}dpi -> {width_i}x{height_i}px from "
             f"{len(regions)} panel groups "
             + ", ".join(f"{r['role'] or '?'}:{r['facet_ncol']}x{r['facet_nrow']}" for r in regions)
-            + f". Overview set apart from detail; legibility floors honoured, fit={fit['status']}."
+            + f", {len({r['y'] for r in regions})} page row(s); legibility floors honoured, fit={fit['status']}."
         )
         return {
             "width_px": width_i,

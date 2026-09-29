@@ -109,7 +109,7 @@ def _ordered(seen: list[str], explicit: Optional[list[str]]) -> tuple[list[str],
 
 
 # Canonical column names the frame emits; a label measure may not take one of them.
-_RESERVED = frozenset({"order", "category", "series", "facet", "value", "start", "end", "approximate", "region"})
+_RESERVED = frozenset({"order", "category", "series", "facet", "value", "start", "end", "approximate", "status", "region"})
 
 
 def _label_roles(labels: Any) -> dict[str, dict[str, Any]]:
@@ -131,9 +131,16 @@ def _label_roles(labels: Any) -> dict[str, dict[str, Any]]:
     return roles
 
 
+# The role-map keys one frame (or one panel of a multi-panel frame) accepts.
+_MAP_KEYS = ("x", "value", "series", "facet", "category_order", "series_order", "aggregate",
+             "start", "end", "labels", "approximate", "status")
+# A panel's map adds its name, a row filter and its own source to those.
+_PANEL_KEYS = frozenset(_MAP_KEYS) | {"role", "where", "dataset_path", "columns", "rows"}
+
+
 def prepare_plot_data(
     output_dir: str,
-    x: str,
+    x: Optional[str] = None,
     value: Any = None,
     dataset_path: Optional[str] = None,
     columns: Optional[list[str]] = None,
@@ -147,6 +154,8 @@ def prepare_plot_data(
     end: Optional[str] = None,
     labels: Optional[dict[str, Any]] = None,
     approximate: Optional[str] = None,
+    status: Optional[str] = None,
+    panels: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
     """Reshape the source into a tidy plotting frame with a whitelist and one canonical order.
 
@@ -158,7 +167,7 @@ def prepare_plot_data(
 
     Args:
         output_dir: directory the tidy frame is written into.
-        x: source column that is the category / x position (required).
+        x: source column that is the category / x position (required without ``panels``).
         value: source column that is the numeric value the marks are drawn to. Pass a list of
             source columns for a wide frame (one value column per series, e.g. one per model):
             each column melts into a series whose label is the column name. A list of value
@@ -173,6 +182,9 @@ def prepare_plot_data(
             own units, never a series and never part of the value scale.
         approximate: source column flagging an estimated observation; emitted as
             ``approximate`` (true/false) for the run report, never for the chart.
+        status: source column naming each observation's state as printed (observed /
+            projected, actual / forecast); emitted as ``status`` so a line can change style at
+            the boundary. Never a series and never a value.
         dataset_path: a CSV to read (dataset-to-story path).
         columns / rows: an inline table (repair path); ``rows`` is a list of value lists.
         series: source column that splits series / colour, if any (long-format input only).
@@ -182,13 +194,123 @@ def prepare_plot_data(
         aggregate: sum / mean / min / max / first / last, applied when a
             (category, series, facet) key repeats. Duplicate keys with no aggregator is an
             error, not a silent pick; intervals are never aggregated.
+        panels: a chart of several panels, each its own role map - a total above its parts, a
+            bar beside a line, one measure next to another. Each entry takes ``role`` (its name,
+            unique) and the keys above (``x``, ``value``, ``series``, ``labels``, ``status`` ...),
+            plus ``where`` ({source column: [values]}) to keep only some rows and its own
+            ``dataset_path`` or ``columns``/``rows`` when it reads a different table. The
+            top-level source is every panel's default. The frames stack into one file with a
+            ``region`` column naming each row's panel, so which panel draws a row is decided
+            here, by construction, never matched up later.
 
     Returns ``plot_data_path``, ``roles_path``, the emitted ``columns`` (canonical names, in
     file order), ``geometry`` (value / interval), ``label_columns``, ``category_order`` /
     ``series_order``, ``n_rows``, ``dropped_columns`` (unmapped source columns excluded by the
-    whitelist - the proof a helper column cannot leak), and ``warnings``.
+    whitelist - the proof a helper column cannot leak), ``panels`` (per panel: its role, rows,
+    geometry, orders and label measures) and ``warnings``.
     """
-    header, records = _load_records(dataset_path, columns, rows)
+    single = {"x": x, "value": value, "series": series, "facet": facet, "category_order": category_order,
+              "series_order": series_order, "aggregate": aggregate, "start": start, "end": end,
+              "labels": labels, "approximate": approximate, "status": status}
+    if not panels:
+        if not x:
+            raise ValueError("x is required: name the source column that is the category / x position")
+        header, records = _load_records(dataset_path, columns, rows)
+        tidy = _tidy(header, records, single)
+        out_columns, out_rows, parts = tidy["columns"], tidy["rows"], []
+        warnings, dropped = tidy["warnings"], tidy["dropped"]
+    else:
+        parts, warnings, used, unused = [], [], set(), []
+        seen_roles: set[str] = set()
+        for i, panel in enumerate(panels):
+            panel = dict(panel or {})
+            unknown = sorted(set(panel) - _PANEL_KEYS)
+            if unknown:
+                raise ValueError(f"panel {i + 1}: unknown key(s) {unknown}; a panel takes {sorted(_PANEL_KEYS)}")
+            role = str(panel.get("role") or "").strip()
+            if not role or role in seen_roles:
+                raise ValueError(f"panel {i + 1}: every panel needs its own unique role, got {role!r}")
+            seen_roles.add(role)
+            if not panel.get("x"):
+                raise ValueError(f"panel {role!r}: x is required")
+            own = panel.get("dataset_path") or panel.get("columns")
+            header, records = _load_records(
+                panel.get("dataset_path") if own else dataset_path,
+                panel.get("columns") if own else columns,
+                panel.get("rows") if own else rows,
+            )
+            for column, keep in dict(panel.get("where") or {}).items():
+                if column not in header:
+                    raise ValueError(f"panel {role!r}: where column {column!r} is not in the data; available: {header}")
+                wanted = {str(v).strip().casefold() for v in ([keep] if isinstance(keep, str) else keep)}
+                records = [r for r in records if str(r[column]).strip().casefold() in wanted]
+            if not records:
+                raise ValueError(f"panel {role!r}: no rows left to draw")
+            tidy = _tidy(header, records, {k: panel.get(k) for k in _MAP_KEYS})
+            warnings += [f"panel {role}: {w}" for w in tidy["warnings"]]
+            used |= set(header) - set(tidy["dropped"])
+            unused += [c for c in tidy["dropped"] if c not in unused]
+            parts.append({"role": role, **tidy})
+        # One file, one canonical order: panel by panel, each in its own order.
+        out_columns = ["order", "region"]
+        for part in parts:
+            out_columns += [c for c in part["columns"] if c not in out_columns and c != "order"]
+        out_rows = []
+        for part in parts:
+            for row in part["rows"]:
+                out_rows.append({**row, "order": len(out_rows), "region": part["role"]})
+        dropped = [c for c in unused if c not in used]
+
+    out_dir = Path(output_dir).expanduser().resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    plot_data_path = out_dir / "plot-data.csv"
+    with plot_data_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=out_columns, restval="")
+        writer.writeheader()
+        writer.writerows(out_rows)
+    whole = parts or [tidy]
+    geometry = "interval" if all(p["geometry"] == "interval" for p in whole) else "value"
+    label_units = {name: unit for p in whole for name, unit in p["label_units"].items()}
+    panel_roles = [
+        {"role": p["role"], "geometry": p["geometry"], "labels": p["label_units"],
+         "category_order": p["category_order"], "series_order": p["series_order"], "n_rows": len(p["rows"])}
+        for p in parts
+    ]
+    # The roles travel beside the frame, so the scaffold formats each label measure in its own
+    # units and draws each panel from its own rows without the caller carrying them across.
+    roles_path = out_dir / "plot-data.json"
+    roles = {"geometry": geometry, "labels": label_units}
+    if panel_roles:
+        roles["panels"] = panel_roles
+    roles_path.write_text(json.dumps(roles, indent=2), encoding="utf-8")
+
+    return {
+        "plot_data_path": str(plot_data_path),
+        "roles_path": str(roles_path),
+        "columns": out_columns,
+        "geometry": geometry,
+        "label_columns": label_units,
+        "category_order": _merged([p["category_order"] for p in whole]),
+        "series_order": _merged([p["series_order"] for p in whole]),
+        "n_rows": len(out_rows),
+        "dropped_columns": dropped,
+        "panels": panel_roles,
+        "warnings": warnings,
+    }
+
+
+def _merged(orders: list[list[str]]) -> list[str]:
+    merged: list[str] = []
+    for order in orders:
+        merged += [v for v in order if v not in merged]
+    return merged
+
+
+def _tidy(header: list[str], records: list[dict[str, Any]], mapping: dict[str, Any]) -> dict[str, Any]:
+    """One role map applied to one table: the whitelisted, coerced, ordered long-format rows."""
+    x, value, series, facet = mapping["x"], mapping["value"], mapping["series"], mapping["facet"]
+    start, end, approximate, status = mapping["start"], mapping["end"], mapping["approximate"], mapping["status"]
+    aggregate = mapping["aggregate"]
     warnings: list[str] = []
 
     # A wide value map (list of value columns) melts each column into a series named by the
@@ -207,14 +329,14 @@ def prepare_plot_data(
             "wide value columns already define the series"
         )
     has_series = wide or bool(series)
-    label_roles = _label_roles(labels)
+    label_roles = _label_roles(mapping["labels"])
 
     key_cols = {"category": x}
     if series:
         key_cols["series"] = series
     if facet:
         key_cols["facet"] = facet
-    mapped = list(key_cols.values()) + value_cols + [c for c in (start, end, approximate) if c]
+    mapped = list(key_cols.values()) + value_cols + [c for c in (start, end, approximate, status) if c]
     mapped += [role["column"] for role in label_roles.values()]
     missing = [src for src in mapped if src not in header]
     if missing:
@@ -241,6 +363,7 @@ def prepare_plot_data(
             if aux[name] is None and raw not in (None, "") and str(raw).strip().upper() not in _NA_TOKENS:
                 warnings.append(f"label {name}: {raw!r} at category {category!r} is not a number; left blank")
         flag = _flag(record[approximate]) if approximate else None
+        state = str(record[status] or "").strip() if status else None
         for value_col in value_cols or [None]:
             if wide:
                 series_val = value_col
@@ -260,7 +383,7 @@ def prepare_plot_data(
             if has_series and series_val not in seen_series:
                 seen_series.append(series_val)
             groups.setdefault((category, series_val, facet_val), []).append(
-                {"value": numeric, **ends, "approximate": flag, "labels": aux}
+                {"value": numeric, **ends, "approximate": flag, "status": state, "labels": aux}
             )
 
     duplicates = [key for key, vals in groups.items() if len(vals) > 1]
@@ -278,8 +401,8 @@ def prepare_plot_data(
         raise ValueError(f"unknown aggregate {aggregate!r}; use one of {sorted(_AGGREGATORS)}")
     reducer = _AGGREGATORS.get(aggregate or "first")
 
-    cat_order, cat_tail = _ordered(seen_cats, category_order)
-    ser_order, ser_tail = _ordered(seen_series, series_order) if has_series else ([], [])
+    cat_order, cat_tail = _ordered(seen_cats, mapping["category_order"])
+    ser_order, ser_tail = _ordered(seen_series, mapping["series_order"]) if has_series else ([], [])
     if cat_tail:
         warnings.append(f"categories in data missing from category_order, appended: {cat_tail}")
     if ser_tail:
@@ -296,6 +419,8 @@ def prepare_plot_data(
         out_columns += ["start", "end"]
     if approximate:
         out_columns.append("approximate")
+    if status:
+        out_columns.append("status")
     out_columns += list(label_roles)
 
     # Emit in one canonical order shared by marks and labels: facet, then category, then series.
@@ -319,6 +444,13 @@ def prepare_plot_data(
                     row["end"] = _blank(obs[0]["end"])
                 if approximate:
                     row["approximate"] = str(any(o["approximate"] for o in obs)).lower()
+                if status:
+                    # A state is read, never combined: rows folded together keep it only when
+                    # they all print the same one.
+                    states = {o["status"] for o in obs}
+                    if len(states) > 1:
+                        warnings.append(f"status differs across the rows folded into {key}; left blank")
+                    row["status"] = states.pop() if len(states) == 1 else ""
                 for name in label_roles:
                     # A label is read, never combined: rows folded by the aggregate keep it only
                     # when they all print the same number.
@@ -333,30 +465,15 @@ def prepare_plot_data(
                 out_rows.append(row)
                 order_index += 1
 
-    out_dir = Path(output_dir).expanduser().resolve()
-    out_dir.mkdir(parents=True, exist_ok=True)
-    plot_data_path = out_dir / "plot-data.csv"
-    with plot_data_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=out_columns)
-        writer.writeheader()
-        writer.writerows(out_rows)
-    geometry = "interval" if interval else "value"
     label_units = {name: {k: v for k, v in role.items() if k != "column"} for name, role in label_roles.items()}
-    # The roles travel beside the frame, so the scaffold formats each label measure in its own
-    # units without the caller carrying them across.
-    roles_path = out_dir / "plot-data.json"
-    roles_path.write_text(json.dumps({"geometry": geometry, "labels": label_units}, indent=2), encoding="utf-8")
-
     return {
-        "plot_data_path": str(plot_data_path),
-        "roles_path": str(roles_path),
         "columns": out_columns,
-        "geometry": geometry,
-        "label_columns": label_units,
+        "rows": out_rows,
+        "geometry": "interval" if interval else "value",
+        "label_units": label_units,
         "category_order": cat_order,
         "series_order": ser_order,
-        "n_rows": len(out_rows),
-        "dropped_columns": dropped,
+        "dropped": dropped,
         "warnings": warnings,
     }
 

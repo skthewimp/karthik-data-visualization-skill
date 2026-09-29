@@ -819,16 +819,20 @@ def test_interval_marks_are_checked_against_their_own_ends(tmp_path: Path) -> No
 
 REVENUE = [["Q1'24", "Total", 70398, 14], ["Q1'24", "Search", 46156, None], ["Q1'24", "YouTube", 8090, None],
            ["Q1'25", "Total", 77264, 10], ["Q1'25", "Search", 50702, 10], ["Q1'25", "YouTube", 8927, 10]]
+REVENUE_COLUMNS = ["period", "category", "revenue", "growth"]
 
 
 def _regions(tmp_path: Path, **layout_kwargs) -> dict:
+    # One table, two panels: the total set apart above its parts, each panel keeping its rows.
+    shared = {"x": "category", "value": "revenue", "series": "period",
+              "labels": {"growth": {"column": "growth", "suffix": "%", "signed": True}}}
     frame = prepare_plot_data(
-        str(tmp_path / "data"), x="category", value="revenue", series="period",
-        columns=["period", "category", "revenue", "growth"], rows=REVENUE,
-        labels={"growth": {"column": "growth", "suffix": "%", "signed": True}},
+        str(tmp_path / "data"), columns=REVENUE_COLUMNS, rows=REVENUE,
+        panels=[{"role": "total", "where": {"category": ["Total"]}, **shared},
+                {"role": "parts", "where": {"category": ["Search", "YouTube"]}, **shared}],
     )
     layout = recommend_layout(y_slots=2, filled_marks=True, title_lines=1, panel_groups=[
-        {"role": "total", "n_panels": 1, "y_slots": 1, "filled_marks": True, "categories": ["Total"]},
+        {"role": "total", "n_panels": 1, "y_slots": 1, "filled_marks": True},
         {"role": "parts", "n_panels": 1, "y_slots": 2, "filled_marks": True},
     ], **layout_kwargs)
     return scaffold_chart(
@@ -837,35 +841,37 @@ def _regions(tmp_path: Path, **layout_kwargs) -> dict:
     )
 
 
-REGION_MARKS = """chart_marks <- function(d) {
-  dodge <- position_dodge(width = 0.8)
+def _region_marks(*slugs: str) -> str:
+    body = """  dodge <- position_dodge(width = 0.8)
   list(
     geom_col(aes(x = category, y = value, fill = series), position = dodge, width = 0.8),
     bar_values(aes(x = category, y = value, label = fmt_value(value), note = fmt_growth(growth), fill = series,
                    group = series), position = dodge, width = 0.8)
-  )
-}"""
+  )"""
+    return "\n".join(f"chart_marks_{slug} <- function(d, fmt_value) {{\n{body}\n}}" for slug in slugs)
 
 
-def test_regions_draw_each_panel_group_from_its_own_rows(tmp_path: Path) -> None:
+def test_regions_draw_each_panel_from_its_own_rows(tmp_path: Path) -> None:
     result = _regions(tmp_path)
     boxes = result["regions"]
     assert [b["role"] for b in boxes] == ["total", "parts"]
-    # The region with no category list takes every category the others did not claim.
+    # Each panel's rows were named by prepare_plot_data; nothing is matched up by category here.
     assert boxes[0]["categories"] == ["Total"] and boxes[1]["categories"] == ["Search", "YouTube"]
-    # Stacked under the one page frame, inside the page margins, the overview the smaller band.
-    assert boxes[0]["y"] + boxes[0]["height_px"] == boxes[1]["y"]
+    # Stacked under the one page frame, inside the page margins, the overview the smaller box.
+    assert boxes[0]["y"] + boxes[0]["height_px"] <= boxes[1]["y"] + 1
     assert boxes[0]["height_px"] < boxes[1]["height_px"]
     source = Path(result["source_path"]).read_text(encoding="utf-8")
     assert "chart_regions <- function()" in source and "patchwork::plot_annotation" in source
-    # One measure across the regions: they share the value range.
-    assert source.count("limits = c(0.0, 77264.0)") == 1
+    assert "chart_marks_total <- function(d, fmt_value)" in source
+    assert "chart_marks_parts <- function(d, fmt_value)" in source
+    # One measure across the panels: they share the value range.
+    assert source.count("limits = c(0.0, 77264.0)") == 2
 
 
 @pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
 def test_region_page_checks_and_renders_with_notes_clear_of_values(tmp_path: Path) -> None:
     result = _regions(tmp_path)
-    _fill(result["source_path"], REGION_MARKS)
+    _fill(result["source_path"], _region_marks("total", "parts"))
     assert check_chart(result["source_path"])["ok"]
     rendered = render_and_inspect_chart(
         result["source_path"], str(tmp_path / "render"), renderer="ggplot2", dimensions=result["dimensions"],
@@ -874,12 +880,116 @@ def test_region_page_checks_and_renders_with_notes_clear_of_values(tmp_path: Pat
     assert not codes & {"TEXT_TEXT_COLLISION", "REDUNDANT_COLOUR", "TEXT_CLIPPED"}
 
 
-def test_regions_without_categories_stay_one_grid(tmp_path: Path) -> None:
-    frame = prepare_plot_data(str(tmp_path / "data"), x="category", value="revenue", series="period",
-                              columns=["period", "category", "revenue", "growth"], rows=REVENUE)
-    layout = recommend_layout(y_slots=2, panel_groups=[{"role": "a", "n_panels": 1}, {"role": "b", "n_panels": 1}])
-    result = scaffold_chart(str(tmp_path), frame["plot_data_path"], {"title": "t"}, layout=layout, colours=PALETTE)
-    assert result["regions"] == [] and any("categories" in w for w in result["warnings"])
+# A bar beside a line: two measures in their own units, each panel its own form and axes.
+MIX_COLUMNS = ["year", "revenue", "margin", "status"]
+MIX_ROWS = [["2021", 120, 8.5, "actual"], ["2022", 150, 9.1, "actual"], ["2023", 170, 10.4, "actual"],
+            ["2024", 185, 11.0, "forecast"]]
+
+
+def _mixed(tmp_path: Path, renderer: str = "ggplot2") -> dict:
+    frame = prepare_plot_data(
+        str(tmp_path / "data"), columns=MIX_COLUMNS, rows=MIX_ROWS,
+        panels=[{"role": "Revenue", "x": "year", "value": "revenue"},
+                {"role": "Operating margin", "x": "year", "value": "margin", "status": "status"}],
+    )
+    layout = recommend_layout(title_lines=1, panel_groups=[
+        {"role": "Revenue", "n_panels": 1, "x_slots": 4, "filled_marks": True},
+        {"role": "Operating margin", "n_panels": 1, "x_slots": 4},
+    ], group_align="y")
+    return scaffold_chart(
+        str(tmp_path), frame["plot_data_path"], {"title": "Revenue kept growing as margins widened"},
+        layout=layout, colours=PALETTE, renderer=renderer,
+        panels=[
+            {"role": "Revenue", "zero_baseline": True, "value_labels": 4, "heading": "Revenue ($m)",
+             "number_format": {"step": 1, "prefix": "$"}},
+            {"role": "Operating margin", "x_kind": "date", "value_labels": 2, "heading": "Operating margin",
+             "number_format": {"step": 0.1, "decimals": 1, "suffix": "%"}},
+        ],
+    )
+
+
+MIXED_MARKS = """chart_marks_revenue <- function(d, fmt_value) {
+  list(
+    geom_col(aes(x = category, y = value), fill = ink, width = 0.6),
+    bar_values(aes(x = category, y = value, label = fmt_value(value)), width = 0.6)
+  )
+}
+chart_marks_operating_margin <- function(d, fmt_value) {
+  ends <- d[c(1, nrow(d)), ]
+  list(
+    geom_segment(aes(x = .x, y = .y, xend = .xend, yend = .yend, linetype = .status),
+                 data = line_segments(d, "status"), colour = ink),
+    point_labels(aes(x = category, y = value, label = fmt_value(value), group = 1), data = ends, colour = ink)
+  )
+}"""
+
+
+def test_panels_take_their_own_form_scales_and_formats(tmp_path: Path) -> None:
+    result = _mixed(tmp_path)
+    source = Path(result["source_path"]).read_text(encoding="utf-8")
+    revenue, margin = result["regions"]
+    # Side by side along one row, each its own marks function.
+    assert revenue["y"] == margin["y"] and margin["x"] > revenue["x"]
+    assert "chart_marks_revenue <- function(d, fmt_value)" in source
+    assert "chart_marks_operating_margin <- function(d, fmt_value)" in source
+    # Each panel's own x typing and its own number format; different measures never share a range.
+    assert 'd$category <- as.Date(d$category)' in source and 'd$category <- factor(d$category' in source
+    assert 'prefix = "$"' in source and 'suffix = "%"' in source
+    assert "limits = c(0, NA)" in source and "limits = c(0.0," not in source
+    assert 'title = "Revenue ($m)"' in source
+    assert "status" in result["marks_brief"] and "chart_marks_operating_margin" in result["marks_brief"]
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_a_bar_beside_a_line_checks_and_renders(tmp_path: Path) -> None:
+    result = _mixed(tmp_path)
+    _fill(result["source_path"], MIXED_MARKS)
+    report = check_chart(result["source_path"])
+    assert report["ok"], report["fix_list"]
+    rendered = render_and_inspect_chart(
+        result["source_path"], str(tmp_path / "render"), renderer="ggplot2", dimensions=result["dimensions"],
+    )
+    codes = {d["code"] for d in json.loads(Path(rendered["inspection_path"]).read_text())["defects"]}
+    assert not codes & {"TEXT_TEXT_COLLISION", "TEXT_CLIPPED"}
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_a_panel_marks_function_that_drops_its_format_is_named(tmp_path: Path) -> None:
+    result = _mixed(tmp_path)
+    _fill(result["source_path"], MIXED_MARKS.replace("chart_marks_revenue <- function(d, fmt_value)",
+                                                     "chart_marks_revenue <- function(d)"))
+    report = check_chart(result["source_path"])
+    assert [d["code"] for d in report["deviations"]] == ["BUILD_ERROR"]
+    assert "arguments exactly as the scaffold wrote them" in report["fix_list"]
+
+
+def test_matplotlib_panels_build_and_check(tmp_path: Path) -> None:
+    result = _mixed(tmp_path, renderer="matplotlib")
+    _fill(result["source_path"], """def chart_marks_revenue(ax, rows, fmt_value, pos):
+    for row in rows:
+        ax.bar(pos(row), row['value'], color=INK, width=0.6)
+        ax.text(pos(row), row['value'], fmt_value(row['value']), ha='center', va='bottom', fontsize=LABEL_PT)
+
+
+def chart_marks_operating_margin(ax, rows, fmt_value, pos):
+    ax.plot([pos(r) for r in rows], [r['value'] for r in rows], color=INK)
+    for row in (rows[0], rows[-1]):
+        ax.text(pos(row), row['value'], fmt_value(row['value']), fontsize=LABEL_PT)""")
+    report = check_chart(result["source_path"])
+    assert report["ok"], report["fix_list"]
+
+
+def test_panels_the_layout_did_not_size_are_stacked_with_a_warning(tmp_path: Path) -> None:
+    frame = prepare_plot_data(str(tmp_path / "data"), columns=MIX_COLUMNS, rows=MIX_ROWS,
+                              panels=[{"role": "a", "x": "year", "value": "revenue"},
+                                      {"role": "b", "x": "year", "value": "margin"}])
+    layout = recommend_layout(panel_groups=[{"role": "x", "n_panels": 1}, {"role": "y", "n_panels": 1}])
+    result = scaffold_chart(str(tmp_path), frame["plot_data_path"], {"title": "t"}, layout=layout, colours=PALETTE,
+                            panels=[{"role": "c", "x_kind": "date"}])
+    a, b = result["regions"]
+    assert b["y"] >= a["y"] + a["height_px"] - 1
+    assert any("do not name every panel" in w for w in result["warnings"])
+    assert any("'c'" in w and "no panel" in w for w in result["warnings"])
 
 
 def test_endpoint_wrap_stays_compact_when_height_is_tight():
@@ -932,3 +1042,57 @@ write.csv(
         found = [r for r in rows if r['facet'] == panel]
         assert [(r['.x'], r['.xend'], r['.status']) for r in found] == [
             ('1', '2', 'observed'), ('2', '3', 'projected'), ('5', '6', 'projected')]
+
+
+def test_a_panel_without_series_adds_no_blank_series(tmp_path: Path) -> None:
+    # A total panel beside a panel of model lines: the total's blank series is not a series.
+    frame = prepare_plot_data(
+        str(tmp_path / "data"), columns=["week", "total", "A", "B"],
+        rows=[["W1", 10, 6, 4], ["W2", 12, 7, 5]],
+        panels=[{"role": "total", "x": "week", "value": "total"}, {"role": "models", "x": "week", "value": ["A", "B"]}],
+    )
+    result = scaffold_chart(str(tmp_path), frame["plot_data_path"], {"title": "t"}, colours=PALETTE)
+    source = Path(result["source_path"]).read_text(encoding="utf-8")
+    assert 'palette <- c("A" = "#0072B2", "B" = "#D55E00")' in source
+    assert '"" =' not in source
+
+
+def test_a_shared_range_never_flattens_a_panel(tmp_path: Path) -> None:
+    # Same units, very different levels: the parts would be a strip under the total's axis.
+    frame = prepare_plot_data(
+        str(tmp_path / "data"), columns=["week", "total", "A", "B"],
+        rows=[["W1", 100, 6, 4], ["W2", 120, 7, 5]],
+        panels=[{"role": "total", "x": "week", "value": "total"}, {"role": "models", "x": "week", "value": ["A", "B"]}],
+    )
+    result = scaffold_chart(str(tmp_path), frame["plot_data_path"], {"title": "t"}, colours=PALETTE)
+    assert "limits = c(" not in Path(result["source_path"]).read_text(encoding="utf-8")
+    assert any("each keeps its own" in w for w in result["warnings"])
+    insisted = scaffold_chart(str(tmp_path / "b"), frame["plot_data_path"], {"title": "t"}, colours=PALETTE,
+                              panels=[{"role": "total", "value_scale": "shared"},
+                                      {"role": "models", "value_scale": "shared"}])
+    assert Path(insisted["source_path"]).read_text(encoding="utf-8").count("limits = c(4.0, 120.0)") == 2
+
+
+def test_a_long_discrete_axis_labels_every_kth_category(tmp_path: Path) -> None:
+    weeks = [f"P{i:02d}" for i in range(1, 53)]
+    path = _frame(tmp_path, rows=[[w, i, i + 1] for i, w in enumerate(weeks)])
+    result = _scaffold(tmp_path, plot_data_path=path, layout=recommend_layout(x_slots=52))
+    source = Path(result["source_path"]).read_text(encoding="utf-8")
+    breaks = re.search(r"breaks = c\(([^)]*)\)", source).group(1).split(", ")
+    assert breaks[0] == '"P01"' and 2 < len(breaks) < 52
+
+
+@pytest.mark.skipif(not R_AVAILABLE, reason="ggplot2+ragg not installed")
+def test_end_labels_handed_every_row_print_each_name_once_at_its_end(tmp_path: Path) -> None:
+    result = _scaffold(tmp_path, layout=recommend_layout(x_slots=2))
+    _fill(result["source_path"], """chart_marks <- function(d) {
+  list(
+    geom_line(aes(x = category, y = value, group = series, colour = series)),
+    end_labels(aes(x = category, y = value, label = series, colour = series), data = d)
+  )
+}""")
+    assert check_chart(result["source_path"])["ok"]
+    rendered = render_and_inspect_chart(result["source_path"], str(tmp_path / "out"), dimensions=result["dimensions"])
+    layout = json.loads(Path(rendered["layout_metadata_path"]).read_text(encoding="utf-8"))
+    texts = [e.get("text") for e in layout["elements"] if e.get("text") in ("Reads", "Writes")]
+    assert sorted(texts) == ["Reads", "Writes"]

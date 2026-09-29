@@ -362,3 +362,64 @@ def test_tight_label_budget_preserves_endpoints_before_interior_extremes():
     assert entry['name_index'] == 4
     single = recommend_labels([{'id': 'a', 'values': values}], max_labels_per_series=1)['per_series'][0]
     assert single['label_indices'] == [4]
+
+
+# ---- status and multi-panel frames ----
+
+USAGE = ["week", "total", "Model A", "Model B", "state"]
+USAGE_ROWS = [["W1", 10, 6, 4, "observed"], ["W2", 12, 7, 5, "observed"], ["W3", 15, 9, 6, "projected"]]
+
+
+def _csv(path):
+    import csv
+    return list(csv.DictReader(open(path, encoding="utf-8")))
+
+
+def test_status_rides_on_its_row_never_a_series(tmp_path):
+    result = prepare_plot_data(str(tmp_path), x="week", value="total", status="state",
+                               columns=USAGE, rows=USAGE_ROWS)
+    rows = _csv(result["plot_data_path"])
+    assert result["columns"] == ["order", "category", "value", "status"]
+    assert [r["status"] for r in rows] == ["observed", "observed", "projected"]
+    assert "series" not in rows[0]
+
+
+def test_panels_stack_into_one_frame_named_by_region(tmp_path):
+    # The same weeks in two panels: a total, and the models melted into series. Which panel draws a
+    # row is decided here, so overlapping categories are never ambiguous downstream.
+    result = prepare_plot_data(
+        str(tmp_path), columns=USAGE, rows=USAGE_ROWS,
+        panels=[{"role": "total", "x": "week", "value": "total", "status": "state"},
+                {"role": "models", "x": "week", "value": ["Model A", "Model B"], "status": "state"}],
+    )
+    rows = _csv(result["plot_data_path"])
+    assert result["columns"][:2] == ["order", "region"]
+    assert [r["region"] for r in rows] == ["total"] * 3 + ["models"] * 6
+    assert [int(r["order"]) for r in rows] == list(range(9))
+    assert {r["series"] for r in rows if r["region"] == "total"} == {""}
+    assert [p["role"] for p in result["panels"]] == ["total", "models"]
+    assert result["panels"][1]["series_order"] == ["Model A", "Model B"]
+    roles = json.loads(open(result["roles_path"], encoding="utf-8").read())
+    assert [p["role"] for p in roles["panels"]] == ["total", "models"]
+
+
+def test_a_panel_keeps_only_the_rows_it_names_and_may_read_its_own_table(tmp_path):
+    result = prepare_plot_data(
+        str(tmp_path), columns=USAGE, rows=USAGE_ROWS,
+        panels=[{"role": "recent", "x": "week", "value": "total", "where": {"week": ["w2", "W3"]}},
+                {"role": "margin", "x": "year", "value": "pct", "columns": ["year", "pct"], "rows": [["2024", 9.5]]}],
+    )
+    rows = _csv(result["plot_data_path"])
+    assert [(r["region"], r["category"]) for r in rows] == [("recent", "W2"), ("recent", "W3"), ("margin", "2024")]
+
+
+def test_panel_maps_are_checked(tmp_path):
+    with pytest.raises(ValueError, match="unique role"):
+        prepare_plot_data(str(tmp_path), columns=USAGE, rows=USAGE_ROWS,
+                          panels=[{"role": "a", "x": "week", "value": "total"}, {"role": "a", "x": "week", "value": "total"}])
+    with pytest.raises(ValueError, match="unknown key"):
+        prepare_plot_data(str(tmp_path), columns=USAGE, rows=USAGE_ROWS,
+                          panels=[{"role": "a", "x": "week", "value": "total", "x_kind": "date"}])
+    with pytest.raises(ValueError, match="no rows left"):
+        prepare_plot_data(str(tmp_path), columns=USAGE, rows=USAGE_ROWS,
+                          panels=[{"role": "a", "x": "week", "value": "total", "where": {"week": ["W9"]}}])

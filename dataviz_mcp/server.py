@@ -296,7 +296,7 @@ def create_server() -> Any:
     @server.tool()
     async def prepare_plot_data(
         output_dir: str,
-        x: str,
+        x: str | None = None,
         value: str | list[str] | None = None,
         dataset_path: str | None = None,
         columns: list[str] | None = None,
@@ -310,6 +310,8 @@ def create_server() -> Any:
         end: str | None = None,
         labels: dict[str, Any] | None = None,
         approximate: str | None = None,
+        status: str | None = None,
+        panels: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Reshape the source into a tidy plotting frame so the builder reshapes nothing.
 
@@ -333,8 +335,17 @@ def create_server() -> Any:
         Numbers printed beside a mark but never drawn go in ``labels`` ({name: column}, or {name:
         {column, prefix, suffix, signed}}): each becomes its own column on the observation's row,
         formatted in its own units by the scaffold, never a series and never on the value scale.
-        ``approximate`` names a column flagging estimated observations. The roles are written
-        beside the frame as ``plot-data.json`` for ``scaffold_chart``.
+        ``approximate`` names a column flagging estimated observations; ``status`` names the
+        column giving each observation's state as printed (observed / projected), emitted as
+        ``status`` so a line can change style at the boundary. The roles are written beside the
+        frame as ``plot-data.json`` for ``scaffold_chart``.
+
+        A chart of several panels - a total above its parts, a bar beside a line, one measure next
+        to another - passes ``panels``: one role map per panel, each ``{role, x, value, series?,
+        labels?, status?, ...}`` plus ``where`` ({source column: [values]}) to keep only some rows
+        and its own ``dataset_path`` or ``columns``/``rows`` when it reads another table. They
+        stack into one file with a ``region`` column naming each row's panel, so which panel
+        draws a row is fixed here, by construction.
         """
         return prepare_plot_data_core(
             output_dir,
@@ -352,6 +363,8 @@ def create_server() -> Any:
             end,
             labels,
             approximate,
+            status,
+            panels,
         )
 
     @server.tool()
@@ -447,6 +460,7 @@ def create_server() -> Any:
         panel_groups: list[dict[str, Any]] | None = None,
         target_aspect: float | None = None,
         longest_facet_label_chars: int = 0,
+        group_align: str = "auto",
     ) -> dict[str, Any]:
         """Size a clip-safe canvas (width/height/dpi), facet grid, and x-label rotation.
 
@@ -476,14 +490,15 @@ def create_server() -> Any:
         the dims into the renderer and into ``recommend_text_placement``. It sizes the box,
         never picks the chart.
 
-        For a heterogeneous layout - an aggregate/overview panel set apart from a small-multiple
-        detail grid (the selector's aggregate-and-parts guardrail) - pass ``panel_groups``: a
-        list of ``{role, n_panels, emphasis?, filled_marks?, x_slots?, y_slots?}``. Each group
-        is sized as its own sub-grid and stacked as a full-width band whose height follows what
-        it has to show (``emphasis`` >1 makes a band taller so the overview reads apart); the
-        column count is chosen here, not declared, and the per-band
-        structure comes back as ``regions`` for Build to place - do not flatten it to one grid.
-        ``role`` is a free-text label echoed back per band.
+        For a chart of several panels - an overview set apart from its detail grid, a bar beside
+        a line, two measures side by side - pass ``panel_groups``: one ``{role, n_panels,
+        emphasis?, filled_marks?, x_slots?, y_slots?}`` per panel, ``role`` the panel's name in
+        the ``prepare_plot_data`` frame. Each group is sized as its own sub-grid in its own box,
+        its height following what it has to show (``emphasis`` >1 sets an overview apart), and
+        the boxes come back as ``regions`` for the scaffold - do not flatten them to one grid.
+        ``group_align`` says how they share the page: ``x`` stacks them in one column (read
+        against one x axis), ``y`` puts them in one row (read along the same category rows),
+        ``auto`` takes the arrangement nearest ``target_aspect`` without leaving a row mostly empty.
 
         Faceted grids reserve each row's heading strip and the frame's edge margin; pass
         ``longest_facet_label_chars`` so a heading that must wrap to its panel gets its lines.
@@ -506,6 +521,7 @@ def create_server() -> Any:
             panel_groups,
             target_aspect,
             longest_facet_label_chars,
+            group_align,
         )
 
     @server.tool()
@@ -655,6 +671,7 @@ def create_server() -> Any:
         renderer: str = "ggplot2",
         source_name: str | None = None,
         label_formats: dict[str, Any] | None = None,
+        panels: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Write the chart source from the plan, leaving one slot for the model's marks.
 
@@ -683,16 +700,25 @@ def create_server() -> Any:
         scaffold. An interval frame (``start``/``end``) is drawn mark by mark between its ends.
         Each label measure in the frame gets its own formatter, ``fmt_<name>()``, from
         ``label_formats`` ({name: number format}) or from its own values by the spread rule, in
-        the units prepare_plot_data recorded. When ``layout`` carries ``regions`` whose panel groups
-        name their ``categories``, the source draws one native ggplot per region -
-        ``chart_regions()`` - each from its own rows, sharing the value range unless the facet
-        scales are free; ``regions`` returns each one's box on the page under the one frame, for
-        a compositor, and ``build_chart()`` composes the same boxes into one image.
+        the units prepare_plot_data recorded.
+
+        A frame of several panels (``prepare_plot_data`` ``panels``, a ``region`` column) is drawn
+        as one native plot per panel, each from its own rows, in the box ``recommend_layout``
+        gave it, under one page frame and one palette. Each panel takes the chart's settings and
+        any of its own from ``panels``: ``{role, x_kind?, orientation?, value_labels?,
+        zero_baseline?, value_encoding?, identification?, number_format?, axis_titles?, heading?,
+        value_scale?}`` - so a bar panel sits beside a line panel, a date axis beside a discrete
+        one, dollars beside percent. The model writes one ``chart_marks_<panel>(d, fmt_value)``
+        per panel, and ``fmt_value`` arrives in that panel's format. Panels of one measure (one
+        number format) share the value range unless the facet scales are free, a panel sets
+        ``value_scale: own``, or one panel would flatten into less than half the shared range
+        (``value_scale: shared`` insists). ``regions`` returns each panel's box on the page, for a compositor;
+        ``build_chart()`` composes the same boxes into one image.
         """
         return scaffold_chart_core(
             output_dir, plot_data_path, public_copy, layout, frame, colours, number_format,
             identification, value_labels, x_kind, orientation, zero_baseline, value_encoding,
-            background, renderer, source_name, label_formats,
+            background, renderer, source_name, label_formats, panels,
         )
 
     @server.tool()
@@ -705,7 +731,7 @@ def create_server() -> Any:
         a non-layer returned from the slot (scale, coord, facet, labs, theme), ``geom_label``,
         a data-mark colour outside the resolved palette (neutral greys are allowed), text
         below the planned label size, and fewer drawn labels than ``value_labels`` promised
-        when the value axis was dropped. A page of regions is checked region by region, each at
+        when the value axis was dropped. A page of panels is checked panel by panel, each at
         its own size. A source with no scaffold record returns ``UNSCAFFOLDED_BUILD``: re-scaffold
         and move the marks into the slot. Returns ``ok``, ``restored_scaffold``, ``deviations``
         ({code, severity, message}) and ``fix_list``, a numbered list the correcting model

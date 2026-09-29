@@ -266,8 +266,8 @@ def test_panel_groups_return_one_region_per_group_in_order():
     assert regions[0]["n_panels"] == 1 and regions[2]["n_panels"] == 10
 
 
-def test_panel_groups_stack_as_disjoint_full_width_bands():
-    result = recommend_layout(panel_groups=_weekly_usage_groups())
+def test_panel_groups_aligned_on_x_stack_as_disjoint_full_width_bands():
+    result = recommend_layout(panel_groups=_weekly_usage_groups(), group_align="x")
     regions = result["regions"]
     width = result["width_px"]
     # Each band spans the canvas width, and bands are stacked top to bottom without overlap.
@@ -275,6 +275,28 @@ def test_panel_groups_stack_as_disjoint_full_width_bands():
         assert r["x"] == 0 and r["width"] == width
     for a, b in zip(regions, regions[1:]):
         assert b["y"] >= a["y"] + a["height"]
+
+
+def test_panel_groups_aligned_on_y_sit_side_by_side_in_one_row():
+    groups = [{"role": "parts", "n_panels": 1, "y_slots": 4, "filled_marks": True},
+              {"role": "trend", "n_panels": 1, "x_slots": 0}]
+    result = recommend_layout(panel_groups=groups, group_align="y")
+    parts, trend = result["regions"]
+    assert parts["y"] == trend["y"]
+    assert trend["x"] >= parts["x"] + parts["width"]
+    assert trend["x"] + trend["width"] <= result["width_px"]
+
+
+def test_auto_arrangement_never_overlaps_and_prefers_no_holes():
+    # A one-bar overview beside a tall detail would leave most of its row empty: it stacks.
+    groups = [{"role": "detail", "n_panels": 1, "y_slots": 12, "filled_marks": True},
+              {"role": "total", "n_panels": 1, "y_slots": 1, "filled_marks": True}]
+    regions = recommend_layout(panel_groups=groups)["regions"]
+    assert regions[1]["y"] >= regions[0]["y"] + regions[0]["height"]
+    # Two similar panels on a wide target sit side by side rather than making a tower.
+    pair = [{"role": "a", "n_panels": 1}, {"role": "b", "n_panels": 1}]
+    a, b = recommend_layout(panel_groups=pair, target_aspect=2.5)["regions"]
+    assert a["y"] == b["y"] and b["x"] >= a["x"] + a["width"]
 
 
 def test_overview_band_is_taller_than_a_single_detail_cell():
@@ -366,7 +388,7 @@ def test_tall_group_stack_grows_the_canvas_never_squashes_panels():
         {"role": f"g{i}", "n_panels": 6, "emphasis": 3.0, "x_slots": 10, "filled_marks": True}
         for i in range(6)
     ]
-    result = recommend_layout(panel_groups=groups, delivery_profile="chat")
+    result = recommend_layout(panel_groups=groups, delivery_profile="chat", group_align="x")
     # The honest size exceeds the nominal ceiling rather than clamping to it.
     assert result["height_px"] > PROFILES["chat"]["max_height_px"]
     assert any("height" in w.lower() for w in result["warnings"])

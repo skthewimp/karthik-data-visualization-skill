@@ -2,6 +2,47 @@
 
 ## Unreleased
 
+### Multi-panel charts stay on the scaffold
+
+In the 28 September canonical run, three of seven cases skipped the scaffold (`no_usable_plot_map`),
+and two of those were multi-panel. Case 03 put total usage above ten model lines over the same
+53 weeks, and case 06 put category revenue bars next to a panel of totals taken from a different
+column. The old panel groups could only split one role map by category, so neither design fit.
+Case 04 was a single panel that fell off for another reason: its observed/projected status
+column had no role, so the whitelist dropped it.
+
+- **`prepare_plot_data(panels=[...])`.** Each panel gets its own role map (`role`, `x`, `value`,
+  `series`, `labels`, `status`, ...), plus `where` to keep only some rows, and can read its own
+  table. The panels stack into one frame, with a `region` column naming each row's panel, so
+  panel membership is fixed when the frame is built instead of being matched up later by
+  category. Category-name membership (`layout.regions[].categories`) is removed.
+- **`status` role.** An observation's printed state (observed / projected) now rides on its row.
+  `line_segments(d, "status")` uses it to change line style at the boundary.
+- **Each panel is a full scaffold.** `scaffold_chart(panels=[...])` gives a panel its own
+  `x_kind`, orientation, `value_labels`, zero baseline, value encoding, number format, axis
+  titles and `heading`. A bar panel can sit beside a line panel, a date axis beside a discrete
+  one, dollars beside percent. The model fills one `chart_marks_<panel>(d, fmt_value)` per panel,
+  and `fmt_value` arrives in that panel's format. Panels that show one measure (one number
+  format) share a value range unless a panel sets `value_scale: own` or one panel would spread
+  over less than half the shared range (a total would flatten its parts); `value_scale: shared`
+  insists. Matplotlib now draws panels too, one gridspec per box.
+- **Panels arranged in a grid.** `recommend_layout(group_align=...)` stacks panel groups in one
+  column (`x`, read against a shared x axis), sets them in one row (`y`, read along shared
+  category rows), or picks whichever arrangement lands nearest the target aspect without leaving
+  a row mostly empty beside a short group (`auto`).
+- **`check_chart` per panel.** Observations are keyed by panel, so the same week in two panels
+  is not confused. Geometry (value or interval) and value encoding are read per panel. A marks
+  function that drops its `fmt_value` argument gets a named fix. Segments drawn between two
+  observations count as reaching both ends, so a label at a projected endpoint is no longer
+  reported as detached.
+- **Harder helpers.** A panel without series adds no blank series to the palette, every panel
+  draws from the page palette, a long discrete axis labels every k-th category so labels do not
+  overlap, and `end_labels()` prints each name once at its line's last point even when it is
+  handed every row.
+- Select schema: `plot_data.panels`, `plot_data.status`, and a `panels` list of per-panel
+  settings. The build brief and the construct, builder and selector skills now describe panels
+  of different forms.
+
 ### Line-end names wrap; sparse date axes tick only where the data is
 
 In the 25 September canonical run, case 04 (seven food groups, 1970-2050) spent half its 1200px

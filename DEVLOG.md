@@ -1,5 +1,88 @@
 # Devlog
 
+## 2026-09-29 - Multi-panel charts on the scaffold
+
+### User report
+
+- "we have an issue wiht graph construction scaffolding. a lot of caes don't go through this
+  because there are multiple panels, for example (not just facets when we need two separate graphs
+  etc. how do we fix this? or is there no way out?"
+- Pointed at the latest canonical transcript for the cases that skipped the scaffold. When I
+  proposed dropping mixed forms because none of those cases needed them: "no you are overfitting -
+  one lhine and one bar is a real use case". Then: "build".
+
+### What I found
+
+- Of the seven cases in the 28 September canonical run, 03, 04 and 06 built without the scaffold,
+  each for `no_usable_plot_map`. The planner could not write their data as one role map, so it
+  sent `plot_data: {input: canonical}`.
+- 03: total usage above ten model lines over the same 53 weeks. Panel membership was assigned by
+  category, and both panels had all 53 categories, so the split failed
+  (`overlapping_region_category_membership`).
+- 06: category revenue bars beside a panel of totals from a different column
+  (`stack_total_millions`). One role map cannot read two value columns into two panels.
+- 04: a single panel. Its observed/projected `status` had no role, so the whitelist dropped the
+  column that the scaffold's own `line_segments(d, "status")` helper needs.
+
+### What I did
+
+- `prepare_plot_data(panels=[...])`: one role map per panel (with `where` row filters and an
+  optional table of its own), stacked into one frame with a `region` column. Panel membership is
+  now fixed when the frame is built. Removed `_region_membership` and the `categories` field on
+  layout regions. Added the `status` role.
+- `scaffold_chart`: split into per-panel specs. Each panel has its own typing, number format, axis
+  settings, value-axis decision, end-label room, facet grid, date and category breaks, and its own
+  `chart_marks_<panel>(d, fmt_value)`. The page keeps one palette, the fonts and the frame.
+  A single-panel chart produces the same source as before.
+- `recommend_layout(group_align=...)`: groups can share page rows. `auto` scores each arrangement
+  by its distance from the target aspect plus the empty area left beside short groups, so a
+  one-bar total is not placed next to a tall detail panel.
+- Matplotlib got the same multi-panel path: one gridspec per box and axes tagged by panel, so
+  `check_chart` reads each panel's orientation and span separately.
+- `check_chart`: the observation key includes the panel, geometry and encoding are read per
+  panel, and a segment between two observations counts as reaching both ends. That last one was
+  a false `LABEL_OFF_ITS_MARK` on a projected endpoint, found while rendering my own test.
+- Contracts and skills: select schema `plot_data.panels` / `status` / per-panel `panels`, the
+  build brief, and the construct, builder and selector skills (Claude and Codex copies), plus
+  docs and README.
+
+### Validation with weak models
+
+- Sonnet and haiku subagents built from the tool docstrings and the builder skill on the real
+  canonical data: case 03 (sonnet), case 06 (haiku), and a bar-beside-line design on the case 03
+  data (both).
+- The first round found a bug I had introduced. A panel with no series left a blank series in the
+  stacked frame, and the palette then wrote `"" = ...`, which R rejects. Both haiku runs edited
+  the scaffold to get around it. `check_chart` restored the edit, bringing the bug back, so
+  they skipped the check, and tiny text and default ggplot hues reached the render. Blank is no
+  longer read as a series.
+- The haiku bar+line run showed that sharing a value range because two panels use the same
+  number format flattened three model lines under a 76T total. Panels now share a range
+  automatically only while each still covers at least half of it (the same floor the position
+  check uses). `value_scale: shared` forces sharing.
+- The same run printed 52 week labels on top of one another. Long discrete axes now label every
+  k-th category, with k taken from the label's width and the slot's width.
+- In the second haiku round, case 06 came out right (one shared scale, values and growth notes
+  clear), except the totals panel used ggplot's default hues: the palette scale was only added
+  to panels with series. Every panel now draws from the page palette.
+- The second haiku bar+line run passed every row to `end_labels()`, so a name was printed at
+  every point. `end_labels()` now keeps each name once, at its line's last point, whatever rows
+  it gets. The run also left the lines one colour (it never mapped `colour = series`) and
+  printed the values without the T suffix. The scaffold cannot catch those - they are the
+  model's marks.
+- Sonnet case 03 and sonnet bar+line stayed on the scaffold and ended with a clean `check_chart`.
+  In the bar+line render, the bars and lines sit side by side, each with its own heading, axis
+  and format.
+
+### Notes / decisions
+
+- The panel list comes from the frame, not the layout. The layout only supplies boxes, and a
+  panel it did not size gets an equal share of a stack, with a warning.
+- Per-panel `fmt_value` is passed as an argument, so the model's code reads the same in every
+  panel. Dropping the argument is a build error with a named fix.
+- Still open: the repair-site planner must emit `plot_data.panels` and stop sending
+  `input: canonical` for charts. That code is not in this repo.
+
 ## 2026-09-25 - Case 04: unwrapped end labels and ticks at years with no data
 
 ### User report
