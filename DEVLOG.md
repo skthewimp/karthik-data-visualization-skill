@@ -4477,3 +4477,4 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - The house defaults are in the scaffold and pushed; `main` is in sync with origin. This time I ran only the three tests the change touches, not the full suite. **Dumbbell labels:** no change needed. The labels try the...
 
 <!-- claude-session:ef1dd849-170a-4a53-8e35-dcea3503ba14:end -->
+
