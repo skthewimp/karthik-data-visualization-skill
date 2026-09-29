@@ -1,5 +1,12 @@
 # Repository instructions
 
+## Python environment on Karthik's computer
+
+- Use the single central environment at `/Users/Karthik/envs/datascience/.venv`.
+  It is already on `PATH`; use `python` or `python3` from that environment.
+- Do not create or use project-local virtual environments, including an existing `.venv`.
+  This machine convention does not prescribe an environment path for third-party users.
+
 ## Keep development proportional
 
 - Start with the affected code and tests. Read historical logs and plans only when needed.

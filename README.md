@@ -286,12 +286,11 @@ cd karthik-data-visualization-skill
 ./sync.sh --no-pull --surface claude  # Claude Code
 ```
 
-Install the MCP package into an existing environment or a new local environment:
+Install the MCP package into your existing Python environment:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -e .
-MCP_PYTHON="$(pwd)/.venv/bin/python"
+python3 -m pip install -e .
+MCP_PYTHON="$(python3 -c 'import sys; print(sys.executable)')"
 ```
 
 Register it with Codex:
