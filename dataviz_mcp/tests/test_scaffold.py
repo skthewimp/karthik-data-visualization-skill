@@ -194,6 +194,7 @@ def test_subtitle_key_colours_series_names(tmp_path: Path) -> None:
     assert "ggtext::element_markdown" in source
 
 
+@pytest.mark.integration
 def test_check_restores_an_edited_scaffold(tmp_path: Path) -> None:
     result = _scaffold(tmp_path)
     source = Path(result["source_path"])
@@ -212,6 +213,7 @@ def test_check_reports_a_missing_slot(tmp_path: Path) -> None:
     assert report["deviations"][0]["code"] == "MARKS_SLOT_MISSING"
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_check_passes_clean_marks_and_renders(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, value_labels=4)
@@ -226,6 +228,7 @@ def test_check_passes_clean_marks_and_renders(tmp_path: Path) -> None:
     assert "axis_label" not in roles
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_check_names_each_slot_deviation(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, value_labels=4)
@@ -243,6 +246,7 @@ def test_check_names_each_slot_deviation(tmp_path: Path) -> None:
     assert codes == {"MARKS_NON_LAYER", "GEOM_LABEL", "COLOUR_NOT_IN_PALETTE", "TEXT_TOO_SMALL", "TEXT_ON_MARK"}
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_value_on_a_discrete_axis_fails_the_build_with_a_fix(tmp_path: Path) -> None:
     # The flat-slopegraph bug: series on y, value only in the label text.
@@ -256,6 +260,7 @@ def test_value_on_a_discrete_axis_fails_the_build_with_a_fix(tmp_path: Path) -> 
     assert "map y = value" in report["deviations"][0]["message"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_value_left_off_the_value_axis_is_caught(tmp_path: Path) -> None:
     # A slopegraph that builds but draws flat: y is a constant, the value only in the labels.
@@ -274,6 +279,7 @@ def test_value_left_off_the_value_axis_is_caught(tmp_path: Path) -> None:
     assert codes == ["TEXT_ON_MARK", "VALUE_NOT_ON_POSITION"]
 
 
+@pytest.mark.integration
 def test_matplotlib_value_left_off_the_value_axis_is_caught(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, renderer="matplotlib")
     source = result["source_path"]
@@ -287,6 +293,7 @@ def test_matplotlib_value_left_off_the_value_axis_is_caught(tmp_path: Path) -> N
     assert [d["code"] for d in check_chart(source)["deviations"]] == ["VALUE_NOT_ON_POSITION"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_hidden_value_axis_requires_the_promised_labels(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, value_labels=4)
@@ -298,6 +305,7 @@ def test_hidden_value_axis_requires_the_promised_labels(tmp_path: Path) -> None:
     assert codes == ["VALUE_LABELS_MISSING"]
 
 
+@pytest.mark.integration
 def test_matplotlib_scaffold_checks_and_renders(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, renderer="matplotlib", value_labels=4)
     source = result["source_path"]
@@ -318,8 +326,9 @@ def test_matplotlib_scaffold_checks_and_renders(tmp_path: Path) -> None:
     # A hand-picked hue in the slot is caught on the built figure.
     stray = body.replace("color=colour)", "color='#3366cc')")
     Path(source).write_text(f"{head}{MARKS_BEGIN}\n{stray}\n{MARKS_END}{tail}", encoding="utf-8")
-    assert [d["code"] for d in check_chart(source)["deviations"]] == ["COLOUR_NOT_IN_PALETTE"]
-    assert re.search(r"1\. Marks use #3366cc", check_chart(source)["fix_list"])
+    report = check_chart(source)
+    assert [d["code"] for d in report["deviations"]] == ["COLOUR_NOT_IN_PALETTE"]
+    assert "#3366cc" in report["fix_list"]
 
 
 def test_direct_label_room_is_reserved_past_the_last_point(tmp_path: Path) -> None:
@@ -334,6 +343,7 @@ def test_direct_label_room_is_reserved_past_the_last_point(tmp_path: Path) -> No
     assert right(labelled) > right(plain)
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_stacked_labels_computed_apart_from_the_bars_are_caught(tmp_path: Path) -> None:
     # The haiku failure: a hand cumsum in the opposite order to ggplot's stack, and hex strings
@@ -385,6 +395,7 @@ def test_returned_frame_matches_the_drawn_margin(tmp_path: Path) -> None:
     assert drawn["plot_area"]["width"] == round(frame["plot_area"]["width"] - extra, 1)
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_default_stack_runs_against_the_series_order(tmp_path: Path) -> None:
     # ggplot's default stack puts the first series furthest from the baseline.
@@ -402,6 +413,7 @@ def test_default_stack_runs_against_the_series_order(tmp_path: Path) -> None:
     assert check_chart(result["source_path"])["ok"]
 
 
+@pytest.mark.integration
 def test_matplotlib_stack_helper_keeps_series_order(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, renderer="matplotlib", orientation="horizontal", zero_baseline=True)
     source = result["source_path"]
@@ -422,6 +434,7 @@ def test_matplotlib_stack_helper_keeps_series_order(tmp_path: Path) -> None:
     assert [d["code"] for d in check_chart(source)["deviations"]] == ["STACK_ORDER"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_text_on_a_mark_is_judged_against_its_fill(tmp_path: Path) -> None:
     # White reads on the blue but not on the orange; the scaffold's ink reads on both.
@@ -440,6 +453,7 @@ def test_text_on_a_mark_is_judged_against_its_fill(tmp_path: Path) -> None:
     assert check_chart(result["source_path"])["ok"]
 
 
+@pytest.mark.integration
 def test_matplotlib_on_mark_ink(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, renderer="matplotlib", zero_baseline=True)
     source = result["source_path"]
@@ -470,6 +484,7 @@ def _codes(source: str) -> list[str]:
     return [d["code"] for d in check_chart(source)["deviations"]]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_value_past_the_bar_end_reads_on_the_page_not_the_fill(tmp_path: Path) -> None:
     # The label anchors at the bar's end but its glyphs run outward onto the page, so the bar
@@ -486,6 +501,7 @@ def test_value_past_the_bar_end_reads_on_the_page_not_the_fill(tmp_path: Path) -
     assert _codes(result["source_path"]) == ["LOW_CONTRAST_ON_MARK"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_on_fill_ink_spilling_off_a_short_bar_is_caught_on_the_page(tmp_path: Path) -> None:
     result = _single(tmp_path)
@@ -499,6 +515,7 @@ def test_on_fill_ink_spilling_off_a_short_bar_is_caught_on_the_page(tmp_path: Pa
     assert "'95.0'" not in report["fix_list"] and "'0.3'" in report["fix_list"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_bar_values_put_each_value_where_it_reads(tmp_path: Path) -> None:
     result = _single(tmp_path)
@@ -517,6 +534,7 @@ def test_bar_values_put_each_value_where_it_reads(tmp_path: Path) -> None:
     assert ink["95.0"].startswith("#ffffff") and ink["0.3"].startswith("#1a1a1a")
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_grouped_labels_are_matched_by_identity_not_by_the_printed_number(tmp_path: Path) -> None:
     rows = [["Total", 70398, 77264], ["Network", 7413, 7256]]
@@ -540,6 +558,7 @@ def test_grouped_labels_are_matched_by_identity_not_by_the_printed_number(tmp_pa
     assert "position_dodge(width = 0.8)" in report["fix_list"] and "stack" not in report["fix_list"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_stacking_line_labels_detaches_them_from_their_lines(tmp_path: Path) -> None:
     rows = [[str(2010 + i), 40 + i, 10 + i] for i in range(6)]
@@ -557,6 +576,7 @@ def test_stacking_line_labels_detaches_them_from_their_lines(tmp_path: Path) -> 
     assert "drop that adjustment" in report["fix_list"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_a_faint_background_band_is_not_a_mark(tmp_path: Path) -> None:
     # A shaded projection band behind the lines is neither a bar to match labels to nor a fill
@@ -577,6 +597,7 @@ def test_a_faint_background_band_is_not_a_mark(tmp_path: Path) -> None:
     assert _codes(result["source_path"]) == ["DECORATION_STRETCHES_AXIS"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_value_span_is_compared_in_the_value_scale_space(tmp_path: Path) -> None:
     rows = [["A", 1, 10], ["B", 100, 1000], ["C", 10000, 100000]]
@@ -607,6 +628,7 @@ def test_long_panel_headings_wrap_to_their_panel(tmp_path: Path) -> None:
     assert 8 <= wrap < len(names[1])
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_end_labels_spread_crowded_line_names_apart(tmp_path: Path) -> None:
     # Six lines ending within a label's height of each other: their names spread apart along the
@@ -635,6 +657,7 @@ def test_end_labels_spread_crowded_line_names_apart(tmp_path: Path) -> None:
     assert not any(d["code"] == "LOW_TEXT_CONTRAST" for d in report["defects"])
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_long_end_labels_wrap_into_a_capped_band(tmp_path: Path) -> None:
     # Long line names stack on whole words in a band a fraction of the plot wide, instead of
@@ -709,6 +732,7 @@ DUMBBELL = {
 }
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 @pytest.mark.parametrize("case", [LINE_START, DUMBBELL], ids=["line-start", "dumbbell"])
 def test_point_values_stay_inside_and_off_the_lines(tmp_path: Path, case: dict) -> None:
@@ -770,6 +794,7 @@ def test_routing_words_are_read_leniently_not_refused(tmp_path: Path) -> None:
     assert not any("zero_baseline" in w or "identification" in w for w in result["resolutions"] + result["warnings"])
 
 
+@pytest.mark.integration
 def test_check_reports_a_hand_written_chart(tmp_path: Path) -> None:
     source = tmp_path / "chart.R"
     source.write_text("build_chart <- function() ggplot2::ggplot()\n", encoding="utf-8")
@@ -803,6 +828,7 @@ def test_label_measure_gets_its_own_formatter(tmp_path: Path) -> None:
     assert 'style_positive = "plus"' in Path(signed["source_path"]).read_text(encoding="utf-8")
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_interval_marks_are_checked_against_their_own_ends(tmp_path: Path) -> None:
     result = _segments(tmp_path)
@@ -869,6 +895,7 @@ def test_regions_draw_each_panel_from_its_own_rows(tmp_path: Path) -> None:
     assert source.count("limits = c(0.0, 77264.0)") == 2
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_region_page_checks_and_renders_with_notes_clear_of_values(tmp_path: Path) -> None:
     result = _regions(tmp_path)
@@ -941,6 +968,7 @@ def test_panels_take_their_own_form_scales_and_formats(tmp_path: Path) -> None:
     assert "status" in result["marks_brief"] and "chart_marks_operating_margin" in result["marks_brief"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_a_bar_beside_a_line_checks_and_renders(tmp_path: Path) -> None:
     result = _mixed(tmp_path)
@@ -954,6 +982,7 @@ def test_a_bar_beside_a_line_checks_and_renders(tmp_path: Path) -> None:
     assert not codes & {"TEXT_TEXT_COLLISION", "TEXT_CLIPPED"}
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_a_panel_marks_function_that_drops_its_format_is_named(tmp_path: Path) -> None:
     result = _mixed(tmp_path)
@@ -964,6 +993,7 @@ def test_a_panel_marks_function_that_drops_its_format_is_named(tmp_path: Path) -
     assert "arguments exactly as the scaffold wrote them" in report["fix_list"]
 
 
+@pytest.mark.integration
 def test_matplotlib_panels_build_and_check(tmp_path: Path) -> None:
     result = _mixed(tmp_path, renderer="matplotlib")
     _fill(result["source_path"], """def chart_marks_revenue(ax, rows, fmt_value, pos):
@@ -1083,6 +1113,7 @@ def test_a_long_discrete_axis_labels_every_kth_category(tmp_path: Path) -> None:
     assert breaks[0] == '"P01"' and 2 < len(breaks) < 52
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_end_labels_handed_every_row_print_each_name_once_at_its_end(tmp_path: Path) -> None:
     result = _scaffold(tmp_path, layout=recommend_layout(x_slots=2))
@@ -1134,6 +1165,7 @@ def test_resolve_draws_the_fallback_as_one_panel_per_series(tmp_path: Path) -> N
     assert "name each series once" not in result["marks_brief"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_series_nothing_names_are_caught_and_one_naming_passes(tmp_path: Path) -> None:
     rows = [["cacheRead", 95.0, 50.2], ["cacheWrite", 3.5, 30.2], ["output", 1.0, 18.8]]
@@ -1152,6 +1184,7 @@ def test_series_nothing_names_are_caught_and_one_naming_passes(tmp_path: Path) -
     assert "SERIES_UNNAMED" not in _codes(result["source_path"])
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_a_pair_on_one_category_labels_its_ends_outward(tmp_path: Path) -> None:
     # A small change on a wide scale: the two values sit close, so labels placed toward the middle

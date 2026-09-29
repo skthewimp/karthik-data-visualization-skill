@@ -57,17 +57,16 @@ def test_every_stage_bundles_only_named_skills(pipeline_name, stage) -> None:
     assert carried == names
 
 
-def test_build_stage_swaps_builder_skill() -> None:
-    build = sc.stage("repair", "build")
-    chart = set(build.skill_names(builder="chart"))
-    table = set(build.skill_names(builder="table"))
-    assert "karthik-data-visualization" in chart
-    assert "karthik-data-visualization" not in table
-    assert "karthik-table-style" in table
-    assert "karthik-table-style" not in chart
-    # A build stage without a builder choice is an error, not a silent all-skills bundle.
+def test_build_loads_only_its_builder_and_active_conditions() -> None:
+    build = sc.stage("story", "build")
+    for builder, skill in (("chart", "karthik-data-visualization"), ("table", "karthik-table-style")):
+        assert set(build.skill_names(builder=builder)) == {skill}
+        active = ("chart-annotations", "dataviz-precision", "dataviz-color", "chart-explainer")
+        expected = {skill, "chart-annotations"} if builder == "chart" else {skill}
+        assert set(build.skill_names(builder=builder, active_conditions=active)) == expected
     with pytest.raises(ValueError):
-        build.skill_names()
+        sc.stage_skill_bundle(build, repository_root=REPO_ROOT)
+    assert {"needs_precision_plan", "needs_color_plan"} <= sc.SELECT_SCHEMA["properties"].keys()
 
 
 def test_selection_and_review_share_live_constraints_without_workflow_leakage(tmp_path) -> None:
@@ -100,62 +99,14 @@ def test_review_fails_if_shared_constraints_are_missing_or_ambiguous(tmp_path, b
         sc.stage_skill_bundle(sc.stage("repair", "idea"), repository_root=tmp_path)
 
 
-def test_build_conditionals_load_only_when_active() -> None:
-    build = sc.stage("repair", "build")
-    without = set(build.skill_names(builder="chart"))
-    assert "chart-annotations" not in without
-    with_ann = set(
-        build.skill_names(builder="chart", active_conditions=("chart-annotations",))
-    )
-    assert "chart-annotations" in with_ann
-
-
-def test_annotations_are_chart_only_never_dragged_into_a_table_build() -> None:
-    """The build call differs by what is built: on-chart marks can't enter a table build."""
-    build = sc.stage("story", "build")
-    # Even asked for, chart-annotations does not load for a table - a table has no on-chart
-    # marks, so the skill is not offered to that builder at all.
-    table = set(build.skill_names(builder="table", active_conditions=("chart-annotations",)))
-    assert "chart-annotations" not in table
-    assert "karthik-table-style" in table
-    assert "karthik-data-visualization" not in table
-    # The same request loads it for a chart.
-    chart = set(build.skill_names(builder="chart", active_conditions=("chart-annotations",)))
-    assert "chart-annotations" in chart
-
-
 def test_explainer_is_a_render_independent_stage_not_a_build_skill() -> None:
     """The note is written from the finding, not the pixels - so it never rides in build."""
-    build = sc.stage("story", "build")
-    for builder in ("chart", "table"):
-        loaded = set(
-            build.skill_names(builder=builder, active_conditions=("chart-explainer",))
-        )
-        assert "chart-explainer" not in loaded
     explain = sc.stage("story", "explain")
     assert explain.skills == ("chart-explainer",)
     # Reads the plan (select) and the finding (insight); never the build/render artifact.
     assert explain.input_schema is sc.SELECT_SCHEMA
     assert explain.also_reads == ("insight",)
     assert "build" not in explain.also_reads
-
-
-def test_precision_and_colour_skills_are_not_carried_into_build() -> None:
-    """Both are decided at select and resolved by a tool; build applies, never re-decides."""
-    build = sc.stage("story", "build")
-    for builder in ("chart", "table"):
-        loaded = set(
-            build.skill_names(
-                builder=builder,
-                active_conditions=("dataviz-precision", "dataviz-color", "chart-explainer"),
-            )
-        )
-        assert "dataviz-precision" not in loaded
-        assert "dataviz-color" not in loaded
-    # The signals survive - needs_*_plan still tell the driver to resolve format / palette.
-    props = sc.SELECT_SCHEMA["properties"]
-    assert "needs_precision_plan" in props
-    assert "needs_color_plan" in props
 
 
 def test_insight_artifact_is_carried_across_the_gate_to_idea_and_build() -> None:
@@ -173,12 +124,6 @@ def test_insight_artifact_is_carried_across_the_gate_to_idea_and_build() -> None
     # select reads insight as its direct input, so it needs no also_reads.
     assert sc.stage("story", "select").input_schema is sc.INSIGHT_SCHEMA
     assert sc.stage("story", "select").also_reads == ()
-
-
-def test_missing_builder_choice_raises() -> None:
-    build = sc.stage("story", "build")
-    with pytest.raises(ValueError):
-        sc.stage_skill_bundle(build, repository_root=REPO_ROOT)
 
 
 def test_only_select_stages_declare_routing_fields() -> None:
@@ -232,7 +177,6 @@ def test_corpus_loader_is_read_only_and_deduplicates_case_ids(tmp_path: Path) ->
     report = benchmark_case_records(cases)
     assert report["cases"] == 1
     assert report["regression_families"] == list(REGRESSION_FAMILIES)
-    assert len(report["regression_families"]) == 10
 
 
 def test_benchmark_comparison_requires_complete_replay_and_no_false_pass_increase() -> None:

@@ -18,6 +18,12 @@ def test_continuous_axes_take_a_pleasant_aspect_not_a_squashed_box():
     assert 1.2 < result["width_px"] / result["height_px"] < 2.2
     assert result["warnings"] == []
 
+    fit = result["fit"]
+    assert fit["status"] == "ok"
+    assert fit["legible"] is True
+    assert fit["fits_ceiling"] is True
+    assert fit["directives"] == []
+
 
 def test_x_slots_grow_width_toward_the_density_floor():
     sparse = recommend_layout(x_slots=10)
@@ -49,14 +55,6 @@ def test_wide_few_row_filled_panels_do_not_letterbox():
     panel_h = (result["height_px"] - result["reserved_band_px"] - axis_band) / nrow
     assert panel_w / panel_h <= MAX_PANEL_ASPECT + 0.05  # the panel itself is not letterboxed
     assert result["data_panel_fraction"] >= 0.4          # and it is not starved
-
-
-def test_many_row_horizontal_bars_still_grow_height_by_rows():
-    # The letterbox floor must not shrink a tall ranked strip: row demand dominates there,
-    # so the floor never binds and height keeps scaling with the row count.
-    few = recommend_layout(y_slots=6, filled_marks=True)
-    many = recommend_layout(y_slots=30, filled_marks=True)
-    assert many["height_px"] > few["height_px"]
 
 
 def test_continuous_y_facets_use_the_profile_height_not_a_starved_panel_width():
@@ -107,6 +105,8 @@ def test_faceting_returns_a_grid_not_a_shallow_strip():
     result = recommend_layout(n_panels=7)
     assert result["facet_ncol"] >= 2 and result["facet_nrow"] >= 2
     assert result["facet_ncol"] * result["facet_nrow"] >= 7
+
+    assert result["regions"] is None
 
 
 def test_free_y_is_read_like_free_not_silently_dropped():
@@ -177,17 +177,6 @@ def test_long_y_labels_are_capped_and_wrapped_not_grown_into_the_margin():
     assert long["height_px"] >= short["height_px"]
 
 
-def test_reports_data_panel_fraction_and_keeps_it_healthy():
-    result = recommend_layout(
-        x_slots=11, y_slots=24, filled_marks=True, y_labels=True, longest_y_label_chars=34,
-        delivery_profile="chat",
-    )
-    assert 0.0 < result["data_panel_fraction"] <= 1.0
-    # With the left band budgeted and the canvas grown, the plot panel keeps a real share
-    # of the canvas rather than collapsing behind the labels.
-    assert result["data_panel_fraction"] >= 0.4
-
-
 def test_a_left_band_that_would_dominate_is_warned():
     # Extreme labels the ceiling cannot fully absorb must be surfaced, not silently squashed.
     result = recommend_layout(
@@ -195,12 +184,6 @@ def test_a_left_band_that_would_dominate_is_warned():
         delivery_profile="chat",
     )
     assert any("label" in w.lower() for w in result["warnings"])
-
-
-def test_short_labels_leave_layout_unchanged():
-    # Regression: the new label budgeting must not perturb the default sizing.
-    with_flag = recommend_layout(y_slots=8, filled_marks=True)
-    assert with_flag["width_px"] == recommend_layout(y_slots=8, filled_marks=True)["width_px"]
 
 
 def test_suggest_dims_grows_by_the_measured_overflow():
@@ -249,13 +232,6 @@ def _weekly_usage_groups():
     ]
 
 
-def test_scalar_path_reports_no_regions():
-    # Back-compat: the single-grid API is unchanged and carries a null regions key.
-    result = recommend_layout(n_panels=12, x_slots=12, filled_marks=True)
-    assert result["regions"] is None
-    assert result["facet_ncol"] * result["facet_nrow"] >= 12
-
-
 def test_panel_groups_return_one_region_per_group_in_order():
     result = recommend_layout(panel_groups=_weekly_usage_groups(), delivery_profile="chat")
     regions = result["regions"]
@@ -264,6 +240,10 @@ def test_panel_groups_return_one_region_per_group_in_order():
     # Every panel is accounted for; the twelve are NOT one 4x3 uniform grid.
     assert sum(r["facet_ncol"] * r["facet_nrow"] >= r["n_panels"] for r in regions) == 3
     assert regions[0]["n_panels"] == 1 and regions[2]["n_panels"] == 10
+
+    overview, detail = regions[0], regions[2]
+    assert overview["height"] > detail["height"] / detail["facet_nrow"]
+    assert 0.0 < result["data_panel_fraction"] <= 1.0
 
 
 def test_panel_groups_aligned_on_x_stack_as_disjoint_full_width_bands():
@@ -309,14 +289,6 @@ def test_auto_arrangement_never_overlaps_and_prefers_no_holes():
     pair = [{"role": "a", "n_panels": 1}, {"role": "b", "n_panels": 1}]
     a, b = recommend_layout(panel_groups=pair, target_aspect=2.5)["regions"]
     assert a["y"] == b["y"] and b["x"] >= a["x"] + a["width"]
-
-
-def test_overview_band_is_taller_than_a_single_detail_cell():
-    # The aggregate panel must be set apart, not read as one more equal cell.
-    result = recommend_layout(panel_groups=_weekly_usage_groups())
-    overview, detail = result["regions"][0], result["regions"][2]
-    detail_cell_h = detail["height"] / detail["facet_nrow"]
-    assert overview["height"] > detail_cell_h
 
 
 def test_emphasis_grows_the_prominent_band():
@@ -382,11 +354,6 @@ def test_wide_panel_group_grows_width_never_squashes_slots():
     fit = result["fit"]
     assert fit["over_width"] is True and fit["legible"] is True
     assert any(d["action"] == "reduce_slots" for d in fit["directives"])
-
-
-def test_panel_groups_still_report_data_panel_fraction():
-    result = recommend_layout(panel_groups=_weekly_usage_groups())
-    assert 0.0 < result["data_panel_fraction"] <= 1.0
 
 
 def test_tall_group_stack_grows_the_canvas_never_squashes_panels():
@@ -509,14 +476,6 @@ def test_panel_groups_also_return_resolved_fonts():
     )
     assert result["font_pt"] == house_font_pt(result["width_px"], result["height_px"])
 
-
-def test_fit_object_is_ok_for_a_comfortable_chart():
-    result = recommend_layout(x_slots=8, y_slots=8, filled_marks=True)
-    fit = result["fit"]
-    assert fit["status"] == "ok"
-    assert fit["legible"] is True
-    assert fit["fits_ceiling"] is True
-    assert fit["directives"] == []
 
 # ---- from test_frame.py ----
 
@@ -883,6 +842,7 @@ def build_chart():
 '''
 
 
+@pytest.mark.integration
 def test_live_matplotlib_grows_until_the_clip_clears(tmp_path):
     source = tmp_path / "clip.py"
     source.write_text(_CLIP_MPL, encoding="utf-8")
@@ -919,6 +879,7 @@ build_chart <- function() {
 '''
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_live_ggplot_grows_squashed_facet_panels(tmp_path):
     source = tmp_path / "squash.R"

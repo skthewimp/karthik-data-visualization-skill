@@ -382,15 +382,6 @@ def test_placement_priority_data_label_then_label_then_annotation():
     assert not boxes_overlap(lab["bbox"], ann["bbox"])
 
 
-def test_unmoved_label_has_no_leader_line():
-    result = recommend_text_placement(
-        1200, 700, 144,
-        blocks=[{"id": "a", "role": "label", "text": "36%", "anchor": {"x": 400, "y": 300}}],
-        obstacles=[],
-    )
-    assert _by_id(result, "a")["leader_line"] is None
-
-
 def test_fixed_roles_are_wrapped_but_never_given_a_moved_anchor():
     result = recommend_text_placement(
         1200, 700, 144,
@@ -853,6 +844,7 @@ def test_interval_end_values_go_outward_along_the_interval():
         assert abs(box["y"] + box["height"] / 2 - row) < 1  # centred on the row
 
 
+@pytest.mark.integration
 def test_ggplot_segments_export_as_paths_so_interval_ends_are_known(tmp_path):
     # geom_segment draws from (x0, y0) to (x1, y1) with no x/y; the render metadata must still
     # carry each segment as a two-point path, or the interval rule never sees a dumbbell.

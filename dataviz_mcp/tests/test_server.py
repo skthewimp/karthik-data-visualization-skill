@@ -39,6 +39,7 @@ EXPECTED_TOOLS = {
 }
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(importlib.util.find_spec("mcp") is None, reason="MCP SDK not installed")
 def test_server_registers_every_tool_and_returns_structured_results(tmp_path: Path) -> None:
     fixtures = Path(__file__).parent / "fixtures" / "chart_fixtures.py"

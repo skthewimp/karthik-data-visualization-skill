@@ -7,6 +7,7 @@ import pytest
 from dataviz_mcp.table_layout import recommend_table_layout
 
 
+@pytest.mark.integration
 def test_wrapping_pagination_preserves_content_and_type():
     cols = [{"header": "Name", "identifier": True, "max_width_px": 120,
              "cells": ["A much longer name", "B", "C", "D"]}]
@@ -27,6 +28,7 @@ def test_wrapping_pagination_preserves_content_and_type():
     assert out["cells"][0][0].replace("\n", " ") == cols[0]["cells"][0]
 
 
+@pytest.mark.integration
 def test_display_floor_and_unbreakable_content():
     out = recommend_table_layout([{"header": "Value", "cells": ["W" * 100]}],
         delivery={"display_width_px": 400, "minimum_text_px": 16, "max_width_px": 1600})
@@ -35,6 +37,7 @@ def test_display_floor_and_unbreakable_content():
     assert out["cells"][0][0] == "W" * 100
 
 
+@pytest.mark.integration
 def test_treatment_requires_shared_scale_semantics_not_column_counts():
     cols = [{"header": "Value", "cells": ["-3", "10"]}]
     with pytest.raises(ValueError, match="commensurability"):
@@ -44,6 +47,7 @@ def test_treatment_requires_shared_scale_semantics_not_column_counts():
     assert out["treatment"] == [plan]
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("long_header", [True, False])
 def test_construction_wraps_long_content_without_a_manual_width_cap(long_header):
     phrase = "Average revenue per active customer"
@@ -69,6 +73,7 @@ def test_construction_wraps_long_content_without_a_manual_width_cap(long_header)
         assert compact["row_heights_px"] == wide["row_heights_px"]
 
 
+@pytest.mark.integration
 def test_header_budget_requires_complete_text_and_respects_column_ceiling():
     with pytest.raises(ValueError, match="full header text"):
         recommend_table_layout([{"header_chars": 40, "max_cell_chars": 4}])
@@ -84,6 +89,7 @@ def test_header_budget_requires_complete_text_and_respects_column_ceiling():
     assert impossible["header_pt"] == plan["header_pt"]
 
 
+@pytest.mark.integration
 def test_frame_bands_measure_each_role_at_its_own_size():
     out = recommend_table_layout(
         [{"header": "Region", "cells": ["North", "South"]},
@@ -104,6 +110,7 @@ def test_frame_bands_measure_each_role_at_its_own_size():
     assert out["reserved_band_px"] > 0
 
 
+@pytest.mark.integration
 def test_title_pt_override_shrinks_its_reserved_band():
     kw = dict(delivery={"max_width_px": 1200, "max_height_px": 800})
     big = recommend_table_layout([{"header": "H", "cells": ["1", "2"]}],
@@ -134,6 +141,7 @@ def _codes(report: dict) -> set:
     return {d["code"] for d in report["defects"]}
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_r_table")
 @pytest.mark.parametrize("dpi", [72, 216])
 def test_constructor_preserves_content_and_geometry(tmp_path: Path, dpi: int) -> None:
@@ -203,6 +211,7 @@ def _plan(**delivery):
     )
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("dpi", [72, 216])
 def test_no_r_table_fallback_preserves_geometry_and_inspection(tmp_path, monkeypatch, dpi):
     _no_r(monkeypatch)
@@ -233,6 +242,7 @@ def test_no_r_table_fallback_preserves_geometry_and_inspection(tmp_path, monkeyp
         assert inspect_rendered_chart(bundle["artifact"]["path"], bundle["layout_metadata_path"])["checks_complete"]
 
 
+@pytest.mark.integration
 def test_fallback_does_not_hide_cell_overflow(tmp_path, monkeypatch):
     _no_r(monkeypatch)
     plan = _plan()
@@ -243,6 +253,7 @@ def test_fallback_does_not_hide_cell_overflow(tmp_path, monkeypatch):
     assert report["passes_geometry_checks"] is False
 
 
+@pytest.mark.integration
 def test_public_table_tool_works_without_r(tmp_path, monkeypatch):
     _no_r(monkeypatch)
     async def run():
@@ -329,6 +340,7 @@ def test_display_strings_parse_to_numbers():
     assert parse_number("n/a") is None
 
 
+@pytest.mark.integration
 def test_shading_resolves_ordered_fills_with_legible_ink():
     out = recommend_table_layout(_benchmark_columns(), treatment=[
         {"kind": "shading", "columns": [2]},
@@ -348,6 +360,7 @@ def test_shading_resolves_ordered_fills_with_legible_ink():
     assert out["untreated_numeric_columns"] == []
 
 
+@pytest.mark.integration
 def test_shared_row_scale_needs_commensurability_and_normalises_each_row():
     cols = [{"header": "Metric", "identifier": True, "cells": ["Pace", "HR"]}]
     cols += [{"header": str(k), "cells": [str(p), str(h)]}
@@ -362,6 +375,7 @@ def test_shared_row_scale_needs_commensurability_and_normalises_each_row():
     assert min(fills[1], key=_lightness) == fills[1][2]
 
 
+@pytest.mark.integration
 def test_bars_reserve_graphic_space_and_start_at_the_baseline():
     plain = recommend_table_layout(_benchmark_columns())
     out = recommend_table_layout(_benchmark_columns(), treatment={"kind": "bar", "columns": [1]})
@@ -372,6 +386,7 @@ def test_bars_reserve_graphic_space_and_start_at_the_baseline():
     assert bars[3]["end"] == 1 and bars[0]["end"] < bars[1]["end"] < bars[2]["end"]
 
 
+@pytest.mark.integration
 def test_sparklines_show_each_rows_shape_unless_shared():
     cols = [{"header": "Metric", "identifier": True, "cells": ["Pace", "HR"]},
             {"header": "Trend", "cells": ["", ""], "values": [[300, 360, 330], [140, 150, 180]]}]
@@ -383,6 +398,7 @@ def test_sparklines_show_each_rows_shape_unless_shared():
         recommend_table_layout(cols, treatment={"kind": "sparkline", "columns": [1], "scope": "column"})
 
 
+@pytest.mark.integration
 def test_emphasis_and_untreated_numbers_warning():
     out = recommend_table_layout(_benchmark_columns(), treatment={"kind": "emphasis", "rows": [0]})
     assert all(out["cell_styles"][c][0]["bold"] for c in range(3))
@@ -393,6 +409,7 @@ def test_emphasis_and_untreated_numbers_warning():
                                treatment={"kind": "bar", "columns": [0]})
 
 
+@pytest.mark.integration
 def test_chat_tables_assume_a_screen_display_width():
     wide = [{"header": f"Column {i}", "cells": ["1,234,567"] * 3} for i in range(20)]
     out = recommend_table_layout(wide)
@@ -407,6 +424,7 @@ def _treated_plan():
         title="Treated table", notes="Source: test")
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("with_r", [True, False])
 def test_both_constructors_draw_the_resolved_treatment(tmp_path, monkeypatch, with_r):
     if with_r and not probe_renderers()["table_rendering"]["r_available"]:
@@ -425,6 +443,7 @@ def test_both_constructors_draw_the_resolved_treatment(tmp_path, monkeypatch, wi
     assert report["checks_complete"] is True
 
 
+@pytest.mark.integration
 def test_a_dropped_treatment_is_a_defect(tmp_path, monkeypatch):
     _no_r(monkeypatch)
     plan = _treated_plan()

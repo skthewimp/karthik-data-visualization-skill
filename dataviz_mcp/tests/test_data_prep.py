@@ -18,8 +18,8 @@ def _read(path):
 def test_only_mapped_columns_survive_helper_column_cannot_leak(tmp_path):
     result = prepare_plot_data(
         output_dir=str(tmp_path),
-        columns=["region", "sales", "_internal_id", "note"],
-        rows=[["North", "10", "x1", "hi"], ["South", "20", "x2", "yo"]],
+        columns=["sales", "region", "_internal_id", "note"],
+        rows=[["10", "North", "x1", "hi"], ["20", "South", "x2", "yo"]],
         x="region",
         value="sales",
     )
@@ -28,17 +28,6 @@ def test_only_mapped_columns_survive_helper_column_cannot_leak(tmp_path):
     assert set(frame[0].keys()) == {"order", "category", "value"}
     assert [r["category"] for r in frame] == ["North", "South"]
 
-
-def test_category_value_association_is_fixed_by_role_map(tmp_path):
-    # value maps to sales regardless of column position - no reversal possible.
-    result = prepare_plot_data(
-        output_dir=str(tmp_path),
-        columns=["sales", "region"],
-        rows=[["10", "North"], ["20", "South"]],
-        x="region",
-        value="sales",
-    )
-    frame = _read(result["plot_data_path"])
     assert {r["category"]: r["value"] for r in frame} == {"North": "10.0", "South": "20.0"}
 
 

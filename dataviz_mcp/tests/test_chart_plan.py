@@ -72,6 +72,7 @@ def test_repeated_text_cannot_satisfy_two_planned_labels():
     assert len(_planned_geometry_defects(metadata)) == 1
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_preserved_and_swapped_text_checked_without_classification(tmp_path):
     source = Path(__file__).parent / "fixtures" / "ggplot_value_labels_fixture.R"
@@ -105,6 +106,7 @@ def test_ggplot_preserved_and_swapped_text_checked_without_classification(tmp_pa
         assert ("TEXT_PLAN_MISMATCH" in {d["code"] for d in again["defects"]}) is swapped
 
 
+@pytest.mark.integration
 def test_builder_applies_forward_frame_and_placement_results(tmp_path):
     frame = reserve_frame(title="Planned frame", width_px=800, height_px=600, dpi=144)
     placement = place_on_marks(
@@ -154,6 +156,7 @@ def test_planned_leader_must_reach_the_returned_endpoints():
     assert _planned_geometry_defects(metadata)[0]["code"] == "TEXT_PLAN_MISMATCH"
 
 
+@pytest.mark.integration
 def test_refit_preserves_contract_and_requires_remeasurement_before_growth(tmp_path):
     from dataviz_mcp.refit import refit_chart
 

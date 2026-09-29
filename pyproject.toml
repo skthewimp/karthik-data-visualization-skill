@@ -33,3 +33,6 @@ dataviz_mcp = ["r/*.R"]
 
 [tool.pytest.ini_options]
 testpaths = ["dataviz_mcp/tests"]
+markers = [
+  "integration: live chart renders, renderer probes, or R-backed table measurement",
+]

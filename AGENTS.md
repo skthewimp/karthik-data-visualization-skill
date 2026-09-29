@@ -11,6 +11,9 @@
   suites only when their code or dependencies change.
 - After checks pass, rerun only if a subsequent edit affects what they checked. Do not add
   wording assertions, duplicate regressions, or live model evaluations to routine edits.
+- Reuse an existing scenario for related assertions instead of adding another render. Mark
+  live rendering, renderer probes, and R-backed table measurement with `integration`; use
+  `-m 'not integration'` for quick feedback, not as a substitute for required full checks.
 - Keep changes and reporting compact. Fix the general cause without building a new framework.
 
 ## Maintainer publish rule

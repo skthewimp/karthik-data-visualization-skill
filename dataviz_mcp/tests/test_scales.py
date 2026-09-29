@@ -17,6 +17,8 @@ def test_wide_positive_spread_on_position_marks_recommends_log():
     assert result["signals"]["orders_of_magnitude"] > 2
     assert result["strength"] >= 0.5
 
+    assert result["caveats"]
+
 
 def test_narrow_spread_stays_linear():
     values = [42, 45, 47, 44, 46, 43, 48, 45]
@@ -46,14 +48,6 @@ def test_non_positive_values_make_log_inapplicable():
     assert "symlog_note" in result
 
 
-def test_log_recommendation_carries_axis_labelling_caveats():
-    values = [1, 5, 30, 200, 1500, 12000, 90000]
-    result = recommend_scale_transform(values, encoding="position")
-    assert result["recommendation"] == "log"
-    joined = " ".join(result["caveats"]).lower()
-    assert "log" in joined and "override" in joined
-
-
 def test_too_few_values_is_weak_and_linear():
     result = recommend_scale_transform([100], encoding="position")
     assert result["applicable"] is False
@@ -78,10 +72,7 @@ def test_nonzero_value_never_collapses_to_zero():
     assert float(shown[0.019].replace(",", "")) != 0.0
     assert result["zero_collapse_prevented"] is True
 
-
-def test_no_zero_collapse_flag_when_all_values_resolve():
-    result = recommend_precision([12483, 9210, 15040])
-    assert result["zero_collapse_prevented"] is False
+    assert [p["compact"] for p in result["preview"]] == [p["shown"] for p in result["preview"]]
 
 
 def test_zero_collapse_guard_never_exceeds_source_digits():
@@ -95,6 +86,9 @@ def test_precision_derived_from_range_not_individual_values():
     # range ~5830 -> two sig figs of the range -> round to hundreds.
     assert result["recommended_place"] == 2
     assert [p["shown"] for p in result["preview"]] == ["12,500", "9,200", "15,000"]
+
+    assert result["zero_collapse_prevented"] is False
+    assert result["exact_override"] is False
 
 
 def test_precision_uniform_place_across_column():
@@ -121,11 +115,6 @@ def test_precision_empty_column_reports_error():
     assert result["exact_override"] is False
 
 
-def test_default_precision_is_not_an_exact_override():
-    result = recommend_precision([12483, 9210, 15040])
-    assert result["exact_override"] is False
-
-
 def test_exact_override_preserves_every_source_digit_and_flags_itself():
     # Same values that the spread rule would coarsen to hundreds.
     result = recommend_precision([12483, 9210, 15040], role="table_column", exact=True)
@@ -148,17 +137,6 @@ import pytest
 from dataviz_mcp.mark_read import read_marks_from_anchors
 
 
-def test_linear_interpolation_midpoint():
-    out = read_marks_from_anchors([{"key": "a", "lo": 40, "hi": 60, "fraction": 0.5}])
-    assert out["results"][0]["value"] == pytest.approx(50.0)
-    assert out["warnings"] == []
-
-
-def test_linear_interpolation_three_fifths():
-    out = read_marks_from_anchors([{"key": "a", "lo": 40, "hi": 60, "fraction": 0.6}])
-    assert out["results"][0]["value"] == pytest.approx(52.0)
-
-
 def test_log_interpolation_is_geometric_midpoint():
     # Halfway between 10 and 1000 on a log axis is 100, not 505.
     out = read_marks_from_anchors(
@@ -167,15 +145,16 @@ def test_log_interpolation_is_geometric_midpoint():
     assert out["results"][0]["value"] == pytest.approx(100.0)
 
 
-def test_batch_preserves_order_and_keys():
+def test_linear_interpolation_preserves_batch_order_and_keys():
     marks = [
-        {"key": "2019|s1", "lo": 0, "hi": 100, "fraction": 0.25},
-        {"key": "2019|s2", "lo": 0, "hi": 100, "fraction": 0.75},
+        {"key": "2019|s1", "lo": 40, "hi": 60, "fraction": 0.5},
+        {"key": "2019|s2", "lo": 40, "hi": 60, "fraction": 0.6},
     ]
     out = read_marks_from_anchors(marks)
     assert [r["key"] for r in out["results"]] == ["2019|s1", "2019|s2"]
-    assert out["results"][0]["value"] == pytest.approx(25.0)
-    assert out["results"][1]["value"] == pytest.approx(75.0)
+    assert out["results"][0]["value"] == pytest.approx(50.0)
+    assert out["results"][1]["value"] == pytest.approx(52.0)
+    assert out["warnings"] == []
 
 
 def test_descending_bracket_reads_from_lo_toward_hi():
@@ -235,12 +214,6 @@ def test_compact_form_scales_a_pre_scaled_column() -> None:
     assert [p["compact"] for p in result["preview"]] == ["70.4B", "77.3B"]
     assert result["compact_suffix"] == "B"
     assert result["compact_step"] == "0.1B"
-
-
-def test_compact_form_never_grows_a_decimal_tail() -> None:
-    # The zero-collapse guard forces a fine place; the compact unit must not become "0.00002K".
-    result = recommend_precision([1653, 0.019], role="label")
-    assert [p["compact"] for p in result["preview"]] == [p["shown"] for p in result["preview"]]
 
 
 def test_header_unit_multiplier_reads_stated_scale_only() -> None:

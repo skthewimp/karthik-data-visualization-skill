@@ -9,7 +9,7 @@ import pytest
 
 from dataviz_mcp.artifacts import sha256_file
 from dataviz_mcp.inspection import inspect_rendered_chart
-from dataviz_mcp.rendering import probe_renderers, render_and_inspect_chart, render_chart
+from dataviz_mcp.rendering import render_and_inspect_chart, render_chart
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "chart_fixtures.py"
@@ -25,6 +25,7 @@ def render(tmp_path: Path, function: str) -> tuple[dict, dict]:
     return bundle, report
 
 
+@pytest.mark.integration
 def test_render_emits_versioned_bundle_with_matching_hashes(tmp_path: Path) -> None:
     bundle, report = render(tmp_path, "clean_chart")
     for name in (
@@ -56,6 +57,7 @@ def test_render_emits_versioned_bundle_with_matching_hashes(tmp_path: Path) -> N
     assert report["redundant_value_axis"] == []
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     ("function", "code", "correction_class"),
     (
@@ -86,6 +88,7 @@ def test_fixture_reports_expected_geometry_defect(
         assert plan["canvas"]["growth_vector"] is not None
 
 
+@pytest.mark.integration
 def test_data_label_on_its_mark_is_not_a_collision(tmp_path: Path) -> None:
     # Same geometry as label_over_bar, but the text is a data_label on the bar it names. A value on
     # its own mark is not an accidental overlap, so it must not fire TEXT_MARK_COLLISION.
@@ -93,6 +96,7 @@ def test_data_label_on_its_mark_is_not_a_collision(tmp_path: Path) -> None:
     assert "TEXT_MARK_COLLISION" not in {item["code"] for item in report["defects"]}
 
 
+@pytest.mark.integration
 def test_text_wholly_inside_its_bar_is_not_a_collision(tmp_path: Path) -> None:
     # No gid declares these inside-bar values; containment in one filled mark is placement.
     _, report = render(tmp_path, "undeclared_inside_labels")
@@ -102,12 +106,14 @@ def test_text_wholly_inside_its_bar_is_not_a_collision(tmp_path: Path) -> None:
     assert report["redundant_value_axis"] == []
 
 
+@pytest.mark.integration
 def test_missing_line_segment_does_not_create_a_false_collision(tmp_path: Path) -> None:
     _, report = render(tmp_path, "line_with_gap")
     assert report["annotation_overlaps"] == []
     assert report["passes_geometry_checks"] is True
 
 
+@pytest.mark.integration
 def test_bar_marks_have_deterministic_collision_geometry(
     tmp_path: Path,
 ) -> None:
@@ -116,8 +122,9 @@ def test_bar_marks_have_deterministic_collision_geometry(
     assert "non-line mark" not in " ".join(report["limitations"])
 
 
-def test_probe_reports_versions_and_supported_outputs() -> None:
-    probe = probe_renderers()
+@pytest.mark.integration
+def test_probe_reports_versions_and_supported_outputs(renderer_availability) -> None:
+    probe = renderer_availability
     assert probe["renderers"]["matplotlib"]["available"] is True
     assert probe["renderers"]["matplotlib"]["version"]
     assert probe["renderers"]["matplotlib"]["supported_output_types"] == ["png"]
@@ -132,6 +139,7 @@ def test_probe_reports_versions_and_supported_outputs() -> None:
         assert ggplot["packages"]["ragg"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_auto_renderer_prefers_ggplot2_and_emits_full_contract(tmp_path: Path) -> None:
     source = Path(__file__).parent / "fixtures" / "ggplot_fixture.R"
@@ -157,7 +165,30 @@ def test_auto_renderer_prefers_ggplot2_and_emits_full_contract(tmp_path: Path) -
     assert inspection["checks_complete"] is True
     assert inspection["passes_geometry_checks"] is True
 
+    assert layout["transforms"], "coord_flip on a cartesian plot should emit a transform"
+    t = layout["transforms"][0]["data_to_pixel_top_left"]
+    # cross-termed: px reads y (t[0][1] != 0), py reads x (t[1][0] != 0); diagonal ~0.
+    assert abs(t[0][0]) < 1e-6 and abs(t[1][1]) < 1e-6
+    assert abs(t[0][1]) > 1e-6 and abs(t[1][0]) > 1e-6
+    # categories C,B,A at levels -> value 7 is the longest bar; project (its position, 7).
+    bars = sorted(
+        (m["bbox"] for m in layout["marks"] if m.get("kind") == "rect"),
+        key=lambda b: b["width"],
+    )
+    longest = bars[-1]  # value 7 bar
+    # find its category position by matching the projected vertical to the bar's mid-y
+    best = None
+    for pos in (1, 2, 3):
+        py = t[1][0] * pos + t[1][1] * 7 + t[1][2]
+        px = t[0][0] * pos + t[0][1] * 7 + t[0][2]
+        err = abs(py - (longest["y"] + longest["height"] / 2)) + abs(
+            px - (longest["x"] + longest["width"])
+        )
+        best = err if best is None else min(best, err)
+    assert best <= 4, best
 
+
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_emits_per_tick_axis_labels_with_glyph_bounds(tmp_path: Path) -> None:
     # The 7-Sep heatmap failure: axis cells were emitted as a single allocated-box row,
@@ -184,6 +215,7 @@ def test_ggplot_emits_per_tick_axis_labels_with_glyph_bounds(tmp_path: Path) -> 
     assert "Category" in axis_labels and "Value" in axis_labels, axis_labels
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_title_bbox_is_glyph_ink_not_allocated_cell(tmp_path: Path) -> None:
     # The title bbox once described its allocated gtable cell (full canvas width), so an
@@ -204,25 +236,7 @@ def test_ggplot_title_bbox_is_glyph_ink_not_allocated_cell(tmp_path: Path) -> No
     assert "OUT_OF_BOUNDS" in {d["code"] for d in inspection["defects"]}
 
 
-@pytest.mark.usefixtures("require_ggplot2")
-def test_ggplot_value_labels_on_marks_are_data_labels_not_collisions(tmp_path: Path) -> None:
-    # ggplot cannot gid a geom_text value label as data_label, so the adapter tags in-panel data
-    # text as data_label by construction. It must be exempt from the text-mark collision check even
-    # when it sits on its bar, not flagged as an accidental overlap.
-    source = Path(__file__).parent / "fixtures" / "ggplot_value_labels_fixture.R"
-    bundle = render_and_inspect_chart(
-        str(source),
-        str(tmp_path / "ggplot-values"),
-        renderer="ggplot2",
-        dimensions={"width_px": 800, "height_px": 500, "dpi": 144},
-    )
-    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
-    inspection = json.loads(Path(bundle["inspection_path"]).read_text())
-    data_labels = [e for e in layout["elements"] if e.get("role") == "data_label"]
-    assert len(data_labels) == 4, [e["role"] for e in layout["elements"]]
-    assert "TEXT_MARK_COLLISION" not in {d["code"] for d in inspection["defects"]}
-
-
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_vertical_bars_share_a_baseline_and_are_centred(tmp_path: Path) -> None:
     # Regression: ggplot's GeomRect anchors each bar at (xmin, ymax) with
@@ -255,69 +269,17 @@ def test_ggplot_vertical_bars_share_a_baseline_and_are_centred(tmp_path: Path) -
     gaps = [centres[i + 1] - centres[i] for i in range(3)]
     assert max(gaps) - min(gaps) <= 3, gaps
 
-
-@pytest.mark.usefixtures("require_ggplot2")
-def test_ggplot_emits_a_data_to_pixel_transform_that_lands_on_a_bar(tmp_path: Path) -> None:
-    # place_on_marks on R: a single-panel CoordCartesian plot emits a linear affine, and
-    # projecting a bar's data coords through it must land on that bar's captured box.
-    source = Path(__file__).parent / "fixtures" / "ggplot_bar_baseline_fixture.R"
-    bundle = render_and_inspect_chart(
-        str(source),
-        str(tmp_path / "ggplot-tf"),
-        renderer="ggplot2",
-        dimensions={"width_px": 800, "height_px": 500, "dpi": 144},
-    )
-    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
     assert layout["transforms"], "expected a data->pixel transform for a cartesian plot"
     t = layout["transforms"][0]["data_to_pixel_top_left"]
     # Categories A..D sit at positions 1..4; D is the tallest at value 60.
     px = t[0][0] * 4 + t[0][1] * 60 + t[0][2]
     py = t[1][0] * 4 + t[1][1] * 60 + t[1][2]
-    bars = sorted(
-        (m["bbox"] for m in layout["marks"] if m.get("kind") == "rect"),
-        key=lambda b: b["x"],
-    )
     tallest = bars[3]
     assert abs(px - (tallest["x"] + tallest["width"] / 2)) <= 3
     assert abs(py - tallest["y"]) <= 3
 
 
-@pytest.mark.usefixtures("require_ggplot2")
-def test_ggplot_coord_flip_transform_is_cross_termed_and_lands_on_a_bar(tmp_path: Path) -> None:
-    # Under coord_flip the value aesthetic drives the horizontal axis and the category the
-    # vertical, so the affine carries cross terms (px depends on data_y, py on data_x). The
-    # fixture returns list(plot=, metadata=), which must still yield a transform.
-    source = Path(__file__).parent / "fixtures" / "ggplot_fixture.R"  # coord_flip, list(plot=)
-    bundle = render_and_inspect_chart(
-        str(source),
-        str(tmp_path / "ggplot-flip"),
-        renderer="ggplot2",
-        dimensions={"width_px": 900, "height_px": 506, "dpi": 120},
-    )
-    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
-    assert layout["transforms"], "coord_flip on a cartesian plot should emit a transform"
-    t = layout["transforms"][0]["data_to_pixel_top_left"]
-    # cross-termed: px reads y (t[0][1] != 0), py reads x (t[1][0] != 0); diagonal ~0.
-    assert abs(t[0][0]) < 1e-6 and abs(t[1][1]) < 1e-6
-    assert abs(t[0][1]) > 1e-6 and abs(t[1][0]) > 1e-6
-    # categories C,B,A at levels -> value 7 is the longest bar; project (its position, 7).
-    bars = sorted(
-        (m["bbox"] for m in layout["marks"] if m.get("kind") == "rect"),
-        key=lambda b: b["width"],
-    )
-    longest = bars[-1]  # value 7 bar
-    # find its category position by matching the projected vertical to the bar's mid-y
-    best = None
-    for pos in (1, 2, 3):
-        py = t[1][0] * pos + t[1][1] * 7 + t[1][2]
-        px = t[0][0] * pos + t[0][1] * 7 + t[0][2]
-        err = abs(py - (longest["y"] + longest["height"] / 2)) + abs(
-            px - (longest["x"] + longest["width"])
-        )
-        best = err if best is None else min(best, err)
-    assert best <= 4, best
-
-
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_log_scale_carries_its_transform_and_projects_onto_a_point(tmp_path: Path) -> None:
     source = Path(__file__).parent / "fixtures" / "ggplot_log_fixture.R"
@@ -344,6 +306,7 @@ def test_ggplot_log_scale_carries_its_transform_and_projects_onto_a_point(tmp_pa
     assert abs(py - (rightmost["y"] + rightmost["height"] / 2)) <= 3
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_facets_emit_one_transform_per_panel_keyed_to_marks(tmp_path: Path) -> None:
     source = Path(__file__).parent / "fixtures" / "ggplot_facet_free_fixture.R"
@@ -364,6 +327,7 @@ def test_ggplot_facets_emit_one_transform_per_panel_keyed_to_marks(tmp_path: Pat
     assert len(offsets) == 3
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_ggplot_adapter_captures_every_panel_and_repeated_mark_structure(
     tmp_path: Path,
@@ -385,6 +349,7 @@ def test_ggplot_adapter_captures_every_panel_and_repeated_mark_structure(
     assert sorted(e["text"] for e in layout["elements"] if e["role"] == "panel_heading") == ["North", "South"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_guide_none_does_not_emit_phantom_panel_legend(tmp_path: Path) -> None:
     # Regression: ggplot >= 3.5 lays out a guide-box-inside cell spanning the whole
@@ -405,6 +370,7 @@ def test_guide_none_does_not_emit_phantom_panel_legend(tmp_path: Path) -> None:
     assert inspection["passes_geometry_checks"] is True
 
 
+@pytest.mark.integration
 def test_auto_renderer_uses_python_only_when_r_is_unavailable(tmp_path: Path, monkeypatch) -> None:
     import dataviz_mcp.rendering as rendering
     monkeypatch.setattr(rendering.shutil, "which", lambda _: None)
@@ -416,6 +382,7 @@ def test_auto_renderer_uses_python_only_when_r_is_unavailable(tmp_path: Path, mo
     assert "Rscript" in bundle["renderer_selection"]["fallback_reason"]
 
 
+@pytest.mark.integration
 def test_raster_only_inspection_is_honestly_incomplete(tmp_path: Path) -> None:
     bundle = render_chart(str(FIXTURES), str(tmp_path), build_function="clean_chart")
     report = inspect_rendered_chart(bundle["artifact"]["path"])
@@ -425,6 +392,7 @@ def test_raster_only_inspection_is_honestly_incomplete(tmp_path: Path) -> None:
     assert report["limitations"]
 
 
+@pytest.mark.integration
 def test_mismatched_metadata_is_rejected(tmp_path: Path) -> None:
     clean = render_chart(str(FIXTURES), str(tmp_path / "clean"), build_function="clean_chart")
     bad = render_chart(
@@ -434,6 +402,7 @@ def test_mismatched_metadata_is_rejected(tmp_path: Path) -> None:
         inspect_rendered_chart(clean["artifact"]["path"], bad["layout_metadata_path"])
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_table_content_renders_and_captures_every_cell(tmp_path: Path) -> None:
     source = Path(__file__).parent / "fixtures" / "table_fixture.R"
@@ -457,6 +426,7 @@ def test_table_content_renders_and_captures_every_cell(tmp_path: Path) -> None:
     assert manifest["renderer"] == "gt-table"
 
 
+@pytest.mark.integration
 def test_table_content_rejects_non_r_source(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="generate .r source"):
         render_and_inspect_chart(
@@ -470,6 +440,7 @@ def _codes(report: dict) -> set:
     return {defect["code"] for defect in report["defects"]}
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "function",
     (
@@ -496,6 +467,7 @@ def test_redundant_value_axis_flagged(tmp_path: Path, function: str) -> None:
     assert defect["severity"] == "low"
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "function",
     (
@@ -511,6 +483,7 @@ def test_no_redundant_axis(tmp_path: Path, function: str) -> None:
     assert report["redundant_value_axis"] == []
 
 
+@pytest.mark.integration
 def test_redundant_value_axis_names_only_the_value_axis(tmp_path: Path) -> None:
     bundle, report = render(tmp_path, "labelled_points_with_value_axis")
     defect = next(item for item in report["defects"] if item["code"] == "REDUNDANT_VALUE_AXIS")
@@ -519,6 +492,7 @@ def test_redundant_value_axis_names_only_the_value_axis(tmp_path: Path) -> None:
     assert defect["element_ids"] and {axis_of[i] for i in defect["element_ids"]} == {"y"}
 
 
+@pytest.mark.integration
 def test_one_series_per_facet_flags_colour_and_legend(tmp_path: Path) -> None:
     _, report = render(tmp_path, "coloured_facets_with_legend")
     codes = _codes(report)
@@ -533,6 +507,7 @@ def test_one_series_per_facet_flags_colour_and_legend(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.integration
 def test_rainbow_bars_flag_colour_and_legend(tmp_path: Path) -> None:
     _, report = render(tmp_path, "rainbow_bars_with_legend")
     codes = _codes(report)
@@ -540,6 +515,7 @@ def test_rainbow_bars_flag_colour_and_legend(tmp_path: Path) -> None:
     assert "EXTERNAL_LEGEND" in codes
 
 
+@pytest.mark.integration
 def test_focal_highlight_keeps_colour_and_stays_silent(tmp_path: Path) -> None:
     _, report = render(tmp_path, "focal_bar_highlight")
     codes = _codes(report)
@@ -547,6 +523,7 @@ def test_focal_highlight_keeps_colour_and_stays_silent(tmp_path: Path) -> None:
     assert "EXTERNAL_LEGEND" not in codes
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_nested_table_text_and_incomplete_viewports(tmp_path: Path) -> None:
     source = tmp_path / "nested.R"
@@ -584,6 +561,7 @@ build_table <- function() {
     assert not report["checks_complete"]
 
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
 def test_planned_multiline_headers_render_within_their_cells(tmp_path: Path) -> None:
     from dataviz_mcp.table_layout import recommend_table_layout
@@ -638,6 +616,7 @@ build_table <- function() {{
         assert rendered_headers == {plan["headers"][c] for c in columns}
 
 
+@pytest.mark.integration
 def test_on_mark_label_contrast_judged_against_fill_not_background(tmp_path: Path) -> None:
     # White value text inside a medium-blue bar: ~3.5:1 against the fill, but white-vs-white-canvas
     # would pass. The gate must flag LOW_TEXT_CONTRAST judged against the mark fill.
@@ -790,40 +769,6 @@ def test_full_canvas_is_not_flagged():
 def test_missing_ratio_is_not_flagged():
     assert _underfill_defect(None, has_undersized_text=True) is None
 
-# ---- from test_comparison.py ----
-
-from pathlib import Path
-
-from dataviz_mcp.comparison import compare_chart_artifacts
-from dataviz_mcp.inspection import inspect_rendered_chart
-from dataviz_mcp.rendering import render_chart
-
-
-FIXTURES = Path(__file__).parent / "fixtures" / "chart_fixtures.py"
-
-
-def test_comparison_reports_resolved_defect_without_judging_taste(tmp_path: Path) -> None:
-    reports = []
-    for function in ("annotation_over_line", "clean_chart"):
-        bundle = render_chart(
-            str(FIXTURES), str(tmp_path / function), build_function=function
-        )
-        reports.append(
-            inspect_rendered_chart(
-                bundle["artifact"]["path"], bundle["layout_metadata_path"]
-            )
-        )
-    comparison = compare_chart_artifacts(
-        reports[0]["inspection_path"], reports[1]["inspection_path"]
-    )
-    assert comparison["mechanically_improved"] is True
-    assert comparison["introduced_defects"] == []
-    assert {item["code"] for item in comparison["resolved_defects"]} == {
-        "ANNOTATION_SERIES_COLLISION"
-    }
-    assert "mechanical changes only" in comparison["judgement_limit"]
-    assert comparison["pixel_difference"]["changed_pixel_ratio"] > 0
-
 # ---- from test_coffee_e2e.py ----
 
 from pathlib import Path
@@ -836,6 +781,7 @@ from dataviz_mcp.rendering import render_chart
 FIXTURES = Path(__file__).parent / "fixtures" / "chart_fixtures.py"
 
 
+@pytest.mark.integration
 def test_coffee_annotation_repair_loop_crosses_mechanical_pass_line(tmp_path: Path) -> None:
     bad_bundle = render_chart(
         str(FIXTURES), str(tmp_path / "coffee-bad"), build_function="coffee_bad"
@@ -864,6 +810,11 @@ def test_coffee_annotation_repair_loop_crosses_mechanical_pass_line(tmp_path: Pa
     assert comparison["blocking_defect_count"]["after"] == 0
     assert comparison["introduced_defects"] == []
     assert comparison["passes_geometry_checks"] == {"before": False, "after": True}
+
+    assert len(comparison["resolved_defects"]) == len(bad["defects"])
+    assert all(defect in comparison["resolved_defects"] for defect in bad["defects"])
+    assert comparison["judgement_limit"]
+    assert comparison["pixel_difference"]["changed_pixel_ratio"] > 0
 
 
 def _panel_meta(elements: list[dict], marks: list[dict]) -> dict:

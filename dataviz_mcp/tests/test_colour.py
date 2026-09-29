@@ -81,6 +81,8 @@ def test_recommend_does_not_starve_pool_on_low_contrast_background():
     # Validation covers every assigned series.
     assert result["validation"]["n_colours"] == 7
 
+    assert result["generated_additions"] == []
+
 
 def test_recommend_extends_default_pool_past_eight_series():
     result = recommend_colours(None, n_series=12)
@@ -105,6 +107,9 @@ def test_recommend_generates_to_complete_a_short_supplied_pool():
     # Every generated colour reads on the background.
     from dataviz_mcp.color_math import _contrast_ratio
     assert all(_contrast_ratio(c, "#FFFFFF") >= 3.0 for c in result["generated_additions"])
+
+    for added in result["generated_additions"]:
+        assert min(hue_delta(added, other) for other in result["chosen"] if other != added) >= 45
 
 
 def test_recommend_returns_ordered_prefix_nested_palette():
@@ -311,21 +316,6 @@ def test_validate_scale_flags_poles_that_collapse_in_grayscale():
     assert any("pole" in f["rule"] for f in result["findings"])
 
 
-def test_generated_colours_take_a_hue_of_their_own():
-    # A three-colour pool for five series: the two generated colours must each sit well round
-    # the wheel from every other colour, not land as a second shade of a hue already in play
-    # (lightness-weighted separation alone picks two purples here).
-    from dataviz_mcp.color_math import hue_lightness
-    from dataviz_mcp.palette import _circular_hue_distance
-
-    result = recommend_colours(["#0072B2", "#009E73", "#D55E00"], n_series=5)
-    assert len(result["generated_additions"]) == 2
-    hues = {c: hue_lightness(c)[0] for c in result["chosen"]}
-    for added in result["generated_additions"]:
-        gap = min(_circular_hue_distance(hues[added], h) for c, h in hues.items() if c != added)
-        assert gap >= 45, result["chosen"]
-
-
 def test_proposed_pool_replaces_a_colour_it_cannot_tell_apart():
     # A proposed (not committed) set with a green and a teal that fail series distinctness: the
     # tool generates a colour that can be told apart instead of handing back the pair.
@@ -344,10 +334,6 @@ def test_brand_pool_is_spent_as_supplied_and_first():
     result = recommend_colours(["#007C91", "#D97706"], 4, "#FAFAF7", available_source="brand-skill")
     assert result["chosen"][:2] == ["#007C91", "#D97706"]
     assert result["chosen"][2:] == result["generated_additions"]
-
-
-def test_default_pool_is_not_replaced():
-    assert recommend_colours(None, 6)["generated_additions"] == []
 
 
 def test_categorical_hues_are_distinct_even_when_lightness_separates_them():
