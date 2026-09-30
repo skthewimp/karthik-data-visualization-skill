@@ -36,9 +36,10 @@ ambiguous section headings fail bundling rather than silently omitting the const
 
 The build stage's builder skill (`karthik-data-visualization` for a chart,
 `karthik-table-style` for a table) is chosen from the select stage's `builder` routing key;
-`chart-annotations`, `chart-explainer`, `dataviz-color`, and `dataviz-precision` load only
-when the select artifact's routing block asks for them (parsed via
-`dataviz_mcp.handoff.parse_routing`). The build stage asserts the headline claim named at
+the only conditional skill it adds is `chart-annotations`, for a chart whose routing block
+sets `needs_annotations` (parsed via `dataviz_mcp.handoff.parse_routing`). Colour and precision
+are decided at select and resolved by `recommend_colours` / `recommend_precision` before build;
+the explainer note is its own render-independent `explain` stage. The build stage asserts the headline claim named at
 `insight` and places the candidate annotations it supplied.
 `build_stage_adapter` also exposes the repository revision for reproducibility.
 
@@ -246,7 +247,7 @@ Samples dominant hues from a source chart image as a repair prior (brand/WCAG ma
 
 ### `recommend_precision`
 
-Recommends significant digits / a uniform rounding place for a numeric column, derived from the spread (max - min), not individual values. Inputs: `values`, `role` (`axis`/`label`/`table_column`), `target_steps` (default 2), optional `smallest_meaningful_difference`, `exact` (identifiers or exact-lookup only - preserves every digit and flags `exact_override`), and `unit_multiplier` (base units per source unit for a pre-scaled column, e.g. `1e6` for "$MM"). Every value is rounded to one uniform place. Each preview row carries `shown` (source units) and `compact` (the largest short-scale unit the column supports, e.g. `70.4B`), plus `compact_suffix` and `compact_step`. `precision.number_formats(columns, rows)` runs this over a whole data table and returns the markdown formats block a driver hands the insight stage.
+Recommends significant digits / a uniform rounding place for a numeric column, derived from the spread (max - min), not individual values. Inputs: `values`, `role` (`axis`/`label`/`table_column`), `target_steps` (default 2), optional `smallest_meaningful_difference`, `exact` (identifiers or exact-lookup only - preserves every digit and flags `exact_override`), and `unit_multiplier` (base units per source unit for a pre-scaled column, e.g. `1e6` for "$MM"). Every value is rounded to one uniform place. Each preview row carries `shown` (source units) and `compact` (the largest short-scale unit the column supports, e.g. `70.4B`), plus `compact_suffix` and `compact_step`.
 
 ### `read_marks_from_anchors`
 

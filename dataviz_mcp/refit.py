@@ -152,11 +152,6 @@ def refit_chart(
             resolved = True
             break
 
-        if inspection_contract and "frame" in inspection_contract:
-            entry["action"] = "remeasure_required"
-            warnings.append("Resizing would invalidate the supplied frame plan; rerun sizing before rendering")
-            break
-
         proposed = _propose_dims(geometry_summary, dims, max_w, max_h)
         if proposed == dims:
             entry["action"] = "ceiling_reached"

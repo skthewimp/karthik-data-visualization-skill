@@ -1,10 +1,15 @@
+import contextlib
+import importlib.util
+import io
 import json
 import hashlib
 import os
-import subprocess
 import tempfile
+import traceback
+import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from dataviz_mcp.comparison import compare_chart_artifacts
 from dataviz_mcp.inspection import inspect_rendered_chart
@@ -12,6 +17,17 @@ from dataviz_mcp.rendering import render_chart
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "codex" / "scripts" / "case_manager.py"
+
+
+def _load_case_manager():
+    """Import case_manager.py once; the CLI tests call its parser in-process."""
+    spec = importlib.util.spec_from_file_location("case_manager_under_test", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+CASE_MANAGER = _load_case_manager()
 FIXTURES = (
     Path(__file__).resolve().parents[2]
     / "dataviz_mcp"
@@ -65,12 +81,27 @@ class CaseManagerTest(unittest.TestCase):
         return path
 
     def run_cli(self, *args, ok=True):
-        result = subprocess.run(
-            ["python3", str(SCRIPT), *map(str, args)],
-            env=self.env,
-            text=True,
-            capture_output=True,
-            check=False,
+        # In-process equivalent of `python3 case_manager.py <args>`: same parser, same env,
+        # stdout/stderr captured, exit code from SystemExit or an uncaught exception.
+        # Spawning a fresh interpreter per call made this file most of the suite's runtime.
+        stdout, stderr = io.StringIO(), io.StringIO()
+        returncode = 0
+        with mock.patch.dict(os.environ, self.env, clear=True), \
+                contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            try:
+                parsed = CASE_MANAGER.build_parser().parse_args([str(arg) for arg in args])
+                parsed.func(parsed)
+            except SystemExit as exit_:
+                if isinstance(exit_.code, str):
+                    print(exit_.code, file=stderr)
+                    returncode = 1
+                else:
+                    returncode = exit_.code or 0
+            except Exception:
+                traceback.print_exc(file=stderr)
+                returncode = 1
+        result = types.SimpleNamespace(
+            returncode=returncode, stdout=stdout.getvalue(), stderr=stderr.getvalue()
         )
         if ok and result.returncode != 0:
             self.fail(f"command failed: {' '.join(map(str, args))}\n{result.stderr}")
@@ -1568,22 +1599,10 @@ class CaseManagerTest(unittest.TestCase):
         self.assertEqual(status["limit_changes"], [])
 
 
-def _load_case_manager():
-    """Import case_manager.py as a module so its tolerant loaders can be unit-tested."""
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location("case_manager_under_test", SCRIPT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 class TolerantReportParsingTests(unittest.TestCase):
     """Cheaper / open-weight models slip on strict JSON; reports must parse leniently."""
 
-    @classmethod
-    def setUpClass(cls):
-        cls.cm = _load_case_manager()
+    cm = CASE_MANAGER
 
     def _write(self, text):
         self.temp = tempfile.TemporaryDirectory()
@@ -1592,22 +1611,16 @@ class TolerantReportParsingTests(unittest.TestCase):
         path.write_text(text, encoding="utf-8")
         return path
 
-    def test_read_report_accepts_code_fenced_json(self):
-        path = self._write('```json\n{"a": 1}\n```')
-        self.assertEqual(self.cm.read_report(path), {"a": 1})
-
-    def test_read_report_tolerates_trailing_commas(self):
-        path = self._write('{"a": 1, "b": [1, 2,],}')
-        self.assertEqual(self.cm.read_report(path), {"a": 1, "b": [1, 2]})
-
-    def test_read_report_extracts_object_amid_prose(self):
-        path = self._write('Sure! Here you go:\n{"a": 1}\nHope that helps.')
-        self.assertEqual(self.cm.read_report(path), {"a": 1})
-
-    def test_read_report_rejects_non_object(self):
-        path = self._write("this is not json at all")
+    def test_read_report_recovers_an_object_from_sloppy_json(self):
+        for text, expected in (
+            ('```json\n{"a": 1}\n```', {"a": 1}),
+            ('{"a": 1, "b": [1, 2,],}', {"a": 1, "b": [1, 2]}),
+            ('Sure! Here you go:\n{"a": 1}\nHope that helps.', {"a": 1}),
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(self.cm.read_report(self._write(text)), expected)
         with self.assertRaises(SystemExit):
-            self.cm.read_report(path)
+            self.cm.read_report(self._write("this is not json at all"))
 
     def test_nonempty_text_coerces_number_and_singleton_list(self):
         self.assertEqual(self.cm.nonempty_text(42, "f"), "42")

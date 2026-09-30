@@ -16,8 +16,8 @@ Use for any chart, graph, dashboard, or data-visualization work: chart code, vis
 3. **Build data-outward:** data first, direct labels second, annotations third, grids/axes last.
 4. **Check graphical integrity:** scales, baselines, proportional encoding, missing context, any effect that exaggerates or understates the data.
 5. **Eraser test:** remove any ink that doesn't carry data, labels, or necessary context.
-6. **Reserve placement before the first render** - see the numbered steps below. Frame and data-glued labels are settled by measurement up front, not discovered by clipping.
-7. **Render and inspect the export - the safety net, not where placement is decided.** Placement was reserved at step 6; this pass only confirms the pixels. Fix anything still clipped, overlapping, or misaligned from the actual image, then re-render. Confirm the House defaults below. Once defect-free, read the whole image as a composition (`dataviz-aesthetic`): one focal element seen first, every mark earning its place, whitespace grouping not filling. A defect-free chart can still read as styled-default; the composition pass is what makes it premium.
+6. **Settle placement before the first render** - see the numbered steps below. Frame and data-glued labels are decided up front, not discovered by clipping.
+7. **Render and inspect the export - the safety net, not where placement is decided.** Placement was reserved at step 6; this pass only confirms the pixels. In the same look, check defects (anything clipped, overlapping, or misaligned), the House defaults below, and the whole image as a composition (`dataviz-aesthetic`: one focal element seen first, every mark earning its place, whitespace grouping not filling); fix them together in one revision, then re-render. A defect-free chart can still read as styled-default; the composition read is what makes it premium.
 
 ## Get placement right before the first render
 
@@ -28,7 +28,7 @@ Placement is resolved before the candidate render. Revision recovers from unexpe
 3. **Apply the decided values exactly.** Number format (`recommend_precision`), palette (`recommend_colours`), scales (limits only for a zero baseline), fonts, titles, axis titles only where declared, and legend or coloured subtitle key are decided before the code is written; the code applies them unedited, one owner per setting. Stacked bars stack their labels with the same position adjustment, so the first series sits at the baseline and each label on its own segment; grouped bars dodge their labels the same way as their bars. A column that only annotates (a growth rate beside revenue) prints as text and never takes a position, colour or series.
 4. **Place data-glued labels from the marks' own transformation.** Derive mark positions and label anchors together from the same transformed data, retaining group, series, and panel identity. Reuse ordering, stacking, normalization, and dodging calculations; do not reconstruct label positions separately, and never guess a label's pixels or hand-write a `geom_segment` to a guessed endpoint. Whenever more than one data-glued label or annotation can share a panel region, use a repel layer (`ggrepel` in ggplot2) that treats the marks and the other labels as obstacles, rather than stamping the labels raw and discovering the crowding at inspection.
 
-If copy, wrapping, fonts, legend position, panel structure, or other geometry changes, update the sizing plan and rerun affected measurements before rendering. This includes changes made during revision. Bounds from the previous design are no longer evidence that the new one fits.
+If copy, wrapping, fonts, legend position, panel structure, or other geometry changes, revisit the sizing plan before rendering. This includes changes made during revision. Bounds from the previous design are no longer evidence that the new one fits.
 
 The order is the point: reserve, then draw, then confirm by eye at delivery size.
 

@@ -1,32 +1,15 @@
 from __future__ import annotations
 
-import math
-
-from dataviz_mcp.rendering import (
-    _cell_bbox_field,
-    _geometry_gap_message,
-    _parse_finite,
-    _row_bbox,
-)
+from dataviz_mcp.rendering import _cell_bbox_field, _geometry_gap_message, _parse_finite, _row_bbox
 
 
-def test_parse_finite_reads_ordinary_numbers():
+def test_parse_finite_reads_numbers_and_treats_blanks_na_and_infinities_as_unavailable():
     assert _parse_finite("12.5") == 12.5
     assert _parse_finite(3) == 3.0
     assert _parse_finite("-4") == -4.0
-
-
-def test_parse_finite_treats_blanks_and_na_as_unavailable():
-    for token in ("", " ", "NA", "na", "NaN", "null", "None"):
-        assert _parse_finite(token) is None
-    assert _parse_finite(None) is None
-
-
-def test_parse_finite_rejects_infinities_not_zero():
-    for token in ("Inf", "-Inf", "+inf"):
-        assert _parse_finite(token) is None
-    assert _parse_finite(float("nan")) is None
-    assert _parse_finite(float("inf")) is None
+    for token in ("", " ", "NA", "na", "NaN", "null", "None", None, "Inf", "-Inf", "+inf",
+                  float("nan"), float("inf")):
+        assert _parse_finite(token) is None, token
 
 
 def test_row_bbox_returns_rounded_bbox_when_all_bounds_finite():
@@ -56,17 +39,9 @@ def test_gap_message_names_a_cause_to_check_without_asserting_it():
     assert "does not prove that cause" in message
 
 
-def test_cell_bbox_omitted_when_a_bound_is_censored():
-    row = {"x_points": "1;2;3;"}
-    assert _cell_bbox_field(row, "table") == {}
-
-
-def test_cell_bbox_read_when_all_four_bounds_finite():
-    row = {"x_points": "1;2;3;4"}
-    assert _cell_bbox_field(row, "table") == {
+def test_cell_bbox_read_only_for_table_rows_with_four_finite_bounds():
+    assert _cell_bbox_field({"x_points": "1;2;3;4"}, "table") == {
         "cell_bbox": {"x": 1.0, "y": 2.0, "width": 3.0, "height": 4.0}
     }
-
-
-def test_cell_bbox_ignored_outside_tables():
+    assert _cell_bbox_field({"x_points": "1;2;3;"}, "table") == {}
     assert _cell_bbox_field({"x_points": "1;2;3;4"}, "chart") == {}

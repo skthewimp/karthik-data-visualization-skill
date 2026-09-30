@@ -1,19 +1,25 @@
 from __future__ import annotations
 
-# ---- from test_stage_contracts.py ----
-
-"""Contract tests for the staged pipeline definitions.
-
-The load-bearing guarantee is that each stage carries only its own skills - the fix for
-the context rot the old whole-repository bundle caused.
-"""
-
-
+import json
 from pathlib import Path
 
 import pytest
 
 from dataviz_mcp import stage_contracts as sc
+from dataviz_mcp.benchmark import (
+    REGRESSION_FAMILIES,
+    benchmark_case_records,
+    compare_benchmark_runs,
+    load_case_corpus,
+)
+
+
+# ---- stage contracts ----
+
+# Contract tests for the staged pipeline definitions.
+#
+# The load-bearing guarantee is that each stage carries only its own skills - the fix for
+# the context rot the old whole-repository bundle caused.
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -147,17 +153,7 @@ def test_handoff_spec_lists_content_sections_and_routing_block() -> None:
     for field in sc._SELECT_ROUTING_FIELDS:
         assert f"{field}: <value>" in spec
 
-# ---- from test_benchmark.py ----
-
-import json
-from pathlib import Path
-
-from dataviz_mcp.benchmark import (
-    REGRESSION_FAMILIES,
-    benchmark_case_records,
-    compare_benchmark_runs,
-    load_case_corpus,
-)
+# ---- benchmark ----
 
 
 def test_corpus_loader_is_read_only_and_deduplicates_case_ids(tmp_path: Path) -> None:

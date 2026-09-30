@@ -425,7 +425,7 @@ _PUBLIC_COPY = {
             **_STRING_ARRAY,
             "description": (
                 "In-data quantities stamped directly on marks (a value on a bar, an end-of-line "
-                "series name). Placed mechanically by place_on_marks; worded here."
+                "series name). Positioned at build from the marks' own data; worded here."
             ),
         },
         "annotation_texts": {
@@ -446,137 +446,6 @@ _PUBLIC_COPY = {
     },
     "required": ["title"],
     "additionalProperties": False,
-}
-
-# The role map for prepare_plot_data: which source column is the category/x, the value, the
-# optional series and facet, plus the canonical orders and any aggregation. Decided at select;
-# the deterministic tool consumes it to emit the tidy frame; build reads the frame. This is
-# what removes the reversed-association and helper-column-as-series classes in code (#1) rather
-# than warning against them - the builder never reshapes the data itself.
-_PLOT_DATA_MAP = {
-    "type": "object",
-    "description": (
-        "The role map handed to prepare_plot_data so the plotting frame is built mechanically, "
-        "not reshaped by the builder. Names the source columns by role; the tool keeps only "
-        "these (a helper column cannot leak in as a series) and pins one canonical order shared "
-        "by marks and labels. Every chart has one - a chart is drawn only from this frame. Map "
-        "the table as it is: a mark drawn between two numbers takes start and end, a number "
-        "printed beside a mark but not drawn takes labels, and nothing is derived to fill a gap."
-    ),
-    "properties": {
-        "x": {"type": "string", "description": "Source column that is the category / x position."},
-        "value": {
-            "type": ["string", "array", "null"],
-            "items": {"type": "string"},
-            "description": (
-                "Source column that is the numeric value the marks are drawn to; or a list of "
-                "value columns for a wide frame (one per series, e.g. one per model), each melted "
-                "into a series named by the column. A list and a series column are mutually "
-                "exclusive. Null when start and end give the geometry."
-            ),
-        },
-        "start": {
-            "type": ["string", "null"],
-            "description": (
-                "With end: the source columns holding each mark's two ends on the value axis - a "
-                "stacked or floating segment, a range, a dumbbell. A missing end stays blank."
-            ),
-        },
-        "end": {"type": ["string", "null"], "description": "The other end, paired with start."},
-        "labels": {
-            "type": "object",
-            "description": (
-                "Numbers printed as labels but never drawn as geometry - a growth rate beside a "
-                "revenue bar, a printed share on a segment - as {name: source column}, or {name: "
-                "{column, prefix, suffix, signed}} when its units differ from the value's. Each "
-                "stays on its observation's row: never a series, never on the value scale."
-            ),
-            "additionalProperties": True,
-        },
-        "approximate": {
-            "type": ["string", "null"],
-            "description": "Source column flagging an estimated observation, if the table has one.",
-        },
-        "status": {
-            "type": ["string", "null"],
-            "description": (
-                "Source column giving each observation's printed state (observed / projected, actual "
-                "/ forecast), so a line can change style at the boundary. Never a series or a value."
-            ),
-        },
-        "series": {"type": ["string", "null"], "description": "Column that splits series / colour, if any (long-format input only)."},
-        "facet": {"type": ["string", "null"], "description": "Column that splits panels, if any."},
-        "category_order": {
-            **_STRING_ARRAY,
-            "description": "Explicit canonical category order; empty for first-appearance order.",
-        },
-        "series_order": {
-            **_STRING_ARRAY,
-            "description": "Explicit canonical series order; empty for first-appearance order.",
-        },
-        "aggregate": {
-            "type": ["string", "null"],
-            "enum": ["sum", "mean", "min", "max", "first", "last", None],
-            "description": "How to collapse duplicate (category, series, facet) keys; null when keys are unique.",
-        },
-    },
-    "required": ["x"],
-    "additionalProperties": False,
-}
-
-# A chart of several panels maps each panel's rows on its own: a total above its parts, a bar
-# beside a line, one measure next to another. The tool stacks the panels into one frame whose
-# ``region`` column names each row's panel, so panel membership is decided by construction.
-_PANEL_MAP = {
-    "type": "object",
-    "properties": {
-        "role": {"type": "string", "description": "The panel's name; unique, and the same name its layout group and settings use."},
-        **_PLOT_DATA_MAP["properties"],
-        "where": {
-            "type": "object",
-            "additionalProperties": {"type": "array", "items": {"type": "string"}},
-            "description": "Keep only the rows whose source column holds one of these values: {column: [values]}.",
-        },
-    },
-    "required": ["role", "x"],
-    "additionalProperties": False,
-}
-_PLOT_DATA_MAP["properties"]["panels"] = {
-    "type": "array",
-    "items": _PANEL_MAP,
-    "description": (
-        "For a chart of several panels, one role map per panel instead of the single map above; "
-        "the panels may take different columns, forms and units. Leave the single-map keys empty "
-        "when this is set."
-    ),
-}
-_PLOT_DATA_MAP["required"] = []
-
-# Per-panel settings for the scaffold: a panel overrides any routing scalar it draws differently.
-_PANEL_SETTINGS = {
-    "type": "array",
-    "items": {
-        "type": "object",
-        "properties": {
-            "role": {"type": "string"},
-            "x_kind": {"type": "string", "enum": ["discrete", "date", "continuous"]},
-            "orientation": {"type": "string", "enum": ["vertical", "horizontal"]},
-            "value_labels": {"type": "integer", "minimum": 0},
-            "zero_baseline": {"type": "boolean"},
-            "value_encoding": {"type": "string", "enum": ["position", "colour"]},
-            "heading": {"type": "string", "description": "A short name printed over the panel, when the panels need telling apart."},
-            "value_scale": {
-                "type": "string", "enum": ["auto", "shared", "own"],
-                "description": "Panels of one measure share the value range when none would flatten in it (auto); shared insists, own keeps this panel's range.",
-            },
-        },
-        "required": ["role"],
-        "additionalProperties": False,
-    },
-    "description": (
-        "One entry per panel whose form differs from the routing scalars above - a bar panel beside a "
-        "line panel, a date axis beside a discrete one. Empty for a single panel."
-    ),
 }
 
 _IDENTIFICATION_STRATEGY = {
@@ -922,15 +791,14 @@ _CANDIDATE_ANNOTATIONS = {
 # Insight stage output: the evidence AND the chosen headline claim + candidate annotations,
 # decided before any form is chosen. Supersedes the old skill-less FACTS placeholder - the
 # headline the chart asserts is now computed here, from the data, not improvised at build.
-# The machine-readable data carried forward to the plot-data tool. ONE field threaded here
-# (insight is read by both select and build, via input_schema and also_reads) rather than
-# editing every front-half stage. Dataset-to-story names the prepared dataset file; a repair
-# echoes the recovered table (columns + rows) it already holds, so no stage has to write a
-# file. prepare_plot_data reads whichever is populated.
+# The machine-readable data build plots. ONE field threaded here (insight is read by both
+# select and build, via input_schema and also_reads) rather than editing every front-half
+# stage. Dataset-to-story names the prepared dataset file; a repair echoes the recovered table
+# (columns + rows) it already holds, so no stage has to write a file.
 _DATA_SOURCE = {
     "type": "object",
     "description": (
-        "The machine-readable data prepare_plot_data will reshape at build. Set dataset_path "
+        "The machine-readable data build plots. Set dataset_path "
         "(dataset-to-story: the prepared dataset file) OR columns + rows (a repair's recovered "
         "table, already in hand). Exactly one form is populated; this is the data itself, kept "
         "apart from the prose facts."
@@ -991,40 +859,8 @@ SELECT_SCHEMA: dict[str, object] = {
         "needs_color_plan": {"type": "boolean"},
         "needs_precision_plan": {"type": "boolean"},
         "identification_strategy": _IDENTIFICATION_STRATEGY,
-        "x_kind": {
-            "type": "string",
-            "enum": ["discrete", "date", "continuous"],
-            "description": (
-                "How the x/category column is typed. date when it is time (years, months, "
-                "quarters, dates): it is parsed to real dates and drawn with the renderer's own "
-                "breaks, never one tick per period. continuous for a numeric x. discrete otherwise."
-            ),
-        },
-        "value_labels": {
-            "type": "integer",
-            "minimum": 0,
-            "description": (
-                "How many marks print their own value as a direct label (0 when the reader "
-                "reads values off the axis). Once the labelled marks carry the reading, the "
-                "scaffold drops the value axis and its gridlines; build must then draw them."
-            ),
-        },
-        "zero_baseline": {
-            "type": "boolean",
-            "description": (
-                "yes for a length encoding (bars, columns, areas) that needs a true zero; "
-                "otherwise the renderer fits the value axis to the data."
-            ),
-        },
-        "value_encoding": {
-            "type": "string",
-            "enum": ["position", "colour"],
-            "description": "position for bars/lines/points; colour when the value is a fill (heatmap).",
-        },
         "number_display_groups": _NUMBER_DISPLAY_GROUPS,
         "colour_plan": _COLOUR_PLAN,
-        "plot_data": _PLOT_DATA_MAP,
-        "panels": _PANEL_SETTINGS,
         "design": _DESIGN,
         "layout_plan": _LAYOUT_PLAN,
         "acceptance_checks": _ACCEPTANCE_CHECKS,
@@ -1142,15 +978,6 @@ BUILD_SCHEMA: dict[str, object] = {
             ),
         },
         "render_code_path": {"type": "string"},
-        "plot_data_path": {
-            "type": "string",
-            "description": (
-                "The tidy frame from prepare_plot_data that the render code loaded and plotted "
-                "verbatim. Present whenever select supplied a plot_data map; its absence on a "
-                "tabular chart means the builder reshaped data by hand - a skipped-tool "
-                "violation the execution gate reads, not a shortcut."
-            ),
-        },
         "delivery_condition": {"type": "string"},
         "self_inspection": {"type": "string"},
         "acceptance_results": {
@@ -1381,11 +1208,11 @@ at build; here you decide the substance the idea gate will check. The headline k
 subject and scope noun the source or dataset uses - what is being measured, and for whom,
 where or when - so the title still says what the chart is about once the reader has only the
 claim; a claim about "the top two" or "the gap" with the subject stripped out fails. Every
-number in the headline or an annotation claim is written in its column's format from the
-``Number formats`` table the driver supplies (the spread rule, in a compact unit - $70.4B, not
-$70,398MM); a derived number (a difference, a ratio) rounds to the same step as the values it
-comes from. With no table supplied, apply the same rule yourself: round to two significant
-digits of the column's range, in the largest unit that keeps them. Put anything the evidence
+number in the headline or an annotation claim is written in its column's spread-rule format
+(``recommend_precision`` on that column, in a compact unit - $70.4B, not $70,398MM); a derived
+number (a difference, a ratio) rounds to the same step as the values it comes from. Without the
+tool, apply the same rule yourself: round to two significant digits of the column's range, in
+the largest unit that keeps them. Put anything the evidence
 cannot support in caveats - these feed the run report, never the chart - and never
 manufacture a claim to create drama - an honest, exploratory, or null result is a valid
 headline."""
@@ -1408,8 +1235,8 @@ is dense, a sparkline column when rows run over an ordered sequence, bold plus t
 focal row; plain text only for single-value lookup. Name the scale scope (column: each
 column its own metric; row: each row one comparable series; table: one honest scale), the
 direction (lower-is-better columns such as cost), and any summary column (a row average or
-total) the reading needs. Plan geometry with ``recommend_table_layout`` after display formatting,
-not chart slots. Table conditional/focal colour still sets ``needs_color_plan``:
+total) the reading needs. Plan table geometry (column widths, wrapped headers, pages) after
+display formatting, not chart slots. Table conditional/focal colour still sets ``needs_color_plan``:
 ``colour_groups`` counts assignments or scale anchors, not chart series. Record an
 ordered heat scale in ``colour_role`` and ``comparison_strategy``; preserve its
 sequential/diverging order rather than running the categorical colour picker on
@@ -1438,37 +1265,23 @@ red/green polarity would collapse under colour-vision deficiency. This is the wh
 *decision*; the ordered palette is resolved deterministically downstream by ``recommend_colours``
 (given ``available_source``: brand and prompt colours are used as given, other sets are replaced
 where two series cannot be told apart) and checked by ``validate_palette``, and build applies it - you decide the plan, not the hexes.
-The chart's scaffolding - value axis, gridlines, axis titles, scales, fonts - is written by
-``scaffold_chart`` from routing scalars you set here, so decide them here, not in design prose.
-It draws from the frame your ``plot_data`` role map builds, so a chart always has one - there is
-no "not applicable". Map the recovered table as it stands: a mark drawn between two numbers (a
-stacked or floating segment, a range) takes ``start`` and ``end``; a number printed beside a mark
-but not drawn (a growth rate on a revenue bar) goes under ``labels`` with its own units, never as
-a value or a series; a gap stays a gap - never derive a number to fill it; an observed/projected
-state goes under ``status``. Numbers in different units are never one value column. A chart of
-several panels - an overview set apart from its detail, a bar beside a line, two measures side by
-side - gives ``plot_data.panels``, one role map per panel with its ``role`` (``where`` keeps only
-some rows), and lists in ``panels`` each panel whose form differs from the routing scalars (its
-``x_kind``, ``orientation``, ``value_labels``, ``zero_baseline``). The same ``role`` names the
-panel's ``layout_plan`` region.
-Set ``value_labels`` to how many marks will print their own value (0 when the reader reads values
-off the axis). Label the reading-carrying marks - endpoints, extremes, the focal comparison - and
-once they carry the reading the scaffold drops the value axis and its gridlines; an unlabelled
-supporting mark does not by itself earn an axis unless the reader must estimate its value, align
-values, or read a baseline or threshold. Set ``x_kind`` to ``date`` when the category is time,
-``continuous`` for a numeric x, ``discrete`` otherwise. Set ``zero_baseline`` yes only for a
-length encoding (bars, columns, areas); otherwise the renderer fits the value axis to the data.
-Set ``value_encoding`` to ``colour`` only when the value is a fill (heatmap). Leave
+Decide the chart's scaffolding here, in the design, so build applies it rather than invents it.
+Name which column is the category/x, the value, and any series or facet, mapping the table as it
+stands: a mark drawn between two numbers (a stacked or floating segment, a range) takes both
+ends; a number printed beside a mark but not drawn (a growth rate on a revenue bar) stays a label
+with its own units, never a value or a series; a gap stays a gap - never derive a number to fill
+it; an observed/projected state changes line style, not series identity. Numbers in different
+units are never one value column. Say whether the x axis is time, and give a length encoding
+(bars, columns, areas) a true zero; otherwise the value axis fits the data. A chart of several
+panels - an overview set apart from its detail, a bar beside a line, two measures side by side -
+names each panel's form, rows and value scale, and the same name labels its ``layout_plan``
+region. Name the marks that print their own value: label the reading-carrying marks -
+endpoints, extremes, the focal comparison - and once they carry the reading the value axis and
+its gridlines go; an unlabelled supporting mark does not by itself earn an axis unless the
+reader must estimate its value, align values, or read a baseline or threshold. Leave
 ``public_copy.axis_titles`` empty unless the reader cannot tell what an axis measures from the
 title, subtitle or labels - "Month", "Period", "Category" or a unit already in the title is
 duplicate ink.
-Routing words are a closed menu - ``identification_strategy`` is one of ``direct_labels``,
-``subtitle_key``, ``axis``, ``legend`` - and a description in its place ("period colours and
-endpoint labels") is read as the nearest word, not as what you meant. When your input carries a
-SCAFFOLD VIOLATIONS section, the scaffold measured your previous plan and it did not fit the page:
-each violation names what was measured and the options. Pick one of its options and change the
-plan to it; do not resubmit the plan unchanged, and never answer with smaller text or a wider
-gutter. A plan that still violates is drawn with the violation's fallback.
 Set ``needs_precision_plan`` true whenever numeric values are shown (axis ticks, data labels, or
 table cells). When it is true, enumerate ``number_display_groups`` - one entry per axis,
 numeric column, or labelled numeric series - and decide ``exact_lookup_required`` for each
@@ -1521,69 +1334,38 @@ form, build plan, and acceptance checks) and, for a repair, the source image.
 Probe renderer availability before generating source. Use R/ggplot2 whenever its required
 packages are available; generate Python/Matplotlib only when that backend is unavailable.
 An R build error is a defect to fix, not a reason to switch backends. ``auto`` does not
-translate existing source. For tables, ``render_table_from_plan`` selects the R constructor
-when available and otherwise applies the same plan through its Python constructor.
+translate existing source.
 
-CHART BUILDS START FROM A SCAFFOLD. ``scaffold_chart`` writes the chart source from the plan:
-the plot data load, number format, palette, value and date scales, facet grid, titles, fonts,
-margins, theme, legend or subtitle colour key, and the value axis dropped when the plan's
-``value_labels`` carry the reading. You write ONLY the body of ``chart_marks`` between the marks
-markers. The driver normally hands you the file; if it did not, call ``scaffold_chart`` yourself
-with the ``prepare_plot_data`` frame, ``public_copy``, the ``recommend_layout``,
-``reserve_frame``, ``recommend_colours`` and ``recommend_precision`` results, and the select
-routing scalars (``identification_strategy``, ``value_labels``, ``x_kind``, ``zero_baseline``,
-``value_encoding``) with its per-panel ``panels``. Never edit outside the slot: ``check_chart`` restores the scaffold, so a
-setting you change there is lost. In the slot, in order:
-  1. Return geoms and labels only. ggplot: ``list(...)`` of layers mapping ``x = category`` and
-     ``y = value`` (the scaffold flips a horizontal chart); no scale, coord, facet, labs, theme or
-     guides. Matplotlib: draw on ``ax`` from ``rows`` with ``pos(row)`` and ``row['value']``; no
-     titles, limits, ticks or spines.
-  2. Colour every data mark from ``palette`` / ``ink`` (a neutral grey for context); never type a
-     hue. Print every value with ``fmt_value()`` and each label measure with its own ``fmt_<name>()``;
-     set labels and values at ``label_size`` (``LABEL_PT``), a free
-     annotation at ``annotation_size`` (``ANNOTATION_PT``); plain text, never ``geom_label`` boxes.
-     Follow the scaffold's ``marks_brief``: an interval frame draws each mark from ``start`` to
-     ``end``; a label measure rides beside its mark (on bars, ``note =`` in ``bar_values``), never
-     on a position; a page of panels has one ``chart_marks_<panel>(d, fmt_value)`` per panel -
-     fill each with that panel's own form from its own rows, and keep its arguments as written.
-  3. Label only the marks that carry the reading - a series' identity, an endpoint, the focal
-     comparison, a genuine exception - never a value on every point of every series. When the
-     plan's ``value_labels`` is above 0 the value axis is gone, so those labels must be drawn.
-     Position a label with the same stat and position as its mark, never a separate cumsum:
-     stacked bars take ``position = stack`` and their labels ``position = stack_mid`` (Matplotlib:
-     ``stack(ax, rows)``), so the first series sits at the baseline. Text drawn on a mark takes
-     ``colour = on_fill_ink(series)`` (Matplotlib: ``ON_INK[series]``) - the ink that reads on that
-     fill - never a colour picked by hand. A
-     per-row text colour is two layers with a fixed colour each, never a mapped hex column.
-     Series names at the line ends sit past the last point (``hjust = 0``, small ``nudge_x``);
-     the scaffold has already reserved that margin.
-  4. Place every data-glued label from ``place_on_marks``: render once as a ruler, then pass that
-     render's ``transform`` and ``marks``, the labels in DATA coordinates, ``plot_area`` and
-     ``frame_blocks`` from the scaffold's returned ``frame`` (it already carries the end-label
-     room) and draw from the coordinates it returns. Never
-     guess a label's pixels or hand-write a segment; draw a connector only when the placement
-     returns a ``leader_line``.
-  5. Run ``check_chart`` on the source and fix every numbered deviation it returns before the
-     render you deliver. Record the palette and number format the scaffold applied (its
-     ``decided`` list) in ``recommendations_used``.
-For charts, pass the scaffold's ``frame`` as ``inspection_contract.frame`` and the label
-placements as ``inspection_contract.placements`` to ``render_and_inspect_chart`` and
-``refit_chart``. For a known target, pass its exported ``mark_id`` in the label to
-``place_on_marks``; a wrong anchor is flagged in ``unverified_attachments``; report them as a limitation
-rather than inventing a target.
+Build the deliverable exactly to the plan, carrying every message with its required content.
+Use the builder skill supplied for the chosen builder (chart or table). Plot the data handed
+forward in ``data_source`` as one tidy frame: keep only the columns the plan maps, so a helper
+column cannot leak in as a series, and use one canonical category and series order for every
+mark and label. Apply the resolved palette and number formats exactly as given and record them
+in ``recommendations_used``.
 
-Build the
-deliverable exactly to the plan, carrying every message with its required content. Use the
-builder skill supplied for the chosen builder (chart or table). For a table, call
-``recommend_table_layout`` on formatted content, each column's raw ``values`` and the
-planned treatment list, then draw every page with ``render_table_from_plan`` - it applies the
-fonts, widths, wrapping, continuation pages and the resolved fills, bars and sparklines, and
-inspects each page with the supplied type and display-size constraints. Never hand-build the
-table or drop the treatment; resolve an untreated-numbers warning rather than ignoring it. Do not run chart refitting
-on tables; table geometry replaces the chart frame/mark-placement instructions below.
-Return page paths in the artifact inventory; revise a cannot-fit plan
-without discarding content. Ordered heat scales follow the selected scale, not
-categorical series assignments; retain their scale order when validating colours.
+Let the renderer lay out the frame. Size the canvas for the finished copy, legend position and
+panel structure; set only the outer margin; never change a quantitative scale to make room for
+non-data content. Draw every data-glued label from the same data, grouping and position
+adjustment as its mark - stacked bars stack their labels so the first series sits at the
+baseline, dodged bars dodge them - and wherever labels can share a panel region use a repel
+layer (``ggrepel`` in ggplot2) with the marks and the other labels as obstacles. Never guess a
+label's pixels or hand-write a connector to a guessed endpoint. Label only the marks that carry
+the reading - a series' identity, an endpoint, the focal comparison, a genuine exception -
+never a value on every point of every series. When those labels carry the reading, drop the
+value axis, ticks and gridlines they duplicate, and pass the labelled set as
+``inspection_contract.direct_labels`` when you render. Text on a mark takes whichever of light
+or dark ink has the higher contrast against that mark's fill, never white by reflex; set it as
+plain text, never in boxes (``geom_label``). Series names wrap in a compact band (about 15% of
+panel width, about 18 characters a line); allow more lines rather than widening the gutter.
+Long category names wrap to a capped band rather than eating the plot width.
+
+For a table, draw the planned treatment (fills, bars, sparklines, focal row), size columns
+from their formatted content, wrap long headers rather than widening columns, and split a long
+table across pages without dropping rows or columns. Render the gtable with
+``render_and_inspect_chart(content="table")`` and return every page path. Do not run chart
+refitting on tables. Ordered heat scales follow the selected scale, not categorical series
+assignments; retain their scale order when validating colours.
+
 Assert the headline claim in
 the title, and word and place the candidate annotations the insight stage named - do not
 originate a different claim here. Honour every prompt constraint - requested chart type,
@@ -1600,27 +1382,14 @@ too much empty space for the ink, usually flagged with undersized text - is one 
 no shrink vector, so ``refit_chart`` reports it but never resizes it away, and acting on it is not
 the forbidden canvas-chasing (that rule is about growing to hide overflow). It is a design call you
 own: shrink the canvas to fit the ink, enlarge the marks and text, choose a denser layout, or switch
-to the requested table - do not re-render the same sparse canvas expecting refit to shrink it. The palette and the number formats are resolved
-upstream and applied by the scaffold: never substitute, nudge or invent a series colour, and
-reproduce numbers inside claim text - the headline and candidate annotations - exactly as the
-insight stage wrote them.
-On-mark data values stay pinned to their marks (never shoved off);
-the tool nudges one at most a line-height to clear another value it lands on, but when two on-mark
-values genuinely overlap and cannot separate on their marks it says so - resolve that residual by
-moving the movable label (the series name at a crowded line end), flipping the value's offset side,
-stacking the two, or cutting one; do not leave them overlapping. Both front doors resolve to ``recommend_text_placement``; reach for
-it directly only when you already hold a block's canvas-pixel anchor and neither door fits; the
-presence of such blocks is the trigger, not a separately declared routing flag. For every
-series/category, on-mark data, and axis label, decide and pass ``max_width_px`` and ``max_lines``
-from the delivery condition, density, and available region. Series names use a compact band
-(15% of panel width, with an 18-character target per line); allow more lines or change the
-layout rather than widening the gutter. Whole words stay intact. Set ``allow_curtail: true`` only when the intact
-``full_text`` will also appear in a compact key or footnote. Otherwise keep an over-budget label
-intact and revise the layout, wording, or form. Treat directly labelled point values as fixed
-``data_label`` blocks, using one consistent small offset from their marks, and series/category
-names as ``label`` blocks adjacent to their line or mark; never add a decorative dash. If several ordinary direct
-labels need leaders, revise the label set, anchors, or layout rather than accepting a field of
-displaced callouts. Record each acceptance check as pass, fail, or
+to the requested table - do not re-render the same sparse canvas expecting refit to shrink it. Never
+substitute, nudge or invent a series colour, and reproduce numbers inside claim text - the
+headline and candidate annotations - exactly as the insight stage wrote them.
+On-mark data values stay on their marks (never shoved off). When two land on each other, nudge
+one by at most a line-height; if they still overlap, move the movable label (the series name at
+a crowded line end), flip the value's offset side, stack the two, or cut one - never leave them
+overlapping. If several ordinary direct labels need leaders, revise the label set, anchors, or layout
+rather than accepting a field of displaced callouts. Record each acceptance check as pass, fail, or
 unknown against observed evidence.
 A ``source_fidelity`` check is answerable here. An ``external_validation`` check whose ground
 truth (an exact denominator, dataset, or methodology) is not available in this run is recorded
@@ -1691,13 +1460,8 @@ defect and never a reason to withhold: carry it into ``residual_limitations`` (t
 not the chart) and still return ``deliver``. Chart text that reports a limitation of the run or
 the data's provenance is a copy defect: remove it from ``public_copy``. Reserve the ``blocked`` verdict for a genuine inability to
 produce any valid artifact at all - never for a missing external denominator, dataset, or
-methodology. A chart built on ``scaffold_chart`` takes its fonts, axis titles, value axis,
-palette, scales and legend from the plan: a defect in one of those is a plan fix, not a build
-edit - route it to select (the routing scalar or ``public_copy`` string that caused it) and
-re-scaffold. ``REDUNDANT_VALUE_AXIS`` on a scaffolded chart means ``value_labels`` was set below
-the labels actually drawn. Run ``check_chart`` on the source first and put each deviation it
-returns in ``proposed_fixes``; when it returns none, the inspection carries no confirmed fatal or
-major defect, and your own review found none either, skip the correction pass and deliver - a
+methodology. When the inspection carries no confirmed fatal or major defect and your own
+review found none either, skip the correction pass and deliver - a
 clean tool pass is not a clean review, since the tools cannot see form fit, emphasis or whether
 the digits suit the comparison. Inspector flags are evidence, not verdicts: confirm each on the
 export and dismiss one the pixels do not bear out with a one-line reason (a value wholly inside
@@ -1707,14 +1471,14 @@ needlessly hard; a preferred colour, a contrast that already passes or an uncont
 minor and stays out of ``proposed_fixes``. Keep qualifications about the data's world
 (projected, provisional, excludes X, the source's own caveat) - only text about the chart's
 making is a copy defect. A connector on an adjacent direct label is also redundant
-ink; require the builder to reproduce ``leader_line`` only when the placement result contains one.
-For tables, replace chart refitting and mark-placement with the table layout path.
+ink; keep one only where a label genuinely cannot sit next to its mark.
+For tables, skip chart refitting.
 Inspect every delivered page at its supplied font/display minimums, including nested
 text, header collisions and cell overflow. Incomplete coverage is an explicit
 limitation, never a mechanical pass. Revise wrapping, widths or pagination rather
 than moving cell labels independently; check that emphasis and scale scope serve
-the reading task. ``TREATMENT_NOT_DRAWN`` is a build defect: re-render through
-``render_table_from_plan``. A table of comparable numbers rendered as plain text is a
+the reading task. A planned fill, bar or sparkline missing from the render is a build defect.
+A table of comparable numbers rendered as plain text is a
 defect to send back to select unless the task is single-value lookup.
 """
 
@@ -1763,11 +1527,6 @@ _SELECT_ROUTING_FIELDS = (
     "needs_explainer",
     "needs_color_plan",
     "needs_precision_plan",
-    "identification_strategy",
-    "x_kind",
-    "value_labels",
-    "zero_baseline",
-    "value_encoding",
 )
 
 # No builder-agnostic build conditionals remain: colour, precision, and the explainer note are

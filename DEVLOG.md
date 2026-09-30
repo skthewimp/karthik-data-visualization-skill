@@ -1,5 +1,43 @@
 # Devlog
 
+## 2026-09-30 - Cleanup after dropping the site-only MCP tools
+
+### User report
+
+- "let's clean up this repo. we just gotr rid of somne extra MCPs and stuff. any contradictions
+  or redundanceis across the skills now? and can we optimise the tests while we're at it? i
+  thikn we have too many of htem and too many redundant ones"
+
+### What I found
+
+- The skills were mostly clean after the removal commit, but `stage_contracts.py` - the prompts
+  the tester feeds weak models - still told the build stage to fill a scaffold slot and call
+  `place_on_marks`, `check_chart`, `render_table_from_plan`. The tester's own build prompt
+  still called `recommend_text_placement`.
+- The inspector still ran plan-matching checks whose only inputs were `reserve_frame` frames,
+  `place_on_marks` placements and table treatment plans. Both renderers still emitted
+  data-to-pixel transforms that only `place_on_marks` read.
+- Real contradictions between skills: the orchestrator's build list (loads colour, precision,
+  explainer) contradicted construct and the stage code; the orchestrator's execution gate
+  omitted `dataviz-aesthetic`; `karthik-data-visualization` put composition after defects,
+  against the one-review rule in construct/execution/aesthetic; `chart-annotations` re-rounded
+  claim numbers that construct says are reproduced verbatim.
+- Repetition of title/subtitle and label rules across skills is left alone on purpose: each
+  stage loads only its own skill, so the rule has to live where the stage reads it.
+- Test time was dominated by `test_case_manager.py`: 45 tests, 60s, because every CLI call
+  spawned a fresh interpreter.
+
+### Changes
+
+- Rewrote the select/build/execution prompts to the construct principles; dropped scaffold
+  fields from the schemas and handoff routing.
+- Deleted the dead inspector checks, the transform emission (matplotlib and ggplot2), the refit
+  frame warning and `number_formats`.
+- Case-manager tests call `build_parser().parse_args(...)` in-process with the same env and
+  captured stdout/stderr. Deleted tests and fixtures for removed behaviour, merged a few
+  parallel one-liners, hoisted imports in the files an earlier consolidation concatenated.
+- Full suite: 244 passed in 29s (was 258 in 90s).
+
 ## 2026-09-29 - Multi-panel charts on the scaffold
 
 ### User report

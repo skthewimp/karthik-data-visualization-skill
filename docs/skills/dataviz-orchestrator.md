@@ -27,7 +27,7 @@ The skill coordinates the existing suite:
 - `dataviz-selector` for chart choice.
 - `dataviz-idea-critique` for the pre-render idea gate.
 - `karthik-data-visualization` for Karthik's chart aesthetic.
-- `dataviz-execution` for the post-render execution gate.
+- `dataviz-execution` and `dataviz-aesthetic` together for the post-render execution gate.
 
 When deterministic rendering and inspection are available, the workflow creates the export through the metadata-producing renderer, binds inspection to that exact hash, and sends concrete geometry defects into evaluation and repair. It does not bypass metadata generation and substitute a raster-only check. Raster-only inspection does not prove that uncovered layout checks passed.
 

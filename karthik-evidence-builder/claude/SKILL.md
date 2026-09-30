@@ -34,8 +34,7 @@ actually matters, no more - and never fabricate precision to sound sharp ("up 23
 "up 23.4%", unless the tenth is real and meaningful). Numbers you state in the headline or a
 candidate annotation are reproduced verbatim downstream; their precision is decided here,
 not re-rounded at build. Write them in the spread-rule format of the column they come from -
-the `Number formats` table when the driver supplies one, else `recommend_precision` on that
-column - in its compact unit: $70.4B, not $70,398MM.
+`recommend_precision` on that column - in its compact unit: $70.4B, not $70,398MM.
 
 ## Name the headline claim
 

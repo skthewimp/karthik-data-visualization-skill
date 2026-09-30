@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-# ---- from test_render_inspect.py ----
-
 import json
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
-from dataviz_mcp.artifacts import sha256_file
-from dataviz_mcp.inspection import inspect_rendered_chart
+from dataviz_mcp.artifacts import raster_info, sha256_file
+from dataviz_mcp.comparison import compare_chart_artifacts
+from dataviz_mcp.inspection import BLANK_RENDER_MAX, _underfill_defect, inspect_rendered_chart
 from dataviz_mcp.rendering import render_and_inspect_chart, render_chart
+
+
+# ---- render inspect ----
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "chart_fixtures.py"
@@ -165,28 +168,6 @@ def test_auto_renderer_prefers_ggplot2_and_emits_full_contract(tmp_path: Path) -
     assert inspection["checks_complete"] is True
     assert inspection["passes_geometry_checks"] is True
 
-    assert layout["transforms"], "coord_flip on a cartesian plot should emit a transform"
-    t = layout["transforms"][0]["data_to_pixel_top_left"]
-    # cross-termed: px reads y (t[0][1] != 0), py reads x (t[1][0] != 0); diagonal ~0.
-    assert abs(t[0][0]) < 1e-6 and abs(t[1][1]) < 1e-6
-    assert abs(t[0][1]) > 1e-6 and abs(t[1][0]) > 1e-6
-    # categories C,B,A at levels -> value 7 is the longest bar; project (its position, 7).
-    bars = sorted(
-        (m["bbox"] for m in layout["marks"] if m.get("kind") == "rect"),
-        key=lambda b: b["width"],
-    )
-    longest = bars[-1]  # value 7 bar
-    # find its category position by matching the projected vertical to the bar's mid-y
-    best = None
-    for pos in (1, 2, 3):
-        py = t[1][0] * pos + t[1][1] * 7 + t[1][2]
-        px = t[0][0] * pos + t[0][1] * 7 + t[0][2]
-        err = abs(py - (longest["y"] + longest["height"] / 2)) + abs(
-            px - (longest["x"] + longest["width"])
-        )
-        best = err if best is None else min(best, err)
-    assert best <= 4, best
-
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("require_ggplot2")
@@ -268,63 +249,6 @@ def test_ggplot_vertical_bars_share_a_baseline_and_are_centred(tmp_path: Path) -
     centres = [b["x"] + b["width"] / 2 for b in bars]
     gaps = [centres[i + 1] - centres[i] for i in range(3)]
     assert max(gaps) - min(gaps) <= 3, gaps
-
-    assert layout["transforms"], "expected a data->pixel transform for a cartesian plot"
-    t = layout["transforms"][0]["data_to_pixel_top_left"]
-    # Categories A..D sit at positions 1..4; D is the tallest at value 60.
-    px = t[0][0] * 4 + t[0][1] * 60 + t[0][2]
-    py = t[1][0] * 4 + t[1][1] * 60 + t[1][2]
-    tallest = bars[3]
-    assert abs(px - (tallest["x"] + tallest["width"] / 2)) <= 3
-    assert abs(py - tallest["y"]) <= 3
-
-
-@pytest.mark.integration
-@pytest.mark.usefixtures("require_ggplot2")
-def test_ggplot_log_scale_carries_its_transform_and_projects_onto_a_point(tmp_path: Path) -> None:
-    source = Path(__file__).parent / "fixtures" / "ggplot_log_fixture.R"
-    bundle = render_and_inspect_chart(
-        str(source),
-        str(tmp_path / "ggplot-log"),
-        renderer="ggplot2",
-        dimensions={"width_px": 800, "height_px": 500, "dpi": 144},
-    )
-    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
-    assert layout["transforms"], "expected a transform for a log-scaled cartesian plot"
-    entry = layout["transforms"][0]
-    assert entry["x_trans"] == "identity"
-    assert entry["y_trans"] in ("log-10", "log10")
-    t = entry["data_to_pixel_top_left"]
-    # Project the top point (x=4, y=2000): y must be log10'd before the affine.
-    import math
-
-    px = t[0][0] * 4 + t[0][1] * math.log10(2000) + t[0][2]
-    py = t[1][0] * 4 + t[1][1] * math.log10(2000) + t[1][2]
-    points = [m["bbox"] for m in layout["marks"]]
-    rightmost = max(points, key=lambda b: b["x"] + b["width"] / 2)
-    assert abs(px - (rightmost["x"] + rightmost["width"] / 2)) <= 3
-    assert abs(py - (rightmost["y"] + rightmost["height"] / 2)) <= 3
-
-
-@pytest.mark.integration
-@pytest.mark.usefixtures("require_ggplot2")
-def test_ggplot_facets_emit_one_transform_per_panel_keyed_to_marks(tmp_path: Path) -> None:
-    source = Path(__file__).parent / "fixtures" / "ggplot_facet_free_fixture.R"
-    bundle = render_and_inspect_chart(
-        str(source),
-        str(tmp_path / "ggplot-facets"),
-        renderer="ggplot2",
-        dimensions={"width_px": 1000, "height_px": 500, "dpi": 144},
-    )
-    layout = json.loads(Path(bundle["layout_metadata_path"]).read_text())
-    # Three panels -> three transforms, each keyed to a panel that holds marks.
-    assert len(layout["transforms"]) == 3
-    tf_axes = {t["axes_id"] for t in layout["transforms"]}
-    mark_axes = {m["axes_id"] for m in layout["marks"]}
-    assert tf_axes == mark_axes
-    # Free scales -> the panels' affines differ (distinct x offsets).
-    offsets = {round(t["data_to_pixel_top_left"][0][2]) for t in layout["transforms"]}
-    assert len(offsets) == 3
 
 
 @pytest.mark.integration
@@ -571,20 +495,12 @@ def test_on_mark_label_contrast_judged_against_fill_not_background(tmp_path: Pat
     assert rec["against"] == "mark_fill"
     assert rec["contrast_ratio"] < 4.5
 
-# ---- from test_inspection_gating.py ----
+# ---- inspection gating ----
 
-"""Gating fixes: a blank render must block, and an unrecognised table gtable must not
-manufacture false bbox-derived defects (out-of-bounds, contrast) it has no reliable bounds for.
-Both exercise inspect_rendered_chart end to end with a real PNG plus hash-matched metadata,
-so no R renderer is required."""
-
-import json
-from pathlib import Path
-
-from PIL import Image
-
-from dataviz_mcp.artifacts import raster_info, sha256_file
-from dataviz_mcp.inspection import BLANK_RENDER_MAX, inspect_rendered_chart
+# Gating fixes: a blank render must block, and an unrecognised table gtable must not
+# manufacture false bbox-derived defects (out-of-bounds, contrast) it has no reliable bounds for.
+# Both exercise inspect_rendered_chart end to end with a real PNG plus hash-matched metadata,
+# so no R renderer is required.
 
 
 def _write_png(path: Path, width: int, height: int, colour: str = "white") -> None:
@@ -602,10 +518,6 @@ def _bundle(tmp_path: Path, width: int, height: int, metadata: dict, colour: str
     meta_path = tmp_path / "meta.json"
     meta_path.write_text(json.dumps(metadata))
     return inspect_rendered_chart(str(png), str(meta_path))
-
-
-def _codes(report: dict) -> set[str]:
-    return {d["code"] for d in report["defects"]}
 
 
 def test_blank_render_blocks_and_cannot_pass(tmp_path: Path) -> None:
@@ -690,9 +602,7 @@ def test_recognised_table_gtable_still_flags_out_of_bounds(tmp_path: Path) -> No
     assert "OUT_OF_BOUNDS" in _codes(report)
     assert not any("tableGrob/gt" in note for note in report["limitations"])
 
-# ---- from test_underfill.py ----
-
-from dataviz_mcp.inspection import _underfill_defect
+# ---- underfill ----
 
 
 def test_underfilled_canvas_flagged_low_when_only_empty():
@@ -714,16 +624,7 @@ def test_full_canvas_is_not_flagged():
 def test_missing_ratio_is_not_flagged():
     assert _underfill_defect(None, has_undersized_text=True) is None
 
-# ---- from test_coffee_e2e.py ----
-
-from pathlib import Path
-
-from dataviz_mcp.comparison import compare_chart_artifacts
-from dataviz_mcp.inspection import inspect_rendered_chart
-from dataviz_mcp.rendering import render_chart
-
-
-FIXTURES = Path(__file__).parent / "fixtures" / "chart_fixtures.py"
+# ---- coffee e2e ----
 
 
 @pytest.mark.integration

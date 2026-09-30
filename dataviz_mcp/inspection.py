@@ -413,8 +413,6 @@ _DEFECT_CLASS: dict[str, str] = {
     "LOW_TEXT_CONTRAST": "semantic",
     "DELIVERY_TEXT_TOO_SMALL": "semantic",
     "CELL_OVERFLOW": "semantic",
-    "FRAME_PLAN_MISMATCH": "semantic",
-    "TEXT_PLAN_MISMATCH": "semantic",
     "REDUNDANT_COLOUR": "semantic",
     "REDUNDANT_VALUE_AXIS": "semantic",
     "EXTERNAL_LEGEND": "semantic",
@@ -446,10 +444,6 @@ _VALUE_LABEL_ROLES = {"label", "data_label"}
 _REDUNDANT_AXIS_MIN_LABELS = 2
 
 
-# Frame text the renderer stacks itself: checked against its band, not an estimated anchor.
-_FRAME_TEXT_ROLES = {"title", "subtitle", "caption", "footer"}
-
-
 def _paint(fill: str, under: Any) -> tuple[Any, float]:
     """``fill`` (with any alpha) painted over ``under``: the resulting hex and the fill's alpha."""
     try:
@@ -479,106 +473,6 @@ def _defect(
     if geometry:
         value["geometry"] = geometry
     return value
-
-
-def _planned_geometry_defects(metadata: dict[str, Any]) -> list[dict[str, Any]]:
-    """Compare existing sizing/placement outputs with the export, without text-role inference."""
-    contract = metadata.get("inspection_contract", {})
-    frame = contract.get("frame")
-    placements = contract.get("placements", [])
-    defects: list[dict[str, Any]] = []
-    expected = list(placements)
-    if frame is not None:
-        canvas = metadata["canvas"]
-        planned = frame["canvas"]
-        actual_dpi = metadata.get("artifact", {}).get("dpi")
-        if any(abs(float(canvas[k]) - float(planned[k + "_px"])) > 1
-               for k in ("width", "height")) or not actual_dpi or any(
-                   abs(float(value) - planned["dpi"]) > 1 for value in actual_dpi):
-            defects.append(_defect("FRAME_PLAN_MISMATCH", "high", [],
-                                   "Canvas differs from the measured frame; rerun sizing"))
-        panels = metadata.get("plot_areas", [])
-        if not panels:
-            defects.append(_defect("FRAME_PLAN_MISMATCH", "high", [],
-                                   "No panel geometry is available to verify the reserved frame"))
-        # The plot area is an estimate: a renderer that measures its own axes lays panels out a
-        # little differently, which is not a defect. What the frame guarantees is the outer
-        # margin and that the panels stay clear of the header and footer text.
-        margin = frame.get("plot_margin_px") or {}
-        inner = {"x": float(margin.get("left", 0)), "y": float(margin.get("top", 0)),
-                 "width": float(canvas["width"]) - float(margin.get("left", 0)) - float(margin.get("right", 0)),
-                 "height": float(canvas["height"]) - float(margin.get("top", 0)) - float(margin.get("bottom", 0))}
-        chrome = [e for e in metadata.get("elements", []) if e.get("role") in _FRAME_TEXT_ROLES]
-        for panel in panels:
-            if not _contains(inner, panel["bbox"], tolerance=2.0):
-                defects.append(_defect("FRAME_PLAN_MISMATCH", "high", [panel["id"]],
-                                       "Panel extends into the canvas margin the frame reserved",
-                                       {"bbox": panel["bbox"], "inside": inner}))
-            for text in chrome:
-                if _meaningful_box_overlap(panel["bbox"], text["bbox"]):
-                    defects.append(_defect("FRAME_PLAN_MISMATCH", "high", [panel["id"], text["id"]],
-                                           f"Panel runs into the {text['role']}",
-                                           {"bbox": panel["bbox"], "text_bbox": text["bbox"]}))
-        # place_on_marks also returns fixed frame blocks; do not require those twice.
-        expected.extend(b for b in frame["frame_blocks"] if not any(
-            b["wrapped_text"] == p["wrapped_text"] and b["bbox"] == p["bbox"] for p in placements
-        ))
-
-    # A table plan that resolved heat fills, data bars or sparklines must show them: a
-    # treatment dropped between plan and render is the failure this contract exists for.
-    treatment = contract.get("table_treatment")
-    if treatment:
-        drawn = {"rects": sum(m.get("kind") == "rect" for m in metadata.get("marks", [])),
-                 "lines": len(metadata.get("series", []))}
-        missing = {k: int(v) - drawn[k] for k, v in treatment.items() if int(v) > drawn.get(k, 0)}
-        if missing:
-            defects.append(_defect(
-                "TREATMENT_NOT_DRAWN", "high", [],
-                "The table plan resolved conditional formatting (fills/bars/sparklines) that the "
-                "render does not show; draw the plan through render_table_from_plan",
-                {"planned": treatment, "drawn": drawn}))
-
-    # Match text plus planned geometry, not adapter-generated IDs or label/data_label roles.
-    # The forward tools estimate glyph widths; they are not exact renderer metrics. Check
-    # application of the returned top-left anchor and wrapping, not equality of glyph widths.
-    # Actual clipping/collisions are checked separately against the export's true bounds.
-    # One rendered element can satisfy only one planned block, including repeated values.
-    available = list(metadata.get("elements", []))
-    for block in expected:
-        box = block["bbox"]
-        text = block["wrapped_text"]
-        if block.get("role") in _FRAME_TEXT_ROLES and frame is not None:
-            # Header and footer text is stacked by the renderer from the margin, not pinned at the
-            # estimated anchor: it must be drawn as wrapped, inside its reserved band.
-            area = frame["plot_area"]
-            band = ({"x": 0.0, "y": 0.0, "width": float(metadata["canvas"]["width"]), "height": float(area["y"])}
-                    if block["role"] in ("title", "subtitle") else
-                    {"x": 0.0, "y": float(area["y"]) + float(area["height"]), "width": float(metadata["canvas"]["width"]),
-                     "height": float(metadata["canvas"]["height"]) - float(area["y"]) - float(area["height"])})
-            matches = [e for e in available if e.get("text") == text and _contains(band, e["bbox"], tolerance=2.0)]
-        else:
-            matches = [e for e in available if e.get("text") == text
-                       and abs(e["bbox"]["x"] - box["x"]) <= 2
-                       and abs(e["bbox"]["y"] - box["y"]) <= 2]
-        leader = block.get("leader_line")
-        if leader is not None:
-            start, end = leader["from"], leader["to"]
-            def near(point, expected_point):
-                return math.hypot(point[0] - expected_point["x"], point[1] - expected_point["y"]) <= 2
-            segments = [segment for path in metadata.get("series", [])
-                        for segment in path.get("segments", [path.get("points", [])]) if len(segment) >= 2]
-            if not any((near(seg[0], start) and near(seg[-1], end)) or
-                       (near(seg[-1], start) and near(seg[0], end)) for seg in segments):
-                defects.append(_defect("TEXT_PLAN_MISMATCH", "high", [str(block.get("id", ""))],
-                                       "Planned leader endpoints were not preserved in the export",
-                                       {"expected_leader": leader}))
-        if matches:
-            available.remove(matches[0])
-        else:
-            defects.append(_defect("TEXT_PLAN_MISMATCH", "high", [str(block.get("id", ""))],
-                                   "Planned text or placement was not preserved in the export",
-                                   {"expected_text": text, "expected_bbox": box}))
-    return defects
 
 
 def inspect_rendered_chart(
@@ -657,7 +551,6 @@ def inspect_rendered_chart(
     table_bounds_unreliable = False
 
     if metadata is not None:
-        defects.extend(_planned_geometry_defects(metadata))
         canvas = metadata["canvas"]
         # A table whose structure is not a recognised tableGrob/gt gtable carries no per-cell
         # bounds; its element bboxes leak the enclosing wrapper's extent, so every bbox-derived
@@ -1321,10 +1214,6 @@ def inspect_rendered_chart(
         "inspection_mode": "raster+layout-metadata" if metadata else "raster-only",
         "delivery_profile": delivery_profile,
         "checks_complete": checks_complete,
-        "plan_checks": {
-            key: ("checked" if metadata and key in metadata.get("inspection_contract", {}) else "not_supplied")
-            for key in ("frame", "placements")
-        },
         "geometry_status": "fail" if blocking else "pass" if checks_complete else "incomplete",
         "display_width_px": display_width_px,
         "passes_geometry_checks": checks_complete and not blocking,

@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Follow-up cleanup: no skill or contract still points at a removed tool
+
+- **Stage contracts match the skills again.** The select, build and execution prompts in
+  `stage_contracts.py` still told models to call `scaffold_chart`, `check_chart`,
+  `place_on_marks`, `recommend_table_layout` and friends. They now state the same principles
+  as `dataviz-construct`. The scaffold-only fields (`plot_data`, `panels`, `x_kind`,
+  `value_labels`, `zero_baseline`, `value_encoding`, `plot_data_path`) are gone; routing is
+  back to `builder` plus the four `needs_*` flags.
+- **Dead inspector checks removed.** `FRAME_PLAN_MISMATCH`, `TEXT_PLAN_MISMATCH`,
+  `TREATMENT_NOT_DRAWN` and `plan_checks` only compared the export against outputs of the
+  removed tools. The renderers no longer emit the data-to-pixel `transforms` that only
+  `place_on_marks` read. `precision.number_formats` (site-driver only) is gone too.
+- **Skill contradictions fixed.** `dataviz-orchestrator` no longer claims build loads
+  colour, precision and explainer skills, and names `dataviz-aesthetic` at the execution gate.
+  `karthik-data-visualization` checks composition in the same look as defects, not after.
+  `chart-annotations` reproduces insight's numbers inside the pipeline. Stale plan tokens
+  (`panel_groups`, `higher_is_better`, `commensurable`) are plain words now.
+- **Tests: 258 in 90s down to 244 in 30s.** The case-manager suite calls the CLI in-process
+  instead of spawning an interpreter per command (60s to 4s). Tests for removed behaviour and
+  their fixtures are deleted, a few parallel one-liners are merged, and the concatenated test
+  files have one import block each.
+
 ### Simpler public repo: site-only machinery removed
 
 Most of what went in after mid-August was built to keep the repair website's

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-# ---- from test_color_math.py ----
+from pathlib import Path
+
+from PIL import Image
 
 from dataviz_mcp.color_math import (
     _contrast_ratio,
@@ -9,6 +11,16 @@ from dataviz_mcp.color_math import (
     lightness_delta,
     simulate_cvd,
 )
+from dataviz_mcp.palette import (
+    extract_palette_from_image,
+    recommend_colours,
+    recommend_continuous_scale,
+    validate_palette,
+    validate_scale,
+)
+
+
+# ---- color math ----
 
 
 def test_contrast_ratio_black_on_white_is_21():
@@ -33,20 +45,7 @@ def test_simulate_cvd_returns_rgb_triple():
 def test_grayscale_orders_by_luminance():
     assert grayscale_value("#FFFFFF") > grayscale_value("#000000")
 
-# ---- from test_palette.py ----
-
-from pathlib import Path
-
-from PIL import Image
-
-from dataviz_mcp.palette import (
-    extract_palette_from_image,
-    recommend_colours,
-    recommend_continuous_scale,
-    validate_palette,
-    validate_scale,
-)
-from dataviz_mcp.color_math import hue_delta, lightness_delta, _contrast_ratio
+# ---- palette ----
 
 
 def test_validate_flags_confusable_blues():

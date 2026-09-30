@@ -122,11 +122,10 @@ Decide the treatment before sizing, for every block of numbers:
      margin). Each column gets its own scale.
    - **Row** - each row is one series whose cells compare with each other (a metric
      across periods, a measure across segments, one entity's values across
-     comparable categories). Each row gets its own scale; mark it
-     `commensurable`.
+     comparable categories). Each row gets its own scale.
    - **Table** - every cell shares one honest scale (the same unit and meaning
      everywhere, such as a matrix of scores on one 0-100 scale). One
-     scale; mark it `commensurable`.
+     scale.
 2. **Which magnitude channel?**
    - **Data bars** when the table has room: they read as length, the most accurate
      cue. The bar trails its number, so the value is read first with its decimal
@@ -136,7 +135,7 @@ Decide the treatment before sizing, for every block of numbers:
      around a meaningful midpoint (zero, an average, a target) for signed or
      above/below values.
    - Column count does not decide this; room and density do.
-3. **Which direction is good?** Set `higher_is_better: false` where lower wins (cost,
+3. **Which direction is good?** Reverse the scale where lower wins (cost,
    latency, error, pace), so the strongest shade marks the best cell rather than the
    biggest number.
 4. **Is there an ordered sequence?** When a row's values run over time or distance,
@@ -206,5 +205,3 @@ authorized.
   data decision, not a layout one.
 - One table, one main task. Split a table that serves two unrelated comparisons.
 - A shaded or barred table is not finished until the render shows the treatment.
-  `TREATMENT_NOT_DRAWN` means the planned treatment is missing from the render;
-  draw it.

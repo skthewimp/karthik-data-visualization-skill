@@ -7,14 +7,14 @@ description: Post-render gate that critiques a built chart's execution - geometr
 
 The **post-render gate** of the construct process. It receives the built candidate at its delivery size and checks the **rendering, not the idea**. The idea gate already decided the chart is the right chart saying the right thing; this stage decides whether the actual export is clean enough to hand a reader. The verdict needs the pixels - which is why it runs *after* build.
 
-For a table, use the table layout/inspection path instead of chart refitting.
+For a table, skip chart refitting and inspect the rendered table pages.
 Check cell overflow, header collisions and supplied type/display minimums on each
 page. A larger raster that shrinks in the delivery container is not a readability
 fix. `geometry_status: incomplete` cannot support a mechanical pass; inspect
 uncovered content explicitly and retain the limitation. Review the focal emphasis
 and conditional-formatting scale against the reading task, not just geometry.
-`TREATMENT_NOT_DRAWN` (a planned fill, bar or sparkline missing from the render) is a
-build defect: re-render with the treatment drawn. A table of comparable numbers
+A planned fill, bar or sparkline missing from the render is a build defect:
+re-render with the treatment drawn. A table of comparable numbers
 shipped as plain text is a defect too, unless its task is looking up single values:
 send it back for a treatment (bars with room, shading when dense, the scale scoped to
 the cells that compare, lower-is-better columns reversed).

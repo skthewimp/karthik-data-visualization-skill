@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from dataviz_mcp.layout import MIN_PANEL_H, suggest_dims_for_overflow
+from pathlib import Path
+
+import pytest
+
+from dataviz_mcp import refit
+from dataviz_mcp.artifacts import write_json
+from dataviz_mcp.layout import MIN_PANEL_H, PROFILES, suggest_dims_for_overflow
+from dataviz_mcp.refit import _grow_residual, _propose_dims, refit_chart
 
 
 def test_suggest_dims_grows_by_the_measured_overflow():
@@ -26,16 +33,7 @@ def test_zero_height_panel_keeps_a_finite_growth_proposal():
     assert out["suggested_height_px"] == 700 + MIN_PANEL_H
 
 
-# ---- from test_refit.py ----
-
-from pathlib import Path
-
-import pytest
-
-from dataviz_mcp import refit
-from dataviz_mcp.artifacts import read_json, write_json
-from dataviz_mcp.layout import MIN_PANEL_H, PROFILES, suggest_dims_for_overflow
-from dataviz_mcp.refit import _grow_residual, _propose_dims, refit_chart
+# ---- refit ----
 
 
 # --- pure helpers -----------------------------------------------------------
@@ -68,21 +66,17 @@ def _geometry_summary(dims, *, top_overflow=0.0, right_overflow=0.0, min_panel_h
     }
 
 
-def test_grow_residual_sums_overflow_and_squash_deficit():
+@pytest.mark.parametrize(
+    "geometry,expected",
+    [
+        ({"top_overflow": 14.0, "right_overflow": 6.0}, 20.0),  # edge overflows sum
+        ({"min_panel_h": MIN_PANEL_H - 40.0}, 40.0),  # squash deficit counts too
+        ({}, 0.0),  # clean geometry
+    ],
+)
+def test_grow_residual_sums_overflow_and_squash_deficit(geometry, expected):
     dims = {"width_px": 1200, "height_px": 675, "dpi": 144}
-    gs = _geometry_summary(dims, top_overflow=14.0, right_overflow=6.0)
-    assert _grow_residual(gs) == pytest.approx(20.0)
-
-
-def test_grow_residual_counts_squashed_panels():
-    dims = {"width_px": 1200, "height_px": 675, "dpi": 144}
-    gs = _geometry_summary(dims, min_panel_h=MIN_PANEL_H - 40.0)
-    assert _grow_residual(gs) == pytest.approx(40.0)
-
-
-def test_grow_residual_zero_on_clean_geometry():
-    dims = {"width_px": 1200, "height_px": 675, "dpi": 144}
-    assert _grow_residual(_geometry_summary(dims)) == 0.0
+    assert _grow_residual(_geometry_summary(dims, **geometry)) == pytest.approx(expected)
 
 
 def test_propose_dims_grows_by_the_overflow():

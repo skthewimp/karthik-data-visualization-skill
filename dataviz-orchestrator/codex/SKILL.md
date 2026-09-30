@@ -31,7 +31,7 @@ Each stage is one call. Load only the listed skill(s); pass the emitted artifact
 
 ## Hand to the construct process
 
-Pass the cleaned data and contract into `dataviz-construct` and run its tail (full detail there). Per-stage skills to load: **insight** `karthik-evidence-builder` (compute the facts from the data and name the **headline claim** plus candidate annotations, before a form is chosen), **select** `dataviz-selector` (simplest form for the claim; set routing flags and number-display decisions), **idea** `dataviz-idea-critique` (pre-render gate), **build** `karthik-data-visualization` (chart) or `karthik-table-style` (table) per the `builder` field, adding `chart-annotations`/`chart-explainer`/`dataviz-color`/`dataviz-precision` when the select artifact asks, **execution** `dataviz-execution` (post-render gate). How many passes either gate runs is the driver's budget.
+Pass the cleaned data and contract into `dataviz-construct` and run its tail. That skill owns the per-stage skill list, what build does and does not load, and the gate budgets; don't restate them here.
 
 ## Stop and escalation rules
 

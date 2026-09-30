@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-# ---- from test_scale_transform.py ----
+import pytest
 
-import math
-
+from dataviz_mcp.mark_read import read_marks_from_anchors
+from dataviz_mcp.precision import recommend_precision
 from dataviz_mcp.scale_transform import recommend_scale_transform
+
+
+# ---- scale transform ----
 
 
 def test_wide_positive_spread_on_position_marks_recommends_log():
@@ -60,9 +63,7 @@ def test_strength_rises_with_spread():
     wide = recommend_scale_transform([1, 100, 10000, 1000000], encoding="position")["strength"]
     assert wide > narrow
 
-# ---- from test_precision.py ----
-
-from dataviz_mcp.precision import recommend_precision
+# ---- precision ----
 
 
 def test_nonzero_value_never_collapses_to_zero():
@@ -128,13 +129,7 @@ def test_exact_override_keeps_decimals_the_spread_would_drop():
     assert result["recommended_place"] == -2  # hundredths preserved
     assert [p["shown"] for p in result["preview"]] == ["1.02", "1.44", "1.09"]
 
-# ---- from test_mark_read.py ----
-
-import math
-
-import pytest
-
-from dataviz_mcp.mark_read import read_marks_from_anchors
+# ---- mark read ----
 
 
 def test_log_interpolation_is_geometric_midpoint():
@@ -216,42 +211,6 @@ def test_compact_form_scales_a_pre_scaled_column() -> None:
     assert result["compact_step"] == "0.1B"
 
 
-def test_header_unit_multiplier_reads_stated_scale_only() -> None:
-    from dataviz_mcp.precision import header_unit_multiplier
-
-    assert header_unit_multiplier("Revenue ($MM)") == 1e6
-    assert header_unit_multiplier("Sales, in billions") == 1e9
-    assert header_unit_multiplier("Units '000") == 1e3
-    assert header_unit_multiplier("Height (m)") == 1.0
-
-
-def test_number_formats_table_skips_label_columns() -> None:
-    from dataviz_mcp.precision import number_formats
-
-    table = number_formats(
-        ["Year", "Revenue ($MM)", "Name"],
-        [[2019, 70398, "a"], [2020, "77,264", "b"]],
-    )
-    assert "| Revenue ($MM) | 0.1B | 70.4B to 77.3B |" in table
-    assert "Year" not in table.split("|---|")[-1]
-    assert number_formats(["Name"], [["a"]]) == ""
-
-
-def test_number_formats_reads_scale_from_table_unit() -> None:
-    from dataviz_mcp.precision import number_formats
-
-    table = number_formats(["Quarter", "Total"], [["Q1", 70398], ["Q2", 77264]], unit="$MM")
-    assert "70.4B to 77.3B" in table
-
-
-def test_number_formats_keeps_share_columns_named_in_years() -> None:
-    from dataviz_mcp.precision import number_formats
-
-    table = number_formats(["Period", "25-34 years"], [["2000-04", 44], ["2020-22", 25]])
-    assert "| 25-34 years | 1 | 25 to 44 |" in table
-    assert "Period" not in table.split("|---|")[-1]
-
-
 def test_compact_unit_suits_the_smallest_value() -> None:
     result = recommend_precision([11, 64, 162, 1653], role="label")
     assert [p["compact"] for p in result["preview"]] == ["10", "60", "160", "1,650"]
@@ -260,13 +219,3 @@ def test_compact_unit_suits_the_smallest_value() -> None:
 def test_integer_source_never_gains_a_decimal() -> None:
     result = recommend_precision([38, 43], role="label")
     assert [p["shown"] for p in result["preview"]] == ["38", "43"]
-
-
-def test_unit_field_accepts_a_bare_scale_token() -> None:
-    from dataviz_mcp.precision import unit_field_multiplier
-
-    assert unit_field_multiplier("M") == 1e6
-    assert unit_field_multiplier("$bn") == 1e9
-    assert unit_field_multiplier("Millions (USD)") == 1e6
-    assert unit_field_multiplier("m") == 1.0
-    assert unit_field_multiplier("%") == 1.0
