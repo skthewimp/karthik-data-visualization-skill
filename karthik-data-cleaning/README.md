@@ -20,7 +20,7 @@ The core loop is: inspect the raw data, clean one layer, inspect again, encode t
 
 ## Relationship to other skills
 
-Use this before `dataset-question-generator`, `karthik-analysis-planner`, `dataviz-orchestrator`, or charting when the data source is messy and the cleaning choices affect the claim. Do not create working files unless repeated parsing is genuinely costly.
+Use this before `dataset-question-generator`, `karthik-analysis-planner`, `dataviz-construct`, or charting when the data source is messy and the cleaning choices affect the claim. Do not create working files unless repeated parsing is genuinely costly.
 
 ## Edit rule
 

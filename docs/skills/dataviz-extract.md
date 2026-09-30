@@ -1,6 +1,6 @@
 # Dataviz Extract
 
-Use `dataviz-extract` during a chart repair, in parallel with `dataviz-brief`, to read the underlying data out of the source image. The rebuild is designed forward from this table plus the brief - not traced from the picture - so the table has to be complete enough to build any chosen form on.
+Use `dataviz-extract` during a chart repair, in parallel with the repair brief (`dataviz-critique`), to read the underlying data out of the source image. The rebuild is designed forward from this table plus the brief - not traced from the picture - so the table has to be complete enough to build any chosen form on.
 
 ## Why it exists
 
@@ -25,4 +25,4 @@ One row is one observation - one mark. A number printed beside a mark but not dr
 
 ## Relationship to other skills
 
-Step 2 of `dataviz-fix`, running in parallel with `dataviz-brief`. The table feeds `dataviz-selector` (form choice) and the build step.
+Part of the repair front half of `dataviz-construct`, running in the same call as the repair brief (`dataviz-critique`). The table feeds `dataviz-selector` (form choice) and the build step.

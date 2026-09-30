@@ -1,6 +1,6 @@
 # dataviz-execution / codex
 
-Codex version of the post-render execution gate: geometry, overlap, labels, colour, precision, and ink on the built export - not the idea.
+Codex version of the post-render execution gate: geometry, overlap, labels, colour, precision, ink, and composition on the built export - not the idea.
 
 Install target: `~/.codex/skills/dataviz-execution/`.
 

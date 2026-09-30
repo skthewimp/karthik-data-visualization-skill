@@ -1,6 +1,6 @@
 # dataviz-execution / claude
 
-Claude version of the post-render execution gate: geometry, overlap, labels, colour, precision, and ink on the built export - not the idea.
+Claude version of the post-render execution gate: geometry, overlap, labels, colour, precision, ink, and composition on the built export - not the idea.
 
 Install target: `~/.claude/skills/dataviz-execution/`.
 

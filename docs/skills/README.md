@@ -2,21 +2,17 @@
 
 Human-facing guides for the public skills.
 
-- [`dataviz-fix.md`](dataviz-fix.md) - explains the forward-design chart-repair and feedback workflow.
-- [`dataviz-brief.md`](dataviz-brief.md) - explains the intent-extraction skill that opens a repair: key messages, constraints, edit-vs-redesign.
 - [`dataviz-extract.md`](dataviz-extract.md) - explains the vision skill that reads the full period-by-category data table out of a chart image.
 - [`dataviz-eval.md`](dataviz-eval.md) - explains the artifact gate, blind reader checks, failure taxonomy, and creator-system benchmark.
 - [`dataviz-selector.md`](dataviz-selector.md) - explains when to use the chart-selection skill and what output to expect.
 - [`karthik-data-visualization.md`](karthik-data-visualization.md) - explains Karthik's chart style and review principles.
 - [`karthik-powerpoint-style.md`](karthik-powerpoint-style.md) - explains Karthik's slide and deck style for analytical presentations.
-- [`dataviz-critique.md`](dataviz-critique.md) - explains the chart critique skill and trifecta-based review workflow.
+- [`dataviz-critique.md`](dataviz-critique.md) - explains the chart critique skill, its trifecta-based review workflow, and the repair brief (key messages, constraints, edit-vs-redesign).
 - [`karthik-analysis-planner.md`](karthik-analysis-planner.md) - explains the analysis-contract skill for defining questions before evidence-building.
-- [`dataviz-orchestrator.md`](dataviz-orchestrator.md) - explains the end-to-end dataset-to-visual-story workflow skill.
-- [`dataviz-construct.md`](dataviz-construct.md) - explains the shared terminal process both creation and repair hand into: insight, select, idea-critique, build, execution-critique.
+- [`dataviz-construct.md`](dataviz-construct.md) - explains the staged pipeline: the create and repair front halves, then insight, select, idea-critique, build, execution-critique.
 - [`karthik-evidence-builder.md`](karthik-evidence-builder.md) - explains the insight stage: compute the facts and name the headline claim plus candidate annotations before a form is chosen.
 - [`dataviz-idea-critique.md`](dataviz-idea-critique.md) - explains the pre-render idea gate: is the data, expression, insight, and honesty right before the chart is built.
-- [`dataviz-execution.md`](dataviz-execution.md) - explains the post-render execution gate: geometry, overlap, colour, precision, and ink on the built export.
-- [`dataviz-aesthetic.md`](dataviz-aesthetic.md) - explains the post-render composition gate: first read, single emphasis, earned ink, and intentional whitespace so the chart reads as composed rather than styled-default output.
+- [`dataviz-execution.md`](dataviz-execution.md) - explains the post-render execution gate: geometry, overlap, colour, precision, ink, and composition on the built export.
 - [`dataset-question-generator.md`](dataset-question-generator.md) - explains the raw-dataset-to-question-generation skill.
 - [`karthik-data-cleaning.md`](karthik-data-cleaning.md) - explains the context-sensitive exploratory data-cleaning skill.
 - [`chart-annotations.md`](chart-annotations.md) - explains the chart-annotation skill: what to mark, how to rank, how to word it, where to place it.

@@ -1,20 +1,49 @@
 ---
 name: dataviz-construct
-description: The shared process both chart creation and repair hand into - insight, select, idea-critique, build, execution-critique - run as a driver-budgeted loop.
+description: Make a chart from a dataset, or repair one from an image - the staged pipeline (discover or diagnose, then insight, select, idea-critique, build, execution) that delivers a real artifact.
 ---
 
 # Dataviz Construct
 
-The **one process that is the last step of both** dataset-to-story creation and chart repair. Each has its own front half - creation discovers a story, contracts it, and cleans the data; repair diagnoses a source image and extracts its data. Once the front half has figured out *what to say and from what data*, both hand into this shared process to turn it into a finished chart.
+The staged pipeline for a chart that is bigger than one build call: raw data in and a visual story out (**create**), or an existing chart image in and a repaired artifact out (**repair**). The two have their own front half and share one tail. The front half figures out *what to say and from what data*; the shared tail turns that into a finished chart.
 
 ```text
-insight -> select -> idea -> build -> execution
-                                \-> explain   (off the finding, when the exhibit ships with prose)
+create:  discover -> contract -> clean ─┐
+                                        ├─> insight -> select -> idea -> build -> execution
+repair:  diagnose + extract ────────────┘                               \-> explain
 ```
 
-- **Creation** hands in after `clean`; **repair** after `diagnose+extract`.
-- A repair **`bounded-edit`** (a literal, self-contained change keeping the source form - "recolour series 3", "fix the axis labels") skips `insight -> select -> idea` and goes straight to `build -> execution`: the claim and form are unchanged on purpose.
 - **`explain`** is not on the render path. It writes the accompanying note from the finding and the plan, needs no chart, and runs in parallel with build/execution - only when the plan ships with prose.
+- A repair **`bounded-edit`** (a literal, self-contained change keeping the source form - "recolour series 3", "fix the axis labels") skips `insight -> select -> idea` and goes straight to `build -> execution`: the claim and form are unchanged on purpose.
+
+The workflow exists to produce an artifact, not to prevent one from reaching the user. Use the smallest relevant skill for each stage and keep one source of truth for each decision.
+
+## Intake
+
+Record the input (dataset, or source image), question/purpose, audience, medium, source constraints, and requested output. Distinguish user-supplied context from assumptions. If context is unavailable, proceed with an explicit assumption and state what the evidence can't support; don't suppress an otherwise valid artifact.
+
+## Front half: create
+
+Use when the task starts with a dataset and a loose question. Each stage is one call; load only the listed skill and pass the emitted artifact forward.
+
+1. **Discover** - `dataset-question-generator`. In: dataset and context. Out: row grain, columns/types, likely denominators, candidate stories with the evidence each needs and its misleading risk, a recommended first story, and a "do not visualise yet" list. Skip when the user already has a sharp claim.
+2. **Contract** - `karthik-analysis-planner`. In: discovery artifact and chosen story. Out: the operational question, metric, numerator/denominator, grain, the comparison that makes the number mean something, data requirements, falsifiers, caveats. Don't chart.
+3. **Clean** - `karthik-data-cleaning`. In: contract and data. Out: visible transformations, validation results, provenance, remaining limitations. Don't invent fields or values.
+
+If the data can't answer the question, narrow or reframe it at the contract stage. If a transformation changes the analytical meaning, return to contract. Then hand the cleaned data and contract to `insight`.
+
+## Front half: repair
+
+Use when an existing chart (image or artifact) needs to be repaired and returned. Two anchors:
+
+1. **A valid rendered candidate must be delivered.** Missing infrastructure, an unavailable reviewer, or an imperfect score must not suppress the best available output. Label limitations honestly; don't relabel an unreviewed candidate as approved, but do send it.
+2. **Redesign freely against the image; stay faithful to the prompt.** The input image is not sacred - the source form gets no vote. But any instruction arriving with it (requested chart type, annotations, what to fix, wording, brand/style) is authoritative and must survive the whole process. When the prompt and a redesign impulse conflict, the prompt wins.
+
+**Repair is forward design, not critique-plus-patch.** Starting from a critique of the source anchors everything on the existing image and makes "re-render the source form, tidied" the path of least resistance. Extract the intent and data first, then let the tail compute the insight, select a form cold, build, and check. Preserving a message is not preserving a form: the data and messages must survive; the encoding usually should not when the source form was the weakness.
+
+**Diagnose + extract** - one call loading `dataviz-critique` (its repair-brief role) and `dataviz-extract`. In: source image and any prompt. Out: the repair brief (key messages and required content, explicit drops with reasons, audience and medium, authoritative constraints, the **mode**) and the full period-by-category table (a value for every period and every category, series, stack, or facet - colour is data), so any chosen form can be built. Don't choose a form here. Difficulty of recovery is never grounds to drop a message or category - uncertain values and unreadable labels go in the limitations; the categories stay.
+
+The mode governs the tail: **`bounded-edit`** applies the named edit to the source form at `build`, records the retained form, and checks at `execution`; **`redesign`** (the default when unsure) runs the full tail. In a redesign, insight names the headline claim **freshly** from the recovered data rather than inheriting what the source asserted, and select chooses the form **cold** - a table is a valid cold verdict.
 
 ## The stages
 
@@ -24,7 +53,7 @@ Each stage is one call loading only its own skill(s) plus the compact artifact h
 2. **Select** - `dataviz-selector`. Choose the simplest form that makes the claim easiest to see and hardest to misread; for a repair, choose it **cold** (source form gets no vote). Set the routing flags (`builder`, `needs_annotations`, `needs_explainer`, `needs_color_plan`, `needs_precision_plan`) and the number-display decisions.
 3. **Idea-critique** - `dataviz-idea-critique`. The **pre-render gate**: is the data right, the expression right, the insight right, honest? Route back to `insight` (wrong claim/evidence) or `select` (wrong form) until the idea holds.
 4. **Build** - one builder skill from `select.builder`: `karthik-data-visualization` for a chart or `karthik-table-style` for a table, never both. A chart may also load `chart-annotations` (on-chart marks - chart-only, never a table); that is the only conditional skill build carries. Colour, precision, and the explainer note load no skill here (see below). Assert the headline claim in the title, word and place the annotation claims insight named, and render one real artifact.
-5. **Execution-critique** - `dataviz-execution` **and** `dataviz-aesthetic`, loaded together. The **post-render gate**, run as one review then one correction then a verification: it finds the rendering defects (geometry, overlap, labels, colour, precision, ink) *and* the composition problems (first read, competing emphasis, unearned ink, whitespace) in the **same** review - not defects first and composition in a second loop - then consolidates both into one revision and verifies it. Route back to `build`, or rarely to `idea` if the render shows the idea itself is wrong.
+5. **Execution-critique** - `dataviz-execution`. The **post-render gate**, run as one review then one correction then a verification: it finds the rendering defects (geometry, overlap, labels, colour, precision, ink) *and* the composition problems (first read, competing emphasis, unearned ink, whitespace) in the **same** review - not defects first and composition in a second loop - then consolidates both into one revision and verifies it. Route back to `build`, or rarely to `idea` if the render shows the idea itself is wrong.
 6. **Explain** (`chart-explainer`, only when `select.needs_explainer`) - the short note beside the exhibit, written from the finding and the plan (not the render), so it needs no chart and runs in parallel with build/execution. A null result is an honest note.
 
 ## Colour and precision: decided at select, resolved by a tool, applied at build
@@ -72,6 +101,21 @@ Each gate runs the same shape: **find everything wrong in one review, decide one
 ## Deliver a valid artifact
 
 A valid rendered candidate must be delivered. Missing infrastructure, an unavailable optional evaluator, or an acceptance check left `unknown` for want of an external denominator or dataset must not suppress the best available output - disclose the limitation and still deliver. Reserve a blocked outcome for a genuine inability to produce any valid artifact.
+
+## Stop and escalation
+
+- If the insight isn't supported by the facts, return to insight. If the visual form can't support the comparison, return to select. If the rendered artifact fails, send only the concrete issues back to build or the execution gate.
+- A downstream stage may reject or narrow an upstream artifact, but must state the reason and return a concrete handoff.
+- Renderer availability must not change the chart design or force a translation into a weaker implementation. When the chosen renderer has a metadata-producing capability, render the exact deliverable through it and inspect that export; when it doesn't, keep the renderer and inspect the exact export by eye, recording only what a picture can't settle (sub-pixel overlap, exact point size) as a limitation.
+- **MCP failure:** fall back to direct local rendering and disclose the missing deterministic inspection. **Renderer failure with no artifact:** report the concrete error and return any earlier valid candidate. **Missing evidence:** preserve visible source values, avoid invented claims, label the limitation.
+
+## Deliver and continue
+
+Deliver the artifact; state what changed and any inspection limitation affecting confidence. Leave behind only what is useful for reproduction and review: source/analysis code, prepared-data notes when needed, the facts and headline claim, the select artifact, the exported media, and matching render/inspection records when available.
+
+Then treat user feedback as the main release signal: change the smallest relevant part of the latest candidate, render again, inspect the named element, return it. Don't restart from the source unless the user asks for a redesign or the current form can't support the change.
+
+After explicit acceptance, record a reusable lesson only when the miss reveals a general rule or tool defect. Don't turn a chart-specific object, phrase, layout, or count into a universal rule; prefer simplifying or repairing the failing stage over adding prose, schemas, or tests.
 
 ## Staged, not one context
 

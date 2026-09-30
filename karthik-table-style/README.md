@@ -36,7 +36,7 @@ figures, and conditional formatting.
 Use `dataviz-selector` before this to decide whether the data should be a table
 or a chart. Use `karthik-data-visualization` for the chart twin of this skill.
 Use `chart-explainer` for the note that travels with the table, and
-`dataviz-critique` to diagnose an existing table. Inside a repair, `dataviz-fix`
+`dataviz-critique` to diagnose an existing table. Inside a repair, `dataviz-construct`
 routes here when cold selection returns a table.
 
 ## Edit rule

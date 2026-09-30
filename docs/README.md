@@ -7,24 +7,20 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`skills/dataviz-selector.md`](skills/dataviz-selector.md) - how to use the chart-selection skill
 - [`skills/karthik-data-visualization.md`](skills/karthik-data-visualization.md) - how to use the chart-styling skill
 - [`skills/karthik-powerpoint-style.md`](skills/karthik-powerpoint-style.md) - how to use the presentation-slide style skill
-- [`skills/dataviz-critique.md`](skills/dataviz-critique.md) - how to critique and redesign existing visuals
-- [`skills/dataviz-fix.md`](skills/dataviz-fix.md) - how to repair a chart by forward design, inspect it once, and return the best valid artifact
-- [`skills/dataviz-brief.md`](skills/dataviz-brief.md) - how to extract a repair's intent (key messages, constraints, edit-vs-redesign) before choosing a chart
+- [`skills/dataviz-critique.md`](skills/dataviz-critique.md) - how to critique and redesign existing visuals, and write the brief that opens a repair
 - [`skills/dataviz-extract.md`](skills/dataviz-extract.md) - how to read the full period-by-category data table out of a chart image
 - [`skills/dataviz-eval.md`](skills/dataviz-eval.md) - how to gate a rendered chart and benchmark the system that created it
 - [`skills/karthik-analysis-planner.md`](skills/karthik-analysis-planner.md) - how to turn fuzzy data questions into analysis contracts
-- [`skills/dataviz-orchestrator.md`](skills/dataviz-orchestrator.md) - how to run the full dataset-to-visual-story workflow
-- [`skills/dataviz-construct.md`](skills/dataviz-construct.md) - the shared process both creation and repair hand into (insight, select, idea-critique, build, execution-critique)
+- [`skills/dataviz-construct.md`](skills/dataviz-construct.md) - the staged pipeline for dataset-to-story creation and chart repair (front half, then insight, select, idea-critique, build, execution-critique)
 - [`skills/karthik-evidence-builder.md`](skills/karthik-evidence-builder.md) - how the insight stage computes the facts and names the headline claim before a form is chosen
 - [`skills/dataviz-idea-critique.md`](skills/dataviz-idea-critique.md) - how the pre-render gate checks the idea before the chart is built
-- [`skills/dataviz-execution.md`](skills/dataviz-execution.md) - how the post-render gate checks geometry, colour, precision, and ink on the export
+- [`skills/dataviz-execution.md`](skills/dataviz-execution.md) - how the post-render gate checks geometry, colour, precision, ink, and composition on the export
 - [`skills/dataset-question-generator.md`](skills/dataset-question-generator.md) - how to generate fresh visualisable questions from raw datasets
 - [`skills/karthik-data-cleaning.md`](skills/karthik-data-cleaning.md) - how to clean tabular data in context before analysis or charting
 - [`skills/chart-annotations.md`](skills/chart-annotations.md) - how to decide what a chart marks and what the label says
 - [`skills/chart-explainer.md`](skills/chart-explainer.md) - how to write the two-line note that accompanies a chart or table
 - [`skills/karthik-r-analysis-style.md`](skills/karthik-r-analysis-style.md) - how to write an exploratory R scratchpad or notebook
 - [`skills/karthik-r-code-style.md`](skills/karthik-r-code-style.md) - how R code is laid out: pipes, brackets, assignment, indentation
-- [`skills/dataviz-aesthetic.md`](skills/dataviz-aesthetic.md) - the composition lens of the post-render review: what reads first, what competes, what ink is unearned
 - [`skills/dataviz-color.md`](skills/dataviz-color.md) - how to choose and assign colours for one chart
 - [`skills/dataviz-precision.md`](skills/dataviz-precision.md) - how many digits to show, keyed to the spread
 - [`skills/karthik-table-style.md`](skills/karthik-table-style.md) - how to format a table as a visualization

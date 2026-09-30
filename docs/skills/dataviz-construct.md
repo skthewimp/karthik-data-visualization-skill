@@ -1,15 +1,25 @@
 # Dataviz Construct
 
-The **one process that is the last step of both** dataset-to-story creation and chart repair. Each has its own front half - creation discovers a story, contracts it, and cleans the data; repair diagnoses a source image and extracts its data. Once the front half has figured out *what to say and from what data*, both hand into this shared process to turn it into a finished chart.
+Use `dataviz-construct` when the job is bigger than one build call: a dataset and a loose question that should end as a visual story (**create**), or an existing chart that needs to be repaired and returned as a real artifact (**repair**). The two have their own front half and share one tail. The front half figures out *what to say and from what data*; the tail turns that into a finished chart.
 
 ```text
-insight -> select -> idea -> build -> execution
-                                \-> explain   (off the finding, when the exhibit ships with prose)
+create:  discover -> contract -> clean ─┐
+                                        ├─> insight -> select -> idea -> build -> execution
+repair:  diagnose + extract ────────────┘                               \-> explain
 ```
 
-- **Creation** hands in after `clean`; **repair** after `diagnose+extract`.
+- **`explain`** is off the render path: it writes the accompanying note from the finding and the plan, only when the exhibit ships with prose.
 - A repair **`bounded-edit`** (a literal, self-contained change keeping the source form - "recolour series 3", "fix the axis labels") skips `insight -> select -> idea` and goes straight to `build -> execution`: the claim and form are unchanged on purpose.
-- **`explain`** is not on the render path. It writes the accompanying note from the finding and the plan, needs no chart, and runs in parallel with build/execution - only when the plan ships with prose.
+
+## Front half: create
+
+`dataset-question-generator` finds candidate stories (skipped when the claim is already sharp), `karthik-analysis-planner` pins down the metric, denominator, comparison and falsifiers, and `karthik-data-cleaning` makes the transformations visible. If the data can't answer the question, the question is narrowed at the contract stage rather than filled with invented fields.
+
+## Front half: repair
+
+**Repair is forward design, not critique-plus-patch.** Starting from a critique of the source anchors everything on the existing image and makes "re-render the same form, tidied" the path of least resistance. So one call loads `dataviz-critique` (in its repair-brief role) and `dataviz-extract`: the brief states the key messages and required content, explicit drops, audience, authoritative prompt constraints, and the edit-vs-redesign mode; extract recovers the full period-by-category table so any chosen form can be built.
+
+Two anchors govern repair. A valid rendered candidate must always be delivered. And the repair may redesign freely against the input image - the source form gets no vote - while staying faithful to the prompt. Preserving a message is not preserving a form: the data and messages survive, the encoding usually should not. When cold selection returns a table, the repair builds it with `karthik-table-style` and gates it through the same render path as a chart.
 
 ## The stages
 
@@ -19,7 +29,7 @@ Each stage is one call loading only its own skill(s) plus the compact artifact h
 2. **Select** - `dataviz-selector`. Choose the simplest form that makes the claim easiest to see and hardest to misread; for a repair, choose it **cold** (source form gets no vote). Set the routing flags (`builder`, `needs_annotations`, `needs_explainer`, `needs_color_plan`, `needs_precision_plan`) and the number-display decisions.
 3. **Idea-critique** - `dataviz-idea-critique`. The **pre-render gate**: is the data right, the expression right, the insight right, honest? Route back to `insight` (wrong claim/evidence) or `select` (wrong form) until the idea holds.
 4. **Build** - one builder skill from `select.builder`: `karthik-data-visualization` for a chart or `karthik-table-style` for a table, never both. A chart may also load `chart-annotations` (on-chart marks - chart-only, never a table); that is the only conditional skill build carries. Colour, precision, and the explainer note load no skill here (see below). Assert the headline claim in the title, word and place the annotation claims insight named, and render one real artifact.
-5. **Execution-critique** - `dataviz-execution` **and** `dataviz-aesthetic`, loaded together. The **post-render gate**, run as one review then one correction then a verification: it finds the rendering defects (geometry, overlap, labels, colour, precision, ink) *and* the composition problems (first read, competing emphasis, unearned ink, whitespace) in the **same** review, consolidates both into one revision, and verifies it - no separate composition loop. Route back to `build`, or rarely to `idea` if the render shows the idea itself is wrong.
+5. **Execution-critique** - `dataviz-execution`. The **post-render gate**, run as one review then one correction then a verification: it finds the rendering defects (geometry, overlap, labels, colour, precision, ink) *and* the composition problems (first read, competing emphasis, unearned ink, whitespace) in the **same** review, consolidates both into one revision, and verifies it - no separate composition loop. Route back to `build`, or rarely to `idea` if the render shows the idea itself is wrong.
 6. **Explain** (`chart-explainer`, only when `select.needs_explainer`) - the short note beside the exhibit, written from the finding and the plan (not the render), so it needs no chart and runs in parallel with build/execution. A null result is an honest note.
 
 ## Colour and precision: decided at select, resolved by a tool, applied at build
@@ -48,7 +58,7 @@ Geometry is where charts go wrong most visibly: clipped titles, squashed facets,
 
 ## The plan carries across the gate
 
-The tail is not a straight pipe. `insight` names the headline claim and candidate annotations; `select` reads that and adds the form. But the `idea` gate emits a *critique*, not a plan - so `build` cannot read the stage right before it for what to draw. The insight artifact is the plan that must persist **across** the gate: `idea` and `build` both receive the insight artifact (facts, headline claim, candidate annotations) **and** the select artifact. On a weak-model harness feed both forward explicitly - don't rely on the model to remember the claim from two stages back. If only the select artifact reaches build, the headline claim vanishes and the title gets improvised again, the exact failure the insight stage exists to prevent. In `dataviz_mcp/stage_contracts.py` this is `Stage.also_reads=("insight",)` on `idea` and `build`.
+The tail is not a straight pipe. `insight` names the headline claim and candidate annotations; `select` reads that and adds the form. But the `idea` gate emits a *critique*, not a plan - so `build` cannot read the stage right before it for what to draw. The insight artifact is the plan that must persist **across** the gate: `idea` and `build` both receive the insight artifact (facts, headline claim, candidate annotations) **and** the select artifact. On a weak-model harness feed both forward explicitly - don't rely on the model to remember the claim from two stages back. If only the select artifact reaches build, the headline claim vanishes and the title gets improvised again, the exact failure the insight stage exists to prevent.
 
 One authoritative claim, not a copy per stage. The headline claim lives in the insight artifact; `select` and every later stage **reference** it, never restate a diverging version into their own handoff. When a stage narrows or rewords the claim, that edit routes back to `insight` so the one authoritative version changes - otherwise two handoffs carry two claims and a re-run has to reconcile them.
 
@@ -68,6 +78,10 @@ Each gate runs the same shape: **find everything wrong, decide the fixes, redo, 
 
 A valid rendered candidate must be delivered. Missing infrastructure, an unavailable optional evaluator, or an acceptance check left `unknown` for want of an external denominator or dataset must not suppress the best available output - disclose the limitation and still deliver. Reserve a blocked outcome for a genuine inability to produce any valid artifact.
 
+## Delivery and feedback
+
+Deliver the artifact with what changed and any inspection limitation. User feedback is then the main release signal: change the smallest relevant part of the latest candidate, render, inspect the named element, return it. Don't restart from the source unless a redesign is asked for or the current form can't support the change.
+
 ## Staged, not one context
 
-Separate calls per stage is the default and the right way to run this: each call carries only that stage's skills plus the artifact handed forward. When nothing external orchestrates the calls - you were handed the plan and this skill in one turn - and you have a subagent/task capability, **you become the driver** and dispatch each stage as its own isolated subagent call. The isolation is the point: build (maker) and the idea/execution gates (checkers) must sit in separate contexts, or a checker inherits and rationalises the build's shortcuts and the gates stop biting. Only when you genuinely cannot spawn subagents do you fall back to walking every stage inline in one context, opening each stage's skills as you reach it and letting the previous stage's detail fall away; "separate call" is the architecture, never a licence to skip a stage. Handoffs are structured text (markdown sections plus, at the select branch, a small `routing` block of `key: value` lines), not strict JSON, so the pipeline runs on cheaper/open-weight models too. The content contract - the exact skill subset and required fields per stage - is the construct tail in `dataviz_mcp/stage_contracts.py`; this skill carries the reasoning, that module the shape.
+Separate calls per stage is the default and the right way to run this: each call carries only that stage's skills plus the artifact handed forward. When nothing external orchestrates the calls - you were handed the plan and this skill in one turn - and you have a subagent/task capability, **you become the driver** and dispatch each stage as its own isolated subagent call. The isolation is the point: build (maker) and the idea/execution gates (checkers) must sit in separate contexts, or a checker inherits and rationalises the build's shortcuts and the gates stop biting. Only when you genuinely cannot spawn subagents do you fall back to walking every stage inline in one context, opening each stage's skills as you reach it and letting the previous stage's detail fall away; "separate call" is the architecture, never a licence to skip a stage. Handoffs are structured text (markdown sections plus, at the select branch, a small `routing` block of `key: value` lines), not strict JSON, so the pipeline runs on cheaper/open-weight models too.

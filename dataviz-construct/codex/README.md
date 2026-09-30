@@ -1,6 +1,6 @@
 # dataviz-construct / codex
 
-Codex version of the shared terminal process both creation and repair hand into: insight -> select -> idea -> build -> execution, run as a driver-budgeted loop.
+Codex version of the staged chart pipeline: a create or repair front half, then insight -> select -> idea -> build -> execution, run as a driver-budgeted loop.
 
 Install target: `~/.codex/skills/dataviz-construct/`.
 

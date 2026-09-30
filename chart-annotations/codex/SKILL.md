@@ -121,4 +121,4 @@ Fix and re-render. Don't declare done from code inspection.
 
 ## Relationship to other skills
 
-Use `dataviz-selector` first if the chart form is still open, `karthik-data-visualization` for palette/typography/surrounding style, `dataviz-critique` when reviewing someone else's annotated chart, `dataviz-fix` when the whole chart enters a repair loop. In the construct pipeline (`dataviz-construct`), the insight stage (`karthik-evidence-builder`) decides the headline claim and any external-fact annotations; this skill is loaded at build to word and place them and the direct labels.
+Use `dataviz-selector` first if the chart form is still open, `karthik-data-visualization` for palette/typography/surrounding style, `dataviz-critique` when reviewing someone else's annotated chart. In the staged pipeline (`dataviz-construct`, for creation or repair), the insight stage (`karthik-evidence-builder`) decides the headline claim and any external-fact annotations; this skill is loaded at build to word and place them and the direct labels.

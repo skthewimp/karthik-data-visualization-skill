@@ -23,8 +23,8 @@ Source fidelity still matters, but only as one check: are the values, categories
 ## Where eval sits
 
 - `dataviz-selector` chooses the form; `karthik-data-visualization` builds and styles.
-- `dataviz-execution` is the post-render gate for rendering defects; `dataviz-aesthetic` for composition.
-- `dataviz-critique` diagnoses broadly and proposes alternative forms; `dataviz-fix` executes revisions.
+- `dataviz-execution` is the post-render gate for rendering defects and composition.
+- `dataviz-critique` diagnoses broadly and proposes alternative forms; `dataviz-construct` executes revisions.
 - **`dataviz-eval` sits above these** and issues the release verdict.
 
 Execution and aesthetic findings, when supplied, are **evidence for the sweep, not a discharge of it**. Carry their real findings in; do not assume a clean gate pass means the chart is publishable, because those gates run inside the creator's loop and share its blind spots. When no gate output is supplied, run the sweep yourself. Inspector flags are evidence in the same way: a flag becomes a finding only once you see its reading problem in the image, and a flag the image doesn't bear out is noted and dropped.
@@ -206,4 +206,4 @@ A short summary note, when one is asked for, names the top findings in severity 
 
 ## Stop conditions
 
-Stop when no Fatal or Major finding remains; don't keep revising for Minor preference after `Send`. Escalate to `dataviz-critique` only when the failure is conceptual; hand the required changes to `dataviz-fix` when they are executable. Record repeated failure codes before proposing a skill change.
+Stop when no Fatal or Major finding remains; don't keep revising for Minor preference after `Send`. Escalate to `dataviz-critique` only when the failure is conceptual; hand the required changes to `dataviz-construct` when they are executable. Record repeated failure codes before proposing a skill change.

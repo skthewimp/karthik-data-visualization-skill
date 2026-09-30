@@ -1,16 +1,17 @@
 ---
 name: dataviz-critique
-description: Critique charts with the question-data-visual triangle, semantic clarity, and evidence-fit principles, then suggest alternatives when useful.
+description: Critique charts with the question-data-visual triangle and evidence fit, suggest alternatives, and write the repair brief (key messages, constraints, edit-vs-redesign) before a rebuild.
 ---
 
 # Dataviz Critique
 
 Use when the user gives a visualization, screenshot, chart spec, code output, dashboard, or slide and asks whether it works or how to improve it. Core job: diagnose whether the visual makes the right thing easy to see, hard to misread, and worth seeing.
 
-## Two roles
+## Three roles
 
 1. **Standalone review** - the user shows a chart and asks "what's wrong?" or "how do I improve it?". Run the full diagnosis below and return the reader-facing structure. Primary use.
-2. **Checker against an existing brief** - a candidate arrives with a brief that already names the intent (key messages and required content). Run *after* the candidate is built, as a checker not the designer: don't re-derive the key messages (the brief owns them) and don't reopen the form choice unless the candidate genuinely fails a message. Answer: does the candidate carry the brief's intent (every key message with its required content, nothing key silently dropped, prompt constraints honoured), and is it a good chart (mechanical and semantic)? Run in-context, consolidate into one focused revision per pass, cap at two passes, exit as soon as no fatal or major defect remains.
+2. **Repair brief** - at the **start** of a chart repair, before any chart is chosen or built, state what the replacement must say and carry. See [Repair brief](#repair-brief); it replaces the standalone output structure.
+3. **Checker against an existing brief** - a candidate arrives with a brief that already names the intent (key messages and required content). Run *after* the candidate is built, as a checker not the designer: don't re-derive the key messages (the brief owns them) and don't reopen the form choice unless the candidate genuinely fails a message. Answer: does the candidate carry the brief's intent (every key message with its required content, nothing key silently dropped, prompt constraints honoured), and is it a good chart (mechanical and semantic)? Run in-context, consolidate into one focused revision per pass, cap at two passes, exit as soon as no fatal or major defect remains.
 
 ## Inputs to seek or infer
 
@@ -34,7 +35,7 @@ If the chart is impossible to interpret, say so directly and explain why.
 
 ## Key messages and required content
 
-When a brief already names the key messages and required content, that judgment is the brief's - verify against it, don't re-make it. This section is the reasoning for **standalone review** and for sanity-checking a brief.
+This section is the reasoning for **standalone review** and for **writing the repair brief**. When checking a candidate against a brief that already names the key messages and required content, that judgment is the brief's - verify against it, don't re-make it.
 
 Cataloguing what a chart contains is not judging what matters. After the inventory, decide - as a judgment call, not a preserve-everything rule - what the rebuild must carry.
 
@@ -45,6 +46,36 @@ Cataloguing what a chart contains is not judging what matters. After the invento
 - **"Hard to recover" is not "not key".** Difficulty (approximate values, too many categories, unrecoverable labels, a legend naming fewer categories than encoded) is grounds for a *better form* (small multiples, direct-labelled lines, top-N plus explicit "other", share-of-total), never to delete data. When some labels can't be recovered, keep the categories and name the unrecovered ones generically. A value the source draws but does not print is measured from the mark's geometry and used, not dropped, gapped, or noted as missing. Approximate values and imperfect labels still carry the message - and the chart never says they are approximate; that goes in the report.
 - **Explicit drops.** A drop is legitimate only when the information serves no key message, not when it's inconvenient to recover or render. Name what you drop and why, in message terms. Silence is not a decision: a multi-category chart reduced to a bare total has silently lost the breakdown.
 - **One chart or several.** Note when the messages need more than one chart (whole-and-parts, a totals view alongside a per-category view). Decide messages and required content here; leave chart count, decomposition, and form to reconstruction.
+
+## Repair brief
+
+Run at the start of a repair, in parallel with `dataviz-extract` (which recovers the data table). Its job is the intent the replacement must serve, so everything downstream is designed *forward* from it rather than patched onto the source.
+
+**Don't critique the source here.** A repair that opens with a fault-list anchors on the existing image, and the path of least resistance becomes "re-render the same form, tidied" - which fails a whole class of charts, most visibly a many-series stacked bar whose message is per-series comparison. Freeze the source inventory, then decide the key messages, required content per message, and explicit drops exactly as in [Key messages and required content](#key-messages-and-required-content). Decide *what the chart must say and carry*, never *how it should look*: form is `dataviz-selector`'s, chosen afterwards and cold.
+
+Then add what a rebuild needs that a standalone review doesn't:
+
+- **Audience and medium:** who reads it, expected literacy, viewing size (slide, chat, thumbnail, print).
+- **Story:** the one-sentence point, if the prompt or evidence implies one. Don't manufacture a claim when the evidence is exploratory.
+- **Constraints from the prompt:** requested chart type, annotations, wording, brand/style, what to fix. These are authoritative and survive the whole repair; when a later redesign impulse conflicts with one, the constraint wins.
+- **Mode**, which decides whether the form is reopened:
+  - **`bounded-edit`** - a literal, self-contained change leaving the form intact and correct ("fix the axis labels", "change the title", "recolour series 3", "remove the gridlines"). Choose only when the existing form genuinely serves the messages and the prompt doesn't question it.
+  - **`redesign`** - everything else: a new question, a weak or misleading form, a per-series message trapped in a stack, "make this clearer", or no prompt. The source form gets no vote.
+
+  When in doubt, choose `redesign` - a bounded edit that needs a form change can be widened; a redesign wrongly narrowed to an edit reproduces the source's weakness.
+- **Keep-notes (thin):** a genuinely reusable source idea - a smart annotation, a sensible top-N-plus-"other" grouping, a sensible period window. Not a fault-list, not a defence of the form; "none" is a fine answer. A magnitude **scale or baseline is never a keep-note**: where a length encoding starts and the range an axis spans are form decisions the selector and build own from the data. A source whose bars start above the quantity's zero is defective, and recording its zoomed range as context to carry is exactly how a truncated source reproduces itself.
+
+```markdown
+Key messages:
+  - <message> - required content: <series/periods/breakdowns/comparisons>
+Dropped as not key (with reason): <item - why, in message terms | none>
+One chart or several: <...>
+Audience / medium: <who, literacy, viewing size>
+Story: <one-sentence point | exploratory, no single claim>
+Constraints (authoritative): <chart type, annotations, wording, style, what to fix | none>
+Mode: bounded-edit | redesign
+Keep-notes: <reusable source ideas | none>
+```
 
 ## Trifecta checkup
 

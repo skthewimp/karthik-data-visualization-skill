@@ -11,12 +11,12 @@ Pick the entry point that matches what you have.
 | You have | Ask your agent to use | What happens |
 |---|---|---|
 | Data and a chart in mind | `karthik-data-visualization` | Builds the chart in the house style, renders it, and checks the export. Pulls in `dataviz-selector` if the form isn't settled. |
-| An existing chart (image or code) that isn't working | `dataviz-fix` | Recovers the message and the data, picks a form fresh, rebuilds, and returns a real image. |
-| A dataset and a loose question | `dataviz-orchestrator` | Finds the story, pins down the metric and denominator, cleans the data, then builds the chart. |
+| An existing chart (image or code) that isn't working | `dataviz-construct` | Recovers the message and the data, picks a form fresh, rebuilds, and returns a real image. |
+| A dataset and a loose question | `dataviz-construct` | Finds the story, pins down the metric and denominator, cleans the data, then builds the chart. |
 | A chart someone else made | `dataviz-critique` | Says what works, what misleads, and what to change. |
 | A table to format | `karthik-table-style` | Alignment, rounding, emphasis and in-cell bars or shading. |
 
-For a single chart, `karthik-data-visualization` on its own is the whole thing. The staged pipeline below is what `dataviz-fix` and `dataviz-orchestrator` run when the job is bigger than one chart, or when you want each step checked by a separate call.
+For a single chart, `karthik-data-visualization` on its own is the whole thing. The staged pipeline below is what `dataviz-construct` runs when the job is bigger than one chart, or when you want each step checked by a separate call.
 
 Install in two commands (details in [Quick start](#quick-start)):
 
@@ -29,7 +29,7 @@ R with `ggplot2` and `ragg` is the preferred renderer. Python and Matplotlib wor
 
 ## How the pieces fit
 
-Creation and repair have different front halves and share one back half, `dataviz-construct`:
+`dataviz-construct` runs both creation and repair. They have different front halves and share one back half:
 
 ```text
 dataset -> discover -> contract -> clean ─┐
@@ -43,22 +43,20 @@ chart image -> diagnose + extract ────────┘
 - **build** draws it in the house style.
 - **execution** looks at the exported image for defects and composition in one review, fixes them in one revision, and verifies.
 
-Each stage loads only its own skill, so no call carries all twenty-four.
+Each stage loads only its own skill, so no call carries all twenty.
 
 ## Skill map
 
 **Start points**
 - [`karthik-data-visualization`](docs/skills/karthik-data-visualization.md) - chart craft: typography, direct labels, colour, axes, whitespace, export check.
-- [`dataviz-fix`](docs/skills/dataviz-fix.md) - repair an existing chart by forward design.
-- [`dataviz-orchestrator`](docs/skills/dataviz-orchestrator.md) - dataset to visual story.
-- [`dataviz-critique`](docs/skills/dataviz-critique.md) - standalone chart critique.
+- [`dataviz-construct`](docs/skills/dataviz-construct.md) - the staged pipeline: dataset to visual story, or repair an existing chart by forward design.
+- [`dataviz-critique`](docs/skills/dataviz-critique.md) - standalone chart critique, and the repair brief that opens a rebuild.
 
 **Choosing and checking**
 - [`dataviz-selector`](docs/skills/dataviz-selector.md) - which form fits the claim, including when a table beats a chart.
-- [`dataviz-construct`](docs/skills/dataviz-construct.md) - the shared build process and its two gates.
 - [`karthik-evidence-builder`](docs/skills/karthik-evidence-builder.md) - facts and headline claim.
 - [`dataviz-idea-critique`](docs/skills/dataviz-idea-critique.md) - the pre-render gate.
-- [`dataviz-execution`](docs/skills/dataviz-execution.md) and [`dataviz-aesthetic`](docs/skills/dataviz-aesthetic.md) - the post-render gate: defects and composition, reviewed together.
+- [`dataviz-execution`](docs/skills/dataviz-execution.md) - the post-render gate: defects and composition, reviewed together.
 - [`dataviz-eval`](docs/skills/dataviz-eval.md) - formal blind review and benchmarks. Only when you need an audit; it slows ordinary work down.
 
 **Craft details**
@@ -70,7 +68,6 @@ Each stage loads only its own skill, so no call carries all twenty-four.
 - [`karthik-powerpoint-style`](docs/skills/karthik-powerpoint-style.md) - claim-first, sparse analytical slides.
 
 **Repair internals**
-- [`dataviz-brief`](docs/skills/dataviz-brief.md) - what the replacement chart must say and carry.
 - [`dataviz-extract`](docs/skills/dataviz-extract.md) - read the full data table out of a chart image.
 
 **Before the chart**
@@ -86,7 +83,7 @@ Each stage loads only its own skill, so no call carries all twenty-four.
 
 ```text
 .
-├── <skill>/{codex,claude}/SKILL.md   # 24 skills, one folder each, a SKILL.md per client
+├── <skill>/{codex,claude}/SKILL.md   # 20 skills, one folder each, a SKILL.md per client
 ├── dataviz_mcp/                      # Optional local stdio MCP: render, inspect, refit, colour, precision
 ├── docs/                             # Human docs, one page per skill
 ├── sync-skills.py                    # Install Codex or Claude skill surfaces

@@ -5,7 +5,7 @@ description: Read the full period-by-category data table out of a chart image by
 
 # Dataviz Extract
 
-Use this during a chart repair, in parallel with `dataviz-brief`, to recover the underlying data from the source image. The rebuild is designed forward from this table plus the brief - not traced from the source picture - so the table must be complete enough to build any chosen form on.
+Use this during a chart repair, in parallel with the repair brief (`dataviz-critique`), to recover the underlying data from the source image. The rebuild is designed forward from this table plus the brief - not traced from the source picture - so the table must be complete enough to build any chosen form on.
 
 This is a vision task, but the value read is not a single "look and say a number" guess. A guessed absolute magnitude is the read models are worst at - fuzzy, biased toward round numbers, and worse still on a log axis. And a lone glyph read of a printed label is no safer: a `6%` transcribed as `0%`, a decimal shifted, a thousands separator dropped, a `3` read as an `8` all leave the pass unchallenged when nothing else grounds the number. So read **every** cell the same way - one path, not two - grounding the value in the mark's position whether or not a label is printed:
 
@@ -60,6 +60,6 @@ p1, c2,  3.1
 
 ## Boundaries
 
-- Do not choose a chart form or decide what matters - that is `dataviz-brief` and `dataviz-selector`.
+- Do not choose a chart form or decide what matters - that is the repair brief (`dataviz-critique`) and `dataviz-selector`.
 - Do not drop a category because its values are hard to read; estimate it and keep it. Deciding a category is not key is the brief's job, made in message terms, not a consequence of extraction difficulty.
 - Do not replace readable axis labels with synthetic indices because individual observations are hard to place. A printed label is directly-read data; erasing it over per-observation uncertainty discards information the source actually gave you, exactly as dropping a hard-to-read category would.

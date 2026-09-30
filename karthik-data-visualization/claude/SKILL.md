@@ -17,7 +17,7 @@ Use for any chart, graph, dashboard, or data-visualization work: chart code, vis
 4. **Check graphical integrity:** scales, baselines, proportional encoding, missing context, any effect that exaggerates or understates the data.
 5. **Eraser test:** remove any ink that doesn't carry data, labels, or necessary context.
 6. **Settle placement before the first render** - see the numbered steps below. Frame and data-glued labels are decided up front, not discovered by clipping.
-7. **Render and inspect the export - the safety net, not where placement is decided.** Placement was reserved at step 6; this pass only confirms the pixels. In the same look, check defects (anything clipped, overlapping, or misaligned), the House defaults below, and the whole image as a composition (`dataviz-aesthetic`: one focal element seen first, every mark earning its place, whitespace grouping not filling); fix them together in one revision, then re-render. A defect-free chart can still read as styled-default; the composition read is what makes it premium.
+7. **Render and inspect the export - the safety net, not where placement is decided.** Placement was reserved at step 6; this pass only confirms the pixels. In the same look, check defects (anything clipped, overlapping, or misaligned), the House defaults below, and the whole image as a composition (one focal element seen first, every mark earning its place, whitespace grouping not filling); fix them together in one revision, then re-render. A defect-free chart can still read as styled-default; the composition read is what makes it premium.
 
 ## Get placement right before the first render
 
@@ -75,7 +75,7 @@ The reader groups marks perceptually before reading labels. Use those groupings:
 - **Enclosure:** a light band or box says "these belong / look here" more quietly than an arrow or heavy outline; reach for it first.
 - **Figure-ground:** one focal element against muted context. Keep exactly one thing as figure; when two compete, neither wins.
 
-**Preattentive first read:** exactly one channel makes the single most important thing pop without search. Decide this focal element before drawing, and verify after rendering that the eye lands there first (`dataviz-aesthetic` owns that post-render check).
+**Preattentive first read:** exactly one channel makes the single most important thing pop without search. Decide this focal element before drawing, and verify after rendering that the eye lands there first (`dataviz-execution` owns that post-render check).
 
 ## Colour (craft summary)
 

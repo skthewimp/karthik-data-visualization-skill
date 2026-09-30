@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Twenty-four skills down to twenty
+
+Four skills were either always loaded with another or restated it, so they are merged in.
+
+- **`dataviz-aesthetic` -> `dataviz-execution`.** The composition lens already ran in the same
+  review as the defect checks. Its five questions now sit in the execution gate itself.
+- **`dataviz-brief` -> `dataviz-critique`.** The brief's key-messages reasoning was a copy of
+  critique's. Critique gains a repair-brief role that adds audience, constraints, the
+  `bounded-edit` / `redesign` mode and keep-notes, and still opens without a fault-list.
+- **`dataviz-orchestrator` and `dataviz-fix` -> `dataviz-construct`.** Both were thin front
+  halves handing into construct. Construct now runs from either end: create
+  (discover -> contract -> clean) or repair (diagnose + extract), then the shared tail.
+- References, READMEs and `docs/skills/` updated; the four doc pages are gone.
+
 ### Development machinery removed
 
 The repo is now skills plus the optional MCP server, nothing else.
