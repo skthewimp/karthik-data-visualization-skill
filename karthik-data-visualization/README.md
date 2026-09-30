@@ -25,4 +25,4 @@ Use `dataviz-selector` before this if the chart form is still unclear. Use `data
 
 ## Edit rule
 
-If style guidance changes, update both `codex/SKILL.md` and `claude/SKILL.md` unless the change is surface-specific. Local style references may exist in `references/`, but ignored private files should not be described as public assets.
+If style guidance changes, update both `codex/SKILL.md` and `claude/SKILL.md` unless the change is surface-specific.

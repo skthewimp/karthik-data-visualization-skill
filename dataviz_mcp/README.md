@@ -13,8 +13,8 @@ See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation a
 From the repository root, install the package and retain the absolute interpreter path:
 
 ```bash
-MCP_PYTHON="${MCP_PYTHON:-$(command -v python3)}"
-uv pip install --python "$MCP_PYTHON" -e .
+python3 -m pip install -e .
+MCP_PYTHON="$(python3 -c 'import sys; print(sys.executable)')"
 ```
 
 On Karthik's machine, the configured interpreter is:

@@ -220,5 +220,3 @@ Now take the first promising cut...
 ```
 
 Then continue from results; don't fill the rest with hypothetical sections.
-
-Private installs may also carry `references/iterative-learning-20.md` (a 20-step empirical audit) and `references/behavioral-forward-tests-20.md` (forward-tests against 20 unseen notebooks); the public repo does not ship them, and this skill works without them.

@@ -38,11 +38,7 @@ Why does this analysis read like a generated report?
 
 ## References
 
-Private installs carry a `references/` folder the skill reads when present. It is not in the public repo, and the skill works without it:
-
-- `empirical-posterior.md` and `style-observations.md` - what the 2018-onward notebooks actually do, distilled.
-- `iterative-learning-20.md` - the sequential twenty-step audit behind the current rules.
-- `behavioral-forward-tests-20.md` - forward tests against twenty unseen notebooks.
+Private installs carry `references/style-observations.md`, a distillation of what the 2018-onward notebooks actually do, read only when matching old notebooks closely. It is not in the public repo, and the skill works without it.
 
 ## Boundaries
 

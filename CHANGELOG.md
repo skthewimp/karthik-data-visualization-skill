@@ -15,6 +15,12 @@
 - **Local clutter gone.** The selector's private dev notes and judge script (unused by any
   skill) and their placeholder READMEs are deleted; `.gitignore` keeps only OS/cache
   patterns and the R analysis skill's private notes.
+- **Stale references removed.** The unlinked `karthik-data-visualization/references/` style
+  guide, and the R analysis skill's superseded audit notes (only `style-observations.md`, which
+  the skill reads, stays private).
+- **One Python environment, one install command.** `uv.lock` (a uv-project lockfile nothing
+  used, which `uv sync` would turn into a project `.venv`) is gone; both READMEs install with
+  `python3 -m pip install -e .` into the existing environment.
 - `recommend_continuous_scale` and `validate_scale` are now documented in
   `dataviz_mcp/README.md` and the MCP implementation map.
 
