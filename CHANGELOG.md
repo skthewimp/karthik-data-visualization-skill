@@ -20,6 +20,8 @@
   the skill reads, stays private).
 - **Last dangling pointers.** `chart-explainer` docs no longer name the removed
   `chart-improver`; `sync.sh` lists `posit` in its `--surface` error.
+- **No pointers to skills outside this repo.** `chart-explainer` no longer hands off to
+  `karthik-writing-style`, which third-party installs don't have.
 - **One Python environment, one install command.** `uv.lock` (a uv-project lockfile nothing
   used, which `uv sync` would turn into a project `.venv`) is gone; both READMEs install with
   `python3 -m pip install -e .` into the existing environment.

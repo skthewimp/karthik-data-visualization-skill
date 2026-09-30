@@ -66,4 +66,4 @@ The skill works from a rendered chart plus the underlying data (preferred - it r
 
 ## Boundaries
 
-`chart-annotations` owns text placed on the chart. `dataviz-critique` owns chart quality - `chart-explainer` narrates a bad chart without commenting on it. `karthik-writing-style` owns anything longer than a note.
+`chart-annotations` owns text placed on the chart. `dataviz-critique` owns chart quality - `chart-explainer` narrates a bad chart without commenting on it.
