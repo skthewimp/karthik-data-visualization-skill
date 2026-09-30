@@ -1,5 +1,30 @@
 # Devlog
 
+## 2026-09-30 - Reading the repo as a new user
+
+### User report
+
+- "i'll be deleint ghat repair site from here soon. so disregard that. is this clean now? and
+  think of it from the perspective of a new user who wants to build dataviz like me"
+
+### What I found
+
+- The README opened with instructions for agents and the renderer policy, then a numbered list
+  of 24 skills in build order. Seven skills had no section; the install list named 15. Nothing
+  told a person that `karthik-data-visualization` alone covers the single-chart case.
+- `karthik-r-analysis-style` linked three private reference files that `.gitignore` keeps out of
+  the public repo, so a clone got dead pointers.
+- `dataviz-color` said "use the tools" with no fallback, against the rule that published skills
+  degrade to render-and-inspect by eye.
+- `docs/plans/` held a site roadmap and a build plan whose remaining work is done.
+
+### Changes
+
+- Rewrote the README top: entry-point table, pipeline diagram, grouped skill map, compact layout.
+- Added no-server fallbacks to colour, precision and the chart skill; made the private
+  references optional; removed `docs/plans/`; completed `docs/README.md`.
+- Checked a fresh clone: validation passes and every relative link in the READMEs resolves.
+
 ## 2026-09-30 - Cleanup after dropping the site-only MCP tools
 
 ### User report

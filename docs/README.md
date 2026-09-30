@@ -24,6 +24,10 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`skills/chart-explainer.md`](skills/chart-explainer.md) - how to write the two-line note that accompanies a chart or table
 - [`skills/karthik-r-analysis-style.md`](skills/karthik-r-analysis-style.md) - how to write an exploratory R scratchpad or notebook
 - [`skills/karthik-r-code-style.md`](skills/karthik-r-code-style.md) - how R code is laid out: pipes, brackets, assignment, indentation
+- [`skills/dataviz-aesthetic.md`](skills/dataviz-aesthetic.md) - the composition lens of the post-render review: what reads first, what competes, what ink is unearned
+- [`skills/dataviz-color.md`](skills/dataviz-color.md) - how to choose and assign colours for one chart
+- [`skills/dataviz-precision.md`](skills/dataviz-precision.md) - how many digits to show, keyed to the spread
+- [`skills/karthik-table-style.md`](skills/karthik-table-style.md) - how to format a table as a visualization
 
 ## Project notes
 
@@ -31,8 +35,6 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`../CHANGELOG.md`](../CHANGELOG.md) - release-style summary of public repo changes
 - [`../DEVLOG.md`](../DEVLOG.md) - session devlog with prompts and work done
 - [`blog/`](blog/) - longer project writeups
-- [`plans/`](plans/) - planning docs for future skill work
-- [`plans/dataviz-repair-product-roadmap.md`](plans/dataviz-repair-product-roadmap.md) - build order for the bounded loop, editable context, local tester, private deployment, and any later BYOK beta
 - [`../tester/README.md`](../tester/README.md) - run and test the local repair-loop case console
 
 ## Development workflow

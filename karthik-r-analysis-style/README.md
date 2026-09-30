@@ -18,7 +18,7 @@ This is not a charting skill and not a cleaning skill. It is the register and sh
 
 - [`codex/SKILL.md`](codex/SKILL.md) - Codex version of the skill.
 - [`claude/SKILL.md`](claude/SKILL.md) - Claude version with Claude-safe frontmatter.
-- [`codex/references/`](codex/references/) and [`claude/references/`](claude/references/) - the empirical posterior, style observations, and the two audit files, shipped inside each surface because `SKILL.md` reads them at runtime.
+- `codex/references/` and `claude/references/` - private, not in the public repo: the empirical posterior, style observations, and the two audit files. `SKILL.md` reads them when present and works without them.
 - [`codex/README.md`](codex/README.md) and [`claude/README.md`](claude/README.md) - surface-specific notes.
 
 ## Relationship to other skills

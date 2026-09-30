@@ -38,7 +38,7 @@ Why does this analysis read like a generated report?
 
 ## References
 
-`references/` ships inside each surface directory because `SKILL.md` reads it at runtime:
+Private installs carry a `references/` folder the skill reads when present. It is not in the public repo, and the skill works without it:
 
 - `empirical-posterior.md` and `style-observations.md` - what the 2018-onward notebooks actually do, distilled.
 - `iterative-learning-20.md` - the sequential twenty-step audit behind the current rules.

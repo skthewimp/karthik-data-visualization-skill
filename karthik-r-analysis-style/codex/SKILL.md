@@ -58,7 +58,7 @@ Before creating or heavily editing a notebook, retrieve local examples and updat
 3. Older hand-written notebooks (2018 onward) if recent files look AI-generated or over-structured.
 4. One adjacent "bad fit" file if useful, to avoid copying the wrong mode.
 
-For each, ask: question/context, grain, first inspection, branch logic, code texture, stopping point. Then write in the posterior style - don't invent a new workflow if the repo has one. Copy texture, not just syntax: roughness, local object names, domain metrics, assignment style, plot roughness, section rhythm, willingness to abandon paths. Read `references/style-observations.md` only when matching old notebooks closely.
+For each, ask: question/context, grain, first inspection, branch logic, code texture, stopping point. Then write in the posterior style - don't invent a new workflow if the repo has one. Copy texture, not just syntax: roughness, local object names, domain metrics, assignment style, plot roughness, section rhythm, willingness to abandon paths. If `references/style-observations.md` is installed (it is private and not in the public repo), read it only when matching old notebooks closely.
 
 ## Notebook family routing
 
@@ -221,4 +221,4 @@ Now take the first promising cut...
 
 Then continue from results; don't fill the rest with hypothetical sections.
 
-For the detailed sequential 20-step empirical audit, read `references/iterative-learning-20.md`. For behavioural forward-tests against 20 unseen notebooks, read `references/behavioral-forward-tests-20.md`.
+Private installs may also carry `references/iterative-learning-20.md` (a 20-step empirical audit) and `references/behavioral-forward-tests-20.md` (forward-tests against 20 unseen notebooks); the public repo does not ship them, and this skill works without them.

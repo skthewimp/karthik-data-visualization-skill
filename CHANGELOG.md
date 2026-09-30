@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### A newcomer can find their way in
+
+- **README starts with the person, not the agent.** A "you have / use / what happens" table
+  points at the five real entry points, `karthik-data-visualization` is named as the whole
+  thing for a single chart, the pipeline is one diagram, and the twenty-four skills are grouped
+  by job instead of listed in the order they were built. The stale install-path list, the
+  per-skill repeats of `docs/skills/`, and two stale lines (aesthetic "after execution clears
+  the defects", table "drawn by the table tools") are gone.
+- **Skills degrade without the MCP server.** `dataviz-color`, `dataviz-precision` and
+  `karthik-data-visualization` say how to apply their rules by hand when the tools are absent.
+- **No broken links in a fresh clone.** `karthik-r-analysis-style` pointed at private
+  `references/` files that are gitignored; it now treats them as optional.
+- `docs/plans/` removed (both plans were about the repair site or already built); `docs/README.md`
+  indexes all twenty-four skill pages.
+
 ### Follow-up cleanup: no skill or contract still points at a removed tool
 
 - **Stage contracts match the skills again.** The select, build and execution prompts in

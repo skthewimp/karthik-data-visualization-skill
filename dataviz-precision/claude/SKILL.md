@@ -10,7 +10,7 @@ metadata:
 
 Own the significant-digits decision for numbers on a chart or in a table: axis ticks, data labels, and table cells. Do not choose the chart's form, its colours, or its prose - those belong to `dataviz-selector`, `dataviz-color`, and `chart-explainer`. This skill generalises the precision philosophy that also governs `karthik-table-style`; when formatting numbers anywhere, this is the authority.
 
-The mechanical computation lives in the dataviz MCP: `recommend_precision`.
+The mechanical computation lives in the dataviz MCP: `recommend_precision`. Without the server, apply the formula below by hand.
 
 ## The rule: precision is keyed to the spread, not the value
 
