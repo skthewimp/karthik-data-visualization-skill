@@ -13,7 +13,7 @@
 - **Dead code gone:** `color_math.better_ink` / `text_ink`, the unused `require_r_table`
   fixture, and the `r/*.R` package-data entry for a directory that no longer exists.
 - **Local clutter gone.** The selector's private dev notes and judge script (unused by any
-  skill) and their placeholder READMEs are deleted; `.gitignore` keeps only build/cache
+  skill) and their placeholder READMEs are deleted; `.gitignore` keeps only OS/cache
   patterns and the R analysis skill's private notes.
 - `recommend_continuous_scale` and `validate_scale` are now documented in
   `dataviz_mcp/README.md` and the MCP implementation map.

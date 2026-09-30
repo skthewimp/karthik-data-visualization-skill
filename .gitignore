@@ -1,12 +1,8 @@
 # Private style notes the R analysis skill reads when installed; not published
 karthik-r-analysis-style/*/references/
 
-# Build artifacts
-dist/
-
 # OS/cache
 .DS_Store
 .venv/
 __pycache__/
 *.pyc
-*.egg-info/
