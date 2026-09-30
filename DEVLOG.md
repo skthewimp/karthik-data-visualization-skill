@@ -4572,3 +4572,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - The development machinery is gone, pushed as `9ea18eb`. The repo is now just the 24 skills plus the optional MCP server. The commit deletes about 14,400 lines across 50 files. The test suite is 150 tests in 23s, all p...
 
 <!-- claude-session:3069c3f6-5e1c-4925-b652-4673230015d2:end -->
+
+<!-- claude-session:dfb3b1de-632a-4006-a620-0e1e046b3083:start -->
+## 2026-09-30 11:27 IST | Claude session `dfb3b1de-632`
+
+### User prompts
+> we have 24 skills here. is that a lot? if so, are there easy optimisations / redundancies here?
+> ok do 1-4
+
+### Work done
+- Now docs and READMEs.
+- I did all four, and it's pushed as `5bc69e1`. You now have 20 skills: 62 files changed, net −613 lines. The previous devlog commit hadn't been pushed yet, so it went up in the same push. 1. **`chart-improver` removed*...
+
+<!-- claude-session:dfb3b1de-632a-4006-a620-0e1e046b3083:end -->
