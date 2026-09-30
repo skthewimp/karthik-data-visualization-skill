@@ -4599,3 +4599,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - `uv.lock` and the stale references are deleted, and the repo now has one install command. Committed and pushed; `main` matches `origin`. 1. **One environment, one install command.** `uv.lock` is gone, so a `uv sync` c...
 
 <!-- claude-session:1429af7e-cde9-4c4c-8ae7-8d21aa5f5220:end -->
+
+<!-- claude-session:57bc9a42-06cb-497a-94f9-55b2c75172d1:start -->
+## 2026-09-30 11:56 IST | Claude session `57bc9a42-06c`
+
+### User prompts
+> do antoher pass of this repo to make sure there is nothihng dangling etc.
+> ok - remove references to skills not in this repo
+
+### Work done
+- I found and fixed two dangling references. Pushed as `2129ee9`, and `main` now matches `origin/main`. Your earlier unpushed devlog commit `163c75a` went up in the same push. **Fixed:** 1. `chart-explainer/README.md` a...
+- The repo no longer names any skill that isn't in it. Pushed as `a8d16a5`, and `main` matches `origin/main`. - **What I removed:** the only named outside skill was `karthik-writing-style`, all of it in the `chart-expla...
+
+<!-- claude-session:57bc9a42-06cb-497a-94f9-55b2c75172d1:end -->
