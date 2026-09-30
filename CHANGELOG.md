@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Loose ends from the cleanup
+
+- **`dataviz-construct` defines its own select flags.** `builder`, the four `needs_*` flags,
+  `exact_lookup_required` and the `colour_plan` were only defined in the deleted contract
+  module; the select step now says what each means.
+- **Inspector no longer routes to removed tools.** `correction_plan.placement.route` and the
+  refit docs pointed at `place_on_marks` / `recommend_text_placement` / `recommend_labels`;
+  placement now goes back to the chart code.
+- **Dead code gone:** `color_math.better_ink` / `text_ink`, the unused `require_r_table`
+  fixture, and the `r/*.R` package-data entry for a directory that no longer exists.
+- `recommend_continuous_scale` and `validate_scale` are now documented in
+  `dataviz_mcp/README.md` and the MCP implementation map.
+
 ### Twenty-four skills down to twenty
 
 Four skills were either always loaded with another or restated it, so they are merged in.

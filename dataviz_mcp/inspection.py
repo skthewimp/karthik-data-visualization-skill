@@ -391,9 +391,9 @@ def _underfill_defect(
 # Every defect belongs to one correction class, which decides how the cycle resolves it:
 #   canvas    - clipping/overflow the canvas can grow out of; refit deterministically when a
 #               growth vector exists (edge overflow past the canvas edge).
-#   placement - a local text move the geometry tools compute exactly (collisions, an over-long
-#               unwrapped annotation, a label straddling the plot boundary, a missing direct
-#               label). place_on_marks / recommend_text_placement / recommend_labels own these.
+#   placement - a local text move made in the chart code (collisions, an over-long unwrapped
+#               annotation, a label straddling the plot boundary, a missing direct label) -
+#               the renderer's repel layer or a deliberate offset from the label's own mark.
 #   semantic  - a judgement the model must make (contrast, redundant ink, an external legend,
 #               an unidentified series, undersized text, an underfilled canvas that wants a
 #               design decision, not a resize).
@@ -1183,7 +1183,7 @@ def inspect_rendered_chart(
     }
 
     # Route each defect by its class so a driver resolves the cycle without re-deriving the split:
-    # canvas -> refit (only when a growth vector exists), placement -> the exact geometry-tool move,
+    # canvas -> refit (only when a growth vector exists), placement -> a label move in the chart code,
     # semantic -> a model patch. The canvas group carries the shared growth vector, so "grow only
     # when a growth vector exists" is a null check, not a judgement call.
     correction_plan = {
@@ -1194,8 +1194,8 @@ def inspect_rendered_chart(
         },
         "placement": {
             "defects": [d for d in defects if d["defect_class"] == "placement"],
-            "route": "place_on_marks / recommend_text_placement / recommend_labels - apply the "
-            "exact per-defect move; do not hand the geometry back to the model",
+            "route": "chart code - move the label with the repel layer or an offset from its own "
+            "mark; never grow the canvas for it",
         },
         "semantic": {
             "defects": [d for d in defects if d["defect_class"] == "semantic"],

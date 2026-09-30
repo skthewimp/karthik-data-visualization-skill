@@ -193,8 +193,8 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
   cross-cutting changes. Add `--durations=10` to locate slow tests. R availability is checked
   lazily once per test session for integration-test prerequisites.
 - For quick feedback, use `python3 -m pytest -q -m 'not integration'`; add an affected file
-  before `-m` to narrow it further. `-m integration` selects live chart renders, renderer
-  probes, and R-backed table measurement. The default command still runs both groups.
+  before `-m` to narrow it further. `-m integration` selects live chart renders and renderer
+  probes. The default command still runs both groups.
 - Extend an existing test when it already builds the same scenario. Keep separate cases for
   distinct failure modes and renderer behavior; avoid duplicate renders, wording snapshots,
   and tests that merely repeat implementation constants.

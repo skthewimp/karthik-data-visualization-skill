@@ -12,7 +12,7 @@ Scope: refit only fixes what *growing* fixes - edge clipping, overflow, squashed
 because those carry an exact read-back px vector. Underfill (a canvas too empty for its ink)
 has no exact shrink vector - clearing it is a design call (denser layout, bigger marks, or a
 table), so refit *detects and reports* it but never guesses a shrink. Label-vs-label and
-label-vs-mark collisions are ``place_on_marks``' job; refit does not touch them.
+label-vs-mark collisions are placement fixes in the chart code; refit does not touch them.
 """
 
 from __future__ import annotations

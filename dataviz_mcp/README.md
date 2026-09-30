@@ -202,6 +202,14 @@ Picks and assigns colours for one graph from an `available` set (brand/context/d
 
 Scores a palette on WCAG contrast, series distinctness, CVD, and grayscale survival. Inputs: `colours`, `background`, optional `text_colours`, `min_contrast_text` (default 4.5), `min_contrast_mark` (default 3.0). Returns a verdict plus ranked findings, each with a concrete nudge. Targets are soft: findings are reported, not hard-blocked.
 
+### `recommend_continuous_scale`
+
+Recommends a continuous colour scale for one ordered quantity (heatmap fill, colour-mapped value) - not categorical series, which go through `recommend_colours`. Inputs: `values`, optional `available` (brand/context colours for the poles), `background`, optional `reference` (a real centre), and `kind` (`auto`, `sequential`, `diverging`). Returns the scale `kind`, a data-derived `domain` and `midpoint`, ordered `stops`, and an off-scale `missing_colour` for NA cells. `auto` diverges only when the data has a real centre (a `reference` or values straddling zero); a forced `diverging` scale without a reference centres on the data median.
+
+### `validate_scale`
+
+Checks a continuous scale by its ends, not as categorical series. Inputs: `stops`, `scale_kind`, `background`, `min_contrast_mark` (default 3.0). At least one stop must read on the background and the two poles must stay apart in lightness so the extremes survive grayscale and CVD. Interior stops are not flagged for being close - a ramp is meant to have close neighbours.
+
 ### `extract_palette_from_image`
 
 Samples dominant hues from a source chart image as a repair prior (brand/WCAG may override). Inputs: `image_path`, `max_colours` (default 8), `ignore_near_white_black` (default true).
