@@ -1,5 +1,23 @@
 # Devlog
 
+## 2026-09-30 - Removing the development machinery
+
+### User report
+
+- "get rid of the development mahcinery."
+
+### What changed
+
+- Deleted `tester/`, the case manager and its tests, `stage_contracts.py`, `handoff.py`,
+  `benchmark.py` and `test_pipeline.py`. With the repair site going, the tester was the only
+  consumer of the stage contracts, and the case manager only served audited tester runs.
+- Removed every pointer to them: skill handoff sections that named schema constants, the
+  optional case-logging section of `dataviz-fix`, the audited repair sequence in `docs/mcp.md`,
+  README and folder-README entries, the tester test extras in `pyproject.toml`, `.gitignore`
+  exceptions, and the case-manager line in `AGENTS.md`. `uv.lock` regenerated.
+- Kept `compare_chart_artifacts` and `dataviz-eval`: both are useful without a case manager.
+- `pytest -q`: 150 passed in 23s.
+
 ## 2026-09-30 - Reading the repo as a new user
 
 ### User report

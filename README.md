@@ -88,8 +88,6 @@ Each stage loads only its own skill, so no call carries all twenty-four.
 .
 ├── <skill>/{codex,claude}/SKILL.md   # 24 skills, one folder each, a SKILL.md per client
 ├── dataviz_mcp/                      # Optional local stdio MCP: render, inspect, refit, colour, precision
-├── dataviz-fix/codex/scripts/        # Optional audited case manager for repair runs
-├── tester/                           # Optional local repair-loop console for development
 ├── docs/                             # Human docs, one page per skill
 ├── sync-skills.py                    # Install Codex or Claude skill surfaces
 └── sync.sh                           # Pull + install wrapper
@@ -161,21 +159,6 @@ To install one surface only:
 ./sync.sh --no-pull --surface claude
 ```
 
-## Run the local repair tester
-
-The local tester is an optional audited development harness, not the default chart-repair path. It accepts a pasted or uploaded chart, records versioned context, explicit preservation requirements, structured feedback, optional budgets, and case history. Candidate charts can be uploaded manually or generated through an opt-in local Codex runner.
-
-```bash
-python3 -m pip install -r tester/requirements.txt
-uvicorn tester.app:app --host 127.0.0.1 --port 8787 --reload
-```
-
-Open `http://127.0.0.1:8787`. This development server has no authentication. Keep it on localhost.
-
-Set `DATAVIZ_ENABLE_LOCAL_RUNNER=1` before starting the server to enable one bounded local creator-plus-reviewer cycle per click.
-
-See [`tester/README.md`](tester/README.md).
-
 ## MCP tools and current coverage
 
 The MCP server is optional. The skills work without it; the tools make the mechanical checks exact instead of eyeballed. Analytical and visual judgement stays in the skills.
@@ -198,7 +181,7 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
 - Rendering executes trusted local Python or R. It is not a sandbox; do not use it on untrusted chart source.
 - Matplotlib geometry covers text, lines, bars, patches, and common collections. The ggplot2 adapter resolves drawn gtable tracks and captures every panel plus rect, point, polygon, polyline, and text grobs; uncommon grobs remain explicit limitations.
 - Mechanical inspection does not replace analytical critique, delivery-size visual review, or user acceptance.
-- Local/private `references/` and `scripts/` remain ignored by default. The optional audited `dataviz-fix/scripts/case_manager.py` runtime is tracked but is not invoked by the default skill path.
+- Local/private `references/` and `scripts/` remain ignored by default.
 
 ## Development notes
 
@@ -218,8 +201,6 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
 - Extend an existing test when it already builds the same scenario. Keep separate cases for
   distinct failure modes and renderer behavior; avoid duplicate renders, wording snapshots,
   and tests that merely repeat implementation constants.
-- Run `python3 -m pytest -q dataviz-fix/tests tester/tests` only when changing the optional
-  audited case manager or tester, or their dependencies.
 - No generated `dist/` output is committed.
 - Keep README files in public folders. They are navigation aids for newcomers and should be updated when layout changes.
 

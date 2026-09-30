@@ -69,37 +69,7 @@ intake
 
 Creation and repair share this tail from `insight` onward (`dataviz-construct`); they differ only in the front half that reaches it (a dataset, or a diagnosed source image).
 
-When the chosen renderer is supported, pass the exact deliverable through the metadata-producing adapter and then exact-artifact inspection. When the appropriate renderer is not supported, inspect the exact export visually and keep missing geometry marked unknown. Use independent evaluation only for an explicit audit, high-risk decision, or benchmark. Metadata availability must not force a weaker visual implementation or suppress a valid artifact.
-
-## Optional audited repair sequence
-
-The default `dataviz-fix` path renders one candidate, inspects it once, and delivers it. It does not require a case record or independent evaluation. Use the sequence below only when the user requests an audit trail, a high-risk review, or a benchmark.
-
-```text
-render candidate
-→ inspect exact artifact and matching metadata
-→ attach the artifact and inspection hashes to the case iteration
-→ issue the blind review request
-→ run dataviz-eval against that exact version
-→ reveal context only after the blind read
-→ apply the minimum pass set
-→ render and inspect again
-→ stop when the release line passes
-```
-
-When used, the `dataviz-fix` state machine owns original, current, best, and historical artifacts. Case schema 14 requires critique, design, build, inspection, blind evaluation, revision/redesign, and user review records. It rejects:
-
-- a bundle whose artifact, spec, or metadata hash no longer matches;
-- layout metadata whose internal artifact hash names a different PNG;
-- an inspection report for a different artifact;
-- an evaluation that cites the wrong deterministic inspection hash;
-- a first build without critique and a complete design contract;
-- a `Revise` build that omits an open evaluator action or user correction;
-- a `Redesign` build without a fresh critique and chart-selection decision when form is implicated;
-- an unexplained Matplotlib render when auto could use ggplot2;
-- a `Send` verdict while a known high- or medium-severity deterministic defect remains undismissed (a dismissal names the code and what the artifact shows instead).
-
-The independent evaluator receives named defects and element IDs rather than a clean-looking overview alone. A flag is evidence: once confirmed in the artifact it becomes part of the minimum pass set through the reader consequence it causes; one the artifact does not bear out is dismissed with its reason. The repairer fixes those mechanical failures before reopening broader design choices, preserves elements that already pass, and stops when the pass line is met.
+When the chosen renderer is supported, pass the exact deliverable through the metadata-producing adapter and then exact-artifact inspection. When the appropriate renderer is not supported, inspect the exact export visually and keep missing geometry marked unknown. Use independent evaluation (`dataviz-eval`) only for an explicit audit, high-risk decision, or benchmark. Metadata availability must not force a weaker visual implementation or suppress a valid artifact.
 
 ## Mechanical checks
 
@@ -159,7 +129,7 @@ The core suite creates deterministic fixtures for:
 - missing-data line segments, to prevent false bridges across `NaN` gaps;
 - uncommon or adapter-unsupported marks, to verify that incomplete coverage stays explicit.
 
-The end-to-end coffee fixture renders a deliberately bad multi-annotation time series, detects four geometry defects, and records a `Revise` result in the real case state machine. It then changes annotation placement only, renders and inspects again, reaches zero defects, records `Send`, and moves the case to `user_review`. The comparison report confirms that the second artifact resolves the failures without introducing a new one.
+The end-to-end coffee fixture renders a deliberately bad multi-annotation time series and detects four geometry defects. It then changes annotation placement only, renders and inspects again, and reaches zero defects. The comparison report confirms that the second artifact resolves the failures without introducing a new one.
 
 ## Implementation map
 
@@ -176,8 +146,6 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 | `dataviz_mcp/comparison.py` | Hash-validated revision comparison |
 | `dataviz_mcp/server.py` | Stdio MCP surface (render, inspect, compare, and the recommend_* resolution tools) |
 | `dataviz_mcp/review_views.py` | Full, delivery, panel, hierarchy, and dense-placement views |
-| `dataviz-fix/*/scripts/case_manager.py` | Versioned case state and inspection/evaluation binding |
-| `tester/local_runner.py` | Staged repair cycle (diagnose/select/build), inspection, and blind review |
 | `dataviz_mcp/tests/` | Capability, protocol, geometry, and coffee repair tests |
 
 Installation, client registration, tool parameters, and the chart-builder contract are in [`dataviz_mcp/README.md`](../dataviz_mcp/README.md).

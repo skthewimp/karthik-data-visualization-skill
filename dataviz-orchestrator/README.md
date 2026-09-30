@@ -2,8 +2,6 @@
 
 The creation front half for the dataset-to-visual-story loop: raw data in, visual story out. It is the coordinating skill for the front half, not a replacement for the more focused skills. It runs as an ordered sequence of separate calls - discover, contract, clean - and then hands into the shared construct process (`dataviz-construct`), whose tail is insight, select, idea, build, execution. Each call carries only the skills that stage needs plus a compact artifact handed forward; that per-stage scoping is what keeps a long pipeline from rotting a single context. For repairing an existing chart from an image, use `dataviz-fix` (the repair front half) instead - it feeds the same construct tail.
 
-The machine-readable contract - exact skill subset and JSON handoff schema per stage - is `dataviz_mcp/stage_contracts.py:STORY_PIPELINE`.
-
 Use it when the request is broader than “pick a chart” or “clean this plot”. For example: “here is a dataset, find the story and make the chart”.
 
 ## Stages it coordinates

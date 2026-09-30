@@ -30,12 +30,10 @@ The path is **forward design, not critique-plus-patch**: extract the intent (`da
 
 - [`codex/SKILL.md`](codex/SKILL.md) - Codex version.
 - [`claude/SKILL.md`](claude/SKILL.md) - Claude version.
-- [`codex/scripts/case_manager.py`](codex/scripts/case_manager.py) and [`claude/scripts/case_manager.py`](claude/scripts/case_manager.py) - deterministic case logger.
-- [`tests/test_case_manager.py`](tests/test_case_manager.py) - state, budget, context, and termination regression tests.
 
 ## Relationship to other skills
 
-`dataviz-fix` is the repair front half. It opens with `dataviz-brief` (intent), `dataviz-extract` (data), and `dataviz-critique` (source diagnosis), then hands into the shared construct process (`dataviz-construct`): `karthik-evidence-builder` (insight), `dataviz-selector` (form, chosen cold), `dataviz-idea-critique` (pre-render gate), `karthik-data-visualization` / `karthik-table-style` and `chart-annotations` (build), and `dataviz-execution` (post-render gate) - plus the installed writing or brand-style skill when one is available. The case manager is an optional audited path, not a default release gate.
+`dataviz-fix` is the repair front half. It opens with `dataviz-brief` (intent), `dataviz-extract` (data), and `dataviz-critique` (source diagnosis), then hands into the shared construct process (`dataviz-construct`): `karthik-evidence-builder` (insight), `dataviz-selector` (form, chosen cold), `dataviz-idea-critique` (pre-render gate), `karthik-data-visualization` / `karthik-table-style` and `chart-annotations` (build), and `dataviz-execution` (post-render gate) - plus the installed writing or brand-style skill when one is available.
 
 ## Edit rule
 

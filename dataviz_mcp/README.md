@@ -4,45 +4,6 @@ This local stdio server handles the mechanical part of chart production. It prob
 
 See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation and repair flows, hash/version guarantees, and the reasons for using render metadata.
 
-## Staged pipeline contract
-
-`dataviz_mcp.stage_contracts` is the provider-neutral, staged contract another
-application can reuse. Two front halves feed one shared terminal process
-(`dataviz-construct`): `REPAIR_PIPELINE` (image in: `diagnose`, then the construct tail)
-and `STORY_PIPELINE` (dataset to story: `discover -> contract -> clean`, then the construct
-tail). The shared tail is `insight -> select -> idea -> build -> execution`, and its
-`select`, `idea`, `build`, and `execution` stages are the *same* `Stage` objects in both
-pipelines - the literal coalescing of the two old `select -> build -> refine` tails. Only
-`insight` differs, and only in the artifact it reads. `insight` names the headline claim and
-candidate annotations before a form is chosen (`karthik-evidence-builder`); `idea` is the
-pre-render gate (`dataviz-idea-critique`); `execution` is the post-render gate
-(`dataviz-execution`). How many revision passes either gate runs is the driver's budget, not
-a fixed cap. Each stage names the smallest skill subset it needs, the artifact it receives,
-the artifact it emits, and a focused adapter. Handoffs are **structured text**
-(markdown sections per content field, plus a small `routing` block of `key: value` lines at
-the branch points), not strict JSON - so the pipeline runs on cheaper / open-weight models
-too. `dataviz_mcp.handoff` parses the routing block leniently and also accepts a plain JSON
-object; each stage's `output_schema` is retained as the machine-readable *content checklist*,
-not a wire format.
-
-A driver runs one model call per stage. `stage_skill_bundle(stage, builder, active_conditions)`
-reads only that stage's `<skill>/codex/SKILL.md` sources - never the whole repository - so
-a skill absent from a stage never enters its call. That per-stage bundling is the fix for
-the context rot the old single-creator all-skills bundle caused. `build_stage_adapter(...)`
-prepends the shared guardrails and the stage's focused instructions to that bundle.
-A stage can select a named section through `skill_sections`: idea review receives the
-selector's current **Form constraints**, without its selection workflow. Missing or
-ambiguous section headings fail bundling rather than silently omitting the constraints.
-
-The build stage's builder skill (`karthik-data-visualization` for a chart,
-`karthik-table-style` for a table) is chosen from the select stage's `builder` routing key;
-the only conditional skill it adds is `chart-annotations`, for a chart whose routing block
-sets `needs_annotations` (parsed via `dataviz_mcp.handoff.parse_routing`). Colour and precision
-are decided at select and resolved by `recommend_colours` / `recommend_precision` before build;
-the explainer note is its own render-independent `explain` stage. The build stage asserts the headline claim named at
-`insight` and places the candidate annotations it supplied.
-`build_stage_adapter` also exposes the repository revision for reproducibility.
-
 ## Requirements and installation
 
 - Python 3.10 or newer
@@ -257,25 +218,6 @@ The arithmetic half of reading a value off a chart, used by `dataviz-extract`. T
 
 Advisory recommendation of a linear vs `log10` axis transform for a continuous axis. Inputs: `values` (every value that maps to the axis) and `encoding` (`position` for points/lines/dots/box/violin, or `length` for bars/area, which need a true zero and almost never take log). Computes the positive dynamic range, orders of magnitude, and quartile-skew reduction under logging, and returns a graded `strength`/`confidence`, the `transform` scalar the builder branches on, the `signals`, a `rationale`, and `caveats`. It is one input to the model's decision, not a gate - override it when the prompt wants absolute magnitudes, the audience won't read a log axis, or it would mislead. Log-only: with non-positive values `log10` cannot apply, so it returns `applicable: false` and notes that symlog/log1p exist rather than recommending them.
 
-## Optional audited repair integration
-
-The default repair path can call `render_and_inspect_chart` without opening a case. When an audit trail or benchmark is requested, the case manager preserves the bundle and inspection beside an iteration:
-
-```bash
-python3 dataviz-fix/codex/scripts/case_manager.py iterate \
-  --case CASE_ID \
-  --output /path/to/chart.png \
-  --bundle-manifest /path/to/manifest.json
-
-python3 dataviz-fix/codex/scripts/case_manager.py inspect \
-  --case CASE_ID \
-  --report /path/to/inspection.json
-```
-
-Record inspection before `review-request`. The blind packet then carries the exact artifact and deterministic inspection hashes. The evaluator must return the same inspection hash. The case manager rejects `Send` while a known high- or medium-severity deterministic defect remains.
-
-The local runner performs this order automatically. Raster-only candidates remain usable for visual review, but their deterministic geometry result stays incomplete.
-
 ## Run the tests
 
 Use the same environment as the MCP clients:
@@ -284,9 +226,8 @@ Use the same environment as the MCP clients:
 MPLCONFIGDIR=/tmp/mpl-cache "$MCP_PYTHON" -m pytest -q
 ```
 
-The default suite covers MCP tools, a real stdio tool listing, deterministic geometry fixtures, and the end-to-end coffee annotation repair. Run `pytest -q dataviz-fix/tests tester/tests` only when changing the optional audited case manager or local tester.
+The default suite covers MCP tools, a real stdio tool listing, deterministic geometry fixtures, and the end-to-end coffee annotation repair (render, inspect, fix placement, compare).
 
-`dataviz_mcp.benchmark` loads caller-supplied repair-case roots read-only, de-duplicates case IDs, reports critique/design adoption and cycle counts, and compares a complete matched replay with its baseline. A replay only meets acceptance when every baseline case is present, evaluation cycles fall, and false `Send` events do not increase.
 
 ## Current limits
 

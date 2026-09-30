@@ -96,5 +96,4 @@ genuinely cannot be made honest and answerable from the evidence at hand.
 ## Handoff
 
 Emit the verdict, the summary, the four judgements, and the ranked issues with their fixes and
-routing. The exact fields are `dataviz_mcp/stage_contracts.py:IDEA_CRITIQUE_SCHEMA`; this skill
-carries the reasoning, that module the shape.
+routing.

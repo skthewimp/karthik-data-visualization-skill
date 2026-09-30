@@ -89,6 +89,4 @@ A candidate annotation is **a fact from outside the dataset that explains what t
 
 Emit the facts, the `headline_claim`, the `candidate_annotations` (the external fact + the datum
 it explains + where you know the fact from; empty, and usually empty, when no outside fact is at
-hand), and the `caveats`. The exact fields are
-`dataviz_mcp/stage_contracts.py:INSIGHT_SCHEMA`; this skill carries the reasoning, that module
-the shape.
+hand), and the `caveats`.

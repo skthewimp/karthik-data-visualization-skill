@@ -35,7 +35,6 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`../CHANGELOG.md`](../CHANGELOG.md) - release-style summary of public repo changes
 - [`../DEVLOG.md`](../DEVLOG.md) - session devlog with prompts and work done
 - [`blog/`](blog/) - longer project writeups
-- [`../tester/README.md`](../tester/README.md) - run and test the local repair-loop case console
 
 ## Development workflow
 

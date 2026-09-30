@@ -4,4 +4,4 @@ Codex version of the shared terminal process both creation and repair hand into:
 
 Install target: `~/.codex/skills/dataviz-construct/`.
 
-Keep behavioural changes aligned with `../claude/SKILL.md` (the two SKILL.md files are byte-identical). The stage shape lives in `dataviz_mcp/stage_contracts.py` (the construct tail).
+Keep behavioural changes aligned with `../claude/SKILL.md` (the two SKILL.md files are byte-identical).

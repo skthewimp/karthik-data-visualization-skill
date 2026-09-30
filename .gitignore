@@ -8,10 +8,6 @@
 !**/scripts/
 !**/scripts/README.md
 
-# Public runtime used by the dataviz repair loop
-!dataviz-fix/codex/scripts/case_manager.py
-!dataviz-fix/claude/scripts/case_manager.py
-
 # Private model-comparison / eval benchmark artifacts - never commit.
 # These carry private model codenames and raw benchmark transcripts; they live
 # outside the repo (see ../luna-eval-private/). Patterns guard against re-adding.
@@ -29,8 +25,6 @@ dist/
 __pycache__/
 *.pyc
 *.egg-info/
-.dataviz-tester/
-tester-outputs/
 
 # Local canonical-run notes and transcripts
 canonical-examples-analysis.md

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Development machinery removed
+
+The repo is now skills plus the optional MCP server, nothing else.
+
+- **Removed:** the local repair tester (`tester/`), the audited case manager
+  (`dataviz-fix/*/scripts/case_manager.py` and its tests), the staged-pipeline contract module
+  (`dataviz_mcp/stage_contracts.py`), its routing parser (`handoff.py`) and the case-record
+  benchmark (`benchmark.py`). About 9,000 lines.
+- **Skills keep the pipeline.** The staged process lives in the skills themselves
+  (`dataviz-construct`, `dataviz-fix`, `dataviz-orchestrator`); the pointers to schema
+  constants in the deleted module are gone.
+- `dataviz-eval`'s creator-system benchmark is a skill protocol, not code, and stays.
+- The `test` extra is just `pytest` now. Full suite: 150 tests in 23s.
+
 ### A newcomer can find their way in
 
 - **README starts with the person, not the agent.** A "you have / use / what happens" table

@@ -14,10 +14,7 @@ scoping is what keeps a long pipeline from rotting a single context. The old ski
 `facts` placeholder is gone: the `insight` stage now loads `karthik-evidence-builder` and
 names the headline claim from the data before a form is chosen. Handoffs are structured text
 (markdown sections plus, at the branch points, a small `routing` block of `key: value`
-lines), not strict JSON, so the pipeline runs on cheaper / open-weight models too; the
-routing parser (`dataviz_mcp.handoff`) also accepts a JSON object. The content contract -
-exact skill subset and required fields per stage - is
-`dataviz_mcp/stage_contracts.py:STORY_PIPELINE`.
+lines), not strict JSON, so the pipeline runs on cheaper / open-weight models too.
 
 The skill coordinates the existing suite:
 

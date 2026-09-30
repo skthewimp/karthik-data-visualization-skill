@@ -40,7 +40,3 @@ Cold selection can return a table. When it does, the repair builds it with `kart
 ## Rendering and inspection
 
 `render_and_inspect_chart` is the preferred mechanical path when available. If the MCP tool fails, fall back to a direct local renderer and visual inspection, and state that deterministic inspection was unavailable. Do not fabricate metadata or describe incomplete checks as complete.
-
-## Case logging
-
-The case manager remains available for audit trails, comparison history, benchmarks, and reusable learning records. It is not part of the default repair path and never suppresses a valid artifact.

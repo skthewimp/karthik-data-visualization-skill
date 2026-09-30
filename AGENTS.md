@@ -14,8 +14,7 @@
 - For a localized code fix, run the affected tests (file paths before `-k`, so unrelated modules
   are not collected). Include callers when a shared interface changes.
 - Run the full core suite for cross-cutting rendering, inspection, pipeline, packaging, or
-  dependency changes, or when the affected scope is unclear. Run optional case-manager/tester
-  suites only when their code or dependencies change.
+  dependency changes, or when the affected scope is unclear.
 - After checks pass, rerun only if a subsequent edit affects what they checked. Do not add
   wording assertions, duplicate regressions, or live model evaluations to routine edits.
 - Reuse an existing scenario for related assertions instead of adding another render. Mark

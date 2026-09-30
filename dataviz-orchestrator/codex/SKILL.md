@@ -9,7 +9,7 @@ The **creation front half**: raw data in, visual story out. Own the discovery-to
 
 ## Run it as stages, not one context
 
-The pipeline runs as an ordered sequence of **separate calls**, one per stage, each loading only that stage's skills plus a compact artifact handed forward. Loading every skill into one context rots it - the build stage has no use for the discovery or cleaning skills. Handoffs are structured text (one markdown section per content field, plus a small `routing` block where the driver must branch), not strict JSON, so the pipeline runs on cheaper/open-weight models. The content contract per stage is `dataviz_mcp/stage_contracts.py:STORY_PIPELINE`; a driver loads each stage's skills with `stage_skill_bundle(stage)` and parses routing with `dataviz_mcp.handoff` (which also accepts JSON). This skill carries the reasoning, that module the shape - don't duplicate the schemas here.
+The pipeline runs as an ordered sequence of **separate calls**, one per stage, each loading only that stage's skills plus a compact artifact handed forward. Loading every skill into one context rots it - the build stage has no use for the discovery or cleaning skills. Handoffs are structured text (one markdown section per content field, plus a small `routing` block where the driver must branch), not strict JSON, so the pipeline runs on cheaper/open-weight models.
 
 ```text
 discover -> contract -> clean  ->  [ insight -> select -> idea -> build -> execution ]
@@ -47,4 +47,4 @@ Renderer availability must not change the chart design or force a translation in
 
 ## Output package
 
-Leave behind only artifacts useful for reproduction and review: source/analysis code, prepared-data notes when needed, facts and the headline claim, select artifact, exported media, matching render/inspection records when available, and an evaluation or caveat note. Keep one-off preferences and domain examples in the case record or optional references, not in this orchestration layer.
+Leave behind only artifacts useful for reproduction and review: source/analysis code, prepared-data notes when needed, facts and the headline claim, select artifact, exported media, matching render/inspection records when available, and an evaluation or caveat note. Keep one-off preferences and domain examples in the run notes, not in this orchestration layer.

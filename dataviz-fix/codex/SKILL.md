@@ -17,7 +17,7 @@ Everything from `insight` onward is the shared tail; this skill owns only diagno
 
 ## Run every stage as its own call
 
-Separate calls per stage is the default and the right way to run this - each call loads only that stage's skills plus the artifact handed forward; loading every skill into one context rots it. If nothing external orchestrates the calls and you have a subagent/task capability, **you become the driver** and dispatch each stage as an isolated subagent call: the isolation keeps build (maker) and the idea/execution gates (checkers) in separate contexts, so a checker can't inherit and rationalise the build's shortcuts. Only when you genuinely cannot spawn subagents, walk the stages inline in order, opening each stage's skills as you reach it - never dumping every skill in at once, and never skipping a stage. Handoffs are structured text (markdown sections plus a small `routing` block where the driver must branch), not strict JSON, so the pipeline runs on cheaper/open-weight models. The full contract is `dataviz_mcp/stage_contracts.py:REPAIR_PIPELINE`; see `dataviz-construct` for the shared tail. This skill carries the reasoning, that module the shape.
+Separate calls per stage is the default and the right way to run this - each call loads only that stage's skills plus the artifact handed forward; loading every skill into one context rots it. If nothing external orchestrates the calls and you have a subagent/task capability, **you become the driver** and dispatch each stage as an isolated subagent call: the isolation keeps build (maker) and the idea/execution gates (checkers) in separate contexts, so a checker can't inherit and rationalise the build's shortcuts. Only when you genuinely cannot spawn subagents, walk the stages inline in order, opening each stage's skills as you reach it - never dumping every skill in at once, and never skipping a stage. Handoffs are structured text (markdown sections plus a small `routing` block where the driver must branch), not strict JSON, so the pipeline runs on cheaper/open-weight models. See `dataviz-construct` for the shared tail.
 
 ## Two anchors
 
@@ -33,7 +33,7 @@ Separate calls per stage is the default and the right way to run this - each cal
 
 ## Stage 1 - Diagnose and extract
 
-**Load:** `dataviz-brief`, `dataviz-extract`, `dataviz-critique`. **In:** source image and any prompt. **Out:** the diagnose artifact (`DIAGNOSE_SCHEMA`).
+**Load:** `dataviz-brief`, `dataviz-extract`, `dataviz-critique`. **In:** source image and any prompt. **Out:** the diagnose artifact.
 
 State what the replacement must say and carry, and recover the underlying data - don't choose a form here. Run the brief cold: key messages and required content for each, anything explicitly dropped as not key with a reason, the audience and medium, and the **edit-vs-redesign mode**. In parallel, extract the full period-by-category table (a value for every period and every category, series, stack, or facet the chart encodes - colour is data) so any chosen form can be built. Inventory and diagnose the whole chart including neighbouring zones, and list what must be preserved unchanged.
 
@@ -52,10 +52,6 @@ Pass the diagnose artifact into `dataviz-construct`. Its tail computes the insig
 
 Deliver the artifact; state what changed and any inspection limitation affecting confidence. Then treat user feedback as the main release signal: change the smallest relevant part of the latest candidate, render again, inspect the named element, return it. Don't restart from the source unless the user asks for a redesign or the current form can't support the change.
 
-## Optional case logging
-
-Use `case_manager.py` only when the user wants an audit trail, comparison history, bounded benchmark, or reusable learning record. It owns loop state, budget limits, best-candidate preservation, and terminal states for a repeatable, resumable run. Case state never overrides the delivery anchor: if a valid artifact exists, deliver it with its actual status. Keep it minimal - start the case, record each rendered artifact, attach real inspection evidence when available, record feedback and acceptance.
-
 ## Failure handling
 
 - **MCP failure:** fall back to direct local rendering and disclose the missing deterministic inspection.
@@ -65,4 +61,4 @@ Use `case_manager.py` only when the user wants an audit trail, comparison histor
 
 ## Learning after acceptance
 
-After explicit acceptance, record a reusable lesson only when the miss reveals a general rule or tool defect. Don't turn a chart-specific object, phrase, layout, or count into a universal rule. Express lessons as relationships or decision tests, keep case-specific detail in the case record, and prefer simplifying or repairing the failing stage over adding prose, schemas, or tests.
+After explicit acceptance, record a reusable lesson only when the miss reveals a general rule or tool defect. Don't turn a chart-specific object, phrase, layout, or count into a universal rule. Express lessons as relationships or decision tests, keep case-specific detail with the case, and prefer simplifying or repairing the failing stage over adding prose, schemas, or tests.
