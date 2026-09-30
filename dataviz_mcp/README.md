@@ -193,7 +193,7 @@ Inputs:
 | `delivery_profile` | No | Delivery context recorded with the inspection |
 | `minimum_text_size_pt` | No | Delivery-scale text threshold; defaults to 8 pt |
 
-The report includes artifact hash and dimensions, inspection mode, completeness, pass state, normalized defects, detailed collision and clipping lists, minimum text margin, limitations, and its own SHA-256 hash. Every defect carries a `defect_class` - `canvas` (grow it out), `placement` (an exact geometry-tool move), or `semantic` (a model judgement) - and the report groups them into a `correction_plan` of those three classes so a driver routes the cycle without re-deriving the split: the `canvas` group rides a shared `growth_vector` (the same `suggested_dims`, null when nothing can grow), `placement` goes to `place_on_marks`/`recommend_text_placement`/`recommend_labels`, and only `semantic` earns a model patch.
+The report includes artifact hash and dimensions, inspection mode, completeness, pass state, normalized defects, detailed collision and clipping lists, minimum text margin, limitations, and its own SHA-256 hash. Every defect carries a `defect_class` - `canvas` (grow it out), `placement` (move a label), or `semantic` (a model judgement) - and the report groups them into a `correction_plan` of those three classes so a driver routes the cycle without re-deriving the split: the `canvas` group rides a shared `growth_vector` (the same `suggested_dims`, null when nothing can grow), `placement` goes back to the chart code as a label move, and only `semantic` earns a model patch.
 
 Supplying mismatched metadata is an error. Omitting metadata produces an explicit raster-only, incomplete report rather than a pass.
 
@@ -214,7 +214,7 @@ Inputs:
 | `content` | No | `chart` or `table`; defaults to `chart` |
 | `artifact_name` / `build_function` | No | Passed through to the renderer |
 
-Scope is only what growing fixes - edge clipping, overflow, squashed panels. Underfill (no exact shrink vector) is reported (`underfilled` + a warning) but never resized; label collisions stay `place_on_marks`' job. The loop exits when geometry is clean, the delivery ceiling is reached (warned, never squashed), `max_iterations` is hit, or a grow stops reducing the residual. Returns the final artifact, inspection path, `final_dimensions`, a per-pass `history`, `warnings`, and a `resolved` flag.
+Scope is only what growing fixes - edge clipping, overflow, squashed panels. Underfill (no exact shrink vector) is reported (`underfilled` + a warning) but never resized; label collisions are left to the chart code. The loop exits when geometry is clean, the delivery ceiling is reached (warned, never squashed), `max_iterations` is hit, or a grow stops reducing the residual. Returns the final artifact, inspection path, `final_dimensions`, a per-pass `history`, `warnings`, and a `resolved` flag.
 
 ### `compare_chart_artifacts`
 
@@ -227,150 +227,6 @@ Inputs:
 | `output_path` | No | Comparison JSON path; defaults beside the later report |
 
 Both referenced PNGs are re-hashed before comparison. The result lists resolved, introduced, and persistent defects; blocking counts; dimensions; pixel difference; and whether the revision is mechanically improved. It does not make a substantive release decision.
-
-## Forward geometry and text
-
-These size the canvas, reserve the chrome, and place the text *before* (or with one measure render) so a weak model does not clip, squash, or collide on the first pass. All are mechanism only - they never choose the chart or write the annotation. See [`docs/mcp.md`](../docs/mcp.md) for the design rationale.
-
-### `recommend_table_layout`
-
-Table geometry comes from formatted content, not chart slots. The tool measures
-text with grid/ragg when the R table backend is available; otherwise it uses
-Matplotlib/Agg metrics for the Python fallback. No new
-packages are required. The skill chooses the treatment (which cells compare, which
-channel, which direction is better); the tool resolves it into per-cell fills, inks,
-bar extents and sparkline points, reserves the graphic width, and right-aligns numbers.
-
-```json
-{
-  "columns": [
-    {"header": "Region", "identifier": true, "max_width_px": 190,
-     "cells": ["Northern district", "Central", "South"]},
-    {"header": "Revenue ($m)", "cells": ["12.5", "8.3", "15.0"],
-     "values": [12.5, 8.3, 15.0]},
-    {"header": "Cost ($m)", "cells": ["4.1", "6.0", "3.2"]}
-  ],
-  "title": "Revenue by region",
-  "typography": {"family": "sans", "body_pt": 11, "header_pt": 12,
-                 "minimum_body_pt": 11, "minimum_header_pt": 11},
-  "delivery": {"max_width_px": 1200, "max_height_px": 900,
-               "display_width_px": 600, "minimum_text_px": 14},
-  "treatment": [
-    {"kind": "bar", "columns": [1]},
-    {"kind": "shading", "columns": [2], "higher_is_better": false},
-    {"kind": "emphasis", "rows": [2]}
-  ]
-}
-```
-
-Alternatively, `content_path` reads a local JSON object containing `columns` and
-optional `title`, `subtitle`, `notes`. Cells are final display strings; retain raw
-values separately for bars, shading, and sparklines. Each column has the same
-number of cells. `None` becomes a blank; use explicit strings for other missing
-value conventions. Every column must supply `header` and `cells`; character-count
-metadata is insufficient. Use `header: ""` only for an intentionally blank header.
-Pass the whole header, including units and descriptions; explicit newlines preserve
-semantic breaks. Optional `max_header_lines` sets the heading's line budget.
-The planner widens/splits to honour it or returns `cannot_fit`. `max_width_px`
-includes padding and inline graphics and is a ceiling: an unbreakable token is
-preserved for review, but cannot silently override that ceiling with a fit verdict.
-Typography also accepts `padding_x_px` and `padding_y_px`. Defaults are compact:
-0.35 em on each horizontal side and 0.15 em above/below, based on body type. Explicit
-padding overrides those defaults. The R table renderer adds no outer margin beyond
-builder-provided padding and text bands, so export dimensions follow the plan.
-
-Construction compares measured word-wrap breakpoints for each column at unchanged
-type and padding. It prefers feasible delivery and fewer continuations, then a
-smaller total page footprint, accounting for shared header/row heights. Narrow and
-wide starting arrangements help avoid a long header or isolated long body cell
-inflating every row's whitespace. This is a local layout search, not a guarantee
-of a globally optimal arrangement. Automatic wrapping does not require a manual
-`max_width_px`. Headers may use the full column width; body text shares its width
-with the reserved inline graphic. Do not stretch the resulting columns to fill
-spare canvas width.
-
-The result includes `status` (`fits`, `split`, `cannot_fit`), `measurement_backend`,
-`col_widths_px`, `row_heights_px`, `header_height_px`, wrapped `headers` and
-column-oriented `cells`, wrapped title/note `blocks`, and `pages`. Each page gives
-its dimensions, zero-based column indices, and a half-open row range. Repeat
-headers, identifiers and the returned text bands on each continuation. A reading
-task that requires adjacent columns may require revising the proposed grouping.
-`allow_split: false` produces `cannot_fit` when multiple pages would be required.
-The tool does not remove content or reduce type to make it fit.
-
-Apply the returned geometry to the table builder: grid widths/heights in inches
-are pixels divided by `dpi`; fonts are points. Use the returned wrapped strings,
-font family and sizes, and padding. Draw returned `headers` verbatim in bold at
-`header_pt` within `header_height_px`. Never replace them with raw unwrapped names
-or add descriptions that were absent from the measured content. `blocks` use `block_font_pt` in bold; their
-reserved height is `reserved_band_px`. Render each page with
-`render_and_inspect_chart(content="table")`, passing its dimensions and `dpi`,
-plus `minimum_text_size_pt`, `display_width_px`, and `minimum_text_size_px` in
-`dimensions`. These inspection settings also work on `inspect_rendered_chart`.
-Check the exact artifact and its actual displayed size; export DPI is not a
-readability guarantee. Unsupported nested viewport references or graphics are
-reported as incomplete coverage, not silently passed. Decimal alignment, contrast
-against cell fills and visual emphasis still need visual review.
-
-`treatment` is one object or a list, so a table can combine row-wise shading, a
-sparkline column and a focal row. Each item: `kind` (`bar`, `shading`, `sparkline`,
-`emphasis`, `text`), `columns` (zero-based; required except for emphasis), optional
-`rows`, `scope` (`column` - each column its own scale; `row` - each row its own;
-`table` - one scale), `higher_is_better` (false reverses the shading so the best
-cell is strongest), `scale` (`auto`/`sequential`/`diverging`), `midpoint`, `domain`,
-`baseline` (bars, default 0), `colour` (bars, sparklines, focus tint) and `colours`
-(brand poles for shading). Shading and bars shared across a `row` or `table`, and a
-sparkline scale shared across rows (`column`/`table`; sparklines default to each
-row's own shape), require `commensurable: true`. Emphasis requires `rows`.
-
-Raw numbers come from each column's `values` (a list of lists for a sparkline column,
-whose cells can be blank), or are parsed from numeric display strings (currency, %,
-separators, K/M/B, parenthesised negatives). The result carries `cell_styles`
-(per column, per row: `fill`, `ink`, `bold`, `bar` {start, end, colour}, `spark`
-{points, colour}), `col_align`, `visual_width_px` and `untreated_numeric_columns`.
-Heat fills stop short of the pole and are eased until the chosen ink clears 4.5:1,
-so every number stays legible. A warning flags comparable numeric columns left as
-plain text. The `chat` profile assumes an 800 px display with a 12 px text minimum
-unless `delivery` says otherwise, which caps export width so text survives
-downscaling.
-
-### `recommend_layout`
-
-Sizes a clip-safe canvas from the chart's shape expressed as counts. Inputs: `x_slots`, `y_slots`, `filled_marks`, `n_panels`, `facet_scales` (`fixed`/`free`/`free_x`/`free_y`), `n_direct_labels`, `title_lines`/`subtitle_lines`/`footer_lines`, `x_labels`, `longest_x_label_chars`, `delivery_profile` (`chat`/`slide`/`document`), optional `target_aspect` (the source image's width:height when repairing; default the profile's aspect), optional `longest_facet_label_chars` (the longest panel heading, so a heading that wraps to its panel gets its lines), and optional `panel_groups`. Each facet row reserves its heading strip and the frame's edge margin is reserved once, so the returned panel floor is what the render draws. Returns `width_px x height_px x dpi`, a facet grid, x-label rotation, reserved title/subtitle/footer bands, `regions`, and a structured `fit` verdict. The grid is chosen so the whole image lands near `target_aspect` given each panel's floored shape (compact rows/cols, tall panels get more columns and wide panels more rows), and nothing is squashed below the legibility floor: when content needs more room than the profile, *both* width and height are grown (the image is resized up) instead of clamping and cramming. `fit` reports `status` (`ok`/`over_ceiling`), `legible`, `over_width`/`over_height`, required vs ceiling dims, `min_panel_height_px`, and ranked `directives` (`reduce_slots`/`reduce_panels`/`split_pages`/`drop_group`). Also returns `font_pt`, the canvas-scaled house font sizes per role, resolved for the final canvas so they equal what `reserve_frame` will use and the reserved text bands stay honest on a grown canvas (on-mark value labels remain the separate slot-driven `recommended_data_label_pt`). Call at select, before build; feed the dims into the renderer and `recommend_text_placement`.
-
-For a chart of several panels - an aggregate/overview panel set apart from a small-multiple detail grid (the aggregate-and-parts guardrail), a bar beside a line, two measures side by side - pass `panel_groups`: one `{role, n_panels, emphasis?, filled_marks?, x_slots?, y_slots?}` per panel, `role` the panel's name in the `prepare_plot_data` frame. `group_align` says how the groups share the page: `x` stacks them in one column (read against one x axis), `y` puts them in one row (read along the same category rows), `auto` (default) takes the arrangement whose image lands nearest `target_aspect` without leaving a row mostly empty beside a short group. Each group is sized as its own sub-grid in its own box whose height follows what it has to show - a band of discrete rows takes its rows plus the axis expansion, so a one-bar overview is not given the same height as a four-bar detail (`emphasis` >1 makes a band taller so the overview reads apart); the tool picks each group's column count against the aspect target; the per-band structure comes back as `regions` (`{role, facet_ncol, facet_nrow, n_panels, x, y, width, height}`) for the renderer to place. `role` is a free-text label echoed back per band. Without `panel_groups`, `regions` is `null` and the single-grid behaviour is unchanged.
-
-### `reserve_frame`
-
-Places the chrome - title, subtitle, caption, footer, axis titles, tick bands, legend - blind, with no render, because chrome lives in the margins and does not depend on the data. Inputs: the frame strings (`title`, `subtitle`, `caption`, `footer`, `x_axis_title`, `y_axis_title`, `longest_x_tick`, `longest_y_tick`, `legend_side`, `longest_legend_label`), plus `width_px`/`height_px`/`dpi`/`delivery_profile`, per-role `font_pt` overrides, and `edge_margin_px`. Returns `plot_margin_px` (the outer edge margin to set as `plot.margin`), an advisory `plot_area` rectangle, `reserved_px` band sizes, and placement-ready `frame_blocks`. The renderer lays out the chrome natively inside the `recommend_layout`-sized canvas: set `plot.margin` to `plot_margin_px` and never derive margins from the reserved bands, or the chrome is reserved twice and the panel collapses. `plot_area` is advisory - the blind clip check and the `place_on_marks` boundary; `frame_blocks` are obstacles. A frame too big for the canvas is warned, never squashed. Call at build, before the first render.
-
-### `place_on_marks`
-
-Places labels glued to specific marks using their real pixel positions instead of a guess. Required inputs: `width_px`, `height_px`, `dpi`, `transform` (the `data_to_pixel` affine from the render's layout metadata), and `labels` (each with `data_x`/`data_y`). Optional: `marks` (bounding boxes, handed in as obstacles), `fixed_blocks` (from `reserve_frame`), `plot_area` (the panel rectangle from `reserve_frame`), `x_trans`/`y_trans` for log/sqrt/reverse ggplot axes, `max_annotation_width_frac`, `edge_margin_px`, `min_font_pt`. Projects each label through the transform and delegates to `recommend_text_placement`, so text-mark and text-text overlaps are de-collided on the first delivered chart. A `data_label` with no `placement` whose point is the first or last vertex of a path mark (a dumbbell or range bar, a line's start or end - ggplot `geom_segment` segments export as two-point paths) parks outward along the run: left of the start and right of the end of a horizontal run, below/above for a vertical one, clear of the dot drawn there. Any `data_label` with a `placement` side parks one gap beyond its anchor on that side, centred on it. It never raises: a non-Cartesian coord or unreproducible scale emits no transform, and a label whose data position cannot be projected is returned in `unplaced` (with its `anchor_data` and a reason) for the builder to draw at its mark with the renderer's own repel, rather than projected through a wrong map. A wrong or ambiguous `mark_id` is flagged in `unverified_attachments` and as a warning, not refused. Returns everything `recommend_text_placement` returns plus `projected_anchors`, and, for every movable label, **native data coordinates** the builder draws from directly - `placed_data` (the label box's top-left corner; draw the label left/top-anchored, `hjust=0, vjust=1` / `ha="left", va="top"`), `anchor_data` (the mark), and `leader_line_data` (`{from, to}`, the box-edge end and the mark end) when a leader is drawn - so no data-space `geom_segment`/`annotate` is improvised. The leader terminates at the label's bounding-box edge and the mark; a singular affine omits the data coordinates rather than fabricating them.
-
-### `recommend_labels`
-
-Selects *which* points on each series to label directly, within a per-series budget (`max_labels_per_series`, default 4). Pass one `{id, values:[...]}` entry per `series` in order; it claims endpoints and extremes first, then the largest step-to-step changes. Returns per-series `label_indices`, `reasons` and `name_index` - the line end, where the series name is printed once; the other chosen points print the value alone. It selects points, not placement - feed the chosen anchors to `recommend_text_placement`.
-
-### `recommend_text_placement`
-
-Wraps a chart's text to fit its room and parks each movable label beside the mark it names, in priority order (data labels, then category/series labels, then free annotations). Required inputs: `width_px`, `height_px`, `dpi`, `blocks` (each `{id, text, role, anchor:{x,y}, placement?, anchors?, font_pt?, max_width_px?, max_lines?}`). Optional: `obstacles` (data-mark bounding boxes), `plot_area` (the panel rectangle - a movable label left straddling the plot boundary is nudged wholly inside and carries the exact `plot_boundary_correction` `{dx, dy}`), `max_annotation_width_frac`, `edge_margin_px`, `min_font_pt`. Fixed roles (`title`/`subtitle`/`footer`/`caption`/`axis_label`/`data_label`) are wrapped, never moved; `label` and `annotation` are movable and de-collided against obstacles, travelling to the nearest clear area with a `leader_line` only when no adjacent spot exists. Returns each block's wrapped text and final `bbox`, `suggested_anchor`/`suggested_font_pt`/`suggested_wrap` when changed, a `redundant_annotations` list, and a canvas-level `suggested_orientation`/`suggested_canvas` when a portrait flip would help. It fits the labels already chosen; it invents none.
-
-## Scaffold and check the chart source
-
-### `scaffold_chart`
-
-Writes the chart source from the plan, so the build model never writes the mechanical half. The generated ggplot2 `.R` (or Matplotlib `.py`) loads the `prepare_plot_data` frame, types the x column (`x_kind: date` parses time labels to real dates, ticked at the data's own dates when each clears its neighbour by a label's width and with the renderer's own breaks otherwise, in short date labels; a label that is not a date, such as a period range, keeps the axis discrete with a warning), and applies the number format (`fmt_value`, from a `recommend_precision` result plus optional `prefix`/`suffix`), the palette (`palette`/`ink` from `recommend_colours`, or a gradient from `recommend_continuous_scale` stops), canvas, fonts, facet grid and category wrap (`recommend_layout`), the outer margin (`reserve_frame`), titles from `public_copy` (axis titles only where declared, by displayed position), a legend only for `identification: legend`, and a coloured subtitle key for `subtitle_key` (ggplot2 only; each name in its series hue, darkened where needed to read as text at 4.5:1). The value axis and its gridlines are dropped when `value_labels` reaches the same two-label floor `REDUNDANT_VALUE_AXIS` uses; limits appear only for `zero_baseline`; `orientation: horizontal` (or the layout's `bar_orientation`) adds `coord_flip()`.
-
-The model writes only the body of `chart_marks` (one `chart_marks_<panel>` per panel on a page of panels) between the `# ==== marks` markers: layers mapping `x = category`, `y = value`, coloured from `palette`/`ink`, numbers through `fmt_value`, text at `label_size` (a free annotation at `annotation_size`), stacked bars with `position = stack` and their labels with `stack_mid` (Matplotlib: `stack(ax, rows)`), which keep the first series at the baseline, and text on a mark coloured `on_fill_ink(series)` (`on_fill_ink()` for the single-colour `ink`; Matplotlib: `ON_INK[series]`; `stack()` returns each segment's ink) - the light or dark ink with the higher contrast against that series' fill, the same rule `place_bar_value_labels` uses. Two ggplot2 layers apply the placement tools' rules at draw time, from the drawn geometry and the label's own glyphs: `bar_values(aes(..., label, fill), position = <the bars' position>)` prints each bar's value inside its end in the ink that reads on its fill, or just past the end in ink when the bar is too short (stacked segments centre; one with another beyond it stays inside), through dodge, stack and `coord_flip`; `end_labels(aes(..., label, colour), data = <each line's last row>)` names lines past their last points, each name in its line's hue darkened where needed to read as text (`page_ink()` gives the same ink for other page text), wraps a long name on whole words to the capped band the margin reserved (`end_label_chars`; a letterless token such as the " - 37%" joining a value stays with its neighbour), and spreads names that would overlap apart along the value axis by the least total movement, with short leaders; `point_labels(aes(..., label, colour, group), data = <the line's rows>)` prints values beside their points (a line's first point, a peak, a dumbbell's ends) at the first spot inside the panel clear of the drawn lines, markers and other labels - toward the panel's middle, then above, below, the diagonals, the outer side - with rows whose label is `NA` kept as the path. `check_chart` flags hand-set text on a drawn line or segment as `TEXT_ON_MARK`. The category axis keeps the planned order over the categories the marks draw (`limits`), so a layer drawn from a subset cannot reorder it, and a panel heading wider than its panel wraps to the panel (`label_wrap_gen`) instead of being cut. The scaffold adds its scales, `labs()` and `theme()` after the slot, so an override in the slot loses by ggplot's own ordering. A `<source>.scaffold.json` record beside the file holds the scaffold regions for `check_chart`. Returns `source_path`, `frame` (the `reserve_frame` result as drawn, including any end-label room - pass this, not the original, to `place_on_marks` and `inspection_contract.frame`), `dimensions` for the render, `value_axis_hidden`, `decided` (what was applied, for `recommendations_used`), a `marks_brief` for the build model and `warnings`. Frame text is drawn as `reserve_frame` wrapped it; panels draw with `clip = "off"` so a label past the panel reaches the canvas where the inspector measures it; and when series are direct-labelled at the line ends (or values sit past horizontal bar ends) the right margin is widened by the measured label width beyond what the axis expansion already holds - for line-end names, the widest line once wrapped to a 15% panel-width band with an 18-character target per line; a column too tall for the panel is reported for relayout rather than widened. Routing scalars are read the way the routing block reads them (`direct labels` resolves; an unknown word such as `length` takes the default with a warning), and a missing title is a warning, so a stray word never turns a build off the scaffold.
-
-The frame decides what a mark is. An interval frame (`start`/`end` from `prepare_plot_data`) scales and checks each mark between its two ends; `bar_values()` takes `ymin`/`ymax` for a segment that does not start at zero. Each label measure the frame carries (its `plot-data.json` roles) gets its own formatter, `fmt_<name>()`, from `label_formats` or from its own values by the spread rule, in the units the role map gave - a growth rate never borrows the revenue format. On bars it goes in `bar_values(aes(..., note = fmt_<name>(<name>)))`, which prints it past the bar's end, after the value when the value is outside too, so the two never collide.
-
-Panels: a frame built from `prepare_plot_data(panels=...)` carries a `region` column naming each row's panel, and the source draws one native plot per panel (`chart_regions()` in ggplot2, one gridspec per box in Matplotlib), each from its own rows, in the box `recommend_layout` gave it, under one page frame reserved once for the title, subtitle and caption, with one palette across the page. Each panel takes the chart's settings unless `panels` gives it its own - `{role, x_kind?, orientation?, value_labels?, zero_baseline?, value_encoding?, identification?, number_format?, axis_titles?, heading?, value_scale?}` - so a bar panel sits beside a line panel, a date axis beside a discrete one, dollars beside percent. The model fills one `chart_marks_<panel>(d, fmt_value)` per panel (Matplotlib: `chart_marks_<panel>(ax, rows, fmt_value, pos)`), and `fmt_value` arrives in that panel's own format. Panels of one measure (one number format) share the value range unless `facet_scales` frees it, a panel sets `value_scale: own`, or a panel would spread over less than half the pooled range (a total beside its parts flattens them; `value_scale: shared` insists). A panel the layout did not size is stacked in an equal share, with a warning. `regions` returns each panel's box on the page (`x`, `y`, `width_px`, `height_px`, its categories, its marks function) for a compositor that places the native plots; `build_chart()` composes the same boxes into one image.
-
-### `check_chart`
-
-Takes the scaffolded `source_path`. Restores any edited scaffold region from the record, then builds the plot object and lays it out at the delivery size recorded in the sidecar (no PNG is rendered): every text box comes from its own glyphs and justification, every mark from its trained position, and each built row carries the observation it draws (category, series, facet), so a label is matched to a bar by identity, never by a number parsed from its text. It reports each deviation in the slot as `{code, severity, message}`: `BUILD_ERROR` (including a value mapped to a discrete position, which fails the continuous value axis), `MARKS_NON_LAYER` (a scale, coord, facet, labs or theme returned from the slot), `GEOM_LABEL`, `COLOUR_NOT_IN_PALETTE` (neutral greys allowed), `TEXT_TOO_SMALL`, `COLOUR_UNMAPPED` (a mapped colour column the palette does not name, which falls to the NA grey), `LABEL_ON_WRONG_MARK` (a label whose drawn box sits on another observation's bar; the fix names the bars' own position adjustment - a dodge, never a stack the plan did not choose), `LABEL_OFF_ITS_MARK` (a label drawn more than a few lines along the value axis from its own observation's mark - a stack applied to line labels, a hand offset), `LOW_CONTRAST_ON_MARK` (text whose box centre sits on a fill, below 4.5:1 against the fill painted over the page with its alpha; a label past a bar's end reads on the page, not the bar), `LOW_CONTRAST_ON_PAGE` (text off any mark below 3:1 on the page in an ink the palette does not own - on-fill white spilled off a short bar), `STACK_ORDER` (stacked segments not running in series order from the baseline - ggplot's default stack puts the first series furthest out), `DECORATION_STRETCHES_AXIS` (a layer that is not a data mark - a finite band or backdrop tile - reaching well past the data marks on the value axis, so it sets the range and flattens the data), `VALUE_NOT_ON_POSITION` (the non-text marks reach less than half the data's value range along the value axis, compared in the value scale's own space so a log axis compares logs - a slopegraph drawn flat with the value only in its labels; skipped for colour-encoded values), `VALUE_LABELS_MISSING` (fewer drawn labels than `value_labels` promised once the axis was dropped), `MARKS_SLOT_MISSING`, and `UNSCAFFOLDED_BUILD` (a source with no scaffold record - a hand-written chart; re-scaffold and move the marks into the slot). A page of regions is checked region by region, each at its own size, and marks are matched to an interval frame's ends. `fix_list` is the same list numbered for the correcting model; `ok` with a clean inspection means no model correction is needed.
 
 ## Colour and precision advisors
 
@@ -442,64 +298,6 @@ The default suite covers MCP tools, a real stdio tool listing, deterministic geo
 
 Rendering imports and executes the supplied Python or R file. Use it only with chart source you trust. The server is local-only, uses stdio, has no authentication layer, and does not sandbox arbitrary code.
 
-### Verify the chart build against its measured plan
-
-`render_and_inspect_chart` and `refit_chart` accept an `inspection_contract` on
-both backends. Pass `frame: <reserve_frame result>` and
-`placements: <place_on_marks result.placements>`. The contract is stored with the
-exact export's layout metadata, so standalone inspection repeats the checks.
-The driver's contract overrides corresponding builder-supplied metadata.
-
-`FRAME_PLAN_MISMATCH` blocks a stale canvas, panels in the reserved edge margin,
-or panels running into the title, subtitle or footer. The `plot_area` itself is an
-estimate a renderer that measures its own axes lays out slightly differently, so a
-panel past it is not a defect. `TEXT_PLAN_MISMATCH` blocks changed copy, wrapping
-or text placement. Placed text is matched by content and the returned top-left
-position (2 px rounding tolerance), not ggplot IDs or `label`/`data_label`
-classification; title, subtitle, caption and footer, which the renderer stacks
-itself, are matched by content inside their reserved header or footer band. Repeated text must have a
-separate rendered element for each planned occurrence. Forward glyph widths are
-estimates, so actual glyph extents still use the export's clipping/collision checks.
-`plan_checks` records
-`not_supplied` when these inputs are absent; ordinary collision checks alone do
-not verify the planned design. Remeasure a changed design before rendering it. With a supplied frame, refit
-stops with `remeasure_required` if further canvas growth is needed.
-
-For forward attachment checks, a label passed to `place_on_marks` may name its
-intended rendered `mark_id`. The tool rejects missing/ambiguous targets or an
-anchor that misses that target's bounds (or actual path for a line). This applies
-regardless of label role. Derive the target and anchor from the same transformed
-data; this check cannot establish semantic identity from pixels. Labels lacking
-a target appear in `unverified_attachments`. Every data-anchored label receives
-`placed_data`, including labels nudged to clear nearby text, so builders can apply
-the returned position directly.
-
-### Portable table rendering
-
-`render_table_from_plan(plan, output_dir, page=1)` prefers the R constructor
-(`Rscript`, `ggplot2`, `ragg`, `gridExtra`, `gtable`, `jsonlite`). Only when that
-backend is unavailable does it use the Python constructor. `probe_renderers`
-reports the selected table backend, `r_available` and `r_failure_reasons`;
-table rendering remains available on a normal Python-only installation.
-An R measurement or render failure is reported without retrying in Python.
-
-Both constructors consume wrapped headers/cells, measured widths and heights,
-frame bands, fonts, padding, continuation pages and the resolved `cell_styles` from
-the same plan: right-aligned numbers, heat fills with their ink, bold/tinted focal
-cells, data bars trailing the number, and sparklines. Python exports include measured
-cell bounds, so overflow and delivery-size checks remain active. Treatment graphics
-are captured as marks and series; `render_table_from_plan` passes the planned count
-to inspection, which reports `TREATMENT_NOT_DRAWN` when any are missing.
-The Python dependencies already include Matplotlib; R is optional.
-
-### Compact labels and independent review
-
-Series names use a 15% panel-width band with an 18-character target per line in the scaffold and placement tools. Whole words stay intact. A label column that cannot fit vertically is reported for relayout; it no longer silently widens. Category-axis bands retain their separate layout settings.
-
-For ggplot paths whose status changes, `line_segments(data, "status")` supplies adjacent `.x`, `.y`, `.xend`, `.yend` columns and the destination's `.status` for `geom_segment`. It connects the observed/projected boundary while retaining genuine missing-value breaks and series/facet boundaries. Use `recommend_labels` for both endpoint values.
-
-For adjusted bars, pass the unique rendered `mark_id` and `value_axis` to `place_on_marks`; the bar anchors at its rendered value end. Use `y` (also for `coord_flip`) or `x` for native horizontal bars. Other rectangles keep their supplied data anchor. The returned `anchor_data` includes the position adjustment.
+### Review views
 
 `build_review_views(..., display_width_px=...)` generates a proportional delivery view at the actual viewing width (640px when unspecified), alongside native diagnostic crops. `render_and_inspect_chart` forwards `dimensions.display_width_px`. External reviewers should judge this delivery view; native crops diagnose defects, not establish readability. Review wrappers must keep creator repair scopes out of user constraints.
-
-Composite `panel_groups` can override `y_labels` and `longest_y_label_chars` per group, alongside their own row/slot counts. A short-label summary need not inherit the detailed panel's wrapped-label height.

@@ -16,18 +16,13 @@ It is designed for the failure mode where data that wants exact lookup, or that 
 
 ## Measured planning
 
-`recommend_table_layout` accepts formatted headers/cells or a local JSON content
-file, typography, delivery constraints and a skill-selected treatment. It returns
-measured geometry, wrapped content and continuation pages while preserving type
-minimums. The title, subtitle and footer are reserved and wrapped like the
-columns, and the header band is its own layer above the body - a block wider than
-the canvas is `cannot_fit`, resolved by narrowing, wrapping or splitting, never
-shipped clipped. This measured sizing is the mandatory first pass, not a revision
-step. Screen delivery accounts for display width as well as export size.
+Columns are sized from their measured content, and the title, subtitle and footer
+are reserved and wrapped like the columns, with the header band its own layer above
+the body. A block wider than the canvas is resolved by narrowing, wrapping or
+splitting, never shipped clipped. This measured sizing is the first pass, not a
+revision step. Screen delivery accounts for display width as well as export size.
 Bars, shading, sparklines and emphasis follow the reading task and scale semantics;
-column count does not determine the treatment. The tool resolves every fill, ink,
-bar and sparkline point, and `render_table_from_plan` draws them. See the
-[MCP interface](../mcp.md).
+column count does not determine the treatment.
 
 ## Rendering
 

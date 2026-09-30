@@ -47,28 +47,20 @@ Table geometry is measured, never eyeballed. A clipped title or a header band
 overlapping the rows is a reservation skipped on the first pass, not a revision
 owed later. Before you render, in order:
 
-1. **Call `recommend_table_layout`** with the formatted headers and cells, raw
-   values, the treatment list, identifier columns, typography, and delivery
-   constraints. Apply the column
-   widths, wrapping, header band, row heights, and continuation pages it returns.
-   This is the mandatory sizing path, not an optional aid.
+1. **Size columns from their content.** Measure each column's longest formatted
+   value and its complete header with the renderer's own text metrics, and give
+   each column that width plus modest padding. Wrap a long header rather than
+   widening the whole column for it.
 2. **Reserve the frame like the columns.** The title, subtitle, and footer/notes
    are wrapped to the table width and given their own bands; the header band is its
    own layer that must not overlap the subtitle above it or the first data row
    below it.
-3. **A block wider than the canvas is `cannot_fit`** - resolve it by narrowing,
-   wrapping, or splitting, and never ship it clipped at the edge. Do not drop rows
-   or columns to force a fit.
-4. **Draw the plan through the shared constructor**, not by hand-positioning rows.
-   Where the harness provides it, `render_table_from_plan` (R when its required packages are available,
-   Python only when that backend is unavailable) applies the measured column widths, row heights, header band, and the
-   title/subtitle/notes bands verbatim, so nothing you reserved gets re-normalised
-   away - the failure mode where a hand-rolled table ignores measured heights and
-   clips the footer.
-
-Where the harness has no such tool, do the same by hand: measure each column,
-header, and frame block, keep them within the delivery width, apply those exact
-widths and heights when you draw, render, and confirm by eye before delivering.
+3. **A block wider than the canvas does not fit** - resolve it by narrowing,
+   wrapping, or splitting across pages, and never ship it clipped at the edge. Do
+   not drop rows or columns to force a fit.
+4. **Draw with the widths and heights you measured**, not by re-normalising rows
+   afterwards - the failure mode where a hand-rolled table ignores measured heights
+   and clips the footer.
 
 ## Craft principles
 
@@ -161,64 +153,40 @@ Decide the treatment before sizing, for every block of numbers:
 A table may combine treatments: row-wise shading on the value block, a sparkline
 column, and a focal row.
 
-Pass the treatments to `recommend_table_layout` as a list, with raw `values` on each
-column (a list of lists for a sparkline column whose cells are blank). The tool
-computes every scale, fill, ink, bar extent and sparkline point, reserves the
-graphic width, and right-aligns numbers. Do not compute fills or bar lengths
-yourself, and do not re-derive them at build. The plan warns when comparable
-numeric columns are left untreated; resolve that warning or state why the task is
-single-value lookup. Use `recommend_precision` for display strings. For shading, the
-tool builds an ordered sequential or diverging scale that keeps every number legible
-on its fill. Pass brand pole colours as `colours` if there is a brand; never run the
-categorical colour picker on shades.
+Compute each treatment's scale from the cells that compare (a column, a row, or
+the whole value block, depending on the reading task), reverse it for
+lower-is-better columns, and keep every number legible on its fill - pick dark or
+light ink per cell by contrast. Leave room in the column for any inline bar or
+sparkline, and right-align numbers. Use `recommend_precision` for display strings.
+For shading, use an ordered sequential or diverging scale (`recommend_continuous_scale`
+builds one); pass brand pole colours if there is a brand, and never run the
+categorical colour picker on shades. Comparable numeric columns left untreated
+need a reason - usually that the task is single-value lookup.
 
-The `recommend_table_layout` call from the reservation steps above takes the
-formatted headers/cells, identifier columns, typography, and delivery constraints.
-Supply each complete
-header, including units and explanatory sublabels; use explicit newlines for
-semantic breaks. Character counts or an omitted description cannot establish fit.
-Choose a per-column `max_header_lines` when the reading task or delivery limits
-how tall a heading may become; this is a constraint, not permission to clip it.
-For larger inputs pass
-a local JSON `content_path` rather than putting the table into the conversation.
-The planner balances measured header/body wrapping against shared row heights
-before construction, choosing compact columns without reducing type. A long
-header or occasional long cell must not leave the whole column needlessly wide.
-Do not equalise column widths or stretch cells to fill the delivery canvas. Keep
-padding compact and preserve space needed for graphics. Specify
-`visual_width_px` for inline graphics; `max_width_px` is an optional ceiling,
-not a requirement for automatic wrapping. Headers can use the full column width;
-body text shares it with its reserved inline graphic. Draw the returned `headers`
-verbatim at `header_pt` in bold inside `header_height_px`, using the returned
-column widths and padding. Do not flatten those line breaks, substitute the raw
-unwrapped names, or add unmeasured labels above/below them. The tallest complete
-wrapped header determines the header band; compact body rows are a separate layer.
-Use the returned body wrapping/heights, text bands and continuation pages too. Page column
-indices are zero-based and row ranges are half-open; repeat identifiers and headers.
-Do not silently drop rows or columns. Check that a split still supports the reading
-task; revise grouping or delivery if comparisons would be separated.
+Supply each complete header, including units and explanatory sublabels; use
+explicit newlines for semantic breaks. Do not equalise column widths or stretch
+cells to fill the delivery canvas. Keep padding compact and preserve space needed
+for graphics. The tallest complete wrapped header determines the header band;
+compact body rows are a separate layer. When a table splits across pages, repeat
+identifiers and headers, never silently drop rows or columns, and check that the
+split still supports the reading task.
 
 Set the intended display width and minimum displayed text pixels for screen
 outputs. DPI alone says nothing about readability after an image is fitted into a
 container. For print, use the intended physical size and point-size minimums.
 Never fit by shrinking below the supplied minimum. Widen within delivery limits,
 wrap, split/paginate, or revise supported wording/form. Reduce scope only when
-authorized. `cannot_fit` requires a revised plan, not acceptance of oversize pages.
-Fallback font metrics are estimates until checked in the target renderer.
-
-Without the MCP, use the renderer's text metrics to do the same work and inspect
-at delivery size; do not substitute a chart's slot-count layout for table content.
+authorized.
 
 ## Rendering
 
 - **Delivered HTML or interactive tables:** author with the R `gt` package; it
   carries alignment, precision, grouping, and conditional formatting cleanly.
   Markdown or hand-built HTML is an acceptable fallback for non-R contexts.
-- **A gated raster (for inspection):** use `render_table_from_plan`. It draws the
-  resolved treatment (fills, bars, sparklines, emphasis) with the geometry. It uses
-  R/grid/ragg when available, otherwise Python/Matplotlib, with measured cell bounds
-  for inspection on both paths. A failed R render is reported, never retried in
-  Python. The same craft principles and delivery constraints apply to both.
+- **A gated raster (for inspection):** build the table as a gtable
+  (`gt::as_gtable` or `gridExtra::tableGrob`) in an `.R` source and render it with
+  `render_and_inspect_chart(content = "table")`. It draws through grid/ragg and
+  captures every cell's text, size, and fill at its exact bounds for inspection.
 - Pass the typography floor and screen constraints to inspection (the combined
   renderer accepts `minimum_text_size_pt`, `display_width_px`, and
   `minimum_text_size_px` in `dimensions`). Inspect each delivered page. Nested
@@ -238,5 +206,5 @@ at delivery size; do not substitute a chart's slot-count layout for table conten
   data decision, not a layout one.
 - One table, one main task. Split a table that serves two unrelated comparisons.
 - A shaded or barred table is not finished until the render shows the treatment.
-  `TREATMENT_NOT_DRAWN` means the plan was bypassed; draw it through
-  `render_table_from_plan`.
+  `TREATMENT_NOT_DRAWN` means the planned treatment is missing from the render;
+  draw it.

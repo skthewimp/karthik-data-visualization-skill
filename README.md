@@ -385,15 +385,18 @@ See [`tester/README.md`](tester/README.md) and the [`repair-loop product roadmap
 
 ## MCP tools and current coverage
 
-R is optional. Automatic rendering prefers R when its required packages are installed;
-Python/Matplotlib is used only when that backend is unavailable. Probe before generating
-chart source; existing R code is not translated automatically. `render_table_from_plan`
-handles this selection itself and preserves measured geometry and cell-overflow checks
-on both backends. R build errors are reported, never silently retried in Python.
+The MCP server is optional. The skills work without it; the tools make the mechanical checks exact instead of eyeballed. Analytical and visual judgement stays in the skills.
 
-The metadata-first MCP server exposes deterministic chart rendering, exact-artifact geometry inspection, and revision comparison. It leaves analytical and visual judgement in the skills.
+It exposes fourteen tools:
 
-The server exposes six rendering/geometry tools: `probe_renderers`, `render_and_inspect_chart`, the backward-compatible Matplotlib-only `render_chart`, `inspect_rendered_chart`, `refit_chart` (the deterministic render -> inspect -> grow loop that clears clipping/overflow/squash without a model turn), and `compare_chart_artifacts`. `scaffold_chart` writes a chart's mechanical half (data typing, number format, palette, scales, facets, titles, fonts, margin, theme, value axis) from the plan and leaves one slot for the model's marks; `check_chart` restores the scaffold and checks that slot on the built plot. The backend-neutral workflow produces a PNG, chart spec, layout metadata, inspection, review views, and a hash-bound manifest. Comparison remains mechanical and does not make a subjective release decision.
+| group | tools |
+|---|---|
+| render and inspect | `render_and_inspect_chart`, `render_chart`, `inspect_rendered_chart`, `refit_chart`, `compare_chart_artifacts`, `probe_renderers` |
+| colour | `recommend_colours`, `validate_palette`, `extract_palette_from_image`, `recommend_continuous_scale`, `validate_scale` |
+| numbers and scales | `recommend_precision`, `recommend_scale_transform` |
+| reading a chart image | `read_marks_from_anchors` |
+
+R is optional. Automatic rendering prefers ggplot2 when `Rscript`, `ggplot2` and `ragg` are installed, and falls back to Matplotlib otherwise; existing R code is not translated. R build errors are reported, never silently retried in Python. The render workflow produces a PNG, chart spec, layout metadata, inspection report, review views, and a hash-bound manifest. `refit_chart` grows the canvas in code until clipping, overflow and squashed panels clear, so no model turn is spent on that arithmetic. Comparison stays mechanical and makes no release decision.
 
 See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, version guarantees, inspection coverage, and tested repair sequence. See [`dataviz_mcp/README.md`](dataviz_mcp/README.md) for installation, client registration, tool parameters, the chart-builder contract, and the local security boundary.
 

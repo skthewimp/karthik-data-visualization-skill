@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Simpler public repo: site-only machinery removed
+
+Most of what went in after mid-August was built to keep the repair website's
+scaffold pipeline safe on cheap models. Chart Doctor, the rewrite of that site,
+does without it, and it made this repo hard for anyone else to pick up.
+
+- **Twelve MCP tools removed:** `scaffold_chart`, `check_chart`, `prepare_plot_data`,
+  `default_plot_data_map`, `reserve_frame`, `place_on_marks`, `place_bar_value_labels`,
+  `recommend_text_placement`, `recommend_labels`, `recommend_layout`,
+  `recommend_table_layout`, `render_table_from_plan`, with their modules and tests.
+- **Fourteen stay:** render, inspect, refit and compare (the tools that lifted chart
+  quality when they arrived in mid-August), plus colour, precision, scale-transform
+  and mark-reading. Tables are still gated through `render_and_inspect_chart(content="table")`.
+- **Skills no longer depend on the removed tools.** `dataviz-construct`,
+  `karthik-data-visualization`, `dataviz-execution`, `karthik-table-style`,
+  `dataviz-selector` and `chart-annotations` now state the principle (size from content,
+  place labels from their marks, let the renderer's repel layer de-collide) instead of
+  a tool call.
+- Internal planning docs for the site pipeline removed. The tester and case manager stay.
+
 ### Plans compile before build
 
 In the 2026-09-29 canonical run nearly every first-build defect that forced a revision was known

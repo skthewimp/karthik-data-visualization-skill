@@ -47,7 +47,7 @@ If an annotation restates the title or a label, cut it. It survives only if it s
 
 ## Direct labels
 
-A direct label is **one mark's value** or its name - "42%", "Karnataka", the endpoint's number - never a change, rank, or comparison. Labels carry no external bar (a single value on a mark is always legitimate) but need the same restraint as annotations: **label only the few marks that carry the point** - endpoints, the one extreme, the mark the claim rests on. A chart stamped with 200 values is as unreadable as one full of callouts. On a multi-series or small-multiples chart, call `recommend_labels(series, max_labels_per_series)` to pick those points. "Keep every value" means every value stays *reconstructable* in a table or note, not that every point gets stamped.
+A direct label is **one mark's value** or its name - "42%", "Karnataka", the endpoint's number - never a change, rank, or comparison. Labels carry no external bar (a single value on a mark is always legitimate) but need the same restraint as annotations: **label only the few marks that carry the point** - endpoints, the one extreme, the mark the claim rests on. A chart stamped with 200 values is as unreadable as one full of callouts. On a multi-series or small-multiples chart, pick them per series - usually the endpoint plus at most one extreme. "Keep every value" means every value stays *reconstructable* in a table or note, not that every point gets stamped.
 
 **A summary mark carries its own statistics as direct labels.** A boxplot's box, a violin, an error bar, a range band is a single mark whose position *is* a set of computed quantities - the hinges, the median, the whiskers, a mean and its interval. Those quantities are the direct labels for that mark, under the same restraint: label the few that carry the reading, let them retire the value axis they duplicate, and leave the rest in the geometry. Build each label string from the same statistic that positioned the mark - in ggplot, `stat_summary(geom = "text", aes(label = after_stat(y)))`, never a hand-typed number - so the label and the mark can never disagree and both move together when the data changes.
 
@@ -74,7 +74,7 @@ ann <- d %>%
 geom_text(data = ann, aes(x, y, label = label), hjust = 0, ...)
 ```
 
-Where the harness ships forward placement tools, let them settle the geometry deterministically: `reserve_frame` fixes the title, caption, axis, and legend bands blind so the plot area is known before anything is drawn, and `place_on_marks` projects the annotated datum to its real pixel position (from one measure render), anchors the text, and de-collides it against marks and other labels through `recommend_text_placement`. Pass `plot_area` so a callout straddling the plot edge is pulled inside. When the tool returns a leader, draw the connector from its `leader_line_data` and place the text at its `placed_data` (native data coordinates) rather than improvising a `geom_segment` by eye - a guessed endpoint misses the datum and runs the connector through another mark. A free callout tied to no single datum routes through `recommend_text_placement` directly. Where those tools are absent, apply the same principles by eye:
+Anchor every annotation in data coordinates on the datum it explains, and let the renderer keep it clear of marks and other labels (a repel layer such as `ggrepel`, with the marks as obstacles). When a connector is needed, draw it from the text to the datum's own coordinates, never to a guessed endpoint - a guessed endpoint misses the datum and runs the connector through another mark. Then check the export by eye:
 
 - **Anchor on the datum, then offset into whitespace.** A group's centroid is the worst resting place; push the text to the outside edge where no mark sits.
 - Text must never sit on data, gridlines, or another label. A connector must never cross other data; use one only when proximity alone doesn't make the link clear.
@@ -115,7 +115,7 @@ Fix and re-render. Don't declare done from code inspection.
 | Title drops the subject ("The top two pull away") | Keep what is measured and its scope in the title |
 | Raw source digits in the title ($70,398MM) | Round by `recommend_precision` and write the compact form ($70.4B) |
 | Hand-typed count or "flat"/"doubled" never checked | Numbers and comparative words are computed from the same data as the mark |
-| Text clipped at a panel edge | Reserve room in the margin (or via `reserve_frame`), not by stretching the data scale |
+| Text clipped at a panel edge | Reserve room in the margin, not by stretching the data scale |
 | Group label parked at the cluster centroid | Anchor on the group, offset to the outside edge |
 | External fact asserted with no source | Cite where it comes from; it is a factual claim about the world |
 | Text set in a filled or bordered bubble (`geom_label`) | Freestanding text (`geom_text`); move it into whitespace or lift its weight, never box it over the data |

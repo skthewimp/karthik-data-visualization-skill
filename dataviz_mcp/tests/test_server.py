@@ -21,21 +21,9 @@ EXPECTED_TOOLS = {
     "validate_palette",
     "validate_scale",
     "extract_palette_from_image",
-    "prepare_plot_data",
-    "default_plot_data_map",
     "recommend_precision",
     "read_marks_from_anchors",
     "recommend_scale_transform",
-    "recommend_labels",
-    "recommend_layout",
-    "recommend_table_layout",
-    "render_table_from_plan",
-    "recommend_text_placement",
-    "reserve_frame",
-    "place_on_marks",
-    "place_bar_value_labels",
-    "scaffold_chart",
-    "check_chart",
 }
 
 

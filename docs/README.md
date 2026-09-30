@@ -28,9 +28,6 @@ Human-facing documentation for the public data visualization skills. Start here 
 ## Project notes
 
 - [`mcp.md`](mcp.md) - the boundary between skill judgement and deterministic rendering/inspection capabilities
-- [`plans/staged-pipeline-contract.md`](plans/staged-pipeline-contract.md) - the staged, per-stage-bundled pipeline contract (`dataviz_mcp/stage_contracts.py`) that ended the single mega-prompt
-- [`plans/unify-construct-idea-execution.md`](plans/unify-construct-idea-execution.md) - coalescing creation and repair into one `dataviz-construct` tail with pre-render idea and post-render execution gates
-- [`design/dataviz-fix-repair-flow.md`](design/dataviz-fix-repair-flow.md) - why the repair flow is one chat with one blind-eval spawn
 - [`../CHANGELOG.md`](../CHANGELOG.md) - release-style summary of public repo changes
 - [`../DEVLOG.md`](../DEVLOG.md) - session devlog with prompts and work done
 - [`blog/`](blog/) - longer project writeups
