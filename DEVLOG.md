@@ -4559,3 +4559,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:ef1dd849-170a-4a53-8e35-dcea3503ba14:end -->
 
+<!-- claude-session:3069c3f6-5e1c-4925-b652-4673230015d2:start -->
+## 2026-09-30 10:40 IST | Claude session `3069c3f6-5e1`
+
+### User prompts
+> let's clean up this repo. we just gotr rid of somne extra MCPs and stuff. any contradictions or redundanceis across the skills now? and can we optimise the tests while we're at it? i thikn we have too many of htem and...
+> continue.
+> i'll be deleint ghat repair site from here soon. so disregard that. is this clean now? and think of it from the perspective of a new user who wants to build dataviz like me
+
+### Work done
+- Changelog, devlog, commit, push.
+- The development machinery is gone, pushed as `9ea18eb`. The repo is now just the 24 skills plus the optional MCP server. The commit deletes about 14,400 lines across 50 files. The test suite is 150 tests in 23s, all p...
+
+<!-- claude-session:3069c3f6-5e1c-4925-b652-4673230015d2:end -->
