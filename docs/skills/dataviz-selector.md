@@ -99,7 +99,3 @@ If implementing: <short code/design note>
 A table is a first-class verdict, not a fallback. When the reader's task is exact lookup, the rows are few, the values are not commensurable on one scale, or the artifact is a reference or monitoring surface, the selector can choose a well-formatted table and hand off to `karthik-table-style`. A chart wins when the message is a shape, trend, or comparison the eye should grab pre-attentively. Inside a repair, a table is a legitimate cold verdict.
 
 A dense entity × metric/period matrix, where both exact lookup and the overall pattern are wanted, is best as a **conditionally-formatted table** - in-cell data bars or heat-shaded cells - not a faceted bar grid or dot-plot matrix. Same-unit columns do not rule this out; that is exactly where in-cell bars/heat earn their place. Normalize row-wise when each row is a comparable series, column-wise when each metric has its own scale, whole-matrix only under one honest scale; diverging scale for signed / above-below-average matrices. Add a sparkline column when a per-row shape across an ordered sequence also matters.
-
-## Public red-team suite
-
-Keep adversarial eval prompts local-only; do not commit `references/` or `scripts/` to the public repo.

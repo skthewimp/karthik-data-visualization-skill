@@ -23,4 +23,4 @@ Use `karthik-analysis-planner` first if the metric or denominator is still fuzzy
 
 ## Edit rule
 
-If chart-selection behaviour changes, update both `codex/SKILL.md` and `claude/SKILL.md` unless the change is surface-specific. Local `references/` and `scripts/` may exist for development, but they are ignored and not part of the public repo.
+If chart-selection behaviour changes, update both `codex/SKILL.md` and `claude/SKILL.md` unless the change is surface-specific.

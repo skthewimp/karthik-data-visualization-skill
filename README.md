@@ -178,7 +178,6 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
 - Rendering executes trusted local Python or R. It is not a sandbox; do not use it on untrusted chart source.
 - Matplotlib geometry covers text, lines, bars, patches, and common collections. The ggplot2 adapter resolves drawn gtable tracks and captures every panel plus rect, point, polygon, polyline, and text grobs; uncommon grobs remain explicit limitations.
 - Mechanical inspection does not replace analytical critique, delivery-size visual review, or user acceptance.
-- Local/private `references/` and `scripts/` remain ignored by default.
 
 ## Development notes
 

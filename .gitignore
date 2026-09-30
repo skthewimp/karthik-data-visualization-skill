@@ -1,22 +1,7 @@
-# Local/private skill internals
-**/references/**
-!**/references/
-!**/references/README.md
-!dataviz-eval/codex/references/evaluation-framework.md
-!dataviz-eval/claude/references/evaluation-framework.md
-**/scripts/**
-!**/scripts/
-!**/scripts/README.md
+# Private style notes the R analysis skill reads when installed; not published
+karthik-r-analysis-style/*/references/
 
-# Private model-comparison / eval benchmark artifacts - never commit.
-# These carry private model codenames and raw benchmark transcripts; they live
-# outside the repo (see ../luna-eval-private/). Patterns guard against re-adding.
-/*.pdf
-/ALL_MODELS_MATERIAL_FLOW.md
-docs/plans/luna-regression-diagnosis.md
-docs/plans/dataviz-eval-first-principles.md
-
-# Old/generated build artifacts
+# Build artifacts
 dist/
 
 # OS/cache
@@ -25,8 +10,3 @@ dist/
 __pycache__/
 *.pyc
 *.egg-info/
-
-# Local canonical-run notes and transcripts
-canonical-examples-analysis.md
-canonical-fix-plan.md
-integrated-transcript.json
