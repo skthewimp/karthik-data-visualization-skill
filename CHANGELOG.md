@@ -18,6 +18,8 @@
 - **Stale references removed.** The unlinked `karthik-data-visualization/references/` style
   guide, and the R analysis skill's superseded audit notes (only `style-observations.md`, which
   the skill reads, stays private).
+- **Last dangling pointers.** `chart-explainer` docs no longer name the removed
+  `chart-improver`; `sync.sh` lists `posit` in its `--surface` error.
 - **One Python environment, one install command.** `uv.lock` (a uv-project lockfile nothing
   used, which `uv sync` would turn into a project `.venv`) is gone; both READMEs install with
   `python3 -m pip install -e .` into the existing environment.

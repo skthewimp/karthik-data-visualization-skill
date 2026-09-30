@@ -16,7 +16,7 @@ while [[ $# -gt 0 ]]; do
       sync_args+=("$1")
       if [[ "$1" == "--surface" ]]; then
         if [[ $# -lt 2 ]]; then
-          echo "--surface requires all, codex, or claude" >&2
+          echo "--surface requires all, codex, claude, or posit" >&2
           exit 2
         fi
         sync_args+=("$2")

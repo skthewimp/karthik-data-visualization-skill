@@ -27,7 +27,7 @@ This is not on-chart text and not chart critique. It fires in two situations: an
 
 ## Relationship to other skills
 
-Use `chart-annotations` for text placed on the chart itself - that skill decides what the chart marks, this one decides what the accompanying message says. Use `dataviz-critique` or `chart-improver` when the chart is the problem; `chart-explainer` narrates whatever it is given without critiquing it. Use `karthik-writing-style` when the output is prose rather than a two-line note.
+Use `chart-annotations` for text placed on the chart itself - that skill decides what the chart marks, this one decides what the accompanying message says. Use `dataviz-critique` when the chart is the problem; `chart-explainer` narrates whatever it is given without critiquing it. Use `karthik-writing-style` when the output is prose rather than a two-line note.
 
 ## Edit rule
 
