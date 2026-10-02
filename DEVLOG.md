@@ -4620,3 +4620,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Session captured, but there was not enough structured activity to summarize.
 
 <!-- claude-session:3fd0e2c9-6228-49c9-8c18-87552ca76910:end -->
+
+<!-- claude-session:a3f408f9-f984-483d-9419-661938a8fa42:start -->
+## 2026-10-02 21:07 IST | Claude session `a3f408f9-f98`
+
+### User prompts
+> are all the latest set of skills from here installed on this computer? also, have we removed from here all the tools that we ripped out of this repo?
+> what about codex? see the latest graph it produced: /Users/Karthik/Documents/work/Mint/voter_age_2029_vs_india.png. massivlye clipped title and subtitle (very aggressively wrapped) etc. which was aproblem of the time...
+
+### Work done
+- Yes to both. Machine matches repo. **Skills installed: all 20 current.** 1. Every skill in the repo is in `~/.claude/skills`, `~/.codex/skills` and `~/.posit/assistant/skills`. Each installed copy is byte-identical to...
+- Codex has the current setup: all 20 skills are installed and its `karthik-dataviz` MCP config lists only tools that still exist. The bad title doesn't come from removed tools. I read the root Codex session behind this...
+
+<!-- claude-session:a3f408f9-f984-483d-9419-661938a8fa42:end -->
