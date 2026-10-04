@@ -105,17 +105,6 @@ Every geometry defect now also carries its fix vector, so a revision is a number
 
 Each defect also carries a `defect_class`, and the report groups the defects into a `correction_plan` with three classes, so the cycle routes deterministically instead of the model re-deriving the split each turn: **canvas** - clipping/overflow the canvas can grow out of, resolved by `refit_chart` and only when the group's shared `growth_vector` (the same `suggested_dims`) is non-null; **placement** - a local text move (collisions, an over-long unwrapped annotation, a missing direct label, and a label crossing the *plot* boundary, which canvas growth cannot fix), resolved in the chart code; **semantic** - a judgement only the model makes (contrast, redundant ink, an external legend, an unidentified series, undersized text, an underfilled canvas). A new defect code without a class is a test failure, not a silent default.
 
-## Revision comparison
-
-`compare_chart_artifacts` validates both artifact hashes before comparing them. It reports:
-
-- resolved, introduced, and persistent defects;
-- before-and-after blocking defect counts;
-- dimensions and pixel-change measurements;
-- `mechanically_improved`, which is true only when blocking defects fall and no new defect is introduced.
-
-This is a mechanical result, not a taste score. A substantively worse chart can still have fewer collisions, so the skills and independent evaluator retain the final decision.
-
 ## Tested failure cases
 
 The core suite creates deterministic fixtures for:
@@ -143,7 +132,6 @@ The end-to-end coffee fixture renders a deliberately bad multi-annotation time s
 | `dataviz_mcp/palette.py` | Colour selection, assignment, WCAG/CVD scoring, and image sampling (`recommend_colours`, `validate_palette`, `recommend_continuous_scale`, `validate_scale`, `extract_palette_from_image`); uses `color_math.py` |
 | `dataviz_mcp/precision.py` | Spread-derived significant digits for a numeric column (`recommend_precision`) |
 | `dataviz_mcp/scale_transform.py` | Advisory linear-vs-log10 axis recommendation from positive dynamic range and skew (`recommend_scale_transform`) |
-| `dataviz_mcp/comparison.py` | Hash-validated revision comparison |
 | `dataviz_mcp/server.py` | Stdio MCP surface (render, inspect, compare, and the recommend_* resolution tools) |
 | `dataviz_mcp/review_views.py` | Full, delivery, panel, hierarchy, and dense-placement views |
 | `dataviz_mcp/tests/` | Capability, protocol, geometry, and coffee repair tests |

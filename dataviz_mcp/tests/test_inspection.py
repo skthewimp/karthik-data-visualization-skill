@@ -7,7 +7,6 @@ import pytest
 from PIL import Image
 
 from dataviz_mcp.artifacts import raster_info, sha256_file
-from dataviz_mcp.comparison import compare_chart_artifacts
 from dataviz_mcp.inspection import BLANK_RENDER_MAX, _underfill_defect, inspect_rendered_chart
 from dataviz_mcp.rendering import render_and_inspect_chart, render_chart
 
@@ -648,19 +647,6 @@ def test_coffee_annotation_repair_loop_crosses_mechanical_pass_line(tmp_path: Pa
     assert fixed["artifact"]["sha256"] == fixed_bundle["artifact"]["sha256"]
     assert fixed["passes_geometry_checks"] is True
     assert fixed["defects"] == []
-
-    comparison = compare_chart_artifacts(
-        bad["inspection_path"], fixed["inspection_path"]
-    )
-    assert comparison["mechanically_improved"] is True
-    assert comparison["blocking_defect_count"]["after"] == 0
-    assert comparison["introduced_defects"] == []
-    assert comparison["passes_geometry_checks"] == {"before": False, "after": True}
-
-    assert len(comparison["resolved_defects"]) == len(bad["defects"])
-    assert all(defect in comparison["resolved_defects"] for defect in bad["defects"])
-    assert comparison["judgement_limit"]
-    assert comparison["pixel_difference"]["changed_pixel_ratio"] > 0
 
 
 def _panel_meta(elements: list[dict], marks: list[dict]) -> dict:

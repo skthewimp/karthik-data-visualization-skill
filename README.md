@@ -160,16 +160,16 @@ To install one surface only:
 
 The MCP server is optional. The skills work without it; the tools make the mechanical checks exact instead of eyeballed. Analytical and visual judgement stays in the skills.
 
-It exposes fourteen tools:
+It exposes twelve tools:
 
 | group | tools |
 |---|---|
-| render and inspect | `render_and_inspect_chart`, `render_chart`, `inspect_rendered_chart`, `refit_chart`, `compare_chart_artifacts`, `probe_renderers` |
+| render and inspect | `render_and_inspect_chart`, `inspect_rendered_chart`, `refit_chart`, `probe_renderers` |
 | colour | `recommend_colours`, `validate_palette`, `extract_palette_from_image`, `recommend_continuous_scale`, `validate_scale` |
 | numbers and scales | `recommend_precision`, `recommend_scale_transform` |
 | reading a chart image | `read_marks_from_anchors` |
 
-R is optional. Automatic rendering prefers ggplot2 when `Rscript`, `ggplot2` and `ragg` are installed, and falls back to Matplotlib otherwise; existing R code is not translated. R build errors are reported, never silently retried in Python. The render workflow produces a PNG, chart spec, layout metadata, inspection report, review views, and a hash-bound manifest. `refit_chart` grows the canvas in code until clipping, overflow and squashed panels clear, so no model turn is spent on that arithmetic. Comparison stays mechanical and makes no release decision.
+R is optional. Automatic rendering prefers ggplot2 when `Rscript`, `ggplot2` and `ragg` are installed, and falls back to Matplotlib otherwise; existing R code is not translated. R build errors are reported, never silently retried in Python. The render workflow produces a PNG, chart spec, layout metadata, inspection report, review views, and a hash-bound manifest. `refit_chart` grows the canvas in code until clipping, overflow and squashed panels clear, so no model turn is spent on that arithmetic.
 
 See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, version guarantees, inspection coverage, and tested repair sequence. See [`dataviz_mcp/README.md`](dataviz_mcp/README.md) for installation, client registration, tool parameters, the chart-builder contract, and the local security boundary.
 

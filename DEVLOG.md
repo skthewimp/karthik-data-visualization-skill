@@ -1,5 +1,28 @@
 # Devlog
 
+## 2026-10-04 - Trimming unused MCP tools
+
+### User report
+
+- "do we acutalyneed all the MCPs we have here? ... suddenly i findthat things have slowweddown"
+- "what tools do we have now? remove the render_chart and compare_chart_artifacts"
+
+### What I found
+
+- Only one MCP server is configured locally (`karthik-dataviz`); everything else is
+  account-level claude.ai connectors, deferred until called. The tool count had already
+  dropped from 23 to 14 on 2026-09-30, so the MCP is unlikely to be the slowdown - the staged
+  `dataviz-construct` pipeline (sequential stage calls, two gates, R renders) is the bigger cost.
+- `render_chart` and `compare_chart_artifacts` were referenced by no skill.
+
+### What changed
+
+- Dropped both tools from `server.py` and the package exports, deleted `comparison.py`, and
+  removed their docs. The internal Matplotlib `render_chart` stays: `render_and_inspect_chart`
+  uses it.
+- Tests: server registry test now exercises `render_and_inspect_chart`; the coffee repair test
+  keeps its before/after inspection asserts without the comparison step.
+
 ## 2026-09-30 - Removing the development machinery
 
 ### User report

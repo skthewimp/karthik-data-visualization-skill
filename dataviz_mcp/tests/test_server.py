@@ -10,12 +10,10 @@ from dataviz_mcp.server import create_server
 
 
 EXPECTED_TOOLS = {
-    "render_chart",
     "render_and_inspect_chart",
     "probe_renderers",
     "inspect_rendered_chart",
     "refit_chart",
-    "compare_chart_artifacts",
     "recommend_colours",
     "recommend_continuous_scale",
     "validate_palette",
@@ -38,35 +36,25 @@ def test_server_registers_every_tool_and_returns_structured_results(tmp_path: Pa
         tools = await server.list_tools()
         assert {tool.name for tool in tools} == EXPECTED_TOOLS
 
-        inspections = []
-        for function in ("annotation_over_line", "clean_chart"):
-            rendered = await server.call_tool(
-                "render_chart",
-                {
-                    "source_path": str(fixtures),
-                    "output_dir": str(tmp_path / function),
-                    "build_function": function,
-                },
-            )
-            assert rendered.is_error is False
-            bundle = rendered.structured_content
-            inspected = await server.call_tool(
-                "inspect_rendered_chart",
-                {
-                    "artifact_path": bundle["artifact"]["path"],
-                    "layout_metadata_path": bundle["layout_metadata_path"],
-                },
-            )
-            assert inspected.is_error is False
-            inspections.append(inspected.structured_content)
-        compared = await server.call_tool(
-            "compare_chart_artifacts",
+        rendered = await server.call_tool(
+            "render_and_inspect_chart",
             {
-                "before_inspection_path": inspections[0]["inspection_path"],
-                "after_inspection_path": inspections[1]["inspection_path"],
+                "source_path": str(fixtures),
+                "output_dir": str(tmp_path / "clean_chart"),
+                "renderer": "matplotlib",
+                "build_function": "clean_chart",
             },
         )
-        assert compared.is_error is False
-        assert compared.structured_content["mechanically_improved"] is True
+        assert rendered.is_error is False
+        bundle = rendered.structured_content
+        inspected = await server.call_tool(
+            "inspect_rendered_chart",
+            {
+                "artifact_path": bundle["artifact"]["path"],
+                "layout_metadata_path": bundle["layout_metadata_path"],
+            },
+        )
+        assert inspected.is_error is False
+        assert inspected.structured_content["passes_geometry_checks"] is True
 
     asyncio.run(exercise())

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from .comparison import compare_chart_artifacts as compare_core
 from .inspection import inspect_rendered_chart as inspect_core
 from .palette import (
     extract_palette_from_image as extract_palette_core,
@@ -18,7 +17,6 @@ from .refit import refit_chart as refit_core
 from .rendering import (
     probe_renderers as probe_core,
     render_and_inspect_chart as render_inspect_core,
-    render_chart as render_core,
 )
 
 
@@ -43,17 +41,6 @@ def create_server() -> Any:
     async def probe_renderers() -> dict[str, Any]:
         """Report renderer availability, versions, supported outputs, and failure reasons."""
         return probe_core()
-
-    @server.tool()
-    async def render_chart(
-        source_path: str,
-        output_dir: str,
-        artifact_name: str = "chart.png",
-        build_function: str = "build_chart",
-        dpi: int | None = None,
-    ) -> dict[str, Any]:
-        """Render trusted local Matplotlib source and emit PNG, spec, layout, and manifest."""
-        return render_core(source_path, output_dir, artifact_name, build_function, dpi)
 
     @server.tool()
     async def render_and_inspect_chart(
@@ -149,15 +136,6 @@ def create_server() -> Any:
             display_width_px,
             minimum_text_size_px,
         )
-
-    @server.tool()
-    async def compare_chart_artifacts(
-        before_inspection_path: str,
-        after_inspection_path: str,
-        output_path: str | None = None,
-    ) -> dict[str, Any]:
-        """Compare two exact inspection reports and list resolved or introduced defects."""
-        return compare_core(before_inspection_path, after_inspection_path, output_path)
 
     @server.tool()
     async def recommend_colours(

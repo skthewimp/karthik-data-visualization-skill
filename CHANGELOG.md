@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### MCP server down to twelve tools
+
+- Removed `render_chart` and `compare_chart_artifacts` from the MCP server. No skill called
+  either: `render_and_inspect_chart` already renders and inspects in one call, and the
+  execution gate re-inspects a revision directly. `dataviz_mcp/comparison.py` is deleted;
+  the Matplotlib `render_chart` function stays inside `rendering.py` as the renderer behind
+  `render_and_inspect_chart`.
+
 ### Loose ends from the cleanup
 
 - **`dataviz-construct` defines its own select flags.** `builder`, the four `needs_*` flags,

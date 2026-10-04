@@ -1,6 +1,6 @@
 # Dataviz MCP
 
-This local stdio server handles the mechanical part of chart production. It probes ggplot2 and Matplotlib, chooses ggplot2 first for supported static output, executes trusted chart code, preserves renderer geometry, inspects the exact PNG, builds review views, and compares revisions. It does not decide the analytical question, claim, visual style, or release verdict.
+This local stdio server handles the mechanical part of chart production. It probes ggplot2 and Matplotlib, chooses ggplot2 first for supported static output, executes trusted chart code, preserves renderer geometry, inspects the exact PNG, and builds review views. It does not decide the analytical question, claim, visual style, or release verdict.
 
 See [`docs/mcp.md`](../docs/mcp.md) for the architectural boundary, generation and repair flows, hash/version guarantees, and the reasons for using render metadata.
 
@@ -118,29 +118,6 @@ Returns `Rscript`, ggplot2, ragg, and Matplotlib availability/version details, s
 
 Inputs include `source_path`, `output_dir`, `renderer` (`auto`, `ggplot2`, or `matplotlib`), `delivery_profile`, and optional dimension overrides. `auto` applies the renderer precedence above. The result contains the artifact, specification, normalized layout, inspection, artifact-bound review views, renderer-selection evidence, and hash-bound manifest.
 
-### `render_chart`
-
-Inputs:
-
-| Parameter | Required | Meaning |
-|---|---:|---|
-| `source_path` | Yes | Existing trusted Python chart source |
-| `output_dir` | Yes | Directory for the complete render bundle |
-| `artifact_name` | No | Plain PNG filename; defaults to `chart.png` |
-| `build_function` | No | Builder function; defaults to `build_chart` |
-| `dpi` | No | Positive render DPI override |
-
-Outputs:
-
-```text
-chart.png             exact delivery artifact
-chart-spec.json       renderer, source hash, builder, DPI, and caller spec
-layout-metadata.json  canvas, plot, text, annotation, line, legend, and transform geometry
-manifest.json         hashes binding the bundle together
-```
-
-The tool response includes all four paths plus the artifact and manifest hashes.
-
 ### `inspect_rendered_chart`
 
 Inputs:
@@ -148,7 +125,7 @@ Inputs:
 | Parameter | Required | Meaning |
 |---|---:|---|
 | `artifact_path` | Yes | Exact PNG to inspect |
-| `layout_metadata_path` | No | Matching metadata from `render_chart` |
+| `layout_metadata_path` | No | Matching `layout_metadata_path` from `render_and_inspect_chart` |
 | `output_path` | No | Inspection JSON path; defaults beside the PNG |
 | `series_clearance_px` | No | Padding around annotation boxes for line collision checks; defaults to 2 |
 | `max_unwrapped_annotation_chars` | No | Unwrapped annotation limit; defaults to 45 |
@@ -177,18 +154,6 @@ Inputs:
 | `artifact_name` / `build_function` | No | Passed through to the renderer |
 
 Scope is only what growing fixes - edge clipping, overflow, squashed panels. Underfill (no exact shrink vector) is reported (`underfilled` + a warning) but never resized; label collisions are left to the chart code. The loop exits when geometry is clean, the delivery ceiling is reached (warned, never squashed), `max_iterations` is hit, or a grow stops reducing the residual. Returns the final artifact, inspection path, `final_dimensions`, a per-pass `history`, `warnings`, and a `resolved` flag.
-
-### `compare_chart_artifacts`
-
-Inputs:
-
-| Parameter | Required | Meaning |
-|---|---:|---|
-| `before_inspection_path` | Yes | Inspection JSON for the earlier artifact |
-| `after_inspection_path` | Yes | Inspection JSON for the revision |
-| `output_path` | No | Comparison JSON path; defaults beside the later report |
-
-Both referenced PNGs are re-hashed before comparison. The result lists resolved, introduced, and persistent defects; blocking counts; dimensions; pixel difference; and whether the revision is mechanically improved. It does not make a substantive release decision.
 
 ## Colour and precision advisors
 
@@ -234,7 +199,7 @@ Use the same environment as the MCP clients:
 MPLCONFIGDIR=/tmp/mpl-cache "$MCP_PYTHON" -m pytest -q
 ```
 
-The default suite covers MCP tools, a real stdio tool listing, deterministic geometry fixtures, and the end-to-end coffee annotation repair (render, inspect, fix placement, compare).
+The default suite covers MCP tools, a real stdio tool listing, deterministic geometry fixtures, and the end-to-end coffee annotation repair (render, inspect, fix placement, re-inspect).
 
 
 ## Current limits
