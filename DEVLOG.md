@@ -4734,3 +4734,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Codex has the current setup: all 20 skills are installed and its `karthik-dataviz` MCP config lists only tools that still exist. The bad title doesn't come from removed tools. I read the root Codex session behind this...
 
 <!-- claude-session:a3f408f9-f984-483d-9419-661938a8fa42:end -->
+
+<!-- claude-session:9302982c-a89e-4e05-b15f-5f813f4fc5f7:start -->
+## 2026-10-04 21:15 IST | Claude session `9302982c-a89`
+
+### User prompts
+> do we acutalyneed all the MCPs we have here? there was a stage where we wwere indisciminately adding tools, andthen we undid some of it, but possibly not enough. suddenly i findthat things have slowweddown in terms of...
+> what tools do we have now? remove the render_chart and compare_chart_artifacts
+> remove all the render and inspect tools; even in colours only recommend_colours seems good. what are the dates of adding allthehese tools?
+
+### Work done
+- I edited `~/.claude/CLAUDE.md`. It isn't in a git repo, so there was nothing to commit. **Skill Discipline, steps 1-2.** These used to say "Infer all relevant skills… Read each selected skill fully." They now say: > 1...
+- The skill has doubled since mid-August, and most of the growth is patches for particular failing charts rather than general style rules. I've assumed you mean `karthik-data-visualization`; tell me if you meant another...
+
+<!-- claude-session:9302982c-a89e-4e05-b15f-5f813f4fc5f7:end -->
