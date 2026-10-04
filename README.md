@@ -2,7 +2,7 @@
 
 Skills for Claude Code and Codex that make charts, tables and data stories the way I make them: one claim per chart, direct labels instead of legends, colour only where it means something, no chart furniture that isn't earning its keep, and a render-and-look check before anything is called done.
 
-There is an optional local MCP server that renders charts and measures the exported image (clipping, overlaps, text size, contrast), and computes colour palettes and rounding. The skills work without it; the server makes the mechanical checks exact instead of eyeballed.
+There is an optional local MCP server that does the arithmetic for colour assignment, rounding, log-vs-linear axes and reading values off a chart image. The skills work without it.
 
 ## Start here
 
@@ -84,7 +84,7 @@ Each stage loads only its own skill, so no call carries all twenty.
 ```text
 .
 ├── <skill>/{codex,claude}/SKILL.md   # 20 skills, one folder each, a SKILL.md per client
-├── dataviz_mcp/                      # Optional local stdio MCP: render, inspect, refit, colour, precision
+├── dataviz_mcp/                      # Optional local stdio MCP: colour, precision, axis transform, mark reading
 ├── docs/                             # Human docs, one page per skill
 ├── sync-skills.py                    # Install Codex or Claude skill surfaces
 └── sync.sh                           # Pull + install wrapper
@@ -156,28 +156,18 @@ To install one surface only:
 ./sync.sh --no-pull --surface claude
 ```
 
-## MCP tools and current coverage
+## MCP tools
 
-The MCP server is optional. The skills work without it; the tools make the mechanical checks exact instead of eyeballed. Analytical and visual judgement stays in the skills.
+The MCP server is optional. The skills work without it; the tools turn four by-eye decisions into arithmetic. Analytical and visual judgement stays in the skills, and charts are rendered and checked by looking at the export.
 
-It exposes twelve tools:
-
-| group | tools |
+| tool | what it computes |
 |---|---|
-| render and inspect | `render_and_inspect_chart`, `inspect_rendered_chart`, `refit_chart`, `probe_renderers` |
-| colour | `recommend_colours`, `validate_palette`, `extract_palette_from_image`, `recommend_continuous_scale`, `validate_scale` |
-| numbers and scales | `recommend_precision`, `recommend_scale_transform` |
-| reading a chart image | `read_marks_from_anchors` |
+| `recommend_colours` | which colour goes to which series, from brand or source colours, the background, a focal series and colour meanings |
+| `recommend_precision` | one uniform rounding place for a column, from its spread |
+| `recommend_scale_transform` | linear or log10 for a continuous axis |
+| `read_marks_from_anchors` | a mark's value, interpolated between the two ticks that bracket it |
 
-R is optional. Automatic rendering prefers ggplot2 when `Rscript`, `ggplot2` and `ragg` are installed, and falls back to Matplotlib otherwise; existing R code is not translated. R build errors are reported, never silently retried in Python. The render workflow produces a PNG, chart spec, layout metadata, inspection report, review views, and a hash-bound manifest. `refit_chart` grows the canvas in code until clipping, overflow and squashed panels clear, so no model turn is spent on that arithmetic.
-
-See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, version guarantees, inspection coverage, and tested repair sequence. See [`dataviz_mcp/README.md`](dataviz_mcp/README.md) for installation, client registration, tool parameters, the chart-builder contract, and the local security boundary.
-
-## Trust and limitations
-
-- Rendering executes trusted local Python or R. It is not a sandbox; do not use it on untrusted chart source.
-- Matplotlib geometry covers text, lines, bars, patches, and common collections. The ggplot2 adapter resolves drawn gtable tracks and captures every panel plus rect, point, polygon, polyline, and text grobs; uncommon grobs remain explicit limitations.
-- Mechanical inspection does not replace analytical critique, delivery-size visual review, or user acceptance.
+See [`docs/mcp.md`](docs/mcp.md) for the boundary between tools and skills, and [`dataviz_mcp/README.md`](dataviz_mcp/README.md) for installation, client registration and tool parameters.
 
 ## Development notes
 
@@ -187,16 +177,10 @@ See [`docs/mcp.md`](docs/mcp.md) for the architecture, exact-artifact workflow, 
 - `sync-skills.py --validate-only` checks frontmatter without copying files.
 - For a localized fix, run the affected test files, optionally narrowed with `-k`:
   `python3 -m pytest -q dataviz_mcp/tests/test_scales.py`. Prose-only edits need metadata
-  validation, not rendering tests. See [AGENTS.md](AGENTS.md) for check selection.
-- `python3 -m pytest -q` runs the full core MCP suite, including live renders; reserve it for
-  cross-cutting changes. Add `--durations=10` to locate slow tests. R availability is checked
-  lazily once per test session for integration-test prerequisites.
-- For quick feedback, use `python3 -m pytest -q -m 'not integration'`; add an affected file
-  before `-m` to narrow it further. `-m integration` selects live chart renders and renderer
-  probes. The default command still runs both groups.
+  validation, not tests. See [AGENTS.md](AGENTS.md) for check selection.
+- `python3 -m pytest -q` runs the full MCP suite in about a second.
 - Extend an existing test when it already builds the same scenario. Keep separate cases for
-  distinct failure modes and renderer behavior; avoid duplicate renders, wording snapshots,
-  and tests that merely repeat implementation constants.
+  distinct failure modes; avoid wording snapshots and tests that merely repeat implementation constants.
 - No generated `dist/` output is committed.
 - Keep README files in public folders. They are navigation aids for newcomers and should be updated when layout changes.
 

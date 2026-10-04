@@ -2,7 +2,24 @@
 
 ## Unreleased
 
-### MCP server down to twelve tools
+### MCP server down to four tools
+
+- The MCP server now exposes only `recommend_colours`, `recommend_precision`,
+  `recommend_scale_transform` and `read_marks_from_anchors`.
+- Removed the render and inspect tools (`render_and_inspect_chart`, `inspect_rendered_chart`,
+  `refit_chart`, `probe_renderers`) with their modules (`rendering.py`, `inspection.py`,
+  `refit.py`, `layout.py`, `review_views.py`, `artifacts.py`) and fixtures. Charts are now
+  rendered with the project's own renderer and checked by eye at delivery size;
+  `dataviz-execution` keeps the same canvas / placement / semantic routing and ink checks as
+  things to look for, not inspector flags.
+- Removed `validate_palette`, `validate_scale`, `recommend_continuous_scale` and
+  `extract_palette_from_image` as tools. `recommend_colours` still scores its own assignment
+  internally and returns it as `validation`; continuous scales and source hues are chosen by
+  hand under the rules in `dataviz-color`.
+- Dropped the `matplotlib` and `numpy` dependencies and the `integration` test marker. The
+  suite now runs in about a second.
+
+### Earlier: MCP server down to twelve tools
 
 - Removed `render_chart` and `compare_chart_artifacts` from the MCP server. No skill called
   either: `render_and_inspect_chart` already renders and inspects in one call, and the

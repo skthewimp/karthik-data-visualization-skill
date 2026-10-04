@@ -2,22 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from .inspection import inspect_rendered_chart as inspect_core
-from .palette import (
-    extract_palette_from_image as extract_palette_core,
-    recommend_colours as recommend_colours_core,
-    recommend_continuous_scale as recommend_continuous_scale_core,
-    validate_palette as validate_palette_core,
-    validate_scale as validate_scale_core,
-)
 from .mark_read import read_marks_from_anchors as read_marks_from_anchors_core
+from .palette import recommend_colours as recommend_colours_core
 from .precision import recommend_precision as recommend_precision_core
 from .scale_transform import recommend_scale_transform as recommend_scale_transform_core
-from .refit import refit_chart as refit_core
-from .rendering import (
-    probe_renderers as probe_core,
-    render_and_inspect_chart as render_inspect_core,
-)
 
 
 def create_server() -> Any:
@@ -32,110 +20,11 @@ def create_server() -> Any:
     server = MCPServer(
         "Karthik dataviz mechanical capabilities",
         instructions=(
-            "Use these tools for deterministic rendering and exact-artifact geometry checks. "
-            "Analytical and visual judgement remains in the dataviz skills."
+            "Use these tools for colour assignment, number precision, axis transforms, and "
+            "reading values off a chart image. Analytical and visual judgement remains in "
+            "the dataviz skills."
         ),
     )
-
-    @server.tool()
-    async def probe_renderers() -> dict[str, Any]:
-        """Report renderer availability, versions, supported outputs, and failure reasons."""
-        return probe_core()
-
-    @server.tool()
-    async def render_and_inspect_chart(
-        source_path: str,
-        output_dir: str,
-        renderer: str = "auto",
-        delivery_profile: str | None = "chat",
-        dimensions: dict[str, Any] | None = None,
-        artifact_name: str = "chart.png",
-        build_function: str = "build_chart",
-        content: str = "chart",
-        inspection_contract: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """Render backend-neutrally (ggplot2 first for auto), inspect, and build review views.
-
-        Set content="table" to render a gtable (tableGrob / gt::as_gtable) from an .R
-        source through the grid/ragg path and gate it like a chart.
-        The inspector compares text and measured bounds without inferring label roles or
-        requiring ggplot text IDs.
-        """
-        return render_inspect_core(
-            source_path,
-            output_dir,
-            renderer,
-            delivery_profile,
-            dimensions,
-            artifact_name,
-            build_function,
-            content=content,
-            inspection_contract=inspection_contract,
-        )
-
-    @server.tool()
-    async def refit_chart(
-        source_path: str,
-        output_dir: str,
-        renderer: str = "auto",
-        delivery_profile: str = "chat",
-        dimensions: dict[str, Any] | None = None,
-        max_iterations: int = 3,
-        content: str = "chart",
-        artifact_name: str = "chart.png",
-        build_function: str = "build_chart",
-        inspection_contract: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """Render, inspect, and grow the canvas in code until clipping/overflow/squash clears.
-
-        Closes the render -> inspect -> resize loop deterministically, so a weak model never
-        spends a model turn on pure geometry arithmetic. Each pass reads the exact overflow the
-        inspector measured and grows the canvas by ``suggest_dims_for_overflow``'s amount, up to
-        ``max_iterations``, honouring the delivery-profile ceiling (warned, never squashed) and
-        stopping when a grow no longer reduces the residual. Scope is only what *growing* fixes -
-        edge clipping, overflow, squashed panels; underfill (no exact shrink vector) is reported
-        but never resized, and label collisions are left to the chart code. Returns the final
-        artifact, inspection path, ``final_dimensions``, a per-pass ``history``, ``warnings``, a
-        ``resolved`` flag, and ``underfilled``. Run it FIRST at the execution gate, then escalate
-        only the residual (non-resize) defects to a model revision.
-        """
-        return refit_core(
-            source_path,
-            output_dir,
-            renderer,
-            delivery_profile,
-            dimensions,
-            max_iterations,
-            content,
-            artifact_name,
-            build_function,
-            inspection_contract=inspection_contract,
-        )
-
-    @server.tool()
-    async def inspect_rendered_chart(
-        artifact_path: str,
-        layout_metadata_path: str | None = None,
-        output_path: str | None = None,
-        series_clearance_px: float = 2.0,
-        max_unwrapped_annotation_chars: int = 45,
-        delivery_profile: str | None = None,
-        minimum_text_size_pt: float = 8.0,
-        display_width_px: float | None = None,
-        minimum_text_size_px: float | None = None,
-    ) -> dict[str, Any]:
-        """Inspect one exact raster using matching renderer geometry when supplied."""
-        return inspect_core(
-            artifact_path,
-            layout_metadata_path,
-            output_path,
-            series_clearance_px,
-            max_unwrapped_annotation_chars,
-            delivery_profile,
-            minimum_text_size_pt,
-            display_width_px,
-            minimum_text_size_px,
-        )
 
     @server.tool()
     async def recommend_colours(
@@ -181,81 +70,6 @@ def create_server() -> Any:
         return recommend_colours_core(
             available, n_series, background, focal, semantic_hints, available_source=available_source
         )
-
-    @server.tool()
-    async def recommend_continuous_scale(
-        values: list[float],
-        available: list[str] | None = None,
-        background: str = "#FFFFFF",
-        reference: float | None = None,
-        kind: str = "auto",
-    ) -> dict[str, Any]:
-        """Recommend a CONTINUOUS colour scale for a magnitude encoding (heatmap fill,
-        colour-mapped value) - NOT categorical series. Use this, not ``recommend_colours``,
-        whenever colour encodes one ordered quantity; routing a magnitude through the
-        categorical path collapses it to a single series colour and mis-validates the ramp.
-
-        Returns the scale ``kind`` (sequential vs diverging), a data-derived ``domain`` and
-        ``midpoint``, ordered ``stops`` to interpolate between, and a distinct off-scale
-        ``missing_colour`` for NA cells. ``kind="auto"`` diverges only when the data has a
-        real centre (an external ``reference`` or values straddling zero) and is otherwise
-        sequential. ``kind="diverging"`` asserts that separating low/mid/high helps reading
-        (e.g. a bounded-score heatmap); its midpoint is ``reference`` if given, else the data
-        median - never a hardcoded constant. Poles are drawn from ``available`` (brand/context)
-        when supplied, synthesised only when it is not. Pass the same list to ``validate_scale``.
-        """
-        return recommend_continuous_scale_core(
-            values, available=available, background=background, reference=reference, kind=kind
-        )
-
-    @server.tool()
-    async def validate_scale(
-        stops: list[str],
-        scale_kind: str = "sequential",
-        background: str = "#FFFFFF",
-        min_contrast_mark: float = 3.0,
-    ) -> dict[str, Any]:
-        """Validate a CONTINUOUS scale by its ends, not as categorical series.
-
-        Checks that at least one stop reads on the background (mid values may fade into it)
-        and that the two poles stay separated in lightness so the extremes survive grayscale
-        and CVD. It deliberately does NOT flag interior stops for series-distinctness - a ramp
-        is meant to have close neighbours. Use for heatmap/magnitude scales; use
-        ``validate_palette`` for categorical series.
-        """
-        return validate_scale_core(
-            stops, scale_kind=scale_kind, background=background, min_contrast_mark=min_contrast_mark
-        )
-
-    @server.tool()
-    async def validate_palette(
-        colours: list[str],
-        background: str = "#FFFFFF",
-        text_colours: list[str] | None = None,
-        min_contrast_text: float = 4.5,
-        min_contrast_mark: float = 3.0,
-    ) -> dict[str, Any]:
-        """Score a palette on WCAG contrast, series distinctness, CVD, and grayscale.
-
-        Returns a verdict plus ranked findings, each with a concrete nudge. Targets are
-        soft: findings are reported, not hard-blocked.
-        """
-        return validate_palette_core(
-            colours,
-            background=background,
-            text_colours=text_colours,
-            min_contrast_text=min_contrast_text,
-            min_contrast_mark=min_contrast_mark,
-        )
-
-    @server.tool()
-    async def extract_palette_from_image(
-        image_path: str,
-        max_colours: int = 8,
-        ignore_near_white_black: bool = True,
-    ) -> dict[str, Any]:
-        """Sample dominant hues from a source chart image as a repair prior (brand/WCAG may override)."""
-        return extract_palette_core(image_path, max_colours, ignore_near_white_black)
 
     @server.tool()
     async def recommend_precision(

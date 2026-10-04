@@ -1,5 +1,43 @@
 # Devlog
 
+## 2026-10-04 - Cutting the MCP to four tools
+
+### User report
+
+- "remove all the render and inspect tools; even in colours only recommend_colours seems good.
+  what are the dates of adding allthehese tools?"
+
+### Context
+
+- A Codex run on a follow-up chart spun up insight, idea-gate, build and execution-gate agents
+  and bounced a label nudge back to build. The render/inspect loop was a large part of that
+  round-tripping.
+
+### Tool history (first commit on `server.py`)
+
+- 2026-08-18 `19d3814`: `probe_renderers`, `render_chart`, `render_and_inspect_chart`,
+  `inspect_rendered_chart`, `compare_chart_artifacts`.
+- 2026-08-24 `4d45f6b`: `recommend_colours`, `validate_palette`, `extract_palette_from_image`,
+  `recommend_precision`.
+- 2026-09-04 `10fca8d`: `refit_chart`.
+- 2026-09-08 `ff2a779`: `recommend_continuous_scale`, `validate_scale`.
+- 2026-09-11 `6430719`: `recommend_scale_transform`.
+- 2026-09-16 `24d8e89`: `read_marks_from_anchors`.
+
+### What changed
+
+- Server keeps `recommend_colours`, `recommend_precision`, `recommend_scale_transform`,
+  `read_marks_from_anchors`. Deleted the render/inspect modules, their tests and fixtures, the
+  scale and image-palette code in `palette.py`, and the matplotlib/numpy dependencies.
+  `validate_palette` stays as an internal function because `recommend_colours` calls it.
+- Rewrote the tool-dependent passages in `dataviz-execution`, `dataviz-construct`,
+  `dataviz-color`, `karthik-table-style` and `karthik-data-visualization` (both surfaces) to
+  render with the project's renderer and look at the export. The defect taxonomy and ink checks
+  stay, as things to look for.
+- Rewrote `docs/mcp.md` and `dataviz_mcp/README.md`; trimmed README, AGENTS.md test guidance and
+  the skill docs.
+- `pytest -q`: 51 passed in under a second.
+
 ## 2026-10-04 - Trimming unused MCP tools
 
 ### User report

@@ -10,16 +10,14 @@
 ## Keep development proportional
 
 - Start with the affected code and tests. Read historical logs and plans only when needed.
-- For prose or skill wording, validate metadata; do not run rendering tests or model evaluations.
+- For prose or skill wording, validate metadata; do not run tests or model evaluations.
 - For a localized code fix, run the affected tests (file paths before `-k`, so unrelated modules
   are not collected). Include callers when a shared interface changes.
-- Run the full core suite for cross-cutting rendering, inspection, pipeline, packaging, or
-  dependency changes, or when the affected scope is unclear.
+- Run the full core suite for cross-cutting, packaging, or dependency changes, or when the
+  affected scope is unclear.
 - After checks pass, rerun only if a subsequent edit affects what they checked. Do not add
   wording assertions, duplicate regressions, or live model evaluations to routine edits.
-- Reuse an existing scenario for related assertions instead of adding another render. Mark
-  live rendering and renderer probes with `integration`; use
-  `-m 'not integration'` for quick feedback, not as a substitute for required full checks.
+- Reuse an existing scenario for related assertions instead of adding another case.
 - Keep changes and reporting compact. Fix the general cause without building a new framework.
 
 ## Maintainer publish rule

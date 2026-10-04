@@ -65,7 +65,7 @@ It also uses perceptual grouping as a design tool. The reader groups marks befor
 
 Preserve the renderer already established by the project. For a new Karthik-style static chart without project precedent, prefer R/ggplot2 when it is available. The preference comes from the working grammar and the way Karthik's charts are usually built; it does not mean accepting ggplot2's default theme unchanged.
 
-The MCP renderer is infrastructure, not the visual style. Its backend-neutral adapter selects ggplot2 first for supported static output and uses Matplotlib only for an explicit request or a recorded unavailable/unsupported condition. It must not cause an agent to replace a sound ggplot2 implementation with a default-looking Matplotlib chart. When Matplotlib is the practical fallback, every visible choice—type, colour, grid, axes, labels, spacing, and annotation—must be set deliberately and checked in the exact export.
+When Matplotlib is the practical fallback, every visible choice—type, colour, grid, axes, labels, spacing, and annotation—must be set deliberately and checked in the exact export.
 
 The decided settings - number format, palette, scales, titles, fonts, and the value axis dropped once the planned value labels carry the reading - are applied in the chart code exactly as decided, one owner per setting. A segment or range is drawn between its start and end, a number printed beside a mark but not drawn (a growth rate on a revenue bar) prints as a note, and a chart of several panels - an overview set apart from its detail, a bar beside a line - draws each panel with its own form, axes and number format, under one page frame and one palette.
 

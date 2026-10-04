@@ -27,7 +27,7 @@ column count does not determine the treatment.
 ## Rendering
 
 - **Delivered HTML or interactive tables:** the R `gt` package.
-- **A gated raster for inspection:** build the table as a `grid` / `tableGrob` object and render it through the same `ragg` path the charts use. In the MCP, that is `render_and_inspect_chart` with `content="table"`, which captures nested text, inherited font sizes and cell overflow, and reports unsupported geometry as incomplete coverage.
+- **A static image:** build the table as a `grid` / `tableGrob` object and render it through the same `ragg` path the charts use, then look at each page at delivery size.
 
 ## Relationship to other skills
 

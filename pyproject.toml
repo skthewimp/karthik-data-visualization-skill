@@ -5,12 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "karthik-dataviz-mcp"
 version = "0.1.0"
-description = "Metadata-first rendering and exact-artifact inspection for Karthik's dataviz skills"
+description = "Colour, precision, scale, and chart-reading helpers for Karthik's dataviz skills"
 requires-python = ">=3.10"
 dependencies = [
-  "matplotlib>=3.9,<4",
   "mcp>=2,<3",
-  "numpy>=2,<3",
   "Pillow>=11,<13",
 ]
 
@@ -27,6 +25,3 @@ include = ["dataviz_mcp*"]
 
 [tool.pytest.ini_options]
 testpaths = ["dataviz_mcp/tests"]
-markers = [
-  "integration: live chart renders or renderer probes",
-]

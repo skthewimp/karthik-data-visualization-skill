@@ -157,8 +157,8 @@ the whole value block, depending on the reading task), reverse it for
 lower-is-better columns, and keep every number legible on its fill - pick dark or
 light ink per cell by contrast. Leave room in the column for any inline bar or
 sparkline, and right-align numbers. Use `recommend_precision` for display strings.
-For shading, use an ordered sequential or diverging scale (`recommend_continuous_scale`
-builds one); pass brand pole colours if there is a brand, and never run the
+For shading, use an ordered sequential or diverging scale (`dataviz-color` covers
+how to pick one); take brand pole colours if there is a brand, and never run the
 categorical colour picker on shades. Comparable numeric columns left untreated
 need a reason - usually that the task is single-value lookup.
 
@@ -182,17 +182,12 @@ authorized.
 - **Delivered HTML or interactive tables:** author with the R `gt` package; it
   carries alignment, precision, grouping, and conditional formatting cleanly.
   Markdown or hand-built HTML is an acceptable fallback for non-R contexts.
-- **A gated raster (for inspection):** build the table as a gtable
-  (`gt::as_gtable` or `gridExtra::tableGrob`) in an `.R` source and render it with
-  `render_and_inspect_chart(content = "table")`. It draws through grid/ragg and
-  captures every cell's text, size, and fill at its exact bounds for inspection.
-- Pass the typography floor and screen constraints to inspection (the combined
-  renderer accepts `minimum_text_size_pt`, `display_width_px`, and
-  `minimum_text_size_px` in `dimensions`). Inspect each delivered page. Nested
-  text must be captured individually; `checks_complete: false` is incomplete
-  evidence, never a pass. Resolve `CELL_OVERFLOW` by changing cell geometry or
-  wrapping, not by moving table labels off their cells. Read decimal alignment,
-  contrast against cell fills, and treatment effectiveness from the actual render.
+- **A static image:** build the table as a gtable (`gt::as_gtable` or
+  `gridExtra::tableGrob`) and render it through `ragg`.
+- Look at each delivered page at its display width against the typography floor.
+  Resolve text overflowing its cell by changing cell geometry or wrapping, not by
+  moving table labels off their cells. Read decimal alignment, contrast against
+  cell fills, and treatment effectiveness from the actual render.
 
 ## Guardrails
 

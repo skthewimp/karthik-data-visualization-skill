@@ -1,10 +1,13 @@
-"""Deterministic rendering and inspection capabilities for dataviz agents."""
+"""Deterministic colour, precision, scale, and chart-reading capabilities for dataviz agents."""
 
-from .inspection import inspect_rendered_chart
-from .rendering import probe_renderers, render_and_inspect_chart
+from .mark_read import read_marks_from_anchors
+from .palette import recommend_colours
+from .precision import recommend_precision
+from .scale_transform import recommend_scale_transform
 
 __all__ = [
-    "inspect_rendered_chart",
-    "probe_renderers",
-    "render_and_inspect_chart",
+    "read_marks_from_anchors",
+    "recommend_colours",
+    "recommend_precision",
+    "recommend_scale_transform",
 ]
