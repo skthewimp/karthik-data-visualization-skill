@@ -24,7 +24,7 @@ Record the input (dataset, or source image), question/purpose, audience, medium,
 
 ## Front half: create
 
-Use when the task starts with a dataset and a loose question. Each stage is one call; load only the listed skill and pass the emitted artifact forward.
+Use when the task starts with a dataset and a loose question. Run each stage as a step and pass its short output forward.
 
 1. **Discover** - `dataset-question-generator`. In: dataset and context. Out: row grain, columns/types, likely denominators, candidate stories with the evidence each needs and its misleading risk, a recommended first story, and a "do not visualise yet" list. Skip when the user already has a sharp claim.
 2. **Contract** - `karthik-analysis-planner`. In: discovery artifact and chosen story. Out: the operational question, metric, numerator/denominator, grain, the comparison that makes the number mean something, data requirements, falsifiers, caveats. Don't chart.
@@ -41,17 +41,17 @@ Use when an existing chart (image or artifact) needs to be repaired and returned
 
 **Repair is forward design, not critique-plus-patch.** Starting from a critique of the source anchors everything on the existing image and makes "re-render the source form, tidied" the path of least resistance. Extract the intent and data first, then let the tail compute the insight, select a form cold, build, and check. Preserving a message is not preserving a form: the data and messages must survive; the encoding usually should not when the source form was the weakness.
 
-**Diagnose + extract** - one call loading `dataviz-critique` (its repair-brief role) and `dataviz-extract`. In: source image and any prompt. Out: the repair brief (key messages and required content, explicit drops with reasons, audience and medium, authoritative constraints, the **mode**) and the full period-by-category table (a value for every period and every category, series, stack, or facet - colour is data), so any chosen form can be built. Don't choose a form here. Difficulty of recovery is never grounds to drop a message or category - uncertain values and unreadable labels go in the limitations; the categories stay.
+**Diagnose + extract** - one step using `dataviz-critique` (its repair-brief role) and `dataviz-extract`. In: source image and any prompt. Out: the repair brief (key messages and required content, explicit drops with reasons, audience and medium, authoritative constraints, the **mode**) and the full period-by-category table (a value for every period and every category, series, stack, or facet - colour is data), so any chosen form can be built. Don't choose a form here. Difficulty of recovery is never grounds to drop a message or category - uncertain values and unreadable labels go in the limitations; the categories stay.
 
 The mode governs the tail: **`bounded-edit`** applies the named edit to the source form at `build`, records the retained form, and checks at `execution`; **`redesign`** (the default when unsure) runs the full tail. In a redesign, insight names the headline claim **freshly** from the recovered data rather than inheriting what the source asserted, and select chooses the form **cold** - a table is a valid cold verdict.
 
 ## The stages
 
-Each stage is one call loading only its own skill(s) plus the compact artifact handed forward. Loading every skill into one context rots it.
+Each stage is a step in one context (see *Run it in one context, fast*). Open a stage's skill only when its decision is in doubt.
 
 1. **Insight** - `karthik-evidence-builder`. Compute the facts and name the **headline claim** plus candidate annotation claims, from the data, before a form is chosen. The headline is decided here, not improvised at build.
 2. **Select** - `dataviz-selector`. Choose the simplest form that makes the claim easiest to see and hardest to misread; for a repair, choose it **cold** (source form gets no vote). Hand forward the form plus these routing flags: `builder` (chart or table); `needs_annotations` (true only when insight named an external-fact annotation, not because the form could host one); `needs_explainer` (true only when the exhibit needs a note beside it); `needs_color_plan` (true when at least one series in a panel must be told apart or emphasised by colour - then write the `colour_plan` below); `needs_precision_plan` (true whenever numbers are shown - then one `exact_lookup_required` flag per axis, numeric column or labelled series, true only when the reader needs verbatim values such as codes or reference figures, with a one-line reason).
-3. **Idea-critique** - `dataviz-idea-critique`. The **pre-render gate**: is the data right, the expression right, the insight right, honest? Route back to `insight` (wrong claim/evidence) or `select` (wrong form) until the idea holds.
+3. **Idea-critique** - `dataviz-idea-critique`. The **pre-render gate**: is the data right, the expression right, the insight right, honest? Route back to `insight` (wrong claim/evidence) or `select` (wrong form) at most once, then proceed with the best plan.
 4. **Build** - one builder skill from `select.builder`: `karthik-data-visualization` for a chart or `karthik-table-style` for a table, never both. A chart may also load `chart-annotations` (on-chart marks - chart-only, never a table); that is the only conditional skill build carries. Colour, precision, and the explainer note load no skill here (see below). Assert the headline claim in the title, word and place the annotation claims insight named, and render one real artifact.
 5. **Execution-critique** - `dataviz-execution`. The **post-render gate**, run as one review then one correction then a verification: it finds the rendering defects (geometry, overlap, labels, colour, precision, ink) *and* the composition problems (first read, competing emphasis, unearned ink, whitespace) in the **same** review - not defects first and composition in a second loop - then consolidates both into one revision and verifies it. Route back to `build`, or rarely to `idea` if the render shows the idea itself is wrong.
 6. **Explain** (`chart-explainer`, only when `select.needs_explainer`) - the short note beside the exhibit, written from the finding and the plan (not the render), so it needs no chart and runs in parallel with build/execution. A null result is an honest note.
@@ -92,11 +92,11 @@ Revision is a bounded correction, not a fresh composition. When the idea gate re
 
 The idea gate runs **before** the chart is drawn; the execution gate **after**. That is the whole point of splitting them: no sense fixing label overlaps on a chart that is the wrong chart. Ideas can be judged from the plan and data (an LLM needn't see the render to know the form can't carry the claim), so that check comes first; execution can only be judged from pixels, so it comes second. Substance before craft.
 
-## The loop is a unit; the driver owns the count
+## Each gate runs once
 
 Post-render revision is recovery from unexpected defects, not the planned stage for resolving layout. Resolve known sizing and placement issues before the candidate render.
 
-Each gate runs the same shape: **find everything wrong in one review, decide one consolidated correction, redo, verify**. At the execution gate "everything wrong" means the rendering defects **and** the composition problems named together in that one review (not defects first, composition second) - so a single revision handles both and a composition fix can't reopen a geometry defect a later loop would have to catch. Verification is a distinct step, not another review: it confirms the fixes landed, checks the touched regions for regressions, picks baseline-or-revision, and stops. Whether the correct-and-verify cycle runs zero, one, or several times is the **driver's/harness's budget** - never a fixed pass count baked into this skill or any stage. Exit a gate as soon as no fatal or major defect remains; don't keep revising for taste past the pass line.
+Each gate runs the same shape: **find everything wrong in one review, make one consolidated correction, check it landed**. At the execution gate "everything wrong" means the rendering defects **and** the composition problems named together in that one review (not defects first, composition second), so a single revision handles both. The budget is fixed: one review, at most one correction, then deliver. Exit as soon as no fatal or major defect remains; don't keep revising for taste.
 
 ## Deliver a valid artifact
 
@@ -117,6 +117,13 @@ Then treat user feedback as the main release signal: change the smallest relevan
 
 After explicit acceptance, record a reusable lesson only when the miss reveals a general rule or tool defect. Don't turn a chart-specific object, phrase, layout, or count into a universal rule; prefer simplifying or repairing the failing stage over adding prose, schemas, or tests.
 
-## Staged, not one context
+## Run it in one context, fast
 
-Separate calls per stage is the default and the right way to run this: each call carries only that stage's skills plus the artifact handed forward. When nothing external orchestrates the calls - you were handed the plan and this skill in one turn - and you have a subagent/task capability, **you become the driver** and dispatch each stage as its own isolated subagent call. The isolation is the point: build (maker) and the idea/execution gates (checkers) must sit in separate contexts, or a checker inherits and rationalises the build's shortcuts and the gates stop biting. Only when you genuinely cannot spawn subagents do you fall back to walking every stage inline in one context, opening each stage's skills as you reach it and letting the previous stage's detail fall away; "separate call" is the architecture, never a licence to skip a stage. Handoffs are structured text (markdown sections plus, at the select branch, a small `routing` block of `key: value` lines), not strict JSON, so the pipeline runs on cheaper/open-weight models too.
+A chart should take a few minutes, not ten. Speed comes from four rules:
+
+1. **Stages are steps, not agents.** Walk every stage yourself in this one context. Do not spawn a subagent or task per stage, and do not hand work back and forth between agents; spawn one only when the user asks for it. Keep each stage's output short (a few lines of plan, not a report) so later stages read it at a glance.
+2. **Open a skill only when its decision is open.** A stage whose decision is already obvious from the request or the data takes one line and no skill body - a single line chart over time needs no trip through `dataviz-selector`. Load the stage's skill when the decision is genuinely in doubt.
+3. **Fixed budgets.** The idea check is one pass with at most one revise, then proceed with the best plan. The execution check is one render, one look, at most one correction and re-render, then deliver - listing anything minor that is left as a limitation. Fix execution defects directly in the chart code; there is no handoff back to a build step.
+4. **Follow-ups skip the front.** When this session already settled the data, claim and style - a variant, a split, a filter, a recolour, a reworded title, a size change - edit the existing chart code, render, look once, and deliver. Insight, select and the idea check run again only when the follow-up changes what the chart claims or the form can no longer carry it.
+
+Handoffs, where they exist, are short markdown, not JSON.

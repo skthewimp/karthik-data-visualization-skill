@@ -1,5 +1,29 @@
 # Devlog
 
+## 2026-10-04 - Making construct fast
+
+### User report
+
+- "ok now how do we make it faster? taking 10 mins per image now on this fairly fast mac. not
+  acceptable at all. infinite subagents etc."
+
+### Cause
+
+- The last section of `dataviz-construct` told any model with a subagent tool to become the
+  driver and dispatch every stage as an isolated subagent, so maker and checkers sat in
+  separate contexts. Combined with "route back until the idea holds" and "the driver owns the
+  count", a follow-up split chart spawned four agents and bounced a label nudge from the
+  execution gate back to build.
+
+### What changed
+
+- Replaced "Staged, not one context" with "Run it in one context, fast": steps not agents,
+  lazy skill loading, fixed budgets, follow-up fast path.
+- Idea gate: at most one revise. Execution: one review, at most one correction, fixes made in
+  place; handoff cut to path, findings, fixes, limitations.
+- Trade-off accepted: the checker now shares the builder's context and may go easier on its
+  shortcuts. Speed won.
+
 ## 2026-10-04 - Down to two MCP tools
 
 ### User report

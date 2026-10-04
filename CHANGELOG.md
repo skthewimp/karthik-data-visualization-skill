@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Construct runs in one context with fixed budgets
+
+- `dataviz-construct` no longer tells the model to dispatch each stage as its own subagent.
+  Every stage is a step in one context; subagents only when the user asks.
+- A stage's skill is opened only when its decision is in doubt.
+- Fixed budgets: the idea check gets at most one revise; execution is one render, one look,
+  at most one correction and re-render, then deliver. Execution fixes go straight into the
+  chart code instead of a numbered handoff back to build.
+- Follow-up charts (variant, split, filter, recolour, retitle, resize) edit the existing chart
+  code and skip insight, select and the idea check.
+
 ### MCP server down to two tools
 
 - Removed `read_marks_from_anchors` and `recommend_scale_transform` (and `mark_read.py`,

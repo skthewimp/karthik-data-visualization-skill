@@ -23,11 +23,11 @@ Two anchors govern repair. A valid rendered candidate must always be delivered. 
 
 ## The stages
 
-Each stage is one call loading only its own skill(s) plus the compact artifact handed forward. Loading every skill into one context rots it.
+Each stage is a step in one context. A stage's skill is opened only when its decision is in doubt.
 
 1. **Insight** - `karthik-evidence-builder`. Compute the facts and name the **headline claim** plus candidate annotation claims, from the data, before a form is chosen. The headline is decided here, not improvised at build.
 2. **Select** - `dataviz-selector`. Choose the simplest form that makes the claim easiest to see and hardest to misread; for a repair, choose it **cold** (source form gets no vote). Hand forward the form plus these routing flags: `builder` (chart or table); `needs_annotations` (true only when insight named an external-fact annotation, not because the form could host one); `needs_explainer` (true only when the exhibit needs a note beside it); `needs_color_plan` (true when at least one series in a panel must be told apart or emphasised by colour - then write the `colour_plan` below); `needs_precision_plan` (true whenever numbers are shown - then one `exact_lookup_required` flag per axis, numeric column or labelled series, true only when the reader needs verbatim values such as codes or reference figures, with a one-line reason).
-3. **Idea-critique** - `dataviz-idea-critique`. The **pre-render gate**: is the data right, the expression right, the insight right, honest? Route back to `insight` (wrong claim/evidence) or `select` (wrong form) until the idea holds.
+3. **Idea-critique** - `dataviz-idea-critique`. The **pre-render gate**: is the data right, the expression right, the insight right, honest? Route back to `insight` (wrong claim/evidence) or `select` (wrong form) at most once, then proceed with the best plan.
 4. **Build** - one builder skill from `select.builder`: `karthik-data-visualization` for a chart or `karthik-table-style` for a table, never both. A chart may also load `chart-annotations` (on-chart marks - chart-only, never a table); that is the only conditional skill build carries. Colour, precision, and the explainer note load no skill here (see below). Assert the headline claim in the title, word and place the annotation claims insight named, and render one real artifact.
 5. **Execution-critique** - `dataviz-execution`. The **post-render gate**, run as one review then one correction then a verification: it finds the rendering defects (geometry, overlap, labels, colour, precision, ink) *and* the composition problems (first read, competing emphasis, unearned ink, whitespace) in the **same** review, consolidates both into one revision, and verifies it - no separate composition loop. Route back to `build`, or rarely to `idea` if the render shows the idea itself is wrong.
 6. **Explain** (`chart-explainer`, only when `select.needs_explainer`) - the short note beside the exhibit, written from the finding and the plan (not the render), so it needs no chart and runs in parallel with build/execution. A null result is an honest note.
@@ -68,11 +68,11 @@ Revision is a bounded correction, not a fresh composition. When the idea gate re
 
 The idea gate runs **before** the chart is drawn; the execution gate **after**. That is the whole point of splitting them: no sense fixing label overlaps on a chart that is the wrong chart. Ideas can be judged from the plan and data (an LLM needn't see the render to know the form can't carry the claim), so that check comes first; execution can only be judged from pixels, so it comes second. Substance before craft.
 
-## The loop is a unit; the driver owns the count
+## Each gate runs once
 
 Post-render revision is recovery from unexpected defects, not the planned stage for resolving layout. Resolve known sizing and placement issues before the candidate render.
 
-Each gate runs the same shape: **find everything wrong, decide the fixes, redo, re-check**. Whether that runs zero, one, or several times is the **driver's/harness's budget** - never a fixed pass count baked into this skill or any stage. Exit a gate as soon as no fatal or major defect remains; don't keep revising for taste past the pass line.
+Each gate runs the same shape: **find everything wrong in one review, make one correction, check it landed**. The budget is fixed - one review, at most one correction, then deliver - and a gate exits as soon as no fatal or major defect remains.
 
 ## Deliver a valid artifact
 
@@ -82,6 +82,6 @@ A valid rendered candidate must be delivered. Missing infrastructure, an unavail
 
 Deliver the artifact with what changed and any inspection limitation. User feedback is then the main release signal: change the smallest relevant part of the latest candidate, render, inspect the named element, return it. Don't restart from the source unless a redesign is asked for or the current form can't support the change.
 
-## Staged, not one context
+## One context, fixed budgets
 
-Separate calls per stage is the default and the right way to run this: each call carries only that stage's skills plus the artifact handed forward. When nothing external orchestrates the calls - you were handed the plan and this skill in one turn - and you have a subagent/task capability, **you become the driver** and dispatch each stage as its own isolated subagent call. The isolation is the point: build (maker) and the idea/execution gates (checkers) must sit in separate contexts, or a checker inherits and rationalises the build's shortcuts and the gates stop biting. Only when you genuinely cannot spawn subagents do you fall back to walking every stage inline in one context, opening each stage's skills as you reach it and letting the previous stage's detail fall away; "separate call" is the architecture, never a licence to skip a stage. Handoffs are structured text (markdown sections plus, at the select branch, a small `routing` block of `key: value` lines), not strict JSON, so the pipeline runs on cheaper/open-weight models too.
+Early versions dispatched every stage to its own subagent so the checkers couldn't rationalise the builder's shortcuts. In practice that cost about ten minutes a chart, with gates bouncing label nudges between agents. Now every stage is a step in one context: no subagents unless the user asks, a stage's skill opened only when its decision is in doubt, one idea check with at most one revise, one render-look-fix cycle at execution, and follow-up charts (a variant, a split, a recolour) go straight to editing the existing chart code. Handoffs, where they exist, are short markdown.

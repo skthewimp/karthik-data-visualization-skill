@@ -16,7 +16,7 @@ Pick the entry point that matches what you have.
 | A chart someone else made | `dataviz-critique` | Says what works, what misleads, and what to change. |
 | A table to format | `karthik-table-style` | Alignment, rounding, emphasis and in-cell bars or shading. |
 
-For a single chart, `karthik-data-visualization` on its own is the whole thing. The staged pipeline below is what `dataviz-construct` runs when the job is bigger than one chart, or when you want each step checked by a separate call.
+For a single chart, `karthik-data-visualization` on its own is the whole thing. The staged pipeline below is what `dataviz-construct` runs when the job is bigger than one chart: every stage is a step in one context, with one pass per gate.
 
 Install in two commands (details in [Quick start](#quick-start)):
 
