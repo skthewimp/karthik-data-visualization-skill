@@ -93,7 +93,7 @@ Assign severity to each issue:
 - **Major**: materially slows or misleads interpretation. Fix strongly recommended.
 - **Minor**: polish/readability issue; fix if time allows.
 
-Do not over-focus on minor style while fatal data/question problems remain.
+Do not over-focus on minor style while fatal data/question problems remain. Rank contrast, colour, and emphasis by the reading they break: text that reads at delivery size and series the reader can tell apart are not findings, however you would have styled them.
 
 ## Improvement workflow
 

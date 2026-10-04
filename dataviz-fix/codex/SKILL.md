@@ -47,6 +47,14 @@ For an open-ended repair or redesign, always load `dataviz-critique` and `datavi
 
 ### 2. Diagnose and choose the intervention
 
+Before choosing anything, decide what the chart must say and carry:
+
+- The primary encoded dimension (what the stack, colour, or facets carry) is presumptively a key message. Collapsing a breakdown into a total drops it.
+- Preserving the message is not preserving the form. When the source form is what makes a message hard to read, changing the form is the repair.
+- Keep the source form when it is already a defensible answer. Replace it only when the new form is clearly more legible, never as a lateral swap between roughly equivalent forms.
+- Hard to recover is not grounds to drop. Unreadable labels, approximate values, or too many categories call for a better form, not deleted data. Name anything you do drop and why.
+- Interface chrome in a screenshot (tooltips, hover cards, crosshair readouts) is not part of the chart. Do not reproduce it.
+
 Name internally:
 
 - the apparent claim;

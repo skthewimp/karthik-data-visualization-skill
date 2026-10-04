@@ -36,8 +36,11 @@ For non-trivial chart selection, use the workflow and guardrails below; private 
 - For slopegraphs, place endpoint labels where they remain paired and legible, then choose the aspect ratio from row density, label geometry, and delivery medium rather than a fixed orientation.
 - For two-point comparisons, choose among slopegraphs, dumbbells, paired bars, dot plots, or tables according to whether the main task is seeing change, comparing endpoint values, or reading exact values. The number of time points alone does not determine the form.
 - Ranking: sorted horizontal bars; bar axis starts at 0; highlight an item only when the question, evidence, or stated story makes it focal. Otherwise keep equal-status items neutral.
-- Composition/share substitution: use 100% stacked bars or areas only when broad mix is the story. Only segments that begin or end on an aligned baseline support precise visual comparison; a fixed-total stack aligns both outer edges, while internal segments still float. If the claim depends on component patterns across periods or groups, use small multiples, grouped bars, dot plots, lines, or a compact table instead.
+- Ordered category axes (time, stages, sizes, ranked bins) keep their sequence and reading direction. Sort by magnitude only when the categories are nominal.
+- A signed change, net, or difference is not a part of a whole. Never show it as a share, stack, or pie; use diverging bars, a waterfall, or a slope.
+- Composition/share substitution: parts summing to 100% is a property of the numbers, not a reason to stack. Use 100% stacked bars or areas only when broad mix is the story. Only segments that begin or end on an aligned baseline support precise visual comparison; a fixed-total stack aligns both outer edges, while internal segments still float. If the claim depends on component patterns across periods or groups, use small multiples, grouped bars, dot plots, lines, or a compact table instead.
 - Distribution/skew/tails: histogram, density, ECDF, box, or violin; log scale for income/wealth/power-law data.
+- Log axes suit position encodings (points, lines, box plots) whose positive values span orders of magnitude, never bars or areas, which encode by length. Mark the axis as log and keep tick labels in original units.
 - Relationship: scatter with direct labels; regression only when relationship is the claim and uncertainty is shown.
 - Normalization: preserve the relationship between numerator and denominator, then choose a form based on whether the task is ranking, scale diagnosis, temporal/spatial variation, or distribution.
 - Domain-specific questions: derive the form from the mechanism, comparison, uncertainty, and audience rather than applying a domain recipe.
@@ -58,8 +61,10 @@ If implementing: <short code/design note>
 ## Hard guardrails
 
 - One chart, one main job.
+- An explicit form request in the prompt overrides these defaults. A form that merely appears in a source image is not a request.
+- No redundant panels: a second view earns its place only by carrying a message the first cannot.
 Treat commonly problematic forms as risk conditions, not universal prohibitions. Recommend the simplest form that preserves the intended comparison in the actual medium. A form that is often misleading may still be appropriate when its purpose, encoding, audience, and limitations are explicit; reject it when it obscures magnitude, comparison, uncertainty, or interpretation.
-- Bars start at zero; scatters need not.
+- Bars start at zero; scatters need not. When the variation is small against a large common level, switch to a position form (dots, dumbbell, connected points) on a zoomed scale instead of truncating the bars.
 - Do not extend regression/counterfactual lines beyond defensible range without marking them as projections.
 - Label derived meaning directly when the evidence is a gap, quadrant, cluster, area between curves, knee-bend/inflection, or local maximum/minimum.
 - Prefer direct labels to legends.

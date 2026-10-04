@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### General rules recovered from the rolled-back work
+
+- Reviewed everything the rollback deleted and restored the rules that hold for any chart:
+  - `karthik-data-visualization`: claim-first title that keeps subject and scope; sans
+    typeface; label only reading-carrying marks; one thing pops first, emphasis beyond
+    colour; axis fits the data, not the unit's range; residual bucket never focal; verify
+    labels against the transformed data; observed-to-projected changes style, not identity.
+  - `dataviz-selector`: ordered axes keep their sequence; a signed change is never a share;
+    summing to 100% is not a reason to stack; log axes only for position encodings; prompt
+    form requests override defaults; no redundant panels; switch to a position form instead
+    of truncating bars.
+  - `dataviz-fix`: the primary encoded dimension is a key message; message is not form; keep a
+    defensible source form, no lateral swaps; hard to recover is not grounds to drop; don't
+    reproduce interface chrome.
+  - `dataviz-critique`: rank contrast and colour findings by the reading they break.
+
 ### Chart skills rolled back to the 15 Aug baseline
 
 - `karthik-data-visualization`, `dataviz-selector`, `dataviz-critique` and `chart-annotations`

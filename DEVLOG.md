@@ -1,5 +1,23 @@
 # Devlog
 
+## 2026-10-04 - Recovering the general rules
+
+### User report
+
+- "ok now lookat the deltas of whta you changed - the selecor, core skill, etc. and see if
+  htere was something non-overfit that was added that we ended up deleting"
+
+### What changed
+
+- Read the pre-rollback text of the four core skills and the deleted construct family, and
+  restored one-line versions of rules that hold without any particular failing chart (see
+  CHANGELOG). Test applied: would the rule exist if that one chart had never been made?
+- Left out as borderline or chart-specific: heatmap outlier scales, aggregate-plus-breakdown
+  pairing, two-state panel splits, single-series slopegraph, single-panel-first for
+  trajectories, smoothing, bar labels inside the bar, category-label wrap bands, pre-render
+  placement with repel layers, caveats off the chart, dense-matrix formatted tables,
+  categorical dots to bars, default form exclusions, external-fact annotations.
+
 ## 2026-10-04 - Rolling back the overfit fixes
 
 ### User report
