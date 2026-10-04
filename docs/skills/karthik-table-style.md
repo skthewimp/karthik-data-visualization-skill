@@ -31,4 +31,4 @@ column count does not determine the treatment.
 
 ## Relationship to other skills
 
-`dataviz-selector` decides whether the data should be a table or a chart before this skill is used. `karthik-data-visualization` is the chart twin. `chart-explainer` writes the note that travels with the table. `dataviz-critique` diagnoses an existing table. Inside a repair, `dataviz-construct` routes here when cold selection returns a table.
+`dataviz-selector` decides whether the data should be a table or a chart before this skill is used. `karthik-data-visualization` is the chart twin. `chart-explainer` writes the note that travels with the table. `dataviz-critique` diagnoses an existing table. Inside a repair, `dataviz-fix` routes here when selection returns a table.

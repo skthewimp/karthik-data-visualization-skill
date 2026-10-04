@@ -11,7 +11,7 @@ The live evaluation uses separate expert and audience blind reads before reveali
 
 ## Why it is optional
 
-This is a formal audit, not a default `dataviz-construct` stage. Its blind review and strict gates can block `Send`, add model calls, and create repeated revisions. That is appropriate when the user requests an independent verdict, a consequential claim needs scrutiny, or a creator system is being benchmarked. It is unnecessary for an ordinary repair that can be built, inspected, delivered, and improved from user feedback.
+This is a formal audit, not a default `dataviz-fix` stage. Its blind review and strict gates can block `Send`, add model calls, and create repeated revisions. That is appropriate when the user requests an independent verdict, a consequential claim needs scrutiny, or a creator system is being benchmarked. It is unnecessary for an ordinary repair that can be built, inspected, delivered, and improved from user feedback.
 
 Do not auto-load `dataviz-eval` during normal repair. When it is used, its verdict may guide the next revision, but it must not suppress the strongest valid artifact already produced.
 
@@ -28,7 +28,7 @@ Do not auto-load `dataviz-eval` during normal repair. When it is used, its verdi
 - Use `karthik-data-visualization` to create and style the chart.
 - Use `dataviz-critique` for open-ended diagnosis and alternatives.
 - Use `dataviz-eval` only when a formal independent pass line is needed.
-- Use `dataviz-construct` to execute revisions and preserve the feedback trail.
+- Use `dataviz-fix` to execute revisions and preserve the feedback trail.
 
 ## Edit rule
 

@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Chart skills rolled back to the 15 Aug baseline
+
+- `karthik-data-visualization`, `dataviz-selector`, `dataviz-critique` and `chart-annotations`
+  are back to their text at `3694a0e` (15 Aug). Between then and now they collected rules
+  written to fix individual charts (axis ranges, bar label placement, label wrapping,
+  heatmap outliers, ranking orientation) and grew two to four times longer.
+- `dataviz-selector` keeps five general guardrails from the later work: channel accuracy
+  order, no dual axes to imply co-movement, shared scales for compared panels, tables as a
+  legitimate verdict, no invented groupings. `karthik-data-visualization` points at
+  `dataviz-color` and `dataviz-precision`.
+- The data-visualization style guide reference is restored.
+- Removed the construct pipeline: `dataviz-construct`, `dataviz-idea-critique`,
+  `dataviz-execution`, `dataviz-extract`, `karthik-evidence-builder`, and the
+  `ggplot2-repair-patterns` reference.
+- `dataviz-orchestrator` is back as the dataset-to-story entry point. `dataviz-fix` is back as
+  the repair entry point, rewritten without the case manager, Hermes coupling and blind
+  reviewer machinery, keeping the repair loop and the do-not-overfit learning rule.
+- Kept as they were: `dataviz-color`, `dataviz-precision`, `karthik-table-style`,
+  `karthik-r-code-style`, `karthik-r-analysis-style`, `chart-explainer`, `dataviz-eval` and
+  the two MCP tools.
+
 ### Construct runs in one context with fixed budgets
 
 - `dataviz-construct` no longer tells the model to dispatch each stage as its own subagent.

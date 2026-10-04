@@ -10,17 +10,11 @@ Use `dataviz-critique` when reviewing an existing chart, dashboard, slide visual
 
 This is the repository's **review and redesign** skill. It is not just a style checker.
 
-## Three roles
-
-1. **Standalone review** - the user shows a chart and asks what is wrong or how to improve it. This is the primary use, described throughout this page, and is unchanged.
-2. **Repair brief** - at the start of a repair in `dataviz-construct`, before any chart is chosen, critique writes the brief the rebuild is designed forward from: key messages and required content, explicit drops, audience and medium, the prompt's authoritative constraints, the `bounded-edit` / `redesign` mode, and a thin list of reusable source ideas. It deliberately does *not* open with a fault-list of the source - that anchors the repair on the old image and makes "re-render the same form, tidied" the easy path. A scale or baseline is never carried forward as a keep-note. The form is chosen afterwards, cold, by `dataviz-selector`.
-3. **Downstream checker in a repair** - critique can run *after* a candidate is built, as a checker. It does not re-derive the key messages (the brief owns them) or reopen the form choice unless a message genuinely fails; it verifies that the candidate carries the brief's intent and is a good chart, in-context, capped at two passes.
-
 ## How it fits with the other skills
 
 - Use **`dataviz-selector`** before making a chart, when choosing the right visual form for a dataset and question.
 - Use **`karthik-data-visualization`** when styling or implementing a chosen chart.
-- Use **`dataviz-critique`** to review an existing chart, to write the brief at the start of a repair, or as the downstream checker in one.
+- Use **`dataviz-critique`** after a chart exists, when diagnosing whether it works and proposing better alternatives.
 - Use **`karthik-powerpoint-style`** when the chart is part of an analytical slide or deck.
 
 ## Core diagnostic frame
@@ -41,13 +35,10 @@ It also checks the pairwise mismatches:
 
 The skill applies Karthik's stricter visualization standards:
 
-- **Production, not provenance** — every chart is for publication. Hedges, provenance notes and "the source does not say" text are serious failures wherever they sit; those limitations go in the accompanying report. The title keeps the source's subject and scope.
-- **Clarity first** — a visual must stand alone. Unrecoverable units, ambiguous chart types, unexplained shading, and mystery colours are serious failures. The test is whether the reader can recover the information, not whether a particular axis title or legend carries it.
-- **Less is more** — an axis, axis title, legend, subtitle or note stays only if it carries something the title, direct labels and ticks don't. A legend the reader has to look back and forth to is a serious failure when the series could be labelled in place.
-- **Read at display size** — type and layout are judged at the width the reader sees the image, and the canvas shape has to fit the content.
+- **Clarity first** — a visual must stand alone. Missing axes, unclear units, ambiguous chart types, unexplained shading, and mystery colours are serious failures.
 - **Intentional design** — every colour, shade, line, label, sort order, and annotation must earn its place.
 - **Fundamentals before polish** — check denominators, dimensions, sample sizes, uncertainty, and whether the comparison is meaningful before talking about aesthetics.
-- **Purpose with evidence** — a chart should communicate its analytical job and defensible result, including an honest null or exploratory outcome.
+- **Narrative with evidence** — a chart should communicate a defensible point, not merely display numbers.
 - **No tool worship** — do not excuse dashboard clutter, BI defaults, or AI-generated prettiness if the visual is hard to interpret.
 - **Repeatable fixes** — prefer fixes that survive new data and reruns, not one-off cosmetic hacks.
 
@@ -69,19 +60,65 @@ A full critique should contain:
 
 1. **Quick read** — what the visual is, what it seems to say, and a verdict.
 2. **Trifecta checkup** — question, data, visual, and the main mismatch.
-3. **Key messages and required content** — the one or few messages the chart must carry, the content each message needs, any source information dropped as *not* key (named, with a reason), and whether the messages need one chart or several. This is a judgment call, not a keep-everything rule; it is what a rebuild uses to decide what must survive, and naming the drops out loud is what stops valid information from vanishing unnoticed. Three guardrails on the judgment: the chart's own form declares its messages (a stacked or multi-series chart has the category comparison as a key message); difficulty of recovery — approximate screenshot values, a crowded legend, "unreadable precision" — is never a reason to drop a dimension, only a reason to pick a better form (small multiples, direct-labelled lines, top-N plus "other"); and preserving the message is not preserving the form — the data must survive, but re-rendering the same chart type is not preservation when that form was what made the message hard to read. A many-series stack whose message is per-series comparison must become small multiples or direct-labelled lines, not a tidier stack.
-4. **Issues to fix** — prioritized by severity:
+3. **Issues to fix** — prioritized by severity:
    - **Fatal**: changes the conclusion or makes the chart uninterpretable.
    - **Major**: materially slows or misleads interpretation.
    - **Minor**: readability or polish.
-5. **Recommended alternatives** — only options that solve a diagnosed mismatch.
-6. **Implementation notes** — title, annotation, and checks for the run report (never on the chart).
+4. **Recommended alternatives** — two or three redesign options when useful.
+5. **Implementation notes** — title, annotation, caveats, and checks.
 
-For quick requests, the skill can compress this to the verdict and smallest consequential fix set. Alternatives are optional.
+For quick requests, the skill can compress this to verdict, top three fixes, and two redesign alternatives.
 
 ## Redesign alternatives
 
-The redesign section is the main extension beyond ordinary critique. Do not list random chart types or fill a standard option taxonomy. Each alternative must correspond to a diagnosed mismatch and a distinct analytical purpose, audience need, or intervention level. A single repair may be enough; several alternatives are useful only when the evidence supports genuinely different decisions.
+The redesign section is the main extension beyond ordinary critique. The skill should not list random chart types. Each alternative must correspond to a different analytical purpose, audience need, or intervention level.
+
+Default alternatives:
+
+### Option A — Minimal repair
+
+Keep the current chart form if it is basically defensible. Fix execution:
+
+- title and subtitle;
+- axis labels and units;
+- scale and baseline;
+- ordering;
+- colour meaning and accessibility;
+- direct labels instead of legends;
+- annotation and caveats.
+
+Use when the chart type is right but the execution is weak.
+
+### Option B — Better analytical redesign
+
+Change the visual form to answer the stated question more clearly.
+
+Examples:
+
+- pie or donut → sorted horizontal bars;
+- spaghetti lines → small multiples or highlighted focal series;
+- stacked bars for small differences → grouped bars, dot plot, or slopegraph;
+- map used for ranking → ranked bars, with map only as spatial context;
+- dashboard metric grid → one interpreted chart plus concise scorecard.
+
+Use when the current encoding is wrong for the comparison.
+
+### Option C — Different story lens
+
+Reframe the analysis when the original question is weak, incomplete, or less useful than another defensible view.
+
+Common reframes:
+
+- totals → rates or per-capita values;
+- averages → distributions;
+- snapshot → trend;
+- levels → change;
+- ranking → decomposition;
+- category comparison → cohort or segment comparison;
+- geography → comparison first, map second;
+- dashboard → action-oriented narrative.
+
+Use when a different question would reveal the real story better.
 
 ## Example output skeleton
 
@@ -97,23 +134,32 @@ The redesign section is the main extension beyond ordinary critique. Do not list
 - Visual: ...
 - Main mismatch: ...
 
-## Key messages and required content
-- Key message(s): ...
-- Required content for each: ...
-- Dropped as not key (with reason): ...
-- One chart or several: ...
-
 ## Issues to fix
-- **<severity>** — ... Fix: ...
+1. **Fatal** — ... Fix: ...
+2. **Major** — ... Fix: ...
+3. **Minor** — ... Fix: ...
 
 ## Recommended alternatives
 
-Repeat only when useful:
-
-### <Purpose>
+### Option A — Minimal repair
 - Best when: ...
+- Chart: ...
 - Encoding: ...
-- What it fixes or reveals: ...
+- What it fixes: ...
+- Tradeoff: ...
+
+### Option B — Better analytical redesign
+- Best when: ...
+- Chart: ...
+- Encoding: ...
+- What it fixes/reveals: ...
+- Tradeoff: ...
+
+### Option C — Different story lens
+- Best when: ...
+- Chart: ...
+- Encoding: ...
+- What it reveals: ...
 - Tradeoff: ...
 ```
 

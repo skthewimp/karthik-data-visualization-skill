@@ -9,7 +9,7 @@ This is not a chart-style skill. It should decide whether the evidence is best s
 - Identifies the real comparison: time, peers, baseline, target, counterfactual, distribution, geography, or decomposition.
 - Chooses chart form, encodings, ordering, scale, facets, labels, and context layers.
 - Explains why worse alternatives should be avoided.
-- Excludes pie, donut, 3D, radar, gauge, decorative infographic, and animation/interaction-first recommendations by default (pie/donut allowed only for a single ≤3-part 100% composition snapshot); honours explicit prompt requests. Its Form constraints section is also supplied to idea review.
+- Has hard guardrails against pie, donut, 3D, radar, gauge, decorative infographic, and animation-first recommendations.
 
 ## Files
 
@@ -23,4 +23,4 @@ Use `karthik-analysis-planner` first if the metric or denominator is still fuzzy
 
 ## Edit rule
 
-If chart-selection behaviour changes, update both `codex/SKILL.md` and `claude/SKILL.md` unless the change is surface-specific.
+If chart-selection behaviour changes, update both `codex/SKILL.md` and `claude/SKILL.md` unless the change is surface-specific. Local `references/` and `scripts/` may exist for development, but they are ignored and not part of the public repo.

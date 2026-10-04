@@ -1,127 +1,181 @@
 ---
 name: chart-annotations
-description: Annotate a chart only with facts from outside the data; word and place them, and the direct labels, without clutter.
+description: Choose, rank, word, and place chart annotations without clutter.
 metadata:
-  short-description: Annotate with external facts; word and place labels
-  claude-description: "Mark a chart only with a fact from outside the dataset that explains it, word it tightly, and place it without clutter; keep in-data quantities as direct labels, not annotations."
+  short-description: Choose, rank, word, and place chart annotations
+  claude-description: "Choose what to mark on a chart, rank competing candidates, word the label tightly, and place it without clutter."
 ---
 
 # Chart Annotations
 
-Own on-chart annotation and direct-label wording, visual weight, and placement. Don't choose the chart form, global visual system, adjacent explanatory note, critique structure, or release verdict; those belong to `dataviz-selector`, `karthik-data-visualization`, `chart-explainer`, `dataviz-critique`, and `dataviz-eval`.
+Own on-chart annotation selection, wording, visual weight, and placement. Do not choose the chart form, global visual system, adjacent explanatory note, critique structure, or release verdict; those belong to `dataviz-selector`, `karthik-data-visualization`, `chart-explainer`, `dataviz-critique`, and `dataviz-eval`.
 
-## The one distinction everything rests on
+Use this when a chart exists or is being built and the reader should not have to infer the point. Annotation is not decoration and not a caption. It is the act of marking the specific evidence that carries the claim.
 
-**An annotation carries a fact that is not in the data. A direct label carries a fact that is.**
+This skill covers four decisions: what to mark, which candidate wins, how to word it, where to put it.
 
-A chart's encoding - position, length, slope, colour - already draws every quantity in the dataset. So a callout of a quantity is never an annotation; it is a label, or nothing. An annotation exists only to add what the chart structurally cannot draw, because the fact lives outside the dataset:
+## Division of labour: title vs annotation
 
-- the spike is a rainy day, and rainfall is not a column here
-- the level shifts because a regulation, tax, or ban came into force
-- the trend breaks at an acquisition, a change of government, a war, a strike
-- the series jumps because the definition or collection method changed
+**The title states the claim in words. The annotation locates it on the chart.**
 
-None of that is in the picture - that is why it earns ink.
+Do not write the same sentence twice.
 
-**A change or comparison is neither annotation nor label.** "from X to Y", "+38%", "doubled", "up 9 points", "peak", "all-time high", "record low", a rank, a crossover, a gap between two series - all narrate the shape the encoding already draws. "42% → 37%" belongs nowhere on the plot; the claim goes in the **title**, in words, or is left off. The only in-data text that earns a place on the plot is a direct label: one mark's value, on the few marks that carry the point.
+```text
+Title:       Haryana saw the sharpest per-capita jump
+Annotation:  +38%          <- placed at the Haryana point
+```
 
-## The bar this creates
+If the annotation is a full sentence restating the title, cut it to the locating fragment. If the title is a neutral chart description while the annotation carries the whole argument, move the claim up into the title.
 
-You cannot get an annotation by looking at the chart harder - the fact comes from outside the dataset (the brief, the domain, the source, the data owner) or you don't have it. **The default is no annotation, and most charts stay that way.** If you can't name the outside event and where you know it from, there is nothing to mark. Don't invent a cause to fill the slot; a made-up "likely due to..." is worse than a blank chart. If you only *suspect* a cause, leave it off or word it as coincidence in time (see Honesty), never as explanation.
+**They must be the same claim.** The opposite failure to repetition is divergence: a title about the whole cloud ("cities with low literacy are also the least equal") with an annotation about a subgroup ("Rajasthan holds 12 of the 20 widest gaps"). Both may be true, and the chart still fails, because the reader is handed two findings and told which to care about by neither. Decide which claim the chart is making, put it in the title, and mark the evidence for that one. The other claim is a second chart.
 
-## Division of labour
+Exception: a chart designed to travel alone with no title bar or surrounding text may carry the claim in the annotation. State that this is the case before doing it.
 
-Three jobs, no overlap:
+## Workflow
 
-- **Title** states the claim in words and keeps its subject: *"Acme's sales collapsed in the second quarter."*
-- **Direct labels** carry the quantities that matter: the Q2 value on its mark.
-- **Annotation** carries the outside cause the chart can't draw: *"Factory shut for flood repairs."*
+1. Write the one-sentence claim the chart must support.
+2. Enumerate annotation candidates from the chart's geometry.
+3. Run the concentration check.
+4. Rank candidates by relevance to the chart's claim, evidentiary strength, reader payoff, and visual salience.
+5. Select only as many as the chart can support without competing claims; there is no universal count.
+6. Write each label so it identifies the evidence and qualifies the claim appropriately.
+7. Place by proximity, with coordinates derived from the data; add a connector only if proximity fails.
+8. Render, inspect the image, fix collisions.
 
-If an annotation restates the title or a label, cut it. It survives only if it says something neither the title, the shape, nor a label can.
+## Step 2: candidate inventory
 
-## Honesty
+Look at the rendered shape, not the summary statistics. Candidates:
 
-- **Correlation is not cause.** Unless the causal link is established, word the mark as timing: "coincides with the GST rollout", not "fell because of GST". "followed"/"coincides with" are honest; "caused by" is a claim you must stand behind.
-- **Cite where the fact comes from** when it isn't common knowledge - an annotation is a factual assertion about the world.
-- **Never manufacture the external fact.** No fact, no annotation.
+- knee-bend or visible slope change; inflection point
+- local maximum or minimum; temporary peak or trough
+- crossover where two series swap order
+- threshold breach; record or boundary value
+- start and end of a run or streak
+- event date with a visible before/after difference
+- outlier far from the pattern
+- the gap between two series at a specific point
+- first or last observation when the endpoint is the point
 
-## Direct labels
+An absence - no trend, no gap, no change - is a finding, but it is not a candidate here. It goes in the title and gets no mark (see "When nothing clears the bar").
 
-A direct label is **one mark's value** or its name - "42%", "Karnataka", the endpoint's number - never a change, rank, or comparison. Labels carry no external bar (a single value on a mark is always legitimate) but need the same restraint as annotations: **label only the few marks that carry the point** - endpoints, the one extreme, the mark the claim rests on. A chart stamped with 200 values is as unreadable as one full of callouts. On a multi-series or small-multiples chart, pick them per series - usually the endpoint plus at most one extreme. "Keep every value" means every value stays *reconstructable* in a table or note, not that every point gets stamped.
+Separate observed candidates from derived ones as you list them. A record year, a crossover, and an actual gap are **observed** - they are in the data. A knee from a breakpoint scan, a trend slope, a smoothed peak, a cluster boundary are **derived** - they are outputs of a model you chose. Derived features are annotatable, but they carry a higher bar (see "Annotating derived features").
 
-**A summary mark carries its own statistics as direct labels.** A boxplot's box, a violin, an error bar, a range band is a single mark whose position *is* a set of computed quantities - the hinges, the median, the whiskers, a mean and its interval. Those quantities are the direct labels for that mark, under the same restraint: label the few that carry the reading, let them retire the value axis they duplicate, and leave the rest in the geometry. Build each label string from the same statistic that positioned the mark - in ggplot, `stat_summary(geom = "text", aes(label = after_stat(y)))`, never a hand-typed number - so the label and the mark can never disagree and both move together when the data changes.
+## Step 3: concentration and candidate strength
 
-**A source image's tooltip or hover readout is not an output element.** When you redesign a chart whose source shows a floating callout (a tooltip, crosshair readout, hover card, selection popover), the number inside it is one mark's quantity - and usually just an incidental hover artifact of the dashboard, showing whatever the pointer last rested on, not a value the redesign must carry. So judge it as you would any direct label: **keep the value only if that mark carries the point**, and then render it as a direct label anchored to its datum, under the same restraint (label the few marks that matter, never every hovered one); otherwise drop the value with the box. Either way the floating box goes - it is source-UI chrome, never a mark. **Preserving the box is never the goal, and even preserving its value is a judgment, not a default.** A reproduced overlay floats untethered in figure space and lands across the very marks it describes, so a label that obstructs a line or point is a defect even when a collision check reports it clear - the box was never a legitimate mark to place.
+Before annotating an aggregate or apparent feature, inspect how the evidence is distributed, concentrated, and uncertain. If a subset materially changes the interpretation, expose it. Choose thresholds and robustness checks appropriate to the metric and claim rather than applying fixed percentages or universal tests.
 
-## Wording
+Rank candidates by relevance to the stated claim, evidentiary strength, interpretive value, and visual salience. Records, departures, events, persistence, gaps, and other features are candidate classes, not a fixed hierarchy.
 
-- **Every number and comparative word is computed, never typed.** A hand-typed count is wrong the moment a filter changes; **flat, unchanged, doubled, halved, steady** each assert a number - check it before writing it ("Flat for 45 years" is false if the slope is 1.5 points/decade). Build the label string from the same computation that produced the mark.
-- Keep each mark concise and single-purpose. Name the outside event plainly; tie any number to its baseline and window.
-- **The title keeps the subject and scope.** A claim headline still names what is measured and the population, place or period it covers, in the source's own terms. "The top two pull away" has lost its subject; the reader holding only the title should know what the chart is about.
-- **Numbers in words follow the spread rule.** A number in the title, subtitle or an annotation is rounded by `recommend_precision` on the column it comes from and written in its `compact` form - $70.4B, not $70,398MM. A derived number (a difference, a ratio) takes the same step as the values it comes from. Inside the construct pipeline the insight stage already did this: reproduce its numbers verbatim, don't re-round.
-- **A subtitle is optional and adds a fact the title doesn't carry, or it is omitted.** It can hold a second finding, the unit or base the numbers need, or a colour key naming the series. It never holds a caveat, a hedge or a provenance note: "values are approximate", "reconstructed from the source", "the source doesn't define X", "not shown", "not causation", "denominator not specified". Limitations of the data or of the run go in the run report, never on the chart. The caption carries only a caption the source chart itself printed; nothing else goes in the chart's bottom margin.
+Distinguish observed description, exploratory signal, and inferential claim. Annotate a feature when it is relevant and accurately qualified; use uncertainty, sensitivity checks, or tentative wording when evidence is limited. If no feature clears the claim's evidentiary and communication bar, leave the chart unmarked and state the absence in the title or accompanying explanation.
 
-## Placement
+## Annotating derived features
 
-Anchor a mark to the datum it explains, so it stays correct under filtering, sorting, and rescaling. Compute the offset from that datum and let the plotting layer position the text; `annotate()` with literal coordinates is fine only for chart furniture (a period band, a reference caption), never for anything pointing at an observation.
+- **Validate before marking.** A breakpoint, trend, smoothed peak, or cluster boundary is a chosen or model-derived feature; test sensitivity or word it as approximate.
+- **A split point chosen by eye is derived too.** Test it or describe it as approximate, and describe both sides honestly.
+- **Word it with the uncertainty the method carries.** "around the mid-1950s" is honest for a scanned breakpoint; "in 1956" claims a precision the method does not have. Do not put a bare year on a derived knee unless the year is itself the result.
+- **Keep the evidence visible.** A fitted or smoothed layer must not become more persuasive than the observations it summarizes.
+
+## Step 5: how many
+
+Maintain a clear primary focus, but size the annotation set to the density, medium, and traceability needs. Additional labels are acceptable when they improve identification without creating clutter; split the chart when competing claims cannot be separated.
+
+**Contrast pairs are one annotation, not two.** When a claim is inherently about two ends - the highest and the lowest, the state that breaks the pattern against the one that follows it - the two labels are halves of a single point and share equal weight. Do not tier them into primary and supporting; that would say one end matters more, when the comparison is the finding. A contrast pair spends the primary slot, leaving one supporting annotation.
+
+Orienting labels are a separate class and do not count against the cap: series names, period labels, axis units, a legend replacement. They must still be collision-checked against the claim annotations - a period label sitting on top of the primary annotation is the same defect as two annotations overlapping.
+
+## Step 6: writing the label
+
+**Every number and every comparative word in a label must be computed, never typed.**
+
+Position is not the only thing that drifts. A hand-typed count that was right when you wrote it is wrong after a filter changes, and nothing in the chart will tell you. Build the label string from the same computation that produced the mark:
+
+```r
+mutate(lbl = paste0("Rajasthan: ", sum(top$state == "Rajasthan"),
+                    " of the 20 widest gaps"))
+```
+
+Comparative words are quantitative claims wearing plain clothes. **flat, unchanged, steady, stagnant, doubled, tripled, halved, no different, as many as** - each one asserts a number and each one needs the number checked before it goes in the label. "Flat for the 45 years before" is a testable statement; if the pre-period slope is 1.5 points per decade at p = 0.0002, the label is false and the chart is worse than unannotated, because it invents a plateau the reader will believe.
+
+Keep each label concise, single-purpose, and audience-appropriate. Tie numbers to their relevant baseline and window; qualify causal or inferential language; do not impose a universal word count or editorial vocabulary.
+
+## Step 7: placement
+
+- Anchor data-linked labels to the underlying data or chart geometry so they remain correct under filtering, sorting, and rescaling. Literal coordinates are valid when the annotation is intentionally independent of a data observation, such as chart furniture or a fixed reference caption.
+
+Build a small annotation frame filtered from the plotting data, compute the offset from the value being labelled, and let the plotting layer position it:
 
 ```r
 ann <- d %>%
-  filter(quarter == "2024 Q2") %>%
-  mutate(x = quarter, y = sales + 40,
-         label = "Factory shut for flood repairs")
+  filter(state %in% c("Haryana", "Andhra Pradesh", "Tamil Nadu")) %>%
+  mutate(tier  = if_else(state == "Haryana", "primary", "supporting"),
+         x     = pc_2026 + 40,                      # offset from the point itself
+         label = paste0("+Rs ", round(delta_pc)))
 
-geom_text(data = ann, aes(x, y, label = label), hjust = 0, ...)
+geom_text(data = filter(ann, tier == "supporting"),
+          aes(x = x, y = state_f, label = label), hjust = 0, ...)
 ```
 
-Anchor every annotation in data coordinates on the datum it explains, and let the renderer keep it clear of marks and other labels (a repel layer such as `ggrepel`, with the marks as obstacles). When a connector is needed, draw it from the text to the datum's own coordinates, never to a guessed endpoint - a guessed endpoint misses the datum and runs the connector through another mark. Then check the export by eye:
+The label text is computed from the same columns as the mark, so the number and its position cannot disagree. `annotate()` with literal coordinates is fine for chart furniture - a period label, a band caption - but not for anything pointing at a specific observation.
 
-- **Anchor on the datum, then offset into whitespace.** A group's centroid is the worst resting place; push the text to the outside edge where no mark sits.
-- Text must never sit on data, gridlines, or another label. A connector must never cross other data; use one only when proximity alone doesn't make the link clear.
-- **An annotation sits inside the panel, in the whitespace the data leaves; no margin strip is reserved for it.** Only text that must sit past the far end of the data - a series name at a line's end - gets room beyond the panel, and only as much as it needs. Make any room before rendering rather than extending the axis limits to hold non-data content, never reserve the same room twice, and turn clipping off; don't discover the clip after rendering.
-- If no honest placement exists, change the chart (expand the range, move the panel, wrap the text tighter) before dropping the mark.
+**Derive the anchor, then offset into whitespace.** A derived coordinate is the right anchor and usually the wrong resting place. Labelling a group of points at its centroid puts the text in the densest part of the cloud, where it is least readable - the centroid is the worst position available. Anchor on the group, then push the label to the outside edge of the cloud, into space no point occupies.
+
+Use the least distracting treatment that preserves label-to-mark association and legibility. Choose bare text, a halo, box, fill, or connector based on background, density, contrast, and medium.
+
+- Preserve direct links between labels and the marks or groups they describe. Use a connector only when proximity and layout do not make the relationship clear.
+- A connector must never cross other data.
+- Text must never sit on top of data, gridlines, or another label.
+- If no honest placement exists, change the chart - widen margins, expand the axis range, move the panel - before dropping the annotation.
+- **Reserve room for the text when setting scale limits, on every edge the text can reach.** Labels clip left, right, top and bottom, and a centred label on a point near an axis extreme clips on whichever side it overhangs. Extend the limits in the direction the text runs and set clipping off; do not discover the clip after rendering.
 
 ## Visual weight
 
-- **Primary** (the annotation, or the one label the claim rests on): accent colour, bold, at the annotation size (a step below the axis text); the datum it points at also takes the accent.
-- **Supporting** (context labels, series names, period labels): grey, regular weight, smaller than axis labels.
-- **Text is freestanding, never boxed.** An annotation or direct label is text laid on the plot - no background fill, border, drop-shadow, or enclosing bubble. In ggplot that is `geom_text`, never `geom_label`. If the text won't read against the marks behind it, move it into whitespace or lift its colour and weight; boxing it to force contrast just stamps an opaque panel over the data it sits on.
+Two tiers:
 
-Never let the text outweigh the mark it explains. Orienting furniture (series names, period labels, axis units) doesn't compete with the annotation but must still be collision-checked against it.
+- **Primary**: accent colour, bold, slightly larger. The data element it points at also takes the accent.
+- **Supporting**: grey, regular weight, smaller than the axis labels. Context only.
 
-## Render and inspect - mandatory
+Never let annotation text outweigh the data mark it explains. Grey carries context; the single accent carries the story.
 
-Placement cannot be verified from code. Export the image and look:
+## Step 8: render and inspect - mandatory
 
-- Is any text clipped at a panel edge or running past the figure boundary?
-- **Does each mark sit on the datum it describes?** Check one by hand - a label one row off looks fine.
-- Does any text overlap data, an axis, or other text?
-- Is the annotation the loudest thing after the data itself, reached before the supporting labels?
-- At final output size, is the smallest text still legible?
+Placement cannot be verified from code. Export the image and look at it.
 
-Fix and re-render. Don't declare done from code inspection.
+Check:
+
+- Is any text clipped at a panel edge, or running past the figure boundary?
+- **Does each label sit on the row or point it describes?** Check one label against the underlying number by hand. A label one row off looks perfectly fine.
+- Does any label overlap data, another label, or an axis?
+- Is the primary annotation visibly the loudest thing after the data itself?
+- At final output size, is the smallest annotation still legible?
+- Does the eye land on the primary annotation before the supporting ones?
+
+Fix and re-render. Do not declare done from code inspection.
 
 ## Common mistakes
 
 | Mistake | Fix |
 |---|---|
-| "Peak", "+38%", "doubled", "X → Y" put on the chart | Change/comparison narration - the shape already shows it. Neither annotation nor label; the claim goes in the title, or nowhere |
-| A direct label that is a change, not a value | A label is one point's value; the change is the shape. Label an endpoint's value if it matters, not the movement |
-| A wall of values - every point labelled | Label only the few marks the claim rests on; the rest stay reconstructable in the data |
-| A cause invented to fill the annotation slot | No external fact, no annotation. A made-up "likely due to" is worse than blank |
-| "Caused by X" from a coincidence in time | Word it "coincides with"/"followed"; claim cause only if established |
-| Annotation restates the title | Cut it; the title already said it |
-| Hedge or provenance text on the chart ("approximate", "reconstructed", "source doesn't define", "not shown") | Off the chart entirely - limitations go in the run report. A subtitle adds a fact the title lacks, or is omitted |
-| Title drops the subject ("The top two pull away") | Keep what is measured and its scope in the title |
-| Raw source digits in the title ($70,398MM) | Round by `recommend_precision` and write the compact form ($70.4B) |
-| Hand-typed count or "flat"/"doubled" never checked | Numbers and comparative words are computed from the same data as the mark |
-| Text clipped at a panel edge | Reserve room in the margin, not by stretching the data scale |
+| Annotation repeats the title verbatim | Cut to the locating fragment |
+| Aggregate annotated when a burst explains it | Run the concentration check |
+| Five things marked because five are interesting | Cap at 1 + 2; split the chart |
+| Floating number with no baseline | Attach the comparator in the same label |
+| Causal claim from a coincidence | Use "followed", or drop the annotation |
+| Boxed callout with a fill | Bare text in whitespace |
+| Annotation louder than the data | Move accent to the data mark |
+| Label attached to the neighbouring row | Derive coordinates from the data, not by hand |
+| Largest wiggle in a noisy series promoted to a finding | Ask whether it survives a different sample; if it fails, mark nothing |
+| Callout announcing that nothing is happening | Put the absence in the title; leave the chart unmarked |
+| Bare year on a knee found by scanning | Word it as approximate, or validate first |
+| Fitted line louder than the observations | Chart argues for the model; requiet the fit |
+| Share language on a rank finding | Compute the share before writing the claim |
+| Text clipped at any panel edge | Reserve axis headroom in the direction the text runs |
+| Hand-typed count in the label text | Build the label string from the same computation as the mark |
+| "Flat", "doubled", "unchanged" asserted but never tested | Comparative words are numbers; check them |
+| Split point chosen by eye, then described as found | Test it, or word it loosely; describe both segments honestly |
 | Group label parked at the cluster centroid | Anchor on the group, offset to the outside edge |
-| External fact asserted with no source | Cite where it comes from; it is a factual claim about the world |
-| Text set in a filled or bordered bubble (`geom_label`) | Freestanding text (`geom_text`); move it into whitespace or lift its weight, never box it over the data |
-| A source tooltip or hover box reproduced as a floating element | Drop the box always; keep its value only if that mark carries the point (then as a direct label on its datum), else drop the value too - an incidental hover readout adds nothing |
+| Title claims one thing, annotation marks another | Pick one claim; the other is a second chart |
 | Declared done without rendering | Export and inspect |
 
 ## Relationship to other skills
 
-Use `dataviz-selector` first if the chart form is still open, `karthik-data-visualization` for palette/typography/surrounding style, `dataviz-critique` when reviewing someone else's annotated chart. In the staged pipeline (`dataviz-construct`, for creation or repair), the insight stage (`karthik-evidence-builder`) decides the headline claim and any external-fact annotations; this skill is loaded at build to word and place them and the direct labels.
+Use `dataviz-selector` first if the chart form is still open. Use `karthik-data-visualization` for palette, typography, and the surrounding chart style. Use `dataviz-critique` when reviewing someone else's annotated chart. Use `dataviz-fix` when the whole chart enters a repair loop. `dataviz-orchestrator` calls this skill at the charting step.

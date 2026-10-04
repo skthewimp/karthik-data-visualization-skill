@@ -24,7 +24,7 @@ This is not a chart-selection skill and not a chart-style skill. It assumes the 
 
 ## Relationship to other skills
 
-Use `dataviz-selector` first if the chart form is still open. Use `karthik-data-visualization` for palette, typography, and surrounding style. Use `dataviz-critique` when reviewing an existing annotated chart. `dataviz-construct` loads this skill at the build step.
+Use `dataviz-selector` first if the chart form is still open. Use `karthik-data-visualization` for palette, typography, and surrounding style. Use `dataviz-critique` when reviewing an existing annotated chart. `dataviz-orchestrator` calls this skill at the charting step.
 
 ## Edit rule
 

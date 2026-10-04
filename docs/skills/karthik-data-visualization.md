@@ -19,13 +19,9 @@ The skill encodes Karthik's preferred chart style:
 - small multiples over crowded overlays
 - annotations that explain, not decorate
 
-Titles may state a claim, question, measure, or null result. The evidence decides; the skill does not manufacture a claim to make a chart sound decisive.
-
-Direct labels are not universal. Choose them when the chart's density and geometry allow every important mark or series to be named legibly and unambiguously at delivery size; otherwise, when the series names fit on one line, write them into the subtitle in their own colours (ggtext `element_markdown()` in ggplot, coloured `TextArea` runs in an `HPacker` in Matplotlib), and fall back to a categorical axis, legend, grouping, or small multiples only after that.
+Direct labels are not universal. Choose them when the chart's density and geometry allow every important mark or series to be named legibly and unambiguously at delivery size; otherwise use a categorical axis, legend, grouping, or small multiples.
 
 Give each category or series one primary identification route. When a direct label carries the identity that an axis or legend would carry, remove the redundant scaffolding. Keep quantitative scales, baselines, and references when they add information. In every system, the intended label-mark bond must be perceptually stronger than competing nearby relationships. Judge distance to the visible mark, not merely to a shared row, plot edge, or baseline; alignment alone does not bridge blank space. If direct labels would collide or drift away, change the identification system rather than forcing them.
-
-Set typography by hierarchy at delivery size rather than by a fixed point-size recipe. Direct labels and data values may lead within the plot; secondary text should remain readable without competing with them or the title.
 
 When one removed legend served several panels, replace its lookup in every panel that uses the mapping unless one shared replacement keeps every panel immediately interpretable. Count the expected labels panel by panel; completing the easiest panel is not enough.
 
@@ -59,17 +55,11 @@ It rejects:
 - over-decorated infographic styling
 - interactivity as a default
 
-It also uses perceptual grouping as a design tool. The reader groups marks before reading any label, so the skill turns the Gestalt laws into moves: proximity and common region to group; similarity to signal same-kind (and never to link unrelated series); connectedness - a line or a directly placed label - to bind more strongly than a colour the eye must match, which is the real reason direct labels beat legends; enclosure as a quiet alternative to arrows; and figure-ground, one focal element against muted context. One channel, and only one, should make the most important thing pop without search.
-
 ## Renderer preference
 
 Preserve the renderer already established by the project. For a new Karthik-style static chart without project precedent, prefer R/ggplot2 when it is available. The preference comes from the working grammar and the way Karthik's charts are usually built; it does not mean accepting ggplot2's default theme unchanged.
 
-When Matplotlib is the practical fallback, every visible choice—type, colour, grid, axes, labels, spacing, and annotation—must be set deliberately and checked in the exact export.
-
-The decided settings - number format, palette, scales, titles, fonts, and the value axis dropped once the planned value labels carry the reading - are applied in the chart code exactly as decided, one owner per setting. A segment or range is drawn between its start and end, a number printed beside a mark but not drawn (a growth rate on a revenue bar) prints as a note, and a chart of several panels - an overview set apart from its detail, a bar beside a line - draws each panel with its own form, axes and number format, under one page frame and one palette.
-
-The fallback ladder is the project's renderer, then this backend-neutral renderer, then a static path whose typography, palette, and background you set by hand. The **House visual defaults** (light background, proportional sans typeface, direct labels, claim-first title) bind the finished export regardless of which renderer produced it, and are verified at the render-and-inspect step. A hand-rolled SVG/JS/terminal renderer that emits the forbidden look - dark canvas, monospace type, library defaults - is never a rung on this ladder; if no available renderer can meet the House visual defaults, report that as a failure rather than shipping a chart that violates them.
+The MCP renderer is infrastructure, not the visual style. Its current Matplotlib adapter exists because Matplotlib exposes reliable text and path geometry. It must not cause an agent to replace a sound ggplot2 implementation with a default-looking Matplotlib chart. When Matplotlib is the practical fallback, every visible choice—type, colour, grid, axes, labels, spacing, and annotation—must be set deliberately and checked in the exact export.
 
 ## Typical use
 
@@ -97,8 +87,7 @@ A good workflow is:
 
 1. Use `dataviz-selector` to identify the chart form and encodings.
 2. Use `karthik-data-visualization` to implement the chart cleanly.
-3. Settle placement before the first render - size the canvas from the chart's shape and finished copy, let the renderer lay out the title, axes and legend natively (set only the outer `plot.margin`), and draw data-glued labels from their marks' own data with a repel layer such as `ggrepel`. A clipped title is a skipped decision, not a defect for step 4 to find.
-4. Inspect the rendered output: defects and composition in one look.
-5. Fix labels, spacing, annotations, scales, and title together in one revision.
+3. Inspect the rendered output.
+4. Fix labels, spacing, annotations, scales, and title after seeing the export.
 
-Steps 3 and 5 divide the work: placement is decided up front, and the render pass is the safety net that confirms the pixels. A chart is not done when the code runs. It is done when the exported image reads correctly.
+The last step matters. A chart is not done when the code runs. It is done when the exported image reads correctly.

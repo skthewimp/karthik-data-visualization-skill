@@ -9,8 +9,7 @@ It combines Kaiser Fung's question-data-visual trifecta with Karthik's preferenc
 - Identifies the apparent question, data, visual encoding, and likely viewer interpretation.
 - Flags denominator issues, bad aggregation, distorted scales, missing baselines, over-colouring, and unsupported claims.
 - Separates fatal issues from smaller presentation fixes.
-- Proposes only alternatives that solve a diagnosed mismatch, without filling a fixed option count.
-- At the start of a repair, writes the brief the rebuild is designed forward from: key messages, required content, constraints, and edit-vs-redesign mode.
+- Proposes two or three better alternatives when the original chart needs more than cosmetic repair.
 
 ## Files
 
@@ -20,7 +19,7 @@ It combines Kaiser Fung's question-data-visual trifecta with Karthik's preferenc
 
 ## Relationship to other skills
 
-Use this after a chart exists. Use `dataviz-selector` earlier if the task is still “what chart should this be?” Use `karthik-data-visualization` when the fix is mainly visual styling. Use `dataviz-construct` when the whole dataset-to-chart or repair workflow needs to be run end to end.
+Use this after a chart exists. Use `dataviz-selector` earlier if the task is still “what chart should this be?” Use `karthik-data-visualization` when the fix is mainly visual styling. Use `dataviz-orchestrator` when the whole dataset-to-chart workflow needs to be run end to end.
 
 ## Edit rule
 

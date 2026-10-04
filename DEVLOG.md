@@ -1,5 +1,37 @@
 # Devlog
 
+## 2026-10-04 - Rolling back the overfit fixes
+
+### User report
+
+- "this repo was excellent as of ~15 aug. after that we made too many specific edits here and
+  it regressed. see what has happened. there are a bunch of overfit fixes we've made which
+  need to be reverted"
+- Chose option (a): delete the construct family, bring back `dataviz-fix` and
+  `dataviz-orchestrator`.
+
+### What had happened
+
+- 425 commits after `3694a0e`. From 31 Aug to 25 Sep about 200 of them followed one pattern:
+  a chart failed, so a rule went into skill prose and a tool went into the MCP. The
+  29 Sep - 4 Oct teardown removed the tools but left the prose.
+- Word counts, base to now: selector 1,057 to 4,850; data-visualization 1,596 to 3,479;
+  critique 1,141 to 2,518; the construct family alone 10,076.
+
+### What changed
+
+- Core chart skills restored to `3694a0e`, plus a short list of general selector guardrails
+  that would exist without any one failing chart.
+- `dataviz-fix` rewritten lean from its 15 Aug prose; the 15 Aug version was mostly
+  case-manager commands and Hermes reviewer plumbing.
+- Docs, indexes and cross-references updated; the construct family is gone.
+
+### Open question
+
+- The later `chart-annotations` rule "an annotation is a fact from outside the data" was a
+  deliberate change of philosophy, not a single-chart fix. The restored 15 Aug skill
+  annotates in-data features (peaks, crossovers, +38%). Left at 15 Aug pending a decision.
+
 ## 2026-10-04 - Making construct fast
 
 ### User report

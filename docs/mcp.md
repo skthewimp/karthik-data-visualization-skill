@@ -4,8 +4,8 @@ The skills hold the judgement: question, evidence, claim, chart choice, annotati
 
 | Tool | Decision it computes | Used by |
 |---|---|---|
-| `recommend_colours` | Which colour goes to which series, given brand or source colours, the background, a focal series and any colour meanings | `dataviz-color`, `dataviz-construct`, `karthik-data-visualization` |
-| `recommend_precision` | One uniform rounding place for a column, from its spread | `dataviz-precision`, `dataviz-construct`, `karthik-data-visualization`, `karthik-table-style`, `karthik-evidence-builder`, `chart-annotations` |
+| `recommend_colours` | Which colour goes to which series, given brand or source colours, the background, a focal series and any colour meanings | `dataviz-color`, `karthik-data-visualization` |
+| `recommend_precision` | One uniform rounding place for a column, from its spread | `dataviz-precision`, `karthik-data-visualization`, `karthik-table-style` |
 
 Every tool is advisory. Each returns a recommendation and its reasons; the skill decides.
 

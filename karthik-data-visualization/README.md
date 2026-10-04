@@ -1,15 +1,14 @@
 # karthik-data-visualization
 
-Use this skill after the chart form is chosen, or when reviewing a chart's visual execution. It captures Karthik's chart style: direct, sparse, honest, and designed around the analytical job rather than decoration.
+Use this skill after the chart form is chosen, or when reviewing a chart's visual execution. It captures Karthik's chart style: direct, sparse, honest, and designed around the claim rather than decoration.
 
 The skill is about the finished visual. It covers typography, colour, labels, annotation, axes, gridlines, density, export choices, and rendered-output inspection.
 
 ## What it does
 
-- Uses evidence-bounded titles and direct labels when the chart geometry supports them.
+- Uses claim-first titles and direct labels wherever possible.
 - Keeps grey for context and colour for the story.
 - Removes chartjunk, decorative palettes, unnecessary legends, and weak gridlines.
-- Keeps secondary type subordinate and removes identification or scale elements that only repeat information.
 - Checks graphical integrity: scales, baselines, proportional encodings, and missing context.
 - Encourages rendering and inspecting the actual chart, not just reading the code.
 
@@ -25,4 +24,4 @@ Use `dataviz-selector` before this if the chart form is still unclear. Use `data
 
 ## Edit rule
 
-If style guidance changes, update both `codex/SKILL.md` and `claude/SKILL.md` unless the change is surface-specific.
+If style guidance changes, update both `codex/SKILL.md` and `claude/SKILL.md` unless the change is surface-specific. Local style references may exist in `references/`, but ignored private files should not be described as public assets.

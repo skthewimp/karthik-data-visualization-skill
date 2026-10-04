@@ -7,14 +7,11 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`skills/dataviz-selector.md`](skills/dataviz-selector.md) - how to use the chart-selection skill
 - [`skills/karthik-data-visualization.md`](skills/karthik-data-visualization.md) - how to use the chart-styling skill
 - [`skills/karthik-powerpoint-style.md`](skills/karthik-powerpoint-style.md) - how to use the presentation-slide style skill
-- [`skills/dataviz-critique.md`](skills/dataviz-critique.md) - how to critique and redesign existing visuals, and write the brief that opens a repair
-- [`skills/dataviz-extract.md`](skills/dataviz-extract.md) - how to read the full period-by-category data table out of a chart image
+- [`skills/dataviz-critique.md`](skills/dataviz-critique.md) - how to critique and redesign existing visuals
+- [`skills/dataviz-fix.md`](skills/dataviz-fix.md) - how to repair a chart through a feedback loop and learn only reusable lessons
+- [`skills/dataviz-orchestrator.md`](skills/dataviz-orchestrator.md) - how to go from a dataset and loose question to a finished visual story
 - [`skills/dataviz-eval.md`](skills/dataviz-eval.md) - how to gate a rendered chart and benchmark the system that created it
 - [`skills/karthik-analysis-planner.md`](skills/karthik-analysis-planner.md) - how to turn fuzzy data questions into analysis contracts
-- [`skills/dataviz-construct.md`](skills/dataviz-construct.md) - the staged pipeline for dataset-to-story creation and chart repair (front half, then insight, select, idea-critique, build, execution-critique)
-- [`skills/karthik-evidence-builder.md`](skills/karthik-evidence-builder.md) - how the insight stage computes the facts and names the headline claim before a form is chosen
-- [`skills/dataviz-idea-critique.md`](skills/dataviz-idea-critique.md) - how the pre-render gate checks the idea before the chart is built
-- [`skills/dataviz-execution.md`](skills/dataviz-execution.md) - how the post-render gate checks geometry, colour, precision, ink, and composition on the export
 - [`skills/dataset-question-generator.md`](skills/dataset-question-generator.md) - how to generate fresh visualisable questions from raw datasets
 - [`skills/karthik-data-cleaning.md`](skills/karthik-data-cleaning.md) - how to clean tabular data in context before analysis or charting
 - [`skills/chart-annotations.md`](skills/chart-annotations.md) - how to decide what a chart marks and what the label says

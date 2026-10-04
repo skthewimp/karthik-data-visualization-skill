@@ -5,109 +5,70 @@ description: Create or review charts, dashboards, and data visualizations in Kar
 
 # Karthik Data Visualization
 
-Use for any chart, graph, dashboard, or data-visualization work: chart code, visual-analysis pages, annotations, captions, labels, palettes, and chart review. Apply the workflow below before finalizing design or code. This public skill is self-contained.
+Use this skill for any chart, graph, dashboard, or data visualization work, including chart-generating code, visual analysis pages, annotations, captions, labels, palettes, and chart review.
 
-## Workflow
+Apply the workflow below before finalizing design decisions or chart code. Private local references may add nuance, but this public skill is self-contained.
 
-**Semantic preflight (before choosing a form):** identify the measure's dimensional meaning, the displayed universe and denominator, the relevant time/context boundaries, the strength of any claim, and whether the units are interpretable for the audience. Make these unmistakable through wording, scale, labels, annotations, form, and context. A chart that is numerically faithful but invites a materially different reading is not repaired.
+Workflow:
 
-1. **Clarify the job:** what comparison matters, what the viewer should learn, what evidence supports it. Separate what the supplied data supports from what a screenshot only suggests.
-2. **Choose the structure** from comparison, evidence, density, audience, and medium. Use `dataviz-selector` when the form is not settled. Don't infer a form from one field type or invent detail the evidence doesn't support.
-3. **Build data-outward:** data first, direct labels second, annotations third, grids/axes last.
-4. **Check graphical integrity:** scales, baselines, proportional encoding, missing context, any effect that exaggerates or understates the data.
-5. **Eraser test:** remove any ink that doesn't carry data, labels, or necessary context.
-6. **Settle placement before the first render** - see the numbered steps below. Frame and data-glued labels are decided up front, not discovered by clipping.
-7. **Render and inspect the export - the safety net, not where placement is decided.** Placement was reserved at step 6; this pass only confirms the pixels. In the same look, check defects (anything clipped, overlapping, or misaligned), the House defaults below, and the whole image as a composition (one focal element seen first, every mark earning its place, whitespace grouping not filling); fix them together in one revision, then re-render. A defect-free chart can still read as styled-default; the composition read is what makes it premium.
+**Semantic preflight:** before selecting a form, identify the measure's dimensional meaning, the displayed universe and denominator, the relevant time/context boundaries, the strength of any claim, and whether the units are interpretable for the audience. Make these semantics unmistakable through the most appropriate combination of wording, scale, labels, annotations, chart form, and context. A chart that is numerically faithful but invites a materially different interpretation is not repaired.
 
-## Get placement right before the first render
+1. Clarify the analytical job: what comparison matters, what the viewer should learn, and what evidence supports it. Separate what is directly supported by the supplied data from what is only inferred from a screenshot.
+2. Choose the structure: line/point for time, range plot for intervals, small multiples for category comparison, table/sparkline for dense metric scans, bar/table for part-to-whole. Do not invent a more detailed structure than the evidence supports.
+3. Build from data outward: data first, direct labels second, annotations third, grids/axes last.
+4. Check graphical integrity: scales, baselines, proportional encoding, missing context, and any visual effect that exaggerates or understates the data effect.
+5. Apply the eraser test: remove any ink that does not carry data, labels, or necessary context.
+6. Render and inspect the exported image; if anything is clipped, overlapping, or misaligned, adjust labels, spacing, hierarchy, and source notes from the actual output, then render again.
 
-Placement is resolved before the candidate render. Revision recovers from unexpected defects; it is not the planned place to settle layout. Before you treat any render as a candidate, in order:
+Core operating rules:
 
-1. **Finalize the design to be measured.** Set reader-facing copy, wrapping constraints, legend position, fonts, and panel structure. Preserve these decisions through sizing and build; resolve measured wraps before accepting the final bounds.
-2. **Size the canvas for the design.** Width follows the number of positions on the x axis, height the number of rows or stacked labels, and small multiples get a grid that keeps every panel legible. Let the renderer lay out the chrome (title, subtitle, axis, legend, caption) natively inside the canvas; set only the outer margin, never a margin computed from the text bands on top of the renderer's own layout, which reserves that chrome twice and collapses the panel.
-3. **Apply the decided values exactly.** Number format (`recommend_precision`, or the spread rule in `dataviz-precision` by hand), palette (`recommend_colours`, or `dataviz-color` by hand), scales (limits only for a zero baseline), fonts, titles, axis titles only where declared, and legend or coloured subtitle key are decided before the code is written; the code applies them unedited, one owner per setting. Stacked bars stack their labels with the same position adjustment, so the first series sits at the baseline and each label on its own segment; grouped bars dodge their labels the same way as their bars. A column that only annotates (a growth rate beside revenue) prints as text and never takes a position, colour or series.
-4. **Place data-glued labels from the marks' own transformation.** Derive mark positions and label anchors together from the same transformed data, retaining group, series, and panel identity. Reuse ordering, stacking, normalization, and dodging calculations; do not reconstruct label positions separately, and never guess a label's pixels or hand-write a `geom_segment` to a guessed endpoint. Whenever more than one data-glued label or annotation can share a panel region, use a repel layer (`ggrepel` in ggplot2) that treats the marks and the other labels as obstacles, rather than stamping the labels raw and discovering the crowding at inspection.
+- Follow low-chartjunk, high data-ink, direct-labeling principles.
+- Use white backgrounds by default; use another background only when it improves contrast, grouping, or an established project system.
+- Prefer static PNG/SVG exports unless interactivity is explicitly needed.
+- Choose the identification system from the chart's density and geometry. Prefer direct labels when every important mark or series can be named legibly and unambiguously at delivery size; otherwise use a categorical axis, legend, grouping, or small multiples.
+- Give each category or series one primary identification route. When a direct label carries the identity that a categorical axis or legend would carry, remove that redundant axis or legend. Keep quantitative scales, baselines, and references only when they add information the direct labels do not.
+- When one removed legend served several panels, replace its lookup in every panel that uses the mapping unless an equally immediate shared labelling system makes each panel independently interpretable. Do not direct-label only the easiest panel. Enumerate the expected labels per panel before rendering.
+- Use perceptual proximity to bind labels to marks. The intended label-mark relationship must be visually stronger than competing relationships with nearby labels or marks. Judge distance to the visible target, not merely to a shared row, plot edge, or baseline; alignment alone does not bridge unstructured whitespace. Use adjacency or a restrained guide. If direct labels would collide or drift away from their targets, change the label system or chart structure rather than forcing them.
+- Preserve an existing semantic palette unless changing it solves a stated problem. When colour encodes a series, category, state, or direction, derive every mark, connector, direct label, annotation, and legend entry from the same mapping.
+- Every encoded colour must remain perceptually distinct from the background and adjacent series at the intended display size and after compression. Replace, darken, outline, or add another channel when a light or low-contrast colour disappears.
+- Use domain-specific palettes where meaningful; avoid decorative or arbitrary series colours and do not copy one chart family's colours blindly.
+- Tune labels and spacing after rendering, not just from code inspection.
+- Treat labels, values, marks, and annotations as relationship units. Place or connect them so the intended pairing is immediate at delivery size; mere row alignment is insufficient when large gaps or competing alignments make the association uncertain.
+- Make whitespace do one of three jobs: group related elements, separate unrelated elements, or create emphasis. Inspect title-to-plot, label-to-mark, panel-to-panel, plot-to-note, and outer gaps independently; trim or restructure blank area that serves none of them.
+- Check rendered text and mark bounds for collisions, clipping, and occlusion. Fix the layout, wrapping, placement, or form before reducing legible type.
+- Favor visual forms that make comparison and change easy to read.
+- Prefer line charts over stacked bars when the question is trend comparison rather than composition.
+- Use stacked bars only for broad composition. Only segments that begin or end on an aligned baseline support precise visual comparison; fixed-total stacks align both outer edges, but internal segments still float. Direct labels support value lookup, not easy across-bar pattern comparison. If exact component comparison matters, switch to a form with aligned component baselines.
+- Make visual hierarchy match information hierarchy: data, labels, annotations, grids, borders.
+- Show comparison and context explicitly; a chart should answer "compared to what?"
+- Use color sparingly: gray for context, color for emphasis or true encoding.
+- Keep subtitles focused on the insight or comparison, not the mechanics of how the chart was made.
+- Let complexity come from the data, not decoration.
 
-If copy, wrapping, fonts, legend position, panel structure, or other geometry changes, revisit the sizing plan before rendering. This includes changes made during revision. Bounds from the previous design are no longer evidence that the new one fits.
+## Colour system
 
-The order is the point: reserve, then draw, then confirm by eye at delivery size.
+Colour must earn its place. Position, length, ordering, direct labels, and annotation should carry the main comparison; colour should clarify identity, order, direction, or emphasis.
 
-## House visual defaults
+- Default to neutral marks when the question and insight do not establish a focal item. Use one focal colour plus neutral grey context only when the focal item is named by the question, supported by the evidence, or explicitly requested. Never manufacture a highlight to make a chart look designed. Use several categorical hues only when several identities genuinely need equal status; when they cease to remain separable at delivery size, use grouping, direct labels, or small multiples instead of more hues.
+- Match the scale to the data: qualitative hues for nominal categories, one perceptually ordered sequential scale for magnitude, and a diverging scale only around a meaningful midpoint. Do not use a rainbow scale or encode ordered values with arbitrary categories.
+- Keep the same meaning in the same colour across panels and revisions. Reserve the most saturated or warm colour for the focal series, exception, or warning; equal-status series should have comparable visual weight.
+- For signed or directional change, define the comparison direction first, then derive every relevant mark, gap, label, and legend entry from that same sign. Follow an established audience or brief convention for hues; reinforce the direction with sign, position, wording, shape, or another non-colour channel.
+- Use WCAG as a diagnostic, not a design substitute. Target at least 4.5:1 for normal chart text, 3:1 for large text, and 3:1 against the background for small or thin essential marks. Large fills may use direct labels or boundaries, but they must remain immediately distinguishable.
+- Do not rely on hue alone. Pair colour with direct labels, position, shape, line style, or ordering when identity matters. Avoid red-versus-green as the only distinction; prefer colour-blind-safe starting palettes such as Okabe-Ito, ColorBrewer, or viridis when appropriate.
+- Adjacent or stacked regions must differ in both hue and lightness where possible. Add a restrained boundary only when separation otherwise fails. Essential marks cannot disappear into their background; adjust luminance, boundary, or encoding when they do.
+- Use `dataviz-color` to choose and assign the actual series colours, and `dataviz-precision` to choose how many digits each displayed number gets.
+- Inspect the exact export at its delivery size, after chat compression, and in grayscale. Simulate common colour-vision deficiencies when tools are available. If the comparison disappears, revise the encoding rather than adding stronger decoration.
 
-Properties the exported image must satisfy, whatever the renderer, verified at render-and-inspect. Override only on an explicit prompt instruction or an established project/brand system - not a model's sense that it "looks better," not a renderer's theme default.
+When writing or changing chart code:
 
-- **Light background.** White or near-white plot and canvas. Dark/inverted only when explicitly asked; if the fallback renderer defaults dark, set it light.
-- **Proportional sans typeface.** Clean legible sans (project/brand face if specified, else Inter, Helvetica/Arial, or the platform sans). Monospace only for a requested code/terminal look.
-- **Direct labels are the default identity route.** Name marks and series on the plot where they read legibly, and drop the legend and any axis they make redundant. Default, not an enhancement. When the series names won't sit on the marks but fit on one line, write them into the subtitle in their own colours (ggplot: `ggtext::element_markdown()` on `plot.subtitle` with `<span style='color:#hex'>Name</span>`; Matplotlib: coloured `TextArea` runs in an `HPacker`). A legend is the last resort - the reader should never look back and forth to decode a colour.
-- **Claim-first title; a subtitle only when it adds a fact.** Title states the finding and keeps the subject and scope the source uses. The subtitle exists **only** to carry a fact the title doesn't - a second finding, the unit or base the numbers need, or a colour key; otherwise there is **no subtitle**. Caveats, hedges and provenance notes never go on the chart - not in the subtitle, not in a caption or footer; they belong in the run report. The caption carries only a caption the source chart printed. Neither line restates mechanics. Fall back to a question, measure, or explicit null only when the evidence genuinely won't support a claim - never manufacture one, and never manufacture a subtitle.
-
-A dark, monospace, legend-dependent, or mechanically-titled chart is a defect to fix before delivery, like clipping or a wrong scale. Prefer static PNG/SVG exports unless interactivity is explicitly needed.
-
-## Surfacing the finding
-
-- Put the finding on the chart, not only the title: where one mark carries it, direct-label the few points that carry the claim, never all of them.
-- A change or comparison ("X to Y", "+38%", "doubled") is neither a label nor an annotation - the shape shows it, so its claim goes in the title.
-- Reserve annotations for a fact from outside the data that explains the finding (a cause, event, regime change). `chart-annotations`, when loaded, makes that call and places both labels and annotations.
-- When an installed writing or brand-voice skill is present, use it to word headline, claims, subtitle, and annotation text; this skill sets their style and placement. Otherwise follow the prompt and the title rules above.
-- Let the evidence set whether the title states a claim, question, measure, or null; don't manufacture a claim to sound decisive. Let complexity come from the data, not decoration.
-
-## Labels and scaffolding
-
-- **Editorial scope first.** A direct label earns its place; it is not the default for every point. Label only what carries the reading: a series' identity, an endpoint, the focal comparison, a genuine exception, or a value the reader must look up exactly. Points that only repeat a shape or level a labelled neighbour shows stay in the data. Over-labelling is the main reason a chart reads busy and cheap.
-- **One consistent labelling system.** Place each point value with one small offset from its mark, each series name adjacent to its line endpoint. Draw a connector only when a label cannot sit next to its mark. If several ordinary labels need leaders, revise the label set, anchor, or layout instead.
-- **One identification route per series.** When a direct label carries the identity a legend or categorical axis would, remove that axis/legend. Same for quantitative scaffolding: when the marks that carry the reading are labelled, drop the value axis, ticks, and gridlines that only repeat them. This is a **plan-time** decision; the render check is only the safety net. It does **not** require every mark labelled: on a zero-baseline encoding (bars/columns) length carries magnitude, so once the key reading-carrying marks (extremes, focal, endpoints) are named, an unlabelled interior mark is read off its labelled neighbours - two labelled anchors already fix the scale. Keep a scale/baseline/reference line only for a task the labels don't do - estimating a mark with no labelled anchor near it, alignment, a threshold. Default is remove.
-- **Shared legends across panels:** replace the lookup in every panel that uses the mapping unless a shared labelling system makes each panel independently readable. Don't direct-label only the easiest panel; enumerate expected labels per panel before rendering.
-- **Bind labels by proximity.** The intended label-mark link must be visually stronger than competing ones. Judge distance to the visible target, not a shared row or edge; alignment alone doesn't bridge whitespace. If labels would collide or drift, change the label system or structure.
-- **Bar value labels default inside the bar, at its value end.** Print the value inside the bar near its filled end, not floating past it - that keeps the number bound to its mark and spends no extra ink. Fall to *outside* the end only when the bar is too short to hold the label - decided per bar, so a long bar labels inside while a short one in the same chart labels outside. Decide it per bar: does the rendered label width plus padding fit the bar's pixel length? Inside if yes, outside if no. Size the value from the room each bar gives it, never a fixed small point size. Colour follows the surface it sits on (see next rule).
-- **Label contrast comes from the mark, not the canvas - never default to white.** A value or name printed *on* a mark (inside a bar, on a filled segment, over an area) takes its legibility from that mark's fill, not the page background. Do not reach for white by reflex: white on a mid-tone fill (a medium blue, a grey) is ~3.5:1 and fails. Pick the ink that actually wins on *that* fill - compute the WCAG contrast of white vs dark against the fill and take the higher (light on a dark/saturated fill, dark on a pale or mid-tone one). Decide this at build, per segment, not as a render-time rescue; the execution gate now judges an on-mark label against its fill, so a white-on-blue value is a defect it will flag.
-- **Category-label bands wrap; they never grow without bound.** A long category name on the axis - across the x-axis under vertical columns, down the y-axis beside horizontal bars - is wrapped to a capped band, never left to push the axis out and starve the plot (long horizontal-bar names quietly eating half the width for labels is the common failure). Apply `str_wrap(labels, width = n)` to the category values (wrap *before* the `fct_reorder`/`reorder` so the ranking survives), and the overflow becomes stacked text rows within each slot, not a wider margin. Same rule vertically: wrap a long x tick name to its slot rather than rotating (the style bans slanted ticks) or widening forever. Wrap on whole words; keep the label band under roughly a third of the plot width so the marks carry the ink.
-- **Type by hierarchy** at delivery size, not a fixed point recipe. Data labels/values may lead within the plot; axis titles, ticks, sources, notes stay readable without competing. Oversized secondary text is a hierarchy failure even when legible.
-- Check rendered text and mark bounds for collisions, clipping, occlusion; fix layout/wrapping/placement before shrinking legible type. Confirm measured placement in the export; recover any unexpected defects through updated sizing and placement.
-- **Whitespace does one of three jobs:** group, separate, or emphasise. Inspect title-to-plot, label-to-mark, panel-to-panel, plot-to-note, and outer gaps; trim blank area that serves none.
-
-## Grouping and emphasis
-
-The reader groups marks perceptually before reading labels. Use those groupings:
-
-- **Proximity / common region:** near or shared-panel marks read as one group. Keep related marks and labels close; separate unrelated series.
-- **Similarity:** shared hue/shape/weight reads as the same kind. One meaning, one encoding; never give unrelated series a similar encoding.
-- **Connectedness:** a line, or a label on its mark, binds more strongly than a colour the eye must match - why direct labels beat legends and a slope beats two dots.
-- **Enclosure:** a light band or box says "these belong / look here" more quietly than an arrow or heavy outline; reach for it first.
-- **Figure-ground:** one focal element against muted context. Keep exactly one thing as figure; when two compete, neither wins.
-
-**Preattentive first read:** exactly one channel makes the single most important thing pop without search. Decide this focal element before drawing, and verify after rendering that the eye lands there first (`dataviz-execution` owns that post-render check).
-
-## Colour (craft summary)
-
-Full selection and validation workflow: `dataviz-color` (backed by `recommend_colours`). Essentials:
-
-- Colour earns its place. Position, length, order, labels carry the comparison; colour clarifies identity, order, direction, or emphasis. Default to neutral marks; use one focal colour plus grey context only when the focal item is named by the question, supported by evidence, or requested. Never manufacture a highlight.
-- Match scale to data: qualitative hues for nominal categories, one ordered sequential scale for magnitude, diverging only around a meaningful midpoint. No rainbow; don't encode order with arbitrary categories. Use domain-specific palettes where meaningful; avoid decorative or arbitrary series colours.
-- Same meaning, same colour across panels and revisions. Reserve the most saturated/warm colour for the focal series or warning; equal-status series get comparable weight. Preserve an existing semantic palette unless changing it solves a stated problem; derive every mark, connector, label, annotation, legend entry from the same mapping.
-- Apply the resolved colour assignment exactly and completely: colour every series from the `recommend_colours` assignment, never substituting, omitting, inventing, or nudging a series colour yourself. Contrast with the background comes first (a colour must read against it, outranking distinctness from other series), then diversity; contrast is a soft diagnostic, not a filter. The named palettes (Okabe-Ito, Tol) are recommendations, not a ceiling: a genuine shortage - more series than distinct colours - is completed by the tool with generated background-aware colours, so a resolved assignment already covers every series. Only if it comes back unresolved (even generation can't clear the background) do you route back to the colour decision - change the background or drop a series - never pad or shorten the palette by hand.
-- Don't give a residual/catch-all bucket (Other, Misc, remainder) the focal colour or the first slot, even when largest; relegate it and spend emphasis on named categories.
-- For signed/directional change, define the comparison direction first, then derive every mark, gap, label, and legend entry from that sign; reinforce direction with sign, position, wording, or shape, not colour alone.
-- Every encoded colour stays distinct from background and neighbours at display size and after compression; adjacent or stacked regions differ in both hue and lightness, with a restrained boundary only when separation otherwise fails. WCAG is a diagnostic (≈4.5:1 text, 3:1 large/marks). Don't rely on hue alone; avoid red-vs-green as the sole distinction; prefer Okabe-Ito, ColorBrewer, or viridis. Inspect the export at delivery size, after compression, and in grayscale.
-
-## Form and layout
-
-- Match visual hierarchy to information hierarchy: data, labels, annotations, grids, borders. Always answer "compared to what?" - show comparison and context explicitly. Favour forms that make comparison and change easy to read.
-- Line charts over stacked bars when the question is trend, not composition. Use stacked bars only for broad composition: only segments on an aligned baseline compare precisely, so if exact component comparison matters, switch to a form with aligned baselines.
-- **Fit the value axis to the data**; the unit's ceiling is not the axis maximum. Values running 1-44 don't earn a 0-100 axis. Let the renderer's own default range and nice breaks stand - they already fit the data; a build model reflexively stamping the measure's natural domain (0-100 for a percentage) onto the axis is the failure to avoid. Override the default only for a reason: keep a zero baseline where the encoding needs it (bars, or where zero is a compared reference, or a line whose absolute level matters); a non-zero baseline is fine for a line whose story is movement in a narrow band, if it isn't disguising a change's magnitude. Use full 0-100 only when that range is the point.
-- **Shared/compressed scale:** buys comparability at the cost of resolution - a small series flattens toward the baseline. When a needed value can't be read off the scale, put the number on the mark (endpoints or focal value) before abandoning the shared scale or adding a second one. But when several small series converge into a baseline cluster, labelling every point makes it worse: split them into their own panel/inset or a table instead.
-- **Small multiples** for comparison across groups - see `dataviz-selector` for the full grid/ordering/scale rules. In brief: grid or aligned strip chosen for the comparison and delivery frame, panel count that stays legible, panels ordered by meaningful sequence, magnitude, or story importance, shared value scales for comparable magnitudes, each different-unit panel owning a labelled value scale, per-panel scales marked when free.
-- Consider sparklines or compact tables when many series need shape plus current value; range frames, rug marks, or labelled points when axes can carry more.
-- Put the scale and timeframe a stranger needs in the title, axis labels or subtitle, and carry over any caption the source printed. Method, transformation and limitation notes go in the accompanying report, not on the chart - it stands alone without caveats doing the work. Save public outputs with stable descriptive filenames when the project expects artifacts.
-
-## Optional: audited repair plan
-
-Work output-first by default: settle sizing and placement, build, and inspect without a separate audit document. Only when an audited repair is explicitly requested, record a short plan first: measure and evidence scope; selected form and why the source form was rejected; one identification route per series; intended contents of title/subtitle/legend/plot/annotation/footer zones; colour's semantic role; one implementation requirement per fatal/major finding with affected zones and observable outcome; one preservation mapping per required source item with the observable state proving no regression; a layout plan for the delivery size naming longest text, dense regions, likely collisions, and their mitigation. Treat the plan as executable scope. A revision continues from the latest candidate and changes the smallest relevant region; a redesign returns to the evidence.
-
-## Renderers and code
-
-- Preserve the renderer the project already uses. For a new Karthik-style static chart with no precedent, prefer R/ggplot2 when available - an implementation preference, not permission to keep `theme_gray()` or any library default unexamined.
-- If Matplotlib is the practical fallback, set typography, palette, grid, axes, labels, and spacing deliberately; default Matplotlib aesthetics fail this skill.
-- Use R whenever `Rscript`, `ggplot2`, and `ragg` are available; generate Python only when that backend is unavailable. Do not switch to Python after an R build error.
-- The ladder: the project's own renderer, then ggplot2 when `Rscript`+`ggplot2`+`ragg` are present, else a deliberately-configured Matplotlib (an explicit user requirement wins; record why Matplotlib was used), then whatever suits the medium with typography/palette/background set by hand. What fails this skill is the default unconsidered look (dark canvas, monospace, raw library defaults), not the choice of renderer - a hand-authored HTML/SVG chart built to the House defaults is legitimate; a theme-default ggplot2/Matplotlib chart is not. If no renderer can meet the House defaults, report that as a failure rather than shipping a violation.
-- After changing any identification, scale, or encoding element, inspect that exact relationship in the export; confirm every required item stays identifiable and correctly bound, and that any key represents only mappings present in the chart. Text over a mark is an inside label - verify contrast and padding. Inspect the worst example of each repeated placement pattern, since direction, sign, length, or panel side can move where the same rule lands.
-- In ggplot2, export through `ragg`. See [references/ggplot2-repair-patterns.md](references/ggplot2-repair-patterns.md) for sorted-bar, diverging-bar, slopegraph, direct-labelled-trend, and multi-panel implementations.
+- Preserve the renderer already used by the project. For a new Karthik-style static chart with no project precedent, prefer R/ggplot2 when it is available. This is an implementation preference, not permission to carry over `theme_gray()` or any other library default without examining the export.
+- Treat rendering and inspection capabilities as mechanical infrastructure, not a style system. Do not translate a sound ggplot2 chart into Matplotlib only because one backend exposes richer metadata. If Matplotlib is the practical fallback, define typography, palette, grid, axes, labels, and spacing deliberately; default Matplotlib aesthetics fail this skill.
+- Keep the visual design deliberate, not library-default.
+- Check that text is legible and non-overlapping at the intended output size. Text placed over a mark is an inside label, not clear space: verify contrast and padding against the mark. Inspect the worst example in each repeated placement pattern because direction, sign, length, or panel side can change where the same labelling rule lands.
+- After changing an axis label, legend, or colour, inspect that exact element in the export. Confirm every required category remains identifiable and correctly bound to its marks. A legend may contain only mappings that appear in the chart, and each key must match the plotted colour plus its relevant line, point, or fill form—not colour alone.
+- Make the chart stand alone without caveats doing all the work.
+- Save public chart outputs with stable, descriptive filenames when the project expects exported artifacts.
+- Prefer small multiples to crowded multi-series panels when comparison across groups is the task.
+- Consider sparklines or compact tables when many series need shape plus current value.
+- Consider range frames, rug marks, or labeled data points when axes or ticks can carry more information.
+- Include enough source, scale, timeframe, and transformation notes for a stranger to evaluate the evidence.

@@ -152,6 +152,6 @@ Any failure: rewrite. Don't ship the note with a caveat about itself.
 
 - Text placed **on** the chart - `chart-annotations`
 - Whether the chart is any good - `dataviz-critique`
-- Fixing a chart that hides its message - `dataviz-construct`
+- Fixing a chart that hides its message - `dataviz-fix`
 
 If the chart is bad, still write the note. Don't critique it here.

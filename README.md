@@ -11,12 +11,12 @@ Pick the entry point that matches what you have.
 | You have | Ask your agent to use | What happens |
 |---|---|---|
 | Data and a chart in mind | `karthik-data-visualization` | Builds the chart in the house style, renders it, and checks the export. Pulls in `dataviz-selector` if the form isn't settled. |
-| An existing chart (image or code) that isn't working | `dataviz-construct` | Recovers the message and the data, picks a form fresh, rebuilds, and returns a real image. |
-| A dataset and a loose question | `dataviz-construct` | Finds the story, pins down the metric and denominator, cleans the data, then builds the chart. |
+| An existing chart (image or code) that isn't working | `dataviz-fix` | Diagnoses it, rebuilds a real image, revises from your feedback until you accept it. |
+| A dataset and a loose question | `dataviz-orchestrator` | Pins down the metric and denominator, cleans the data, finds the story, then builds and checks the chart. |
 | A chart someone else made | `dataviz-critique` | Says what works, what misleads, and what to change. |
 | A table to format | `karthik-table-style` | Alignment, rounding, emphasis and in-cell bars or shading. |
 
-For a single chart, `karthik-data-visualization` on its own is the whole thing. The staged pipeline below is what `dataviz-construct` runs when the job is bigger than one chart: every stage is a step in one context, with one pass per gate.
+For a single chart, `karthik-data-visualization` on its own is the whole thing.
 
 Install in two commands (details in [Quick start](#quick-start)):
 
@@ -29,46 +29,32 @@ R with `ggplot2` and `ragg` is the preferred renderer. Python and Matplotlib wor
 
 ## How the pieces fit
 
-`dataviz-construct` runs both creation and repair. They have different front halves and share one back half:
-
 ```text
-dataset -> discover -> contract -> clean ─┐
-                                          ├─> insight -> select -> idea -> build -> execution
-chart image -> diagnose + extract ────────┘
+dataset -> analysis-planner -> data-cleaning -> selector -> data-visualization (+ annotations) -> critique
+chart image -> fix: critique + selector -> data-visualization -> inspect -> your feedback -> accept
 ```
 
-- **insight** computes the facts and names the one headline claim before any form is chosen.
-- **select** picks the simplest form that makes that claim hard to misread (a well-formatted table counts).
-- **idea** checks the plan before anything is drawn: right data, right form, honest claim.
-- **build** draws it in the house style.
-- **execution** looks at the exported image for defects and composition in one review, fixes them in one revision, and verifies.
-
-Each stage loads only its own skill, so no call carries all twenty.
+`dataviz-orchestrator` owns the first sequence, `dataviz-fix` the second. Each loads only the skills the job needs.
 
 ## Skill map
 
 **Start points**
 - [`karthik-data-visualization`](docs/skills/karthik-data-visualization.md) - chart craft: typography, direct labels, colour, axes, whitespace, export check.
-- [`dataviz-construct`](docs/skills/dataviz-construct.md) - the staged pipeline: dataset to visual story, or repair an existing chart by forward design.
-- [`dataviz-critique`](docs/skills/dataviz-critique.md) - standalone chart critique, and the repair brief that opens a rebuild.
+- [`dataviz-fix`](docs/skills/dataviz-fix.md) - repair an existing chart through a feedback loop, then learn only reusable lessons.
+- [`dataviz-orchestrator`](docs/skills/dataviz-orchestrator.md) - dataset and loose question to finished visual story.
+- [`dataviz-critique`](docs/skills/dataviz-critique.md) - chart critique and redesign pressure.
 
 **Choosing and checking**
 - [`dataviz-selector`](docs/skills/dataviz-selector.md) - which form fits the claim, including when a table beats a chart.
-- [`karthik-evidence-builder`](docs/skills/karthik-evidence-builder.md) - facts and headline claim.
-- [`dataviz-idea-critique`](docs/skills/dataviz-idea-critique.md) - the pre-render gate.
-- [`dataviz-execution`](docs/skills/dataviz-execution.md) - the post-render gate: defects and composition, reviewed together.
 - [`dataviz-eval`](docs/skills/dataviz-eval.md) - formal blind review and benchmarks. Only when you need an audit; it slows ordinary work down.
 
 **Craft details**
 - [`dataviz-color`](docs/skills/dataviz-color.md) - choose and assign colours for this chart; brand first, then accessibility.
 - [`dataviz-precision`](docs/skills/dataviz-precision.md) - how many digits to show, set by the spread of the numbers.
-- [`chart-annotations`](docs/skills/chart-annotations.md) - annotate only with facts from outside the data; word and place labels.
+- [`chart-annotations`](docs/skills/chart-annotations.md) - choose, rank, word and place annotations without clutter.
 - [`chart-explainer`](docs/skills/chart-explainer.md) - the two lines that travel with a chart in an email or notebook.
 - [`karthik-table-style`](docs/skills/karthik-table-style.md) - tables as visualizations.
 - [`karthik-powerpoint-style`](docs/skills/karthik-powerpoint-style.md) - claim-first, sparse analytical slides.
-
-**Repair internals**
-- [`dataviz-extract`](docs/skills/dataviz-extract.md) - read the full data table out of a chart image.
 
 **Before the chart**
 - [`dataset-question-generator`](docs/skills/dataset-question-generator.md) - good questions from a raw dataset.
@@ -83,7 +69,7 @@ Each stage loads only its own skill, so no call carries all twenty.
 
 ```text
 .
-├── <skill>/{codex,claude}/SKILL.md   # 20 skills, one folder each, a SKILL.md per client
+├── <skill>/{codex,claude}/SKILL.md   # 17 skills, one folder each, a SKILL.md per client
 ├── dataviz_mcp/                      # Optional local stdio MCP: colour, precision
 ├── docs/                             # Human docs, one page per skill
 ├── sync-skills.py                    # Install Codex or Claude skill surfaces
