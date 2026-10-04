@@ -2,7 +2,7 @@
 
 Skills for Claude Code and Codex that make charts, tables and data stories the way I make them: one claim per chart, direct labels instead of legends, colour only where it means something, no chart furniture that isn't earning its keep, and a render-and-look check before anything is called done.
 
-There is an optional local MCP server that does the arithmetic for colour assignment, rounding, log-vs-linear axes and reading values off a chart image. The skills work without it.
+There is an optional local MCP server that does the arithmetic for colour assignment and rounding. The skills work without it.
 
 ## Start here
 
@@ -84,7 +84,7 @@ Each stage loads only its own skill, so no call carries all twenty.
 ```text
 .
 ├── <skill>/{codex,claude}/SKILL.md   # 20 skills, one folder each, a SKILL.md per client
-├── dataviz_mcp/                      # Optional local stdio MCP: colour, precision, axis transform, mark reading
+├── dataviz_mcp/                      # Optional local stdio MCP: colour, precision
 ├── docs/                             # Human docs, one page per skill
 ├── sync-skills.py                    # Install Codex or Claude skill surfaces
 └── sync.sh                           # Pull + install wrapper
@@ -158,14 +158,12 @@ To install one surface only:
 
 ## MCP tools
 
-The MCP server is optional. The skills work without it; the tools turn four by-eye decisions into arithmetic. Analytical and visual judgement stays in the skills, and charts are rendered and checked by looking at the export.
+The MCP server is optional. The skills work without it; the tools turn two by-eye decisions into arithmetic. Analytical and visual judgement stays in the skills, and charts are rendered and checked by looking at the export.
 
 | tool | what it computes |
 |---|---|
 | `recommend_colours` | which colour goes to which series, from brand or source colours, the background, a focal series and colour meanings |
 | `recommend_precision` | one uniform rounding place for a column, from its spread |
-| `recommend_scale_transform` | linear or log10 for a continuous axis |
-| `read_marks_from_anchors` | a mark's value, interpolated between the two ticks that bracket it |
 
 See [`docs/mcp.md`](docs/mcp.md) for the boundary between tools and skills, and [`dataviz_mcp/README.md`](dataviz_mcp/README.md) for installation, client registration and tool parameters.
 
@@ -176,7 +174,7 @@ See [`docs/mcp.md`](docs/mcp.md) for the boundary between tools and skills, and 
 - `sync-skills.py` discovers every root-level directory containing both surface files.
 - `sync-skills.py --validate-only` checks frontmatter without copying files.
 - For a localized fix, run the affected test files, optionally narrowed with `-k`:
-  `python3 -m pytest -q dataviz_mcp/tests/test_scales.py`. Prose-only edits need metadata
+  `python3 -m pytest -q dataviz_mcp/tests/test_precision.py`. Prose-only edits need metadata
   validation, not tests. See [AGENTS.md](AGENTS.md) for check selection.
 - `python3 -m pytest -q` runs the full MCP suite in about a second.
 - Extend an existing test when it already builds the same scenario. Keep separate cases for

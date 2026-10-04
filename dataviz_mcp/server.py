@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .mark_read import read_marks_from_anchors as read_marks_from_anchors_core
 from .palette import recommend_colours as recommend_colours_core
 from .precision import recommend_precision as recommend_precision_core
-from .scale_transform import recommend_scale_transform as recommend_scale_transform_core
 
 
 def create_server() -> Any:
@@ -20,9 +18,8 @@ def create_server() -> Any:
     server = MCPServer(
         "Karthik dataviz mechanical capabilities",
         instructions=(
-            "Use these tools for colour assignment, number precision, axis transforms, and "
-            "reading values off a chart image. Analytical and visual judgement remains in "
-            "the dataviz skills."
+            "Use these tools for colour assignment and number precision. Analytical and "
+            "visual judgement remains in the dataviz skills."
         ),
     )
 
@@ -93,45 +90,6 @@ def create_server() -> Any:
         return recommend_precision_core(
             values, role, target_steps, smallest_meaningful_difference, exact, unit_multiplier
         )
-
-    @server.tool()
-    async def read_marks_from_anchors(
-        marks: list[dict[str, Any]],
-        transform: str = "linear",
-    ) -> dict[str, Any]:
-        """Interpolate bracketed chart-mark positions into values - the arithmetic half of a read.
-
-        For an unlabelled cell, do not eyeball an absolute value. Name the two nearest printed
-        ticks that bracket the mark and the ``fraction`` (0-1) between them, and let this tool
-        interpolate. Each entry in ``marks`` is ``{key, lo, hi, fraction}`` where ``lo``/``hi`` are
-        the bracketing tick VALUES; set ``transform`` to "log" for a log axis (interpolates in
-        log10 space; anchors must be positive). A fraction just outside [0,1] is honoured as a
-        short extrapolation (a series minimum below the lowest gridline, a peak above the top
-        one), not clamped. Returns raw floats - rounding is a separate downstream decision
-        (recommend_precision) - plus non-silent warnings for far-out fractions and unusable
-        brackets.
-        """
-        return read_marks_from_anchors_core(marks, transform)
-
-    @server.tool()
-    async def recommend_scale_transform(
-        values: list[float],
-        encoding: str = "position",
-    ) -> dict[str, Any]:
-        """Recommend a linear vs log10 axis transform for a continuous axis - ADVISORY.
-
-        A log axis earns its place when positive values span many orders of magnitude and
-        a linear axis would saturate on the large values and crush the small ones, AND the
-        marks encode position (points, lines, dots, box/violin) not length (bars/area, which
-        need a true zero). Set ``encoding`` accordingly. Returns a graded ``strength`` and the
-        ``transform`` scalar the builder branches on, plus signals, rationale, and caveats.
-
-        The recommendation is one input to your decision, not a verdict: override it when the
-        prompt wants absolute magnitudes, the audience won't read a log axis, or it would
-        mislead - and record why. Log-only: with non-positive values log10 cannot apply and the
-        tool says so (noting symlog/log1p exist) rather than recommending a substitute.
-        """
-        return recommend_scale_transform_core(values, encoding)
 
     return server
 

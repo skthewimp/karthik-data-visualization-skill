@@ -1,6 +1,6 @@
 # Dataviz MCP
 
-This local stdio server does the arithmetic behind four chart decisions: which colours go to which series, how many digits to show, whether an axis should be log, and what value an unlabelled mark sits at. It does not render or inspect charts, and it does not decide the analytical question, claim, visual style, or release verdict.
+This local stdio server does the arithmetic behind two chart decisions: which colours go to which series, and how many digits to show. It does not render or inspect charts, and it does not decide the analytical question, claim, visual style, or release verdict.
 
 See [`docs/mcp.md`](../docs/mcp.md) for the boundary between the tools and the skills.
 
@@ -66,7 +66,7 @@ No daemon is required. The client starts the Python process when it opens the st
 
 ## Tool contracts
 
-All four report and recommend; none hard-blocks.
+Both report and recommend; none hard-blocks.
 
 ### `recommend_colours`
 
@@ -75,14 +75,6 @@ Picks and assigns colours for one graph from an `available` set (brand/context/d
 ### `recommend_precision`
 
 Recommends significant digits / a uniform rounding place for a numeric column, derived from the spread (max - min), not individual values. Inputs: `values`, `role` (`axis`/`label`/`table_column`), `target_steps` (default 2), optional `smallest_meaningful_difference`, `exact` (identifiers or exact-lookup only - preserves every digit and flags `exact_override`), and `unit_multiplier` (base units per source unit for a pre-scaled column, e.g. `1e6` for "$MM"). Every value is rounded to one uniform place. Each preview row carries `shown` (source units) and `compact` (the largest short-scale unit the column supports, e.g. `70.4B`), plus `compact_suffix` and `compact_step`.
-
-### `read_marks_from_anchors`
-
-The arithmetic half of reading a value off a chart, used by `dataviz-extract`. The model does the perception - for an unlabelled mark, which two printed ticks bracket it and the `fraction` (0-1) between them - and this tool interpolates so no absolute magnitude is eyeballed. Inputs: `marks` (a list of `{key, lo, hi, fraction}`, where `lo`/`hi` are the bracketing tick **values**) and `transform` (`linear` or `log`; log interpolates in log10 space and needs positive anchors). Returns raw floats (rounding is a separate `recommend_precision` decision), preserving input order, plus non-silent `warnings` for far-out fractions and unusable brackets. A fraction just outside [0,1] is honoured as a short extrapolation (a series minimum below the lowest gridline, a peak above the top one), not clamped. A descending bracket (`hi < lo`, a reversed axis) reads correctly with no special handling.
-
-### `recommend_scale_transform`
-
-Advisory recommendation of a linear vs `log10` axis transform for a continuous axis. Inputs: `values` (every value that maps to the axis) and `encoding` (`position` for points/lines/dots/box/violin, or `length` for bars/area, which need a true zero and almost never take log). Computes the positive dynamic range, orders of magnitude, and quartile-skew reduction under logging, and returns a graded `strength`/`confidence`, the `transform` scalar the builder branches on, the `signals`, a `rationale`, and `caveats`. It is one input to the model's decision, not a gate - override it when the prompt wants absolute magnitudes, the audience won't read a log axis, or it would mislead. Log-only: with non-positive values `log10` cannot apply, so it returns `applicable: false` and notes that symlog/log1p exist rather than recommending them.
 
 ## Run the tests
 

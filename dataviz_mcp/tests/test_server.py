@@ -11,8 +11,6 @@ from dataviz_mcp.server import create_server
 EXPECTED_TOOLS = {
     "recommend_colours",
     "recommend_precision",
-    "read_marks_from_anchors",
-    "recommend_scale_transform",
 }
 
 

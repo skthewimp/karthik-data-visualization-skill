@@ -1,5 +1,21 @@
 # Devlog
 
+## 2026-10-04 - Down to two MCP tools
+
+### User report
+
+- "remove read marks from anchors . remoe recommend scale transform."
+
+### What changed
+
+- Deleted both tools, `mark_read.py`, `scale_transform.py` and their tests; the precision tests
+  moved from `test_scales.py` to `test_precision.py`.
+- `dataviz-extract` keeps the bracket read (two ticks + fraction) and spells out the
+  interpolation formula, linear and log, so the value is still computed, not eyeballed.
+- `dataviz-selector` keeps log vs linear as a plan decision with a one-line reason, judged from
+  the max/min ratio and skew.
+- `pytest -q`: 35 passed.
+
 ## 2026-10-04 - Cutting the MCP to four tools
 
 ### User report

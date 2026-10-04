@@ -17,7 +17,7 @@ This is a vision task, but the value read is not a single "look and say a number
   This is one shot, not a loop: hold both numbers at once, pick, emit. No flag, no re-read stage. Occasionally wrong is fine; a second pass is not the goal.
 - **If no label is printed,** the position *is* the value.
 
-Do the position arithmetic with the `read_marks_from_anchors` MCP tool - the normal path for **every** cell now, labelled or not: pass each mark as `{key, lo, hi, fraction}` (the two bracketing tick **values** and the fraction between them) and the axis `transform` (`linear` or `log`), and it returns the position values you reconcile the labels against. The tool does the scale arithmetic the model slips on; the perception - which ticks bracket the mark, how far between - stays with you. If the MCP server is genuinely not available, interpolate the bracket by hand the same way (`lo + fraction*(hi-lo)`, or the log-space form) - never fall back to eyeballing an absolute value.
+Do the position arithmetic explicitly for **every** cell, labelled or not: from the two bracketing tick **values** and the fraction between them, the value is `lo + fraction*(hi-lo)`, or on a log axis `10^(log10(lo) + fraction*(log10(hi)-log10(lo)))`. Compute it in code when there are many cells. The perception - which ticks bracket the mark, how far between - is yours; the arithmetic is written out, never an eyeballed absolute value. A fraction just outside 0-1 is a short extrapolation (a minimum below the lowest gridline), not something to clamp.
 
 ## What to produce
 

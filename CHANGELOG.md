@@ -2,7 +2,15 @@
 
 ## Unreleased
 
-### MCP server down to four tools
+### MCP server down to two tools
+
+- Removed `read_marks_from_anchors` and `recommend_scale_transform` (and `mark_read.py`,
+  `scale_transform.py`). `dataviz-extract` now writes out the bracket interpolation itself
+  (linear or log-space, in code for many cells); `dataviz-selector` judges log vs linear from
+  the actual dynamic range and skew. The server keeps `recommend_colours` and
+  `recommend_precision`.
+
+### Earlier: MCP server down to four tools
 
 - The MCP server now exposes only `recommend_colours`, `recommend_precision`,
   `recommend_scale_transform` and `read_marks_from_anchors`.
