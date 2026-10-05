@@ -48,7 +48,8 @@
 
 - The later `chart-annotations` rule "an annotation is a fact from outside the data" was a
   deliberate change of philosophy, not a single-chart fix. The restored 15 Aug skill
-  annotates in-data features (peaks, crossovers, +38%). Left at 15 Aug pending a decision.
+  annotates in-data features (peaks, crossovers, +38%). Resolved 2026-10-05: Karthik judged
+  it and every other borderline rule overfit; the 15 Aug skill stays.
 
 ## 2026-10-04 - Making construct fast
 
