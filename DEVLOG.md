@@ -4799,3 +4799,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - The skill has doubled since mid-August, and most of the growth is patches for particular failing charts rather than general style rules. I've assumed you mean `karthik-data-visualization`; tell me if you meant another...
 
 <!-- claude-session:9302982c-a89e-4e05-b15f-5f813f4fc5f7:end -->
+
+<!-- claude-session:54a743ff-87e4-4190-8c48-ae6d90d61290:start -->
+## 2026-10-04 21:42 IST | Claude session `54a743ff-87e`
+
+### User prompts
+> this repo was excellent as of ~15 aug. after that we made too many specific edits here and it regressed. see what has happened. there are a bunch of overfit fixes we've made which need to be reverted
+> a
+> ok now lookat the deltas of whta you changed - the selecor, core skill, etc. and see if htere was something non-overfit that was added that we ended up deleting
+
+### Work done
+- Agreed. That clause was repair wording sitting in a skill that should know nothing about repair. Fixed and pushed as `d2c39dc`. - **Selector now says only:** "An explicit form request in the prompt overrides these def...
+- Agreed, none of the borderline rules come back. The skills stay as they are now: the 15 Aug text plus the general one-liners, with the source-image clause removed. - **`DEVLOG.md`:** records that you judged every bord...
+
+<!-- claude-session:54a743ff-87e4-4190-8c48-ae6d90d61290:end -->
