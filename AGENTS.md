@@ -20,6 +20,16 @@
 - Reuse an existing scenario for related assertions instead of adding another case.
 - Keep changes and reporting compact. Fix the general cause without building a new framework.
 
+## Don't repeat the August-September overfitting
+
+Read [`docs/what-not-to-do.md`](docs/what-not-to-do.md) before adding a rule, tool, gate or stage. In short:
+
+- A failing chart is a test case, not a spec. Add a rule only if it would exist had that chart never been made, and say which unlike case it was checked on.
+- Writing a rule in general words does not make it general. The trigger decides.
+- If a rule isn't changing the output, remove or replace it. Don't promote, bold or repeat it.
+- Don't build a tool for something the renderer already does; find what is pushing the model off the default.
+- Generic skills carry no workflow wording (repair, source image, stage names, private tools).
+
 ## Maintainer publish rule
 
 Karthik has asked that completed changes in his maintained checkout of this repository be published without waiting for a separate instruction.

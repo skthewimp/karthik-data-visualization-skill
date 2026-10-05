@@ -24,6 +24,7 @@ Human-facing documentation for the public data visualization skills. Start here 
 
 ## Project notes
 
+- [`what-not-to-do.md`](what-not-to-do.md) - how the skills and the repair site got worse in Aug-Sep 2026, and the changes not to make again
 - [`mcp.md`](mcp.md) - the boundary between skill judgement and deterministic rendering/inspection capabilities
 - [`../CHANGELOG.md`](../CHANGELOG.md) - release-style summary of public repo changes
 - [`../DEVLOG.md`](../DEVLOG.md) - session devlog with prompts and work done

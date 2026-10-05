@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### What not to do
+
+- New `docs/what-not-to-do.md`: how per-chart fixes, tool accretion and process docs made the
+  skills and the repair site worse between 20 Aug and 30 Sep, the eleven working assumptions
+  behind it, warning signs, and a check before adding a rule, tool or stage. `AGENTS.md`
+  carries a short version.
+
 ### General rules recovered from the rolled-back work
 
 - Reviewed everything the rollback deleted and restored the rules that hold for any chart:

@@ -1,5 +1,21 @@
 # Devlog
 
+## 2026-10-05 - What not to do
+
+### User report
+
+- Look at the skills repo, `dataviz-repair-site` and `chart-doctor`, see what happened as we
+  kept overfitting and going in circles from about 20 Aug, and write down the rules that caused
+  it and what we should not do, so it can live in the repos.
+
+### What changed
+
+- `docs/what-not-to-do.md` from the three repos' DEVLOGs, decision records, commit history and
+  word/tool counts (skills 21.5k to 39.3k words, MCP 26 tools at peak, site 416 commits with
+  ~16% restores). Linked from `docs/README.md`; a five-line version in `AGENTS.md`.
+- Also flags the same patterns already showing in Chart Doctor (`kd.R` 218 to 806 lines in
+  three days, numeric thresholds in decision criteria, `total_and_breakdown`).
+
 ## 2026-10-04 - Recovering the general rules
 
 ### User report
