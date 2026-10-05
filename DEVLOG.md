@@ -4829,3 +4829,17 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Agreed, none of the borderline rules come back. The skills stay as they are now: the 15 Aug text plus the general one-liners, with the source-image clause removed. - **`DEVLOG.md`:** records that you judged every bord...
 
 <!-- claude-session:54a743ff-87e4-4190-8c48-ae6d90d61290:end -->
+
+<!-- claude-session:b5f847b0-0245-41b1-9d89-0abd4d18daee:start -->
+## 2026-10-05 13:46 IST | Claude session `b5f847b0-024`
+
+### User prompts
+> <pasted_content id="4a3f"> Look at these r epos. first there is this data visualisation skills repo I'd made: https://github.com/skthewimp/karthik-data-visualization-skill then to productionise it, i made https://gith...
+> [Request interrupted by user for tool use]
+> whath hppaped?
+
+### Work done
+- Both pushed commits only add lines (226 in total). Nothing was deleted, and no skill file, `SKILL.md` or code changed. **`d5ba8c1`, your earlier commit:** adds 14 lines to `DEVLOG.md`, the log entry from your previous...
+- I've left both pushed commits as they are. Since then I've only changed memory notes, which aren't in any repo. 1. **New memory, `ask-before-pushing-analysis-writeups`:** when you ask for analysis or a writeup, I writ...
+
+<!-- claude-session:b5f847b0-0245-41b1-9d89-0abd4d18daee:end -->
