@@ -61,7 +61,7 @@ If implementing: <short code/design note>
 ## Hard guardrails
 
 - One chart, one main job.
-- An explicit form request in the prompt overrides these defaults. A form that merely appears in a source image is not a request.
+- An explicit form request in the prompt overrides these defaults.
 - No redundant panels: a second view earns its place only by carrying a message the first cannot.
 Treat commonly problematic forms as risk conditions, not universal prohibitions. Recommend the simplest form that preserves the intended comparison in the actual medium. A form that is often misleading may still be appropriate when its purpose, encoding, audience, and limitations are explicit; reject it when it obscures magnitude, comparison, uncertainty, or interpretation.
 - Bars start at zero; scatters need not. When the variation is small against a large common level, switch to a position form (dots, dumbbell, connected points) on a zoomed scale instead of truncating the bars.
