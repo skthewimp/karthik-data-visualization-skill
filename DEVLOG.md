@@ -4843,3 +4843,4 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - I've left both pushed commits as they are. Since then I've only changed memory notes, which aren't in any repo. 1. **New memory, `ask-before-pushing-analysis-writeups`:** when you ask for analysis or a writeup, I writ...
 
 <!-- claude-session:b5f847b0-0245-41b1-9d89-0abd4d18daee:end -->
+
