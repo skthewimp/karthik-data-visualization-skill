@@ -4844,3 +4844,13 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 
 <!-- claude-session:b5f847b0-0245-41b1-9d89-0abd4d18daee:end -->
 
+<!-- claude-session:33c17d88-9bde-48e8-8a4a-06bf31e2a236:start -->
+## 2026-10-09 09:34 IST | Claude session `33c17d88-9bd`
+
+### User prompts
+> based on my skills here (primarily @karthik-data-visualization/) generate a short set of "brand guidelinse" for me. max 500 words. keep it concise but effective
+
+### Work done
+- Using skills: karthik-data-visualization (the source) and karthik-writing-style (for the voice). This is drawn from `claude/SKILL.md` and `references/data-visualization-style-guide.md`, and it comes in at about 470 wo...
+
+<!-- claude-session:33c17d88-9bde-48e8-8a4a-06bf31e2a236:end -->
