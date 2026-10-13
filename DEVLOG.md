@@ -1,5 +1,24 @@
 # Devlog
 
+## 2026-10-13 - Eating humble pie
+
+### User report
+
+- "update skills based on this blogpost i just wrote:
+  https://artofdatascience.substack.com/p/eating-humble-pie"
+
+### What changed
+
+- The post revises the anti-pie stance: pies (and other area forms) work for two or three
+  sectors and for many sectors with a long tail, because their footprint is fixed while bars
+  give every minor part a row. Also: whitespace ratio matters alongside ink ratio.
+- `dataviz-selector` part-to-whole guardrail now names those two cases and requires direct
+  labels; `karthik-data-visualization` adds that a mostly blank canvas or unreadably small
+  text is waste. README and `docs/skills/` updated to drop the blanket pie ban.
+- Checked against `docs/what-not-to-do.md`: this is a stated general position, not a fix for
+  one failing chart. No count threshold copied from the post ("more than 10"); the trigger is
+  the shape of the distribution. Replaces the old rule in place rather than adding one.
+
 ## 2026-10-05 - What not to do
 
 ### User report

@@ -9,7 +9,7 @@ Use `dataviz-selector` to decide **what chart to make**. Use `karthik-data-visua
 The skill encodes Karthik's preferred chart style:
 
 - static charts by default
-- high data-ink ratio
+- high data-ink ratio, without leaving most of the canvas empty or text too small to read
 - low chartjunk
 - direct labels instead of legends
 - white backgrounds by default

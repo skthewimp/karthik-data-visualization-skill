@@ -9,7 +9,7 @@ It is designed for situations where the failure mode is not bad styling, but bad
 - leaving S-curve knee-bends, inflection years, or temporary local peaks unmarked
 - using a regression line when labelled points tell the story better
 - using a dashboard when management needs a decision and an action
-- using a pie chart because the data is technically "part-to-whole"
+- using a pie chart because the data is technically "part-to-whole", or forty bars when most of the parts are a tail nobody reads
 
 ## Trigger examples
 
@@ -59,8 +59,7 @@ If implementing: <short code/design note>
 
 The skill should not recommend:
 
-- pie charts
-- donut charts
+- pie, donut or treemap charts, except for two or three parts or a long tail of minor parts, with every part that matters directly labelled
 - 3D charts
 - animated or moving charts
 - interactive charts as the main answer

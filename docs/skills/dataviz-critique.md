@@ -95,7 +95,7 @@ Change the visual form to answer the stated question more clearly.
 
 Examples:
 
-- pie or donut → sorted horizontal bars;
+- pie or donut with a handful of comparable parts → sorted horizontal bars (keep the pie for two or three parts or a long tail of minor ones);
 - spaghetti lines → small multiples or highlighted focal series;
 - stacked bars for small differences → grouped bars, dot plot, or slopegraph;
 - map used for ranking → ranked bars, with map only as spatial context;

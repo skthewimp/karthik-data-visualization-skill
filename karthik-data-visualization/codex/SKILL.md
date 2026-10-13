@@ -14,7 +14,7 @@ Workflow:
 **Semantic preflight:** before selecting a form, identify the measure's dimensional meaning, the displayed universe and denominator, the relevant time/context boundaries, the strength of any claim, and whether the units are interpretable for the audience. Make these semantics unmistakable through the most appropriate combination of wording, scale, labels, annotations, chart form, and context. A chart that is numerically faithful but invites a materially different interpretation is not repaired.
 
 1. Clarify the analytical job: what comparison matters, what the viewer should learn, and what evidence supports it. Separate what is directly supported by the supplied data from what is only inferred from a screenshot.
-2. Choose the structure: line/point for time, range plot for intervals, small multiples for category comparison, table/sparkline for dense metric scans, bar/table for part-to-whole. Do not invent a more detailed structure than the evidence supports.
+2. Choose the structure: line/point for time, range plot for intervals, small multiples for category comparison, table/sparkline for dense metric scans, bar/table for part-to-whole, or a directly labelled pie/treemap when there are only two or three parts or a long tail of minor ones. Do not invent a more detailed structure than the evidence supports.
 3. Build from data outward: data first, direct labels second, annotations third, grids/axes last.
 4. Check graphical integrity: scales, baselines, proportional encoding, missing context, and any visual effect that exaggerates or understates the data effect.
 5. Apply the eraser test: remove any ink that does not carry data, labels, or necessary context.
@@ -22,7 +22,7 @@ Workflow:
 
 Core operating rules:
 
-- Follow low-chartjunk, high data-ink, direct-labeling principles.
+- Follow low-chartjunk, high data-ink, direct-labeling principles. Empty space is waste too: if a form leaves most of the canvas blank (a long tail of near-zero bars) or cuts ink until text is too small or faint to read, change the form or shrink the canvas.
 - Use white backgrounds by default; use another background only when it improves contrast, grouping, or an established project system.
 - Use a clean proportional sans typeface (the project or brand face if one exists). Monospace or a dark canvas only when explicitly asked.
 - Title the chart with its finding, and keep the subject and scope in it: what is measured, for whom, where, when. Fall back to a question or a plain measure when the evidence will not support a claim; never manufacture one.

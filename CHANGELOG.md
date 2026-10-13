@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Pies for a long tail, and whitespace as waste
+
+- From the blog post "Eating humble pie": `dataviz-selector` now allows a directly labelled
+  pie, donut or treemap for two or three parts or for many parts with a long tail of minor
+  ones, since an area form keeps a fixed footprint while bars spend a row on every minor part.
+- `karthik-data-visualization`: high data-ink has a floor. A mostly blank canvas or text cut
+  too small to read is waste too; change the form or shrink the canvas.
+
 ### What not to do
 
 - New `docs/what-not-to-do.md`: how per-chart fixes, tool accretion and process docs made the
