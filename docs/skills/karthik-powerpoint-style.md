@@ -32,7 +32,7 @@ In practice, use `dataviz-selector` first when the chart form is unclear, then `
 - Sparse colour: grey context plus one accent.
 - Direct labels instead of legends.
 - Small source/notes footer.
-- No decorative stock graphics, gradients, shadows, gauges, pies, 3D charts, or dashboard clutter.
+- No decorative stock graphics, gradients, shadows, gauges, 3D charts, or dashboard clutter. A pie is fine for two or three parts or a long tail of minor ones, with every part that matters directly labelled.
 
 ## Working from Karthik's own material
 

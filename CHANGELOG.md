@@ -9,6 +9,8 @@
   ones, since an area form keeps a fixed footprint while bars spend a row on every minor part.
 - `karthik-data-visualization`: high data-ink has a floor. A mostly blank canvas or text cut
   too small to read is waste too; change the form or shrink the canvas.
+- `docs/skills/karthik-powerpoint-style.md`: pies no longer in the deck clutter list; same
+  two cases apply.
 
 ### What not to do
 
