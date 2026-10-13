@@ -4873,3 +4873,16 @@ Building a workshop deck surfaced repeated misses that fed back into `karthik-po
 - Using skills: karthik-data-visualization (the source) and karthik-writing-style (for the voice). This is drawn from `claude/SKILL.md` and `references/data-visualization-style-guide.md`, and it comes in at about 470 wo...
 
 <!-- claude-session:33c17d88-9bde-48e8-8a4a-06bf31e2a236:end -->
+
+<!-- claude-session:c2af379f-1141-439d-b43a-ac673e98b740:start -->
+## 2026-10-13 16:08 IST | Claude session `c2af379f-114`
+
+### User prompts
+> update skills based on this blogpost i just wrote: https://artofdatascience.substack.com/p/eating-humble-pie
+> yeah change the deck thing
+
+### Work done
+- I've updated the skills to match "Eating humble pie", pushed the change to `origin/main` and installed it into your local Claude and Codex copies. 1. **`dataviz-selector`** (both copies): the part-to-whole rule was a...
+- I've taken pies out of the deck clutter list and pushed the change to `origin/main`. The line in `docs/skills/karthik-powerpoint-style.md` now reads: "No decorative stock graphics, gradients, shadows, gauges, 3D chart...
+
+<!-- claude-session:c2af379f-1141-439d-b43a-ac673e98b740:end -->
