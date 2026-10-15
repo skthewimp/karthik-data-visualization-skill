@@ -1,118 +1,30 @@
 # Dataviz Eval Skill
 
-`dataviz-eval` is the repo's measurement layer. It answers two different questions:
+`dataviz-eval` answers one question: can this rendered chart go out?
 
-1. Is this rendered visualization ready to send?
-2. Is this chart-producing skill, prompt, model, or renderer getting better?
+It returns a verdict - `Send`, `Revise`, `Redesign` or `Not evaluable` - and every real problem it found, ranked, one line each: the element, the problem, what the reader loses, and the fix. No tables, no failure codes.
 
-The old version was a useful final visual check, but it was too narrow. It mostly checked clipping, overlap, whitespace, and thumbnail legibility. Those things matter, but a perfectly rendered chart can still answer the wrong question, bury the intended insight, lose its source or units, or encode the data incorrectly.
+## What it checks
 
-The rebuilt skill evaluates the complete path from evidence and intent to what the audience actually understands.
+1. **The analysis is right.** Values match the data, the measure suits the claim (rate or share versus raw total), the scale doesn't distort, and the title claims no more than the chart shows.
+2. **The point lands fast.** One clear point, the eye goes to the finding first, the form makes the comparison directly.
+3. **It reads at the size it will be seen.** Judged on the export at display width, not native pixels: nothing to zoom for, no overlaps or clipping, a canvas that fits its content.
+4. **No junk.** No notes about how the chart was made, no titles or legends repeating what labels already say, no more digits than the spread needs.
 
-## Why this skill is optional
+## How strict
 
-`dataviz-eval` is a formal audit, not a routine step in chart repair. It adds a fresh reviewer, blind expert and audience reads, structured evidence checks, and strict release gates. Inside an audited workflow, those gates are allowed to block `Send` until the stated conditions pass.
+Lenient. A problem is **must fix** only if it misleads or stops a quick read. Everything else - text that is small but readable, a slightly better form that exists - is **polish**, listed but never required. A clean chart gets `Send` and the loop stops.
 
-That behaviour becomes a problem when evaluation is inserted into every `dataviz-fix` run. A normal repair can already build a valid artifact, inspect the exact export, and improve it from user feedback. Adding `dataviz-eval` by default introduces extra model calls and can turn concerns, unknowns, or optional context into repeated revision cycles. It can delay or suppress a useful output without improving the requested edit.
+## Whose taste
 
-Use it when the user explicitly asks for independent evaluation, when a materially misleading claim may survive visual polish, for a consequential redesign, or when benchmarking a chart-producing system. Do not auto-load it for ordinary repairs. Even when it is used, its verdict informs the next revision; it does not withhold the strongest valid artifact from the user.
+The skill carries a "Karthik's preferences" section built from a this-or-that quiz: direct labels over legends (repelled labels when they crowd), labels instead of value axes, points on lines, axes fitted to the data, whole numbers where the spread allows, claim titles, small footnotes for definitions and source, short explanatory callouts, small multiples for one-among-many stories, lines for shares over time, separate panels instead of dual axes, log axes for huge ranges, labelled pies for two or three parts, and tables for dense lookup.
 
-## Live artifact gate
-
-The evaluator first inspects the actual deliverable at its real viewing size. A browser preview or plotting window is not enough. Telegram thumbnails, slide distance, exported dimensions, and PDF rendering can introduce failures that do not exist in the editor.
-
-It then gives the source and artifact to a fresh reviewer and saves two blind reads before revealing the intended message, audience, medium, or active corrections. The chart creator cannot issue its own `Send`; creator reasoning, claimed fixes, preferred verdict, and code are withheld throughout.
-
-- **Expert read:** What question and point does the artifact appear to communicate? Do the title, metrics, form, labels, highlights, and notes agree? Are there evidence or rendering problems?
-- **Audience read:** What would this audience notice, misunderstand, remember, or act on under the real viewing conditions?
-
-Only after those reads does the evaluator reveal the intended question and insight, compare perceived with intended meaning, and verify the evidence. In a chart-repair case, that evidence check can be scoped to fidelity with the supplied source chart. It does not pretend that pixels prove the upstream data, but it also does not block a repair because the original dataset was never supplied.
-
-## Six gates
-
-Each gate is marked `Pass`, `Concern`, `Fail`, or `Unknown`:
-
-- evidence
-- question recovery
-- insight recovery, including a valid no-story result
-- visual reasoning
-- information fit
-- delivery
-
-These are gates, not inputs to an average score. Evidence, visual reasoning, information fit, and delivery are always required for a rendered artifact. The report marks whether the declared scope also requires question and insight recovery; genuinely missing, non-required intent stays `Unknown` rather than being forced into a pass. Wrong evidence, the wrong question, or an unreadable export cannot be cancelled out by attractive typography. The evaluator records the tested display size instead of assuming one universal Telegram or slide width.
-
-## The publishability frame
-
-Every chart is for production, so the question is whether it could go out today under a publication's name, read at the size the reader actually sees it. Source fidelity is one check inside that (are the values and claims right?), never a reason to keep an element.
-
-The previous version framed the evidence gate as fidelity to the source's qualifications and provenance, told the reviewer not to remove legends, axes or context, and limited the render check to blockers. On the canonical repair run that made the reviewer defend exactly what a publisher would cut: it praised extraction caveats as honest, asked for a legend back, kept empty axis titles, froze the creator's canvas as a constraint, read text at native pixels, and named one issue per chart. So the reviewer now runs a **publishability sweep** on every artifact:
-
-- **Copy speaks about the data, never the chart's making.** Provenance, method and extraction notes are Major findings wherever they sit. Qualifications about the data's world - projected, provisional, excludes X, a caveat the source printed - are content, and dropping one loses meaning. The title keeps its subject and scope, and a subtitle must add a fact.
-- **Only what the evidence supplies.** An unknown unit, population, denominator or source stays unknown; its absence is not a finding, and no required change asks the creator to invent it.
-- **Form, first read and numbers are walked items.** The sweep opens with whether the form carries its comparison and where the eye lands first, and checks every numeric display group against spread precision. Earlier versions left these to prose outside the walk, and reviewers that executed the walk skipped them.
-- **The eraser test.** Each axis title, value axis, legend, per-panel axis, caption and key must carry something the reader can't get from the title, ticks, direct labels or context. Deleting an element is only a defect when its information is gone from the chart.
-- **Type at display width.** Effective size is rendered size scaled to the display width, not native pixels.
-- **Canvas fits content.** Aspect, panel allocation and reserved margins are judged against what each part has to show.
-- **Encodings decode easily.** Series the reader must tell apart by colour separate by lightness and line type, not hue alone; labels sit where the eye expects them; time axes use natural breaks.
-- **Consequence or polish.** A required change names a reader consequence. A contrast that already reads, a palette that already separates, or an emphasis nothing competes with is not a finding.
-
-Execution and aesthetic findings are evidence for the sweep, not a discharge of it. Only the user's stated constraints bind; canvas, form, legend and notes the creator chose stay open to required changes.
-
-For a narrow repair, the reviewer treats the user's requested changes and preservation requirements as a change contract. Changed regions must pass the full standard. Untouched regions are compared with the source or latest accepted candidate for regressions. An unchanged pre-existing defect outside the authorized scope is recorded as a baseline concern, not turned into an unrelated required action, unless it blocks the requested correction or leaves the artifact materially misleading. Explicit user instructions outrank reviewer preferences, so an evaluator cannot keep or restore an element the user asked to remove.
-
-## Verdicts
-
-The verdict follows the worst finding, but the report lists every Fatal and Major finding, ranked, plus Minor ones whose fix is a deletion.
-
-- **Send:** no Fatal or Major finding remains. A clean chart passes and the loop stops.
-- **Revise:** the analytical design works, but a bounded, executable change is required to clear a gate. A fixable execution defect - an overlap, a low-contrast series, a missing label - lands here.
-- **Redesign:** reserved for the idea. The intended question is wrong, the form cannot carry the claim, or the evidence-to-claim relationship is broken. A fixable render defect is never a redesign.
-- **Not evaluable:** the artifact cannot be inspected, or a required decision depends on missing evidence or context.
-
-Required revisions are written as operations: the target element, its current state, the required state, the reader consequence, and the relevant failure codes. The evaluator also states the minimum set needed to cross the pass line, so a repair loop does not continue indefinitely for preference-level polish.
-
-After user feedback, the evaluator turns the correction into a literal acceptance check with a stable id. Every active, non-superseded check needs its own result and direct evidence, and a check that names a real release condition - a requested removal absent, a requested addition in the right place, a legend key matching its marks - blocks `Send` until it passes. A preference-level observation is not carried forward as a blocker, and `Unknown` for want of external evidence is a footnote, not a failure.
-
-The same persistence now applies to the evaluator's own required actions. Each unresolved action is carried into the next revealed review and must be rechecked directly. It closes only with an explicit pass, so a later reviewer cannot silently erase a crowded label or other local defect by improving the overall gate.
-
-The evaluator also checks whether a stacked form supports the intended comparison. A total label does not reveal the intermediate or top components. If the story depends on those values across bars, the chart needs segment labels or a different form.
-
-Colour evaluation checks whether colour has a job, whether the scale fits the data, whether mappings remain stable end to end across marks, connectors, labels, annotations, and legends, whether saturation creates the intended hierarchy, whether adjacent colours stay distinct from one another and the background, and whether the chart still works in grayscale and after chat compression. Directional encodings must derive from one stated comparison direction; audience conventions determine hues, while sign, position, wording, or shape supplies a redundant channel. WCAG-style ratios guide text and small-mark contrast without forcing every large fill into a mechanical threshold.
-
-The reviewer inspects the full artifact, a representative delivery-size preview, and overlapping deterministic detail regions when supplied. These are views of the same hashed export. A full-view pass cannot erase a local collision or semantic mismatch visible in a required detail view.
-
-## Creator-system benchmark
-
-The same protocol can evaluate the system that produces charts. A proper benchmark freezes the creator version and input contract, uses representative cases across analytical tasks and media, obtains independent labels, adjudicates disagreements, and stores a golden set.
-
-The golden set defines acceptable reader outcomes and hard failures. It does not require one canonical chart design. Several solutions can pass if they preserve the evidence and make the intended question and insight easy to recover.
-
-Useful benchmark outputs include:
-
-- all-required-gates pass rate
-- failures by gate, code, and case type
-- paired improvements and regressions between versions
-- reviewer agreement before adjudication
-- cost and latency
-
-A single average quality score is deliberately avoided because it hides fatal errors.
-
-## Learning from repair sessions
-
-The evaluation framework includes a compact failure taxonomy for intent, evidence, visual reasoning, information fit, rendering, accessibility, and explicit style constraints. Accepted repairs can be coded against it and traced to a likely owner: creator instruction, evaluator, renderer/tooling, missing input, or a one-off preference.
-
-A skill should change only when several cases reveal a reusable missing rule, an ambiguous instruction, a tooling assumption, or a missing input. One chart preference stays in the case record.
-
-The calibration examples come from Karthik's observed repair sessions. They include thumbnail illegibility, redundant colour encodings, redesigns that lost source and time context, and a slopegraph that worked in the viewport but repeatedly failed in the exported PNG.
-
-## Where the framework came from
-
-This version combines Karthik's chart principles and the observed repair history with ideas from Vikram Nayak's Fifth Elephant 2026 talk, *Measuring “good” when your agent's output is subjective*. The talk's most useful contribution was the separation between creator, expert reviewer, and audience reviewer, followed by explicit failure synthesis and benchmark design.
+An earlier version was a heavy audit framework: blind expert and audience reads, six gates, a failure-code taxonomy and a benchmark mode. It judged on things Karthik didn't care about, so it was cut down to this. An attempt to infer his taste from his exploratory R notebooks was also reverted: quick notebook charts keep default legends and axes because nobody bothered to change them, not because he prefers them.
 
 ## Relationship to other skills
 
 - `dataviz-selector` chooses the visual form.
 - `karthik-data-visualization` creates and styles the chart.
 - `dataviz-critique` diagnoses and proposes alternatives.
-- `dataviz-eval` optionally measures the current artifact and sets a formal pass line.
+- `dataviz-eval` gives the send/revise verdict.
 - `dataviz-fix` performs the changes and records the iterative feedback.

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### dataviz-eval rebuilt from Karthik's answers
+
+- Cut from ~3,200 words to ~1,100. Removed blind expert/audience reads, the six-gate table,
+  failure codes, the creator-system benchmark and `references/evaluation-framework.md`.
+- Four checks in order: analysis right, point lands fast, readable at display size, no junk.
+- Lenient: must-fix only when the chart misleads or blocks a quick read; the rest is polish.
+  Small-but-readable text and a slightly better available form are polish, not Revise/Redesign.
+- Output is a one-line verdict plus every problem ranked, one line each.
+- New "Karthik's preferences" section from a this-or-that quiz (labels over legends, labels
+  over value axes, points on lines, fitted axes, claim titles, footnoted definitions and source,
+  explanatory callouts, small multiples, no dual axes, log axes, pies for 2-3 parts, tables).
+- The earlier notebook-mining calibration (591627e) was reverted in 2df9f65.
+
 ### Pies for a long tail, and whitespace as waste
 
 - From the blog post "Eating humble pie": `dataviz-selector` now allows a directly labelled

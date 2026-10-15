@@ -2,7 +2,7 @@
 
 Human-facing guides for the public skills.
 
-- [`dataviz-eval.md`](dataviz-eval.md) - explains the artifact gate, blind reader checks, failure taxonomy, and creator-system benchmark.
+- [`dataviz-eval.md`](dataviz-eval.md) - explains the send/revise verdict, what it checks, and the preferences it judges against.
 - [`dataviz-selector.md`](dataviz-selector.md) - explains when to use the chart-selection skill and what output to expect.
 - [`karthik-data-visualization.md`](karthik-data-visualization.md) - explains Karthik's chart style and review principles.
 - [`karthik-powerpoint-style.md`](karthik-powerpoint-style.md) - explains Karthik's slide and deck style for analytical presentations.

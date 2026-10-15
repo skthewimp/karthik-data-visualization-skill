@@ -46,7 +46,7 @@ chart image -> fix: critique + selector -> data-visualization -> inspect -> your
 
 **Choosing and checking**
 - [`dataviz-selector`](docs/skills/dataviz-selector.md) - which form fits the claim, including when a table beats a chart.
-- [`dataviz-eval`](docs/skills/dataviz-eval.md) - formal blind review and benchmarks. Only when you need an audit; it slows ordinary work down.
+- [`dataviz-eval`](docs/skills/dataviz-eval.md) - send/revise verdict on a rendered chart, with every problem ranked. Only when you ask for one.
 
 **Craft details**
 - [`dataviz-color`](docs/skills/dataviz-color.md) - choose and assign colours for this chart; brand first, then accessibility.

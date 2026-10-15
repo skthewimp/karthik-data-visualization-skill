@@ -1,5 +1,31 @@
 # Devlog
 
+## 2026-10-15 - dataviz-eval rebuilt from a preference quiz
+
+### User report
+
+- "i need to fix the dataviz eval skill. right now it reflects preferences of LLMs much more
+  than mine." First attempt mined ~950 ggplot chunks from his R notebooks; he judged it worse
+  ("seems like we've made thigns wors") and it was reverted.
+- "maybe you should ask me questions. right now eval judges on some very esoteric things which
+  i din't really care about." Then: "what i want you to quiz me on is - on 'would you prefer this
+  or that' kind of stuff".
+
+### What was done
+
+- Asked which checks he uses (all four: analysis, point lands, readable at size, no junk), what
+  to drop (blind reads + gates, codes + benchmark), output (verdict + full ranked list) and
+  strictness (send unless it misleads or blocks).
+- Ran 24 this-or-that questions with ASCII previews. Answers went against the notebook mining on
+  legends and value axes, confirming that exploratory notebook defaults are not his taste.
+- Rewrote `dataviz-eval/SKILL.md` around those answers; deleted the framework reference; updated
+  READMEs, docs and the orchestrator's evaluation-report line.
+
+### Lesson
+
+- Code frequency can't separate "prefers" from "didn't bother to change". Ask the person with
+  side-by-side choices instead.
+
 ## 2026-10-13 - Eating humble pie
 
 ### User report

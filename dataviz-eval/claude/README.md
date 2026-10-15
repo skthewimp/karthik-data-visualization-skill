@@ -1,7 +1,7 @@
 # dataviz-eval / claude
 
-Claude surface for artifact readiness decisions and chart-creator benchmarks.
+Claude surface for send/revise/redesign verdicts on rendered charts.
 
 Install target: `~/.claude/skills/dataviz-eval/`.
 
-`SKILL.md` contains the operating protocol. `references/evaluation-framework.md` contains the gate anchors, failure taxonomy, benchmark design, and calibration cases. Keep both aligned with the Codex surface.
+`SKILL.md` contains the whole protocol. Keep it identical to the Codex surface.

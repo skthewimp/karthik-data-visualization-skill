@@ -41,7 +41,7 @@ Pass forward the smallest useful artifact at each boundary:
 4. **Facts table** — computed values, comparisons, uncertainty, and candidate claims.
 5. **Chart specification** — selected form, encodings, semantic mappings, context layers, and delivery condition.
 6. **Rendered artifact** — exact file delivered, plus reproducible code.
-7. **Evaluation report** — blind reads, evidence scope, required gates, release checks, verdict, and minimum pass set.
+7. **Evaluation report** — verdict and ranked problems (must fix, then polish).
 
 A downstream stage may reject or narrow an upstream artifact, but must state the reason and return a concrete handoff.
 

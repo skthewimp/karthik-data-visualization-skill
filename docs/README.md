@@ -10,7 +10,7 @@ Human-facing documentation for the public data visualization skills. Start here 
 - [`skills/dataviz-critique.md`](skills/dataviz-critique.md) - how to critique and redesign existing visuals
 - [`skills/dataviz-fix.md`](skills/dataviz-fix.md) - how to repair a chart through a feedback loop and learn only reusable lessons
 - [`skills/dataviz-orchestrator.md`](skills/dataviz-orchestrator.md) - how to go from a dataset and loose question to a finished visual story
-- [`skills/dataviz-eval.md`](skills/dataviz-eval.md) - how to gate a rendered chart and benchmark the system that created it
+- [`skills/dataviz-eval.md`](skills/dataviz-eval.md) - send/revise verdicts on a rendered chart
 - [`skills/karthik-analysis-planner.md`](skills/karthik-analysis-planner.md) - how to turn fuzzy data questions into analysis contracts
 - [`skills/dataset-question-generator.md`](skills/dataset-question-generator.md) - how to generate fresh visualisable questions from raw datasets
 - [`skills/karthik-data-cleaning.md`](skills/karthik-data-cleaning.md) - how to clean tabular data in context before analysis or charting
