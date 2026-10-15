@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### dataviz-selector lined up with the eval preference quiz
+
+- One-among-many stories prefer small multiples with the focal item first; focal-plus-muted
+  only when items share a panel. Equal-status items get one colour, not necessarily grey.
+- Shares changing over time default to one labelled line per part; 100% stacks only for broad
+  mix at one or a few points.
+
 ### karthik-data-visualization lined up with the eval preference quiz
 
 - Crowded end labels: nudge apart with leader lines before falling back to a legend.

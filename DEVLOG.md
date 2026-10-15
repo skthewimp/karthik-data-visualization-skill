@@ -1,5 +1,12 @@
 # Devlog
 
+## 2026-10-15 - Selector aligned with the eval quiz
+
+- "what about selector? any changes needed there?" Three disagreements with the quiz answers:
+  focal-plus-grey as the emphasis default, grey-implied neutral ranking bars, and 100% stacks as
+  an option for shares over time. Changed in place. Already consistent: pies for 2-3 parts,
+  no dual axes, log axes, tables for lookup, direct labels, event lines.
+
 ## 2026-10-15 - Core viz skill aligned with the eval quiz
 
 - "tell me what will change there and then change it" - compared `karthik-data-visualization`
