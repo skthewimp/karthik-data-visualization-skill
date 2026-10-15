@@ -1,5 +1,15 @@
 # Devlog
 
+## 2026-10-15 - Core viz skill aligned with the eval quiz
+
+- "tell me what will change there and then change it" - compared `karthik-data-visualization`
+  with the 24 quiz answers behind the new `dataviz-eval`. Already consistent: direct labels,
+  labels replacing value axes, fitted axes, claim titles, optional subtitles, pies for 2-3 parts,
+  tables for dense scans. Changed in place where it disagreed (label collisions, grey as the
+  neutral default, focal-plus-grey vs small multiples, stacked composition over time) and added
+  the habits it didn't mention. Docs page and README updated. `dataviz-selector` untouched: its
+  free-scale and log rules already agree.
+
 ## 2026-10-15 - dataviz-eval rebuilt from a preference quiz
 
 ### User report

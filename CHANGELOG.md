@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### karthik-data-visualization lined up with the eval preference quiz
+
+- Crowded end labels: nudge apart with leader lines before falling back to a legend.
+- Neutral marks can be one quiet colour, not necessarily grey; one-among-many stories prefer
+  small multiples with the focal item first over focal-plus-grey.
+- New rules: points on time-series lines, log axis across orders of magnitude, separate panels
+  instead of dual y-axes, lines for shares over time, free scales when panel sizes differ and
+  shape is the message, no "Year"-style axis titles, dotted line + short label for events, two
+  or three explanatory callouts welcome, definitions and source in a small footnote.
+
 ### dataviz-eval rebuilt from Karthik's answers
 
 - Cut from ~3,200 words to ~1,100. Removed blind expert/audience reads, the six-gate table,

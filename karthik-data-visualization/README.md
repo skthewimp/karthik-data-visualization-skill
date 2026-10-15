@@ -7,7 +7,7 @@ The skill is about the finished visual. It covers typography, colour, labels, an
 ## What it does
 
 - Uses claim-first titles and direct labels wherever possible.
-- Keeps grey for context and colour for the story.
+- Keeps colour restrained: one quiet colour for equal-status marks, a strong one for the story.
 - Removes chartjunk, decorative palettes, unnecessary legends, and weak gridlines.
 - Checks graphical integrity: scales, baselines, proportional encodings, and missing context.
 - Encourages rendering and inspecting the actual chart, not just reading the code.

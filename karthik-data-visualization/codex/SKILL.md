@@ -30,7 +30,7 @@ Core operating rules:
 - Choose the identification system from the chart's density and geometry. Prefer direct labels when every important mark or series can be named legibly and unambiguously at delivery size; otherwise use a categorical axis, legend, grouping, or small multiples.
 - Give each category or series one primary identification route. When a direct label carries the identity that a categorical axis or legend would carry, remove that redundant axis or legend. Keep quantitative scales, baselines, and references only when they add information the direct labels do not.
 - When one removed legend served several panels, replace its lookup in every panel that uses the mapping unless an equally immediate shared labelling system makes each panel independently interpretable. Do not direct-label only the easiest panel. Enumerate the expected labels per panel before rendering.
-- Use perceptual proximity to bind labels to marks. The intended label-mark relationship must be visually stronger than competing relationships with nearby labels or marks. Judge distance to the visible target, not merely to a shared row, plot edge, or baseline; alignment alone does not bridge unstructured whitespace. Use adjacency or a restrained guide. If direct labels would collide or drift away from their targets, change the label system or chart structure rather than forcing them.
+- Use perceptual proximity to bind labels to marks. The intended label-mark relationship must be visually stronger than competing relationships with nearby labels or marks. Judge distance to the visible target, not merely to a shared row, plot edge, or baseline; alignment alone does not bridge unstructured whitespace. Use adjacency or a restrained guide. When end labels crowd, nudge them apart and tie each to its mark with a short leader line. Switch to a legend, grouping or small multiples only when leader lines would still leave the pairing unclear.
 - Preserve an existing semantic palette unless changing it solves a stated problem. When colour encodes a series, category, state, or direction, derive every mark, connector, direct label, annotation, and legend entry from the same mapping.
 - Every encoded colour must remain perceptually distinct from the background and adjacent series at the intended display size and after compression. Replace, darken, outline, or add another channel when a light or low-contrast colour disappears.
 - Use domain-specific palettes where meaningful; avoid decorative or arbitrary series colours and do not copy one chart family's colours blindly.
@@ -40,13 +40,20 @@ Core operating rules:
 - Make whitespace do one of three jobs: group related elements, separate unrelated elements, or create emphasis. Inspect title-to-plot, label-to-mark, panel-to-panel, plot-to-note, and outer gaps independently; trim or restructure blank area that serves none of them.
 - Check rendered text and mark bounds for collisions, clipping, and occlusion. Fix the layout, wrapping, placement, or form before reducing legible type.
 - Favor visual forms that make comparison and change easy to read.
-- Prefer line charts over stacked bars when the question is trend comparison rather than composition.
+- Prefer line charts over stacked bars or areas when the question is trend comparison, including how shares change over time: one line per part, labelled at its end.
 - Use stacked bars only for broad composition. Only segments that begin or end on an aligned baseline support precise visual comparison; fixed-total stacks align both outer edges, but internal segments still float. Direct labels support value lookup, not easy across-bar pattern comparison. If exact component comparison matters, switch to a form with aligned component baselines.
 - Make visual hierarchy match information hierarchy: data, labels, annotations, grids, borders.
 - Show comparison and context explicitly; a chart should answer "compared to what?"
-- Use color sparingly: gray for context, color for emphasis or true encoding.
+- Use colour sparingly: muted for context, a strong colour for emphasis or true encoding. Neutral need not mean grey; one quiet colour for all equal-status marks is fine.
 - Exactly one thing should pop first. Emphasis is not colour alone: draw the focal series on top and heavier, with context muted behind it. After rendering, check where the eye actually lands.
 - Fit the value axis to the data, not to the unit's theoretical range: a percentage does not need 0-100 by default. Length encodings still keep their zero.
+- Use a log axis when positive values on a position encoding span orders of magnitude.
+- Mark each observation on a time-series line with a point, unless the series is too dense for points to stay distinct.
+- Put two measures with different units in separate panels on a shared x-axis, never on a dual y-axis.
+- When small-multiple panels differ greatly in size and each panel's shape is the message, give each its own scale.
+- Drop axis titles the ticks already explain, such as "Year" under a year axis.
+- Mark an event in a time series with a dotted vertical line and a two- or three-word label.
+- Two or three short callouts that explain a peak, dip or turn are welcome on a finished chart. They say why; they don't restate what the marks show.
 - Keep subtitles focused on the insight or comparison, not the mechanics of how the chart was made.
 - Let complexity come from the data, not decoration.
 
@@ -54,7 +61,7 @@ Core operating rules:
 
 Colour must earn its place. Position, length, ordering, direct labels, and annotation should carry the main comparison; colour should clarify identity, order, direction, or emphasis.
 
-- Default to neutral marks when the question and insight do not establish a focal item. Use one focal colour plus neutral grey context only when the focal item is named by the question, supported by the evidence, or explicitly requested. Never manufacture a highlight to make a chart look designed. Use several categorical hues only when several identities genuinely need equal status; when they cease to remain separable at delivery size, use grouping, direct labels, or small multiples instead of more hues.
+- Default to one colour for all marks when the question and insight do not establish a focal item; it need not be grey. When the story is about one item among several, prefer small multiples with that item's panel first. Use one focal colour plus muted context only when the items must share one panel and the focal item is named by the question, supported by the evidence, or explicitly requested. Never manufacture a highlight to make a chart look designed. Use several categorical hues only when several identities genuinely need equal status; when they cease to remain separable at delivery size, use grouping, direct labels, or small multiples instead of more hues.
 - Match the scale to the data: qualitative hues for nominal categories, one perceptually ordered sequential scale for magnitude, and a diverging scale only around a meaningful midpoint. Do not use a rainbow scale or encode ordered values with arbitrary categories.
 - Do not give a residual bucket (Other, Misc, remainder) the focal colour or the first slot, even when it is the largest.
 - Keep the same meaning in the same colour across panels and revisions. Reserve the most saturated or warm colour for the focal series, exception, or warning; equal-status series should have comparable visual weight.
@@ -79,4 +86,4 @@ When writing or changing chart code:
 - Prefer small multiples to crowded multi-series panels when comparison across groups is the task.
 - Consider sparklines or compact tables when many series need shape plus current value.
 - Consider range frames, rug marks, or labeled data points when axes or ticks can carry more information.
-- Include enough source, scale, timeframe, and transformation notes for a stranger to evaluate the evidence.
+- Include enough source, scale, timeframe, and transformation notes for a stranger to evaluate the evidence. Metric definitions and the source go in a small footnote at the bottom of the chart.
