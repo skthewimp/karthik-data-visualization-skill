@@ -2,20 +2,6 @@
 
 ## Unreleased
 
-### dataviz-eval calibrated to Karthik's own charts
-
-- Checked the rubric against about 950 ggplot chunks in Karthik's R notebooks (2018-2025),
-  especially consecutive redraws of the same chart, and against LLM-written notebooks from 2026.
-- New sweep item: measure, scale and order (rate vs total, shared vs free scales, baseline,
-  panel order) - the changes he actually makes when revising.
-- Value axes stay unless every value is labelled; measure-and-unit axis titles, light
-  gridlines, small legends for a few distinct series and per-panel axes on free-scale small
-  multiples are no longer findings. Legend titles and time-axis titles remain Minor deletions.
-- Metric definitions and inclusion rules ("excluding ties", "minimum 20 innings") are content,
-  not method notes.
-- Karthik calibration lists what not to flag (points on lines, smoothers, reference lines,
-  saturated categorical colours, bold text, descriptive titles, no subtitle).
-
 ### Pies for a long tail, and whitespace as waste
 
 - From the blog post "Eating humble pie": `dataviz-selector` now allows a directly labelled

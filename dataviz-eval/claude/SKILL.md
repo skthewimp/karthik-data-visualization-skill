@@ -20,8 +20,6 @@ Read `references/evaluation-framework.md` for gate anchors, failure codes, bench
 
 Source fidelity still matters, but only as one check: are the values, categories and claims right? It is never a reason to keep an element.
 
-**Judge by Karthik's taste, not a generic design checklist.** His own charts are plain and analytical: white background with light gridlines, a value axis whose title names the measure and unit, points on lines, a smoother over noisy series, a reference line at a meaningful threshold or event, a few series in distinct colours with a small legend when they aren't labelled, panels ordered by something that matters, and free-scale small multiples for scanning many groups. When he revises a chart he mostly changes the *measure* (a total becomes a rate, a share or a per-unit figure), the *population* named in the title, the *ordering*, and whether scales are *shared or free*. He rarely revises styling. Weight findings the same way: a wrong denominator or a misleading scale matters far more than a gridline, a legend or an axis title. See "Karthik calibration" for what not to flag.
-
 ## Where eval sits
 
 - `dataviz-selector` chooses the form; `karthik-data-visualization` builds and styles.
@@ -77,32 +75,31 @@ Walk the whole artifact against the principles below. Each is a general test, no
 Copy problems are the easiest to spot, and a reviewer that stops at them misses the rest. So the sweep is an **element walk**: write one line for each item below, either `clean - <what you checked>` or one or more findings with severity. A clean line needs no invented defect; a missing line is an incomplete review.
 
 1. **Form** - name the comparison the chart is meant to carry and say whether this form makes it directly (positions on a common scale, one sorted dimension, trajectories traceable) or whether the reader has to work around the form. A form that can't carry its comparison is `V1`, and it is found here or nowhere - no later item asks.
-2. **Measure, scale and order** - is the plotted quantity the one the claim is about (a rate, share or per-unit figure where raw totals would mostly show size; a total where the claim is about volume)? Do panels share a scale when levels are compared, and use free scales when shapes are compared? Does a scale start somewhere that exaggerates or hides the change? Are categories and panels ordered by something meaningful (the measure, a natural sequence) rather than alphabetically or by load order? These are the edits Karthik makes most often; a wrong one is Major, or Fatal when it reverses the reading.
-3. **First read and emphasis** - where the eye lands first at display size, whether that is the finding, and what competes with it.
-4. **Title** - put it beside the source's title and list the source's subject and scope nouns (who, where, what); each missing one is a finding. A plain descriptive title that names the measure and population is clean; a claim title is welcome when the evidence supports it, never required.
-5. **Subtitle** - if present, adds a fact the title does not carry. No subtitle is clean.
-6. **Notes, captions, annotations** - about the data, never the chart's making; substantive qualifications kept.
-7. **Each axis** - quote its title text literally. A value-axis title that names the measure and unit ("Runs per 100 balls", "Share of stores") earns its place, including on each panel's shared axis. An axis title that repeats what the ticks already say (a year or date axis titled "Year" or "Date", categories titled with the field name) is a Minor deletion. Then say whether the value axis itself is needed: it stays unless every plotted value carries its own label; endpoint or focal labels alone don't replace it.
-8. **Legend or key** - a small legend for a few series in clearly distinct colours is clean. A legend title that repeats the variable name is a Minor deletion. A legend duplicating direct labels is a Minor deletion. A legend becomes Major only when the reader can't match keys to marks without effort: many series, similar colours, or lines that cross and tangle.
-9. **Numbers** - for each numeric display group (title, mark labels, totals, ticks), the digits shown against the digits the spread needs to see the difference; rewrite one at spread precision and compare.
-10. **Smallest text** - estimate its size in native pixels and at display width, and name the element.
-11. **Canvas and panels** - check whether each panel's comparisons remain recoverable after mentally separating its labels; if not, revisit the form instead of prescribing more label repulsion. Compare the space allocated to overview, detail and totals with their reading tasks; a sparse totals panel need not occupy the same area as a detailed comparison. State the canvas aspect and the source's aspect; for a grid, the columns used and whether a wider canvas with more columns would give each panel more room. Estimate each panel's share of the height against how many rows or marks it carries. Name empty or reserved regions. "Tall by necessity" is not a finding of clean: the canvas shape is the creator's choice and can change.
-12. **Series separation** - name the two most similar series colours and say whether the reader ever has to tell them apart by colour alone (lines that cross or run close, a label near the other line, a legend). If so, near-hues are a finding; if position and direct labels carry identity throughout, it is clean.
-13. **Label placement** - every label on or beside its own mark, where the eye expects it.
-14. **Data against source** - every value the source draws is present, including unprinted ones readable from geometry.
+2. **First read and emphasis** - where the eye lands first at display size, whether that is the finding, and what competes with it.
+3. **Title** - put it beside the source's title and list the source's subject and scope nouns (who, where, what); each missing one is a finding.
+4. **Subtitle** - adds a fact the title does not carry.
+5. **Notes, captions, annotations** - about the data, never the chart's making; substantive qualifications kept.
+6. **Each axis** - quote its title text literally and say what it adds beyond the tick labels and the chart title; then say whether the axis itself is needed once direct labels are counted.
+7. **Legend or key** - whether direct labels or coloured words could replace it.
+8. **Numbers** - for each numeric display group (title, mark labels, totals, ticks), the digits shown against the digits the spread needs to see the difference; rewrite one at spread precision and compare.
+9. **Smallest text** - estimate its size in native pixels and at display width, and name the element.
+10. **Canvas and panels** - check whether each panel's comparisons remain recoverable after mentally separating its labels; if not, revisit the form instead of prescribing more label repulsion. Compare the space allocated to overview, detail and totals with their reading tasks; a sparse totals panel need not occupy the same area as a detailed comparison. State the canvas aspect and the source's aspect; for a grid, the columns used and whether a wider canvas with more columns would give each panel more room. Estimate each panel's share of the height against how many rows or marks it carries. Name empty or reserved regions. "Tall by necessity" is not a finding of clean: the canvas shape is the creator's choice and can change.
+11. **Series separation** - name the two most similar series colours and say whether the reader ever has to tell them apart by colour alone (lines that cross or run close, a label near the other line, a legend). If so, near-hues are a finding; if position and direct labels carry identity throughout, it is clean.
+12. **Label placement** - every label on or beside its own mark, where the eye expects it.
+13. **Data against source** - every value the source draws is present, including unprinted ones readable from geometry.
 
 **Copy on the chart speaks about the data, never about the chart's making.**
 - Any text about the chart's making - approximate, reconstructed, extracted, "values read from the source", "the source does not state", "not shown", or a note restating what the marks already show - is a Major finding (`F4`), wherever it sits: subtitle, caption, note, annotation, axis title. Those limitations belong in the run report. Anything about what the source showed, covered, labelled or omitted ("only men are shown", "these years were not shown in the source") is provenance, however it is phrased.
-- **Qualifications about the data's world are content, not hedges.** Projected, provisional, estimated by the publisher, excludes X, fiscal year, a survey's population, an association the source itself says is not causal: each changes what the numbers mean. So does how the metric is defined or who is in it: "excluding ties", "draws count as half", "minimum 20 innings", "stores that ordered at least once", "top 20 by volume". These belong on the chart, often in the title. Keep them, in whatever element carries them best. Removing or weakening one is `I2` (a caveat lost), not a clean-up; the test is who the text is about - our reconstruction, or the world the data describes.
+- **Qualifications about the data's world are content, not hedges.** Projected, provisional, estimated by the publisher, excludes X, fiscal year, a survey's population, an association the source itself says is not causal: each changes what the numbers mean. Keep them, in whatever element carries them best. Removing or weakening one is `I2` (a caveat lost), not a clean-up; the test is who the text is about - our reconstruction, or the world the data describes.
 - **The title keeps its subject and scope.** A title that drops who, where or what the source was about (the population, the market, the product) is Major.
 - **Numbers in copy use the precision the spread supports** (`dataviz-precision`). The test is the digits needed to see the difference, not the digits the source printed: two values five-digit long that differ by a tenth need three significant figures, not five. Inspect every numeric display group, including mark labels and totals. Excess digits are Major when they obscure the intended comparison or cause crowding, otherwise Minor; judge titles by the same reader-consequence test. Printed source digits alone never establish an exact-lookup requirement.
 - **A subtitle must add a fact the title does not carry.** A subtitle that restates the title, describes the chart, or hedges is Major.
 
-**Every non-data element earns its place (the eraser test).** For each axis title, legend, legend title, caption and key, ask: can the reader get this from the title, tick labels, direct labels, panel titles, or plain context? If yes, it is a Minor deletion. The eraser test is about duplicated words, not about stripping the chart to a bare design: a value axis with light gridlines, a small legend, a measure-and-unit axis title and points on a line are all doing work.
-- An axis title naming what the ticks already show (years, dates, categories) is Minor; one that says nothing ("value", "unknown quantity", a raw field name, a placeholder admitting the unit is unknown) is Major. An honest placeholder is still a placeholder: if the chart cannot name the quantity, the axis title goes.
-- A value axis stays by default; the reader reads intermediate values and gaps off it. It can go when every plotted value carries its own label, and then the measure and unit must still be named (axis title or chart title). Asking to remove a value axis because endpoints are labelled is overcorrection.
-- Light gridlines behind a value axis are not ink to erase. A heavy or grey-filled panel background that competes with the data is Minor.
-- In small multiples with free scales, each panel keeps its own axis; that is how the reader reads each panel's level. Shared scales can share one axis per row or column.
+**Every non-data element earns its place (the eraser test).** For each axis title, value axis, legend, gridline set, per-panel axis, caption and key, ask: can the reader get this from the title, tick labels, direct labels, panel titles, or plain context? If yes, it is ink, and it is a finding.
+- An axis title naming what the ticks already show (years, categories, "share") is Minor; one that says nothing ("value", "unknown quantity", a raw field name, a placeholder admitting the unit is unknown) is Major. An honest placeholder is still a placeholder: if the chart cannot name the quantity, the axis title goes.
+- Assess a value axis by the reading task. When direct values on endpoints and focal marks already support the comparison, keep the axis absent; do not restore it merely to estimate every intermediate observation. A required axis restoration must name the necessary comparison or scale ambiguity that existing labels cannot resolve. Equally, remove an existing axis when it adds no useful information.
+- A legend where the series could be labelled on the marks, or keyed by coloured words in the subtitle, is Major: the reader looks back and forth.
+- In small multiples, a full axis on every panel is noise when the panels do not share a scale. Label start and end values instead.
 - Removing an element is a defect (`F3`) only when its information is lost from the chart entirely.
 
 **Type is judged at display size, not native pixels.** An image is seen at the width the medium gives it, not at 100%. Effective text size is its rendered size times display width over image width. When the display width is not stated, assume a typical content column or chat bubble, well under a 1200 px export. Use measured sizes from an inspection report when available; otherwise estimate from the pixels. Text under about 10 px at display width - roughly 19 px in a 1200 px export shown at 640 px - is Major; any text the reader has to zoom to read is Major; panel titles and direct labels carrying identity are held to the axis-text floor, not below it.
@@ -143,7 +140,7 @@ A finding with no reader consequence is not a required change, however it would 
 
 Also list Minor findings whose fix is a deletion (a redundant axis title, a restating note): removing ink costs the next revision nothing, so it rides along with the required changes. A chart whose only findings are deletions can still be `Send` with them listed.
 
-Operations may change anything the user did not constrain: canvas size and aspect, panel layout, form details, copy, furniture. Remove rather than add: the fix for a hedge is to delete it, the fix for a restating note or axis title is to drop it. Don't add furniture the chart already does without.
+Operations may change anything the user did not constrain: canvas size and aspect, panel layout, form details, copy, furniture. Remove rather than add: the fix for a hedge is to delete it, the fix for a legend is direct labels, the fix for a redundant axis is to drop it.
 
 For a narrow repair the user scoped ("only fix the title"), findings outside that scope go to `baseline_concerns` unless they leave the chart materially misleading.
 
@@ -177,7 +174,7 @@ Audience: question ...; point ...; uncertainty ...; look-back points ...
 1. Form: clean - ... | [Fatal/Major/Minor] <finding> - <reader consequence>
 2. First read and emphasis: ...
 ...
-14. Data against source: ...
+13. Data against source: ...
 
 ## Gate results
 | Gate | Required? | Result | Evidence |
@@ -200,12 +197,9 @@ A short summary note, when one is asked for, names the top findings in severity 
 ## Karthik calibration
 
 - Judge the actual export at the size the reader sees it, never a large local preview or native pixels.
-- Every chart is for production. Hedges, provenance and extraction notes never belong on it. Metric definitions and inclusion rules do.
-- Less is more, measured in duplicated words and decoration, not in axes and gridlines. Karthik's house look is plain: white background, light gridlines, a value axis titled with measure and unit, no x-axis title on a time axis. Bold type is fine.
-- The analysis decides most verdicts. Check the denominator, the population in the title, shared versus free scales, the baseline and the ordering before any styling.
-- Direct labels are good when they fit; a small legend for a few distinct series is also fine. Don't trade one for the other unless the reader is actually working to match keys.
-- Do not flag these as defects on their own: points on a line, a smoother over noisy points, a reference line at a meaningful threshold or event, a saturated categorical palette with a few well-separated colours, bold text, many small multiples with free scales, a descriptive (non-claim) title, a missing subtitle or caption.
-- Do flag what LLM-made charts tend to add: captions and subtitles that restate the chart, grid and axis stripping that leaves values unreadable, annotations that narrate what the marks already show.
+- Every chart is for production. Hedges, provenance, method and extraction notes never belong on it.
+- Less is more: an element stays only if removing it loses information the reader cannot get elsewhere on the chart.
+- Prefer direct labels and coloured words over legends; prefer labelled endpoints over value axes.
 - Clipping, overlap, unreadable type and a canvas that doesn't fit its content are `Revise`, never `Redesign`.
 - If the intended result is "no defensible pattern", evaluate whether the reader understands that - don't punish an honest null for lacking a dramatic story.
 

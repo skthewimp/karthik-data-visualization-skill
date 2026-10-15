@@ -115,8 +115,8 @@ Separate naming difficulty from comparison difficulty: if individually labelled 
 
 ### Information fit
 
-- **Pass:** every text and furniture element is correct, publishable, and earns its place: the title keeps its subject, population and metric definition, numbers carry the precision the spread supports, a subtitle (if any) adds a fact, and no note or caption restates what the reader already has. A value axis with a measure-and-unit title, light gridlines and a small legend for a few distinct series are compatible with Pass.
-- **Concern:** a Major sweep finding - a hedge or provenance note, a legend the reader has to work to match, an axis title that says nothing, a subtitle that restates the title, a title that lost its scope - with the reading otherwise stable.
+- **Pass:** every text and furniture element is correct, publishable, and earns its place: the title keeps its subject and scope, numbers carry the precision the spread supports, the subtitle adds a fact, and no axis title, legend, value axis, or note restates what the reader already has.
+- **Concern:** a Major sweep finding - a hedge or provenance note, a legend where direct labels would read, a redundant value axis, an empty subtitle, a title that lost its scope - with the reading otherwise stable.
 - **Fail:** elements conflict, a mapping is ambiguous, or information the reader needs is gone from the chart entirely.
 - **Unknown:** required context or source material was not supplied.
 
@@ -132,7 +132,7 @@ Judge type at display width, not native pixels: effective size is rendered size 
 ### Accessibility and target style
 
 - **Pass:** contrast, colour use, type, language, and explicit style constraints serve the audience. Colour has a declared role, the scale matches the data, mappings remain stable, and key distinctions survive delivery conditions without hue alone.
-- **Concern:** a purposeless colour adds effort or creates an accidental highlight without changing the conclusion. Saturation alone is not a concern: a few strong, well-separated categorical colours are Karthik's normal palette.
+- **Concern:** a purposeless or over-saturated colour adds effort or creates an accidental highlight without changing the conclusion.
 - **Fail:** colour, contrast, type, or an explicit brief prevents a material part of the audience from reading the chart; mappings conflict; essential colours merge with the background or each other; or a colour-only distinction fails.
 - **Unknown:** audience or target profile is not known.
 
@@ -175,7 +175,7 @@ Assign the smallest set of codes that explains the failure. Do not tag every min
 | `F1` | Title, subtitle, takeaway, or annotation conflicts with the chart or describes process instead of meaning. |
 | `F2` | Labels, legend, direct labels, or colour mappings are ambiguous, incomplete, or inconsistent. |
 | `F3` | A redesign removed information the reader still needs and cannot recover anywhere else on the chart. |
-| `F4` | Hedge, provenance, or extraction note on the chart; a subtitle or caption that adds no fact; an axis title, legend title or legend that only repeats what ticks or direct labels already say. Metric definitions and inclusion rules are content, not `F4`. |
+| `F4` | Hedge, provenance, method, or extraction note on the chart; a subtitle or caption that adds no fact; redundant furniture (axis title, value axis, legend, per-panel axes) that restates what the reader already has. |
 
 ### Rendering and medium
 
@@ -204,9 +204,8 @@ Prioritize by reader consequence:
 3. Wrong, absent, or overstated insight
 4. Unreadable at display size, or a canvas that crushes its content
 5. Unpublishable copy: hedges, provenance, lost title scope, excess precision
-6. Wrong measure, scale or order for the comparison: raw totals where a rate is the point, shared versus free scales mismatched to the task, a baseline that exaggerates, arbitrary category order
-7. Look-back effort: legends the reader works to match, labels away from their marks, indistinct series
-8. Polish
+6. Look-back effort: legends, redundant axes, labels away from their marks, indistinct series
+7. Polish
 
 Reviewer agreement strengthens confidence, but it does not override consequence. An expert-only integrity failure can be fatal even when an audience reviewer does not notice it.
 
@@ -274,7 +273,7 @@ Prefer:
 - gate failures and failure codes by case slice
 - paired regressions and improvements against the previous version
 - finding precision and recall against the adjudicated issues, including false revision requests
-- forbidden recommendations made (such as reinstating furniture direct labels already cover, stripping a needed value axis or gridlines, or freezing a creator-chosen form)
+- forbidden recommendations made (such as reinstating redundant furniture or freezing a creator-chosen form)
 - reviewer agreement before adjudication
 - median and tail latency and cost
 
@@ -332,10 +331,6 @@ The first repair was marked `Send`, but FY20 appeared as a floating label inside
 
 An independent reviewer ran on eight repaired charts and found about one in six of the issues the maintainer later marked, while recommending the opposite of the maintainer on about ten. It praised extraction caveats as honest disclosure and asked for them to be kept, asked for a legend to be added back, kept an axis title that said nothing, froze the creator's canvas as a constraint while the canvas was the main defect, called text legible at native pixels that was unreadable at display width, and asked for a line to break around years the source drew but did not label. Each note named one issue and called the rest fine. The causes were in this rubric: fidelity framed as keeping the source's qualifications, a keep-by-default rule for legends and axes, a blockers-only render check, and the creator's choices treated as a change contract. The fixes are the publishability frame, the eraser test, display-width type, and user-only constraints.
 
-### Karthik's revealed preferences
-
-The calibration in `SKILL.md` was checked against Karthik's own R notebooks from 2018 to 2025 (about 950 ggplot chunks), especially consecutive chunks where he redrew the same chart with a change, and contrasted with LLM-written notebooks from 2026. In his own work most value axes carry a measure-and-unit title, gridlines stay, points sit on lines, smoothers and reference lines are common, small legends with a blank title are normal, and subtitles and captions are rare (when present they define the population). His revisions change the measure, the denominator, the population in the title, the ordering of panels and the shared-versus-free scale far more often than styling. The LLM-written notebooks add captions and subtitles several times as often and strip gridlines and axis titles much more. An evaluation that rewards the second pattern over the first is judging by model taste, not his.
-
 ## Provenance
 
 This framework combines Karthik Shashidhar's chart principles and observed repair failures with ideas from Vikram Nayak's Fifth Elephant 2026 talk, *Measuring “good” when your agent's output is subjective*. The talk supplied the creator/expert/audience separation, blind-read method, failure-mode synthesis, and benchmark discipline. The wording and rubric here are adapted for this skill rather than copied from the slides.
@@ -344,7 +339,7 @@ This framework combines Karthik Shashidhar's chart principles and observed repai
 
 Use these general contrasts when constructing a private golden set; keep its artifacts and transcripts outside published skill packages.
 
-- A trend with every point value-labelled can drop its value ticks, keeping the measure and unit named. A trend with only endpoint or focal labels keeps its value axis; asking to remove it is overcorrection.
+- A trend with endpoint and focal-value labels can pass without a value axis. Restoring an axis requires a necessary comparison those labels cannot support.
 - A unit and population recoverable from the combined title, subtitle and labels need not be repeated in every element.
 - A dense trajectory comparison may need small multiples even after all names are separated. Keep a working aggregate overview.
 - Quantities being compared use spread precision even if the source prints exact digits; a genuine exact-lookup table preserves the required digits.
