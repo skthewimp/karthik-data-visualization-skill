@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### One item among many: crowding versus too many panels
+
+- `karthik-data-visualization`, `dataviz-selector`, `dataviz-eval`: a shared panel with the
+  focal line coloured works while the lines stay readable (roughly up to five); beyond that,
+  small multiples with the focal item first. Framed as a trade-off, not a hard count.
+
 ### dataviz-selector lined up with the eval preference quiz
 
 - One-among-many stories prefer small multiples with the focal item first; focal-plus-muted

@@ -28,7 +28,7 @@ Judge against these. A chart that follows them is not wrong for doing so.
 - **Claim titles.** The title states the finding. A subtitle is optional, not expected.
 - **Definitions and source sit on the chart, small.** A metric definition ("draws count as half a win") goes in a footnote; a short source line sits at the bottom.
 - **Events get a dotted line and a two- or three-word label**, not a paragraph and not nothing.
-- **When the story is about one item among many, prefer small multiples with that item first** over one panel with a highlighted line.
+- **One item among several: shared panel while it stays readable, small multiples once it crowds.** Up to about five lines can share a panel with the focal one coloured and the rest muted; beyond that, or whenever the lines tangle, small multiples with the focal item first. Trade crowding against too many panels.
 - **Small multiples of very different sizes use free scales**, so each panel's shape shows.
 - **Explain the shape.** Two or three short callouts on the peaks, dips or turns that matter are welcome on a published chart; they explain the data, they don't restate it.
 - **Neutral marks can still have colour.** With no focal item, one colour for all marks is right, and it needn't be grey.

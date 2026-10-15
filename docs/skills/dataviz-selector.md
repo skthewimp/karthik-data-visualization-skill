@@ -51,7 +51,7 @@ If implementing: <short code/design note>
 - Identify the comparison: time, peers, baseline, threshold, counterfactual, distribution, spatial context, model expectation, or decomposition.
 - Use the simplest chart that exposes that comparison.
 - Add context only when it helps: event markers, thresholds, ribbons, counterfactuals, direct labels, facets, or short annotations.
-- Choose colour by analytical role: small multiples with the focal item first for one-among-many stories (focal-plus-muted only within one panel), qualitative hues for identity, sequential scales for magnitude, and diverging scales only around a meaningful midpoint.
+- Choose colour by analytical role: for one-among-many stories, focal-plus-muted in one panel while the lines stay readable (roughly up to five) and small multiples with the focal item first once they crowd, qualitative hues for identity, sequential scales for magnitude, and diverging scales only around a meaningful midpoint.
 - For S-curves and other shaped time series, mark visible knee-bends/inflections, local maxima/minima, and temporary peaks/troughs when they change the story.
 - If the dataset does not support the user's question, say so and chart the evidence that exists.
 

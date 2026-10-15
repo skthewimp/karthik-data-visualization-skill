@@ -1,5 +1,12 @@
 # Devlog
 
+## 2026-10-15 - One-among-many threshold
+
+- "depends upon the numbre of items... up to 5 lines can share a panel, beyond that small
+  multiples. basically it's about crowding vs too many panels." Replaced the blanket
+  small-multiples preference in the three skills with the trade-off, citing about five as a
+  rough guide rather than a trigger.
+
 ## 2026-10-15 - Selector aligned with the eval quiz
 
 - "what about selector? any changes needed there?" Three disagreements with the quiz answers:

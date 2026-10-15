@@ -17,7 +17,7 @@ Lenient. A problem is **must fix** only if it misleads or stops a quick read. Ev
 
 ## Whose taste
 
-The skill carries a "Karthik's preferences" section built from a this-or-that quiz: direct labels over legends (repelled labels when they crowd), labels instead of value axes, points on lines, axes fitted to the data, whole numbers where the spread allows, claim titles, small footnotes for definitions and source, short explanatory callouts, small multiples for one-among-many stories, lines for shares over time, separate panels instead of dual axes, log axes for huge ranges, labelled pies for two or three parts, and tables for dense lookup.
+The skill carries a "Karthik's preferences" section built from a this-or-that quiz: direct labels over legends (repelled labels when they crowd), labels instead of value axes, points on lines, axes fitted to the data, whole numbers where the spread allows, claim titles, small footnotes for definitions and source, short explanatory callouts, one shared panel for a handful of lines and small multiples once they crowd, lines for shares over time, separate panels instead of dual axes, log axes for huge ranges, labelled pies for two or three parts, and tables for dense lookup.
 
 An earlier version was a heavy audit framework: blind expert and audience reads, six gates, a failure-code taxonomy and a benchmark mode. It judged on things Karthik didn't care about, so it was cut down to this. An attempt to infer his taste from his exploratory R notebooks was also reverted: quick notebook charts keep default legends and axes because nobody bothered to change them, not because he prefers them.
 
