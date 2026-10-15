@@ -1,5 +1,34 @@
 # Devlog
 
+## 2026-10-15 - dataviz-eval calibrated to Karthik's own charts
+
+### User report
+
+- "i need to fix the dataviz eval skill. right now it reflects preferences of LLMs much more
+  than mine. look through all my code in the work folder here to understand my preferences...
+  especialy look at R notebooks wehre i might have similar graphs in consecutive chunks where
+  i've changed stuff etc."
+
+### What was done
+
+- Extracted every ggplot chunk from Rmd/qmd files under `~/Documents/work` (skipping this repo
+  and the repair-site repos). 245 files; 502 consecutive chunk pairs that were near-duplicates
+  (similarity 0.55-0.995) were diffed to see what changed between redraws.
+- Split by file date: pre-2026 (954 chunks, Karthik's own) versus 2026 (921 chunks, mostly
+  written with LLMs). Pre-2026: value-axis title set ~60%, subtitle ~10%, caption ~2%, grid
+  removed ~7%, points+lines ~45%, Set1 ~26%. 2026: subtitle ~45%, caption ~18%, grid removed
+  ~28%, axis titles blanked ~47%, points+lines ~12%.
+- Redraw diffs mostly change data, not styling: the measure (totals to per-store, shares, per
+  100 balls), the population in the title, facet ordering via `reorder()`, free vs fixed
+  scales, `lim = c(0, NA)`, integer breaks. Styling edits that do recur: blank legend titles,
+  blank x title on dates, value-axis titles with units, ticks removed only when every point
+  carries a value label (axis title kept), grey context lines with one coloured focal year.
+- Rewrote the eval rules that contradicted this (legend = Major, axis removable when endpoints
+  are labelled, per-panel axes as noise, gridlines as ink, method notes as F4, saturation as a
+  concern) and added a measure/scale/order sweep item. Changes are replacements in place, not
+  new gates; checked against `docs/what-not-to-do.md` - each rule comes from a pattern across
+  hundreds of charts, not from one failing case.
+
 ## 2026-10-13 - Eating humble pie
 
 ### User report
