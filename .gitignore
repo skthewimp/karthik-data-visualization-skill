@@ -5,4 +5,5 @@ karthik-r-analysis-style/*/references/
 .DS_Store
 .venv/
 __pycache__/
+*.egg-info/
 *.pyc
